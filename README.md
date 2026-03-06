@@ -2,7 +2,6 @@
 
 ![Versión](https://img.shields.io/badge/version-0.1.0--alpha-blue.svg)
 ![Licencia](https://img.shields.io/badge/license-GNU%20GPLv3-green.svg)
-![Hecho en](https://img.shields.io/badge/Hecho%20en-Colombia%20%F0%9F%87%A8%F0%9F%87%B4-orange)
 
 EmuManager es un gestor integral de juegos retro con una interfaz moderna y sumamente intuitiva, construida con Flet (Flutter para Python). Te permite descargar, organizar y ejecutar tus emuladores y ROMs clásicas desde un solo lugar, de una forma visualmente atractiva y fácil de usar.
 

@@ -306,6 +306,6 @@ class DownloadsView(ft.Container):
                     alignment=ft.MainAxisAlignment.SPACE_BETWEEN
                 ),
                 padding=10,
-                height=20,
+                height=180,
             )
         )

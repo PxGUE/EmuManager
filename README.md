@@ -51,4 +51,3 @@ EmuManager es un gestor integral de juegos retro con una interfaz moderna y suma
 Este proyecto está bajo la Licencia GNU GPLv3 - mira el archivo [LICENSE](LICENSE) o [detalles de la licencia](https://www.gnu.org/licenses/gpl-3.0.html) para más detalles.
 
 ---
-*🇨🇴 Creado con mucha dedicación en Colombia.*

@@ -25,6 +25,7 @@ class EmuladorManager:
         config = self._load_config()
         self.install_path = config.get("install_path", "")
         self.roms_path = config.get("roms_path", "")
+        self.language = config.get("language", "es")
         
         self.installed_emus = self._load_installed()
         self.headers = {"User-Agent": "EmuManager-App"}
@@ -114,7 +115,7 @@ class EmuladorManager:
                 return {}
         return {}
 
-    def save_config(self, install_path=None, roms_path=None):
+    def save_config(self, install_path=None, roms_path=None, language=None):
         config = self._load_config()
         if install_path is not None:
             config["install_path"] = install_path
@@ -124,6 +125,9 @@ class EmuladorManager:
             self.roms_path = roms_path
             # Al cambiar la ruta de roms, creamos carpetas para los emuladores ya instalados
             self.crear_carpetas_roms()
+        if language is not None:
+            config["language"] = language
+            self.language = language
             
         with open(self.config_file, "w") as f:
             json.dump(config, f)

@@ -2,6 +2,7 @@ import flet as ft
 from core.emulators import EmuladorManager
 from core.constants import AVAILABLE_EMULATORS
 import core.artwork as artwork
+from core.i18n import Translator
 
 from ui.views.dashboard import DashboardView
 from ui.views.library import LibraryView
@@ -16,6 +17,7 @@ class EmuApp(ft.Container):
         self.margin = 0
         self._page_ref = page
         self.emu_manager = EmuladorManager()
+        self.translator = Translator(self.emu_manager.language)
         
         self.emu_platform_map = {
             emu["id"]: emu.get("libretro_platform")
@@ -23,10 +25,15 @@ class EmuApp(ft.Container):
         }
 
         # Inicializar vistas (Lazy mounting handles the actual build)
-        self.dashboard_view = DashboardView(self.emu_manager)
-        self.library_view = LibraryView(self.emu_manager, self.emu_platform_map, self._page_ref)
-        self.downloads_view = DownloadsView(self.emu_manager, on_update_library_bg=self.library_view.mostrar_consolas)
-        self.settings_view = SettingsView(self.emu_manager, on_update_dashboard_status=self.dashboard_view.update_dashboard_status)
+        self.dashboard_view = DashboardView(self.emu_manager, self.translator)
+        self.library_view = LibraryView(self.emu_manager, self.emu_platform_map, self._page_ref, self.translator)
+        self.downloads_view = DownloadsView(self.emu_manager, self.translator, on_update_library_bg=self.library_view.mostrar_consolas)
+        self.settings_view = SettingsView(
+            self.emu_manager, 
+            self.translator,
+            on_update_dashboard_status=self.dashboard_view.update_dashboard_status,
+            on_language_change=self.on_language_change
+        )
 
         self.content_area = ft.Container(content=self.dashboard_view, expand=True, padding=0, margin=0)
 
@@ -37,10 +44,10 @@ class EmuApp(ft.Container):
             min_extended_width=200,
             group_alignment=-0.9,
             destinations=[
-                ft.NavigationRailDestination(icon=ft.Icons.HOME_OUTLINED, selected_icon=ft.Icons.HOME, label="Inicio"),
-                ft.NavigationRailDestination(icon=ft.Icons.LIBRARY_BOOKS_OUTLINED, selected_icon=ft.Icons.LIBRARY_BOOKS, label="Biblioteca"),
-                ft.NavigationRailDestination(icon=ft.Icons.DOWNLOAD_OUTLINED, selected_icon=ft.Icons.DOWNLOAD, label="Descargar"),
-                ft.NavigationRailDestination(icon=ft.Icons.SETTINGS_OUTLINED, selected_icon=ft.Icons.SETTINGS, label="Configuración"),
+                ft.NavigationRailDestination(icon=ft.Icons.HOME_OUTLINED, selected_icon=ft.Icons.HOME, label=self.translator.t("nav_home")),
+                ft.NavigationRailDestination(icon=ft.Icons.LIBRARY_BOOKS_OUTLINED, selected_icon=ft.Icons.LIBRARY_BOOKS, label=self.translator.t("nav_library")),
+                ft.NavigationRailDestination(icon=ft.Icons.DOWNLOAD_OUTLINED, selected_icon=ft.Icons.DOWNLOAD, label=self.translator.t("nav_downloads")),
+                ft.NavigationRailDestination(icon=ft.Icons.SETTINGS_OUTLINED, selected_icon=ft.Icons.SETTINGS, label=self.translator.t("nav_settings")),
             ],
             on_change=self.on_nav_change,
         )
@@ -56,6 +63,41 @@ class EmuApp(ft.Container):
 
     def on_nav_change(self, e):
         index = e.control.selected_index
+        if index == 0:
+            self.content_area.content = self.dashboard_view
+        elif index == 1:
+            self.content_area.content = self.library_view
+        elif index == 2:
+            self.content_area.content = self.downloads_view
+        elif index == 3:
+            self.content_area.content = self.settings_view
+            
+        self.content_area.update()
+
+    def on_language_change(self, new_lang):
+        # Update translator
+        self.translator.set_language(new_lang)
+        
+        # Update Navigation Rail labels
+        self.rail.destinations[0].label = self.translator.t("nav_home")
+        self.rail.destinations[1].label = self.translator.t("nav_library")
+        self.rail.destinations[2].label = self.translator.t("nav_downloads")
+        self.rail.destinations[3].label = self.translator.t("nav_settings")
+        self.rail.update()
+        
+        # We need to recreate the views to reflect the new language
+        self.dashboard_view = DashboardView(self.emu_manager, self.translator)
+        self.library_view = LibraryView(self.emu_manager, self.emu_platform_map, self._page_ref, self.translator)
+        self.downloads_view = DownloadsView(self.emu_manager, self.translator, on_update_library_bg=self.library_view.mostrar_consolas)
+        self.settings_view = SettingsView(
+            self.emu_manager, 
+            self.translator,
+            on_update_dashboard_status=self.dashboard_view.update_dashboard_status,
+            on_language_change=self.on_language_change
+        )
+        
+        # Update current view
+        index = self.rail.selected_index
         if index == 0:
             self.content_area.content = self.dashboard_view
         elif index == 1:

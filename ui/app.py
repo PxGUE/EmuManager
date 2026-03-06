@@ -1,4 +1,5 @@
 import flet as ft
+import asyncio
 from core.emulators import EmuladorManager
 from core.constants import AVAILABLE_EMULATORS
 import core.artwork as artwork
@@ -60,6 +61,18 @@ class EmuApp(ft.Container):
             ],
             expand=True,
         )
+        
+        # Iniciar tarea periódica para actualizar el tiempo de juego
+        page.run_task(self._monitor_playtime)
+
+    async def _monitor_playtime(self):
+        """Tarea de fondo para actualizar el tiempo de juego segundo a segundo mientras el emulador corre."""
+        while True:
+            if self.emu_manager.is_emulator_running():
+                game_obj = self.emu_manager.launcher.current_game
+                start_time = self.emu_manager.launcher.current_game_start
+                self.emu_manager.update_playtime(game_obj, start_time)
+            await asyncio.sleep(5) # Actualizar cada 5 segundos para no sobrecargar el disco
 
     def on_nav_change(self, e):
         index = e.control.selected_index

@@ -12,4 +12,4 @@ async def main(page: ft.Page):
     page.add(app)
     
 if __name__ == "__main__":
-    ft.app(target=main, assets_dir="media", view=ft.AppView.FLET_APP)
+    ft.run(main, assets_dir="media")

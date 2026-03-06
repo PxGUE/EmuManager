@@ -3,6 +3,7 @@ import os
 import asyncio
 import core.scanner as scanner
 import core.artwork as artwork
+from ui.components import create_console_card, create_game_card
 
 class LibraryView(ft.Container):
     def __init__(self, emu_manager, emu_platform_map, page, translator):
@@ -32,7 +33,7 @@ class LibraryView(ft.Container):
             expand=True,
             runs_count=5,
             max_extent=160,
-            child_aspect_ratio=0.62,
+            child_aspect_ratio=0.65,
             spacing=30,
             run_spacing=30,
             padding=ft.padding.all(40),
@@ -130,53 +131,7 @@ class LibraryView(ft.Container):
         self.mostrar_consolas()
         
     def crear_tarjeta_consola(self, emu, count):
-        # Para la lógica de existencia usamos la ruta física
-        logo_fisico = artwork.obtener_ruta_logo_consola(emu["id"])
-        has_logo = os.path.exists(logo_fisico)
-        
-        # Para mostrar en Flet usamos la ruta de assets
-        logo_assets = artwork.obtener_ruta_logo_consola(emu["id"], flet_path=True)
-        
-        return ft.Container(
-            content=ft.Stack([
-                # Imagen de fondo (Logo de consola o icono)
-                ft.Container(
-                    content=ft.Image(
-                        src=logo_assets,
-                        fit=ft.BoxFit.CONTAIN,
-                        opacity=0.4 if has_logo else 0.1,
-                        width=120,
-                        height=120,
-                    ) if has_logo else ft.Icon(ft.Icons.VIDEOGAME_ASSET, size=60, color=ft.Colors.BLUE_GREY_800),
-                    alignment=ft.Alignment.CENTER,
-                ),
-                # Gradiente para legibilidad
-                ft.Container(
-                    gradient=ft.LinearGradient(
-                        begin=ft.Alignment.TOP_CENTER,
-                        end=ft.Alignment.BOTTOM_CENTER,
-                        colors=[ft.Colors.TRANSPARENT, ft.Colors.BLACK87],
-                    ),
-                    border_radius=20,
-                ),
-                # Texto
-                ft.Container(
-                    content=ft.Column([
-                        ft.Text(emu["console"], size=16, weight=ft.FontWeight.BOLD, text_align=ft.TextAlign.CENTER, max_lines=1, overflow=ft.TextOverflow.ELLIPSIS),
-                        ft.Text(emu["name"], size=11, color=ft.Colors.BLUE_200, text_align=ft.TextAlign.CENTER),
-                        ft.Text(self.translator.t("lib_games_count", count), size=10, color=ft.Colors.GREY_500),
-                    ], alignment=ft.MainAxisAlignment.END, horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=2),
-                    padding=15,
-                )
-            ]),
-            width=180,
-            height=180,
-            bgcolor="#1a1c22",
-            border_radius=20,
-            on_click=lambda _: self.abrir_detalle_consola(emu),
-            ink=True,
-            border=ft.border.all(1, ft.Colors.WHITE10),
-        )
+        return create_console_card(emu, count, self.translator, self.abrir_detalle_consola)
 
     def abrir_detalle_consola(self, emu):
         biblioteca = scanner.cargar_biblioteca_cache()
@@ -279,100 +234,6 @@ class LibraryView(ft.Container):
         self.hero_update_fn = update_hero
         self._actualizar_rejilla_juegos(juegos)
 
-        game_boxes = []
-        for j in juegos:
-            caratula_path = artwork.obtener_ruta_caratula(j["ruta"])
-            has_art = artwork.tiene_caratula(j["ruta"])
-            
-            # Imagen de la tarjeta
-            if has_art:
-                art_img = ft.Image(
-                    src=caratula_path,
-                    width=135,
-                    height=180,
-                    fit=ft.BoxFit.COVER,
-                    border_radius=10,
-                )
-            else:
-                art_img = ft.Container(
-                    content=ft.Icon(ft.Icons.VIDEOGAME_ASSET_OUTLINED, size=40, color=ft.Colors.BLUE_200),
-                    width=135,
-                    height=180,
-                    bgcolor="#252830",
-                    border_radius=10,
-                    alignment=ft.Alignment(0, 0)
-                )
-
-            # Botón de Play flotante
-            play_btn = ft.Container(
-                content=ft.IconButton(
-                    icon=ft.Icons.PLAY_ARROW_ROUNDED,
-                    icon_color=ft.Colors.WHITE,
-                    icon_size=40,
-                    bgcolor=ft.Colors.BLUE_ACCENT_700,
-                    on_click=lambda _, game=j: self._page_ref.run_task(self.lanzar_con_info, game),
-                    style=ft.ButtonStyle(
-                        shape=ft.CircleBorder(),
-                    )
-                ),
-                opacity=0,
-                animate_opacity=200,
-                alignment=ft.Alignment.CENTER,
-            )
-
-            # Imagen con botón encima
-            image_stack = ft.Stack([
-                art_img,
-                play_btn
-            ], width=135, height=180)
-
-            # Contenedor de la tarjeta de juego
-            card_content = ft.Container(
-                content=ft.Column([
-                    image_stack,
-                    ft.Container(
-                        content=ft.Text(
-                            j["nombre"], 
-                            size=12, 
-                            weight=ft.FontWeight.BOLD, 
-                            max_lines=1, 
-                            overflow=ft.TextOverflow.ELLIPSIS, 
-                            text_align=ft.TextAlign.CENTER
-                        ),
-                        padding=ft.padding.only(left=5, right=5, bottom=5),
-                        width=135
-                    ),
-                ], spacing=8, horizontal_alignment=ft.CrossAxisAlignment.CENTER),
-                padding=8,
-                border_radius=15,
-                bgcolor="#1e2129",
-                border=ft.border.all(1, ft.Colors.WHITE10),
-                animate=ft.Animation(300, ft.AnimationCurve.DECELERATE),
-            )
-
-            def handle_hover(e, container=card_content, game=j, btn=play_btn):
-                is_hover = e.data == "true"
-                container.scale = 1.05 if is_hover else 1.0
-                container.border = ft.border.all(1, ft.Colors.BLUE_400) if is_hover else ft.border.all(1, ft.Colors.WHITE10)
-                container.shadow = ft.BoxShadow(blur_radius=15, color="#000000") if is_hover else None
-                btn.opacity = 1 if is_hover else 0
-                btn.update()
-                container.update()
-                update_hero(game if is_hover else None)
-
-            card_content.on_hover = handle_hover
-            card_content.on_click = lambda _, game=j: self.mostrar_info_juego(game)
-            card_content.mouse_cursor = ft.MouseCursor.CLICK
-
-            game_boxes.append(
-                ft.Card(
-                    content=card_content,
-                    elevation=10,
-                    margin=0,
-                    shape=ft.RoundedRectangleBorder(radius=15),
-                )
-            )
-
         self.biblioteca_main_area.content = ft.Column([
             ft.Container(
                 content=ft.Stack([
@@ -442,8 +303,25 @@ class LibraryView(ft.Container):
         ]
         self._actualizar_rejilla_juegos(filtered)
 
+    def _handle_card_hover(self, e, overlay, game_data):
+        """Manejador de hover con actualización directa de componentes."""
+        is_h = e.data == "true"
+        card = e.control
+        
+        card.scale = 1.1 if is_h else 1.0
+        card.border = ft.border.all(2, ft.Colors.BLUE_400 if is_h else ft.Colors.with_opacity(0.1, ft.Colors.WHITE))
+        overlay.opacity = 1.0 if is_h else 0.0
+        
+        try:
+            card.update()
+            overlay.update()
+            if self.hero_update_fn:
+                self.hero_update_fn(game_data if is_h else None)
+        except:
+            pass
+
     def _actualizar_rejilla_juegos(self, juegos):
-        """Reconstruye los controles de la rejilla basándose en la lista proporcionada."""
+        """Reconstruye la rejilla de juegos DESDE CERO con arquitectura simplificada."""
         game_boxes = []
         
         if not juegos:
@@ -462,133 +340,19 @@ class LibraryView(ft.Container):
         self.game_grid_container.content = self.game_grid
 
         for j in juegos:
-            caratula_path = artwork.obtener_ruta_caratula(j["ruta"])
-            has_art = artwork.tiene_caratula(j["ruta"])
-            
-            # Imagen de la tarjeta
-            if has_art:
-                art_img = ft.Image(
-                    src=caratula_path,
-                    width=135,
-                    height=180,
-                    fit=ft.BoxFit.COVER,
-                    border_radius=10,
-                )
-            else:
-                art_img = ft.Container(
-                    content=ft.Icon(ft.Icons.VIDEOGAME_ASSET_OUTLINED, size=40, color=ft.Colors.BLUE_200),
-                    width=135,
-                    height=180,
-                    bgcolor="#252830",
-                    border_radius=10,
-                    alignment=ft.Alignment(0, 0)
-                )
-
-            # Botón de Play flotante
-            play_btn = ft.Container(
-                content=ft.IconButton(
-                    icon=ft.Icons.PLAY_ARROW_ROUNDED,
-                    icon_color=ft.Colors.WHITE,
-                    icon_size=40,
-                    bgcolor=ft.Colors.BLUE_ACCENT_700,
-                    on_click=lambda _, game=j: self._page_ref.run_task(self.lanzar_con_info, game),
-                    style=ft.ButtonStyle(
-                        shape=ft.CircleBorder(),
-                    )
-                ),
-                opacity=0,
-                animate_opacity=200,
-                alignment=ft.Alignment.CENTER,
+            card = create_game_card(
+                game=j,
+                on_launch=lambda g: self._page_ref.run_task(self.lanzar_con_info, g),
+                hero_update_fn=self.hero_update_fn
             )
-
-            # Imagen con botón encima
-            image_stack = ft.Stack([
-                art_img,
-                play_btn
-            ], width=135, height=180)
-
-            # Contenedor de la tarjeta de juego
-            card_content = ft.Container(
-                content=ft.Column([
-                    image_stack,
-                    ft.Container(
-                        content=ft.Text(
-                            j["nombre"], 
-                            size=12, 
-                            weight=ft.FontWeight.BOLD, 
-                            max_lines=1, 
-                            overflow=ft.TextOverflow.ELLIPSIS, 
-                            text_align=ft.TextAlign.CENTER
-                        ),
-                        padding=ft.padding.only(left=5, right=5, bottom=5),
-                        width=135
-                    ),
-                ], spacing=8, horizontal_alignment=ft.CrossAxisAlignment.CENTER),
-                padding=8,
-                border_radius=15,
-                bgcolor="#1e2129",
-                border=ft.border.all(1, ft.Colors.WHITE10),
-                animate=ft.Animation(300, ft.AnimationCurve.DECELERATE),
-            )
-
-            def handle_hover(e, container=card_content, game=j, btn=play_btn):
-                is_hover = e.data == "true"
-                container.scale = 1.05 if is_hover else 1.0
-                container.border = ft.border.all(1, ft.Colors.BLUE_400) if is_hover else ft.border.all(1, ft.Colors.WHITE10)
-                container.shadow = ft.BoxShadow(blur_radius=15, color="#000000") if is_hover else None
-                btn.opacity = 1 if is_hover else 0
-                try:
-                    btn.update()
-                    container.update()
-                    if self.hero_update_fn:
-                        self.hero_update_fn(game if is_hover else None)
-                except: pass
-
-            card_content.on_hover = handle_hover
-            card_content.on_click = lambda _, game=j: self.mostrar_info_juego(game)
-            card_content.mouse_cursor = ft.MouseCursor.CLICK
-
-            game_boxes.append(
-                ft.Card(
-                    content=card_content,
-                    elevation=10,
-                    margin=0,
-                    shape=ft.RoundedRectangleBorder(radius=15),
-                )
-            )
+            game_boxes.append(card)
         
         self.game_grid.controls = game_boxes
-        try: self.game_grid_container.update()
+        try:
+            self.game_grid.update()
         except: pass
 
-    def mostrar_info_juego(self, juego):
-        def close_dlg(e):
-            self.info_dialog.open = False
-            self._page_ref.update()
-
-        dlg = ft.AlertDialog(
-            title=ft.Text(juego["nombre"]),
-            content=ft.Column([
-                ft.Text(self.translator.t("dl_console_lbl", juego['consola']), weight=ft.FontWeight.BOLD),
-                ft.Text(f"Extensión: {juego['extension']}"),
-                ft.Text(f"Ruta: {juego['ruta']}", size=12, italic=True, color=ft.Colors.GREY_400),
-            ], tight=True),
-            actions=[
-                ft.TextButton(self.translator.t("lib_play"), on_click=lambda _: self._page_ref.run_task(self.lanzar_con_info, juego)),
-                ft.TextButton(self.translator.t("set_btn_close"), on_click=close_dlg),
-            ],
-        )
-        self.info_dialog = dlg
-        self._page_ref.show_dialog(dlg)
-
     async def lanzar_con_info(self, juego):
-        if self.info_dialog:
-            try: 
-                self.info_dialog.open = False
-                self._page_ref.update()
-            except: pass
-            self.info_dialog = None
-        
         # Función interna para realizar el lanzamiento real
         async def ejecutar_lanzamiento(j):
             from core.constants import AVAILABLE_EMULATORS
@@ -609,7 +373,7 @@ class LibraryView(ft.Container):
                 await ejecutar_lanzamiento(juego)
 
             # Obtener nombre del juego actual para el mensaje
-            actual = self.emu_manager.current_game
+            actual = self.emu_manager.launcher.current_game
             nombre_actual = actual["nombre"] if actual else "Un juego"
             consola_actual = actual["consola"] if actual else "el emulador"
 

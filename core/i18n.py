@@ -33,6 +33,8 @@ TRANSLATIONS = {
         "lib_game_desc": "Juego de {0} ({1}).",
         "lib_btn_back": "Volver a consolas",
         "lib_refresh": "Refrescar",
+        "lib_playtime": "Tiempo jugado: {0}",
+        "lib_played_hours": "{0}h {1}m",
 
         # Downloads
         "dl_title": "Descargar Emuladores",
@@ -113,6 +115,8 @@ TRANSLATIONS = {
         "lib_game_desc": "{0} Game ({1}).",
         "lib_btn_back": "Back to consoles",
         "lib_refresh": "Refresh",
+        "lib_playtime": "Time played: {0}",
+        "lib_played_hours": "{0}h {1}m",
 
         # Downloads
         "dl_title": "Download Emulators",

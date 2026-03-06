@@ -147,14 +147,21 @@ class SettingsView(ft.Container):
         try:
             system = platform.system()
             if system == "Linux":
-                proc = await asyncio.create_subprocess_exec(
-                    "zenity", "--file-selection", "--directory", f"--title={titulo}",
-                    stdout=asyncio.subprocess.PIPE,
-                    stderr=asyncio.subprocess.PIPE
-                )
-                stdout, _ = await proc.communicate()
-                if stdout:
-                    return stdout.decode().strip()
+                try:
+                    proc = await asyncio.create_subprocess_exec(
+                        "zenity", "--file-selection", "--directory", f"--title={titulo}",
+                        stdout=asyncio.subprocess.PIPE,
+                        stderr=asyncio.subprocess.PIPE
+                    )
+                    stdout, _ = await proc.communicate()
+                    if stdout:
+                        return stdout.decode().strip()
+                except FileNotFoundError:
+                    # Zenity no está instalado, informar al usuario
+                    print("[DEBUG] Zenity no encontrado. Por favor instala 'zenity' o ingresa la ruta manualmente.")
+                    # Aquí podrías mostrar un Banner en Flet si quisieras, 
+                    # pero por ahora evitamos el crash.
+                    return None
             elif system == "Windows":
                 powershell_cmd = (
                     "Add-Type -AssemblyName System.Windows.Forms; "

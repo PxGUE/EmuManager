@@ -83,7 +83,7 @@ AVAILABLE_EMULATORS = [
         "description": "Emulador de GBA rápido y preciso. También soporta Game Boy y Game Boy Color.",
         "folder": "GBA",
         "github": "mgba-emu/mgba",
-        "fallback_url": "https://github.com/mgba-emu/mgba/releases/download/0.10.3/mGBA-0.10.3-appimage-x64.appimage",
+        "fallback_url": None,
         "extensions": [".gba", ".gbp", ".zip"],
         "libretro_platform": "Nintendo - Game Boy Advance"
     },

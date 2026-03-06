@@ -283,7 +283,8 @@ class DownloadsView(ft.Container):
 
         logo_fisico = artwork.obtener_ruta_logo_emulador(emu["id"])
         has_logo = os.path.exists(logo_fisico)
-        logo_assets = artwork.obtener_ruta_logo_emulador(emu["id"], flet_path=True)
+        # Usar ruta relativa directa para assets_dir="media"
+        logo_assets = f"emuladores/{emu['id']}.png"
 
         return ft.Card(
             content=ft.Container(

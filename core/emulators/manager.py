@@ -110,20 +110,25 @@ class EmuladorManager:
         except: pass
 
     def save_config(self, install_path=None, roms_path=None, language=None):
-        config = self._load_config()
         if install_path is not None:
-            config["install_path"] = install_path
             self.install_path = install_path
         if roms_path is not None:
-            config["roms_path"] = roms_path
             self.roms_path = roms_path
             self.crear_carpetas_roms()
         if language is not None:
-            config["language"] = language
             self.language = language
             
-        with open(self.config_file, "w") as f:
-            json.dump(config, f)
+        config = {
+            "install_path": self.install_path,
+            "roms_path": self.roms_path,
+            "language": self.language
+        }
+        
+        try:
+            with open(self.config_file, "w") as f:
+                json.dump(config, f, indent=4)
+        except Exception as e:
+            print(f"[DEBUG] Error al guardar configuración: {e}")
 
     def crear_carpetas_roms(self, repo_github=None):
         if not self.roms_path or not os.path.exists(self.roms_path): return

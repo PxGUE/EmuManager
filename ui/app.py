@@ -1,131 +1,212 @@
-import flet as ft
+"""
+EmuApp - Clase de la Ventana Principal (QMainWindow)
+Controla la navegación lateral (Sidebar) y el intercambio de vistas.
+"""
+
 import asyncio
+from PyQt6.QtWidgets import (
+    QMainWindow, QWidget, QHBoxLayout, QVBoxLayout, 
+    QStackedWidget, QListWidget, QListWidgetItem
+)
+from PyQt6.QtCore import Qt, QSize
+from PyQt6.QtGui import QIcon
 from core.emulators import EmuladorManager
-from core.constants import AVAILABLE_EMULATORS
-import core.artwork as artwork
 from core.i18n import Translator
 
+# Importación diferida para las vistas principales
 from ui.views.dashboard import DashboardView
 from ui.views.library import LibraryView
 from ui.views.downloads import DownloadsView
 from ui.views.settings import SettingsView
 
-class EmuApp(ft.Container):
-    def __init__(self, page: ft.Page):
+class EmuApp(QMainWindow):
+    """Interfaz principal del programa que gestiona el menú lateral y las páginas."""
+    
+    def __init__(self):
         super().__init__()
-        self.expand = True
-        self.padding = 0
-        self.margin = 0
-        self._page_ref = page
-        self.emu_manager = EmuladorManager()
-        self.translator = Translator(self.emu_manager.language)
+        # 1. Configurar título de la aplicación
+        self.emu_name = "EmuManager"
+        self.emu_version = "v0.1.1 alpha"
+        self.update_window_title()
         
+        # 2. Inicializar los gestores fundamentales
+        self.emu_manager = EmuladorManager()                     # Gestión de carpetas/procesos emuladores
+        self.translator = Translator(self.emu_manager.language) # Traducciones dinámicas (i18n)
+        
+        # 3. Mapeo de plataformas para las carátulas (Libretro)
+        from core.constants import AVAILABLE_EMULATORS
         self.emu_platform_map = {
             emu["id"]: emu.get("libretro_platform")
             for emu in AVAILABLE_EMULATORS
         }
-
-        # Inicializar vistas (Lazy mounting handles the actual build)
-        self.dashboard_view = DashboardView(self.emu_manager, self.translator)
-        self.library_view = LibraryView(self.emu_manager, self.emu_platform_map, self._page_ref, self.translator)
-        self.downloads_view = DownloadsView(self.emu_manager, self.translator, on_update_library_bg=self.library_view.mostrar_consolas)
-        self.settings_view = SettingsView(
-            self.emu_manager, 
-            self.translator,
-            on_update_dashboard_status=self.dashboard_view.update_dashboard_status,
-            on_language_change=self.on_language_change
-        )
-
-        self.content_area = ft.Container(content=self.dashboard_view, expand=True, padding=0, margin=0)
-
-        self.rail = ft.NavigationRail(
-            selected_index=0,
-            label_type=ft.NavigationRailLabelType.ALL,
-            min_width=100,
-            min_extended_width=200,
-            group_alignment=-0.9,
-            destinations=[
-                ft.NavigationRailDestination(icon=ft.Icons.HOME_OUTLINED, selected_icon=ft.Icons.HOME, label=self.translator.t("nav_home")),
-                ft.NavigationRailDestination(icon=ft.Icons.LIBRARY_BOOKS_OUTLINED, selected_icon=ft.Icons.LIBRARY_BOOKS, label=self.translator.t("nav_library")),
-                ft.NavigationRailDestination(icon=ft.Icons.DOWNLOAD_OUTLINED, selected_icon=ft.Icons.DOWNLOAD, label=self.translator.t("nav_downloads")),
-                ft.NavigationRailDestination(icon=ft.Icons.SETTINGS_OUTLINED, selected_icon=ft.Icons.SETTINGS, label=self.translator.t("nav_settings")),
-            ],
-            on_change=self.on_nav_change,
-        )
-
-        self.content = ft.Row(
-            [
-                self.rail,
-                ft.VerticalDivider(width=1),
-                self.content_area,
-            ],
-            expand=True,
-        )
         
-        # Iniciar tarea periódica para actualizar el tiempo de juego
-        page.run_task(self._monitor_playtime)
+        # 4. Construir la interfaz estructural
+        self.init_ui()
+        
+        # 5. Iniciar hilos o tareas en segundo plano (como el monitoreo de tiempo jugado)
+        self.start_background_tasks()
+        
+    def init_ui(self):
+        """Inicializa los controles visuales, el menú lateral (Sidebar) y el Stack de vistas."""
+        central_widget = QWidget()
+        self.setCentralWidget(central_widget)
+        
+        # Layout principal horizontal: [Menú Lateral | Contenido Dinámico]
+        main_layout = QHBoxLayout(central_widget)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        main_layout.setSpacing(0)
+        
+        # --- MENÚ LATERAL (Sidebar) ---
+        sidebar_container = QWidget()
+        sidebar_container.setFixedWidth(200)
+        sidebar_container.setStyleSheet("background-color: #0c0d12; border-right: 1px solid #1a1c24;")
+        sidebar_layout = QVBoxLayout(sidebar_container)
+        sidebar_layout.setContentsMargins(0, 0, 0, 0)
+        sidebar_layout.setSpacing(0)
+        
+        # Logo / Icono Superior
+        from PyQt6.QtWidgets import QLabel
+        from PyQt6.QtGui import QPixmap
+        from PyQt6.QtCore import Qt, QSize
+        import os
+        
+        logo_label = QLabel()
+        logo_label.setFixedSize(200, 150)
+        logo_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        icon_path = os.path.join(base_dir, "media", "icon.svg")
+        
+        if os.path.exists(icon_path):
+            pixmap = QIcon(icon_path).pixmap(QSize(80, 80))
+            logo_label.setPixmap(pixmap)
+        
+        sidebar_layout.addWidget(logo_label)
+        
+        self.sidebar = QListWidget()
+        self.sidebar.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        # Estilo oscuro premium con resaltado azul a la izquierda
+        self.sidebar.setStyleSheet("""
+            QListWidget {
+                background-color: #0c0d12;
+                border: none;
+                padding-top: 20px;
+                outline: 0;
+            }
+            QListWidget::item {
+                height: 50px;
+                padding-left: 20px;
+                color: #a0a0a0;
+                font-size: 14px;
+            }
+            QListWidget::item:selected {
+                background-color: #1a1c24;
+                color: #ffffff;
+                border-left: 4px solid #4da6ff;
+            }
+            QListWidget::item:hover {
+                background-color: #15171e;
+                color: #e0e0e0;
+            }
+        """)
+        # Detectar el clic en una opción del menú lateral
+        self.sidebar.currentRowChanged.connect(self.change_view)
+        
+        # Elementos del menú (Nombres obtenidos del traductor)
+        self.add_sidebar_item(self.translator.t("nav_home"), "home")
+        self.add_sidebar_item(self.translator.t("nav_library"), "folder")
+        self.add_sidebar_item(self.translator.t("nav_downloads"), "download")
+        self.add_sidebar_item(self.translator.t("nav_settings"), "settings")
+        
+        sidebar_layout.addWidget(self.sidebar)
+        sidebar_layout.addStretch()
+        
+        # --- CONTENEDOR DE VISTAS (Stacked Widget) ---
+        # Este controla qué página (Dashboard, Biblioteca, etc.) se muestra
+        self.views_stack = QStackedWidget()
+        self.views_stack.setStyleSheet("background-color: #15171e;")
+        
+        # Instanciar las vistas pasando los gestores necesarios
+        self.dashboard_view = DashboardView(self.emu_manager, self.translator)
+        self.library_view = LibraryView(self.emu_manager, self.emu_platform_map, self.translator, self)
+        # La vista de descargas necesita poder recargar la biblioteca cuando termine de instalar algo
+        self.downloads_view = DownloadsView(self.emu_manager, self.translator, self.library_view.mostrar_consolas)
+        # Los ajustes necesitan poder actualizar el dashboard (si cambia el idioma)
+        self.settings_view = SettingsView(self.emu_manager, self.translator, self.dashboard_view.update_dashboard_status, self.on_language_change)
+        
+        # Apilar las vistas en el stacker
+        self.views_stack.addWidget(self.dashboard_view) # Index 0
+        self.views_stack.addWidget(self.library_view)   # Index 1
+        self.views_stack.addWidget(self.downloads_view) # Index 2
+        self.views_stack.addWidget(self.settings_view)  # Index 3
+        
+        # Inyectar componentes al layout principal
+        main_layout.addWidget(sidebar_container)
+        main_layout.addWidget(self.views_stack)
+        
+        # Iniciar en la página de inicio (Dashboard)
+        self.sidebar.setCurrentRow(0)
+        
+    def update_window_title(self):
+        """Actualiza el título de la ventana con la versión actual."""
+        self.setWindowTitle(f"{self.emu_name} {self.emu_version}")
 
-    async def _monitor_playtime(self):
-        """Tarea de fondo para actualizar el tiempo de juego segundo a segundo mientras el emulador corre."""
-        while True:
-            if self.emu_manager.is_emulator_running():
-                game_obj = self.emu_manager.launcher.current_game
-                start_time = self.emu_manager.launcher.current_game_start
-                self.emu_manager.update_playtime(game_obj, start_time)
-            await asyncio.sleep(5) # Actualizar cada 5 segundos para no sobrecargar el disco
-
-    def on_nav_change(self, e):
-        index = e.control.selected_index
-        if index == 0:
-            self.content_area.content = self.dashboard_view
-        elif index == 1:
-            self.content_area.content = self.library_view
-        elif index == 2:
-            self.content_area.content = self.downloads_view
-        elif index == 3:
-            self.content_area.content = self.settings_view
-            
-        self.content_area.update()
-
+    def add_sidebar_item(self, text, icon_name):
+        """Añade una fila al menú lateral."""
+        item = QListWidgetItem(text)
+        self.sidebar.addItem(item)
+        
+    def change_view(self, index):
+        """Intercambia el contenido de la ventana principal según el índice seleccionado."""
+        self.views_stack.setCurrentIndex(index)
+        
     def on_language_change(self, new_lang):
-        # Update translator
+        """Actualiza todos los textos de la interfaz cuando el usuario cambia el idioma en Ajustes."""
         self.translator.set_language(new_lang)
         
-        # Update Navigation Rail labels
-        self.rail.destinations[0].label = self.translator.t("nav_home")
-        self.rail.destinations[1].label = self.translator.t("nav_library")
-        self.rail.destinations[2].label = self.translator.t("nav_downloads")
-        self.rail.destinations[3].label = self.translator.t("nav_settings")
-        self.rail.update()
+        # 1. Repintar menú lateral
+        self.sidebar.item(0).setText(self.translator.t("nav_home"))
+        self.sidebar.item(1).setText(self.translator.t("nav_library"))
+        self.sidebar.item(2).setText(self.translator.t("nav_downloads"))
+        self.sidebar.item(3).setText(self.translator.t("nav_settings"))
         
-        # We need to recreate the views to reflect the new language
-        self.dashboard_view = DashboardView(self.emu_manager, self.translator)
-        self.library_view = LibraryView(self.emu_manager, self.emu_platform_map, self._page_ref, self.translator)
-        self.downloads_view = DownloadsView(self.emu_manager, self.translator, on_update_library_bg=self.library_view.mostrar_consolas)
-        self.settings_view = SettingsView(
-            self.emu_manager, 
-            self.translator,
-            on_update_dashboard_status=self.dashboard_view.update_dashboard_status,
-            on_language_change=self.on_language_change
-        )
-        
-        # Update current view
-        index = self.rail.selected_index
-        if index == 0:
-            self.content_area.content = self.dashboard_view
-        elif index == 1:
-            self.content_area.content = self.library_view
-        elif index == 2:
-            self.content_area.content = self.downloads_view
-        elif index == 3:
-            self.content_area.content = self.settings_view
+        # 2. Recrear las vistas para forzar actualización de textos (hard reload)
+        for i in reversed(range(self.views_stack.count())): 
+            widget = self.views_stack.widget(i)
+            self.views_stack.removeWidget(widget)
+            widget.deleteLater()
             
-        self.content_area.update()
+        self.dashboard_view = DashboardView(self.emu_manager, self.translator)
+        self.library_view = LibraryView(self.emu_manager, self.emu_platform_map, self.translator, self)
+        self.downloads_view = DownloadsView(self.emu_manager, self.translator, self.library_view.mostrar_consolas)
+        self.settings_view = SettingsView(self.emu_manager, self.translator, self.dashboard_view.update_dashboard_status, self.on_language_change)
+        
+        self.views_stack.addWidget(self.dashboard_view)
+        self.views_stack.addWidget(self.library_view)
+        self.views_stack.addWidget(self.downloads_view)
+        self.views_stack.addWidget(self.settings_view)
+        
+        # Mantener al usuario en la pestaña de Ajustes tras la actualización
+        self.views_stack.setCurrentIndex(3)
+        self.update_window_title()
 
-    def did_mount(self):
-        # Pre-descargar imágenes de consola en segundo plano
-        self._page_ref.run_task(self._predescargar_arte_consola)
-
-    async def _predescargar_arte_consola(self):
-        if self.emu_manager.roms_path:
-            await artwork.predescargar_imagenes_consola(self.emu_platform_map, self.emu_manager.roms_path)
+    def start_background_tasks(self):
+        """Tareas asíncronas constantes (Playtime tracking)."""
+        loop = asyncio.get_event_loop()
+        loop.create_task(self._monitor_playtime())
+        
+    async def _monitor_playtime(self):
+        """
+        Observador de Tiempo Jugado:
+        Cada 5 segundos comprueba si un emulador está abierto y suma tiempo a su ficha.
+        """
+        while True:
+            if self.emu_manager.is_emulator_running():
+                try:
+                    game_obj = self.emu_manager.launcher.current_game
+                    start_time = self.emu_manager.launcher.current_game_start
+                    self.emu_manager.update_playtime(game_obj, start_time)
+                except Exception as e:
+                    pass
+            # Intervalo de chequeo
+            await asyncio.sleep(5)

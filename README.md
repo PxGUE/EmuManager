@@ -1,19 +1,19 @@
 # EmuManager 🎮
 
-![Versión](https://img.shields.io/badge/version-0.1.0--alpha-blue.svg)
+![Versión](https://img.shields.io/badge/version-0.1.1--alpha-blue.svg)
 ![Licencia](https://img.shields.io/badge/license-GNU%20GPLv3-green.svg)
 
-EmuManager es un gestor integral de juegos retro con una interfaz moderna y sumamente intuitiva, construida con Flet (Flutter para Python). Te permite descargar, organizar y ejecutar tus emuladores y ROMs clásicas desde un solo lugar, de una forma visualmente atractiva y fácil de usar.
+EmuManager es un gestor integral de juegos retro con una interfaz moderna y sumamente intuitiva, construida con **PyQt6** y **Asyncio**. Te permite descargar, organizar y ejecutar tus emuladores y ROMs clásicas desde un solo lugar, de una forma visualmente atractiva y fácil de usar en entornos de escritorio.
 
 ## ✨ Características Principales
 
-- **Interfaz Moderna**: Diseño minimalista, responsivo y adaptativo.
+- **Interfaz Nativa Premium**: Construida con PyQt6 para una experiencia fluida y robusta en escritorio.
 - **Gestión Centralizada**: Configura y administra tus emuladores favoritos (mGBA, Dolphin, PCSX2, DuckStation, SNES9x, Genesis Plus GX, entre otros).
 - **Descarga Directa**: Descarga e instala emuladores directamente desde la aplicación.
 - **Escáner Inteligente**: Encuentra automáticamente tus ROMs y las organiza por consola.
-- **Scraper de Arte Automático**: Descarga automáticamente las carátulas (boxarts) y logos correspondientes a tus juegos.
-- **Búsqueda en Tiempo Real**: Encuentra rápidamente cualquier juego en tu colección mediante una potente barra de búsqueda.
-- **Ejecución de Juegos**: Lanza tus juegos directamente en el emulador correspondiente con un solo clic.
+- **Artwork 2.0 (Scraper Inteligente)**: Sistema de búsqueda por similitud (Fuzzy Match) contra el índice de Libretro para encontrar carátulas con 100% de precisión sin errores 404.
+- **Búsqueda en Tiempo Real**: Encuentra rápidamente cualquier juego mediante una barra de búsqueda ultra-rápida.
+- **Seguimiento de Tiempo**: Registra automáticamente cuánto tiempo has dedicado a cada juego.
 
 ## 🚀 Requisitos y Configuración
 
@@ -33,78 +33,34 @@ EmuManager es un gestor integral de juegos retro con una interfaz moderna y suma
    python main.py
    ```
 
-*Nota: Dependiendo de tu sistema y de los emuladores seleccionados, asegúrate de tener instaladas las dependencias gráficas u otros paquetes del sistema operativo necesarios.*
+*Nota: Requiere Python 3.9 o superior.*
 
 ## ⚙️ Instrucciones de Uso (Guía Paso a Paso)
 
 Para que EmuManager funcione correctamente, sigue estos pasos:
 
 ### 1. Configuración Inicial (Primer Inicio)
-Al abrir la aplicación por primera vez, lo más importante es configurar las rutas de trabajo:
-- Ve a la pestaña de **Configuración** (`⚙️`).
-- **Ruta de Emuladores**: Selecciona una carpeta vacía donde quieras que el programa descargue y guarde los archivos de los emuladores (.exe, AppImages, cores, etc.).
-- **Ruta de ROMs/Juegos**: Selecciona la carpeta principal donde guardarás tus juegos. 
+Al abrir la aplicación por primera vez, ve a la pestaña de **Configuración** (`⚙️`) y define las rutas:
+- **Ruta de Emuladores**: Carpeta donde se descargarán los ejecutables.
+- **Ruta de ROMs/Juegos**: Carpeta principal de tu colección de juegos.
 
-### 2. Organización de tus Juegos (Muy Importante)
-Una vez que selecciones la **Ruta de ROMs**, EmuManager creará automáticamente (o esperará encontrar) subcarpetas específicas para cada sistema. **Debes colocar tus juegos dentro de la carpeta correspondiente para que el escáner los encuentre**:
-- `GBA/` -> Juegos de Game Boy Advance (.gba)
-- `SNES/` -> Juegos de Super Nintendo (.sfc, .smc)
-- `GENESIS/` -> Juegos de Sega Genesis (.md, .bin)
-- `PS1/` -> Juegos de PlayStation 1 (.bin/cue, .chd)
-- `PS2/` -> Juegos de PlayStation 2 (.iso, .chd)
-- `GAMECUBE/` -> Juegos de GameCube (.iso, .rvz)
-- `WII/` -> Juegos de Wii (.wbfs, .rvz)
+### 2. Organización de tus Juegos
+Coloca tus ROMs en las carpetas que el programa creará automáticamente (GBA, SNES, PS1, etc.) para que el escáner pueda identificarlas correctamente.
 
 ### 3. Instalación de Emuladores
-Navega a la pestaña de **Descargas** (`⬇️`). Verás una lista de emuladores populares:
-- Haz clic en **Instalar** en el emulador que desees. El programa lo descargará, extraerá y configurará automáticamente en la ruta que elegiste en el paso 1.
-- *Nota: Si ya tienes el emulador instalado mediante el programa, el botón cambiará a "Desinstalar".*
+En la pestaña de **Descargas** (`⬇️`), selecciona el emulador deseado y pulsa **Instalar**. El sistema se encarga del resto.
 
 ### 4. Escaneo de la Biblioteca
-Una vez que tengas tus ROMs en sus carpetas correspondientes:
-- Ve a la pestaña de **Biblioteca** (`📚`).
-- Selecciona la consola que quieres jugar.
-- Haz clic en el botón **ESCANEAR**. El programa buscará los archivos, los añadirá a tu colección y descargará automáticamente la carátula y el arte del juego desde servidores oficiales.
+En la pestaña de **Biblioteca** (`📚`), entra en la consola deseada y pulsa **REFRESCAR**. El programa buscará los juegos y descargará su arte oficial automáticamente.
 
 ### 5. ¡A Jugar!
-- Simplemente haz clic en la tarjeta de cualquier juego para ver su información.
-- Haz clic en el botón de **Play** (el ícono azul que aparece al pasar el ratón sobre un juego) para lanzar el emulador directamente con ese juego cargado.
-
-### 6. Cambio de Idioma
-EmuManager es multilingüe. Puedes cambiar entre **Español** e **Inglés** en cualquier momento desde la pestaña de **Configuración**. El cambio se aplica instantáneamente a toda la interfaz.
+Pasa el ratón por encima de cualquier juego para ver los detalles y haz clic para lanzarlo instantáneamente.
 
 ---
-
-## ⚙️ How to Use (Step-by-Step Guide)
-
-### 1. Initial Setup
-When you open the app for the first time, you need to configure the working paths:
-- Go to the **Settings** tab (`⚙️`).
-- **Emulators Path**: Select an empty folder where you want the program to download and store emulator files.
-- **ROMs/Games Path**: Select the main folder where you will store your game collection.
-
-### 2. Organizing Your Games (Crucial)
-After selecting the **ROMs Path**, EmuManager will automatically create (or look for) specific subfolders for each system. **You must place your games inside the correct subfolder for the scanner to find them**:
-- `GBA/`, `SNES/`, `GENESIS/`, `PS1/`, `PS2/`, `GAMECUBE/`, `WII/`, etc.
-
-### 3. Installing Emulators
-Go to the **Downloads** tab (`⬇️`):
-- Click **Install** on any emulator. The program will handle the download and setup automatically.
-
-### 4. Library Scanning
-Once your ROMs are in place:
-- Go to the **Library** tab (`📚`).
-- Pick a console and click **SCAN**. The program will find your games and automatically download box art and metadata.
-
-### 5. Play!
-- Click on any game card to see details, or click the **Play** button that appears when hovering to start the game directly.
 
 ## 👨‍💻 Autor
 - **Christian A. Ordoñez** - *Desarrollador Principal*
 - Correo: cris.ordonezal@gmail.com
 
 ## 📄 Licencia
-
-Este proyecto está bajo la Licencia GNU GPLv3 - mira el archivo [LICENSE](LICENSE) o [detalles de la licencia](https://www.gnu.org/licenses/gpl-3.0.html) para más detalles.
-
----
+Este proyecto está bajo la Licencia GNU GPLv3 - mira el archivo [LICENSE](LICENSE) para más detalles.

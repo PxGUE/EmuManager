@@ -1,69 +1,59 @@
-import flet as ft
-import os
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel
+from PyQt6.QtCore import Qt
 
-class DashboardView(ft.Container):
+class DashboardView(QWidget):
     def __init__(self, emu_manager, translator):
         super().__init__()
         self.emu_manager = emu_manager
         self.translator = translator
+        self.init_ui()
+    
+    def init_ui(self):
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(30, 30, 30, 30)
         
-        # Indicadores de estado sutiles
-        self.status_emus = ft.Icon(ft.Icons.SUBDIRECTORY_ARROW_RIGHT_ROUNDED, size=24, tooltip="")
-        self.status_roms = ft.Icon(ft.Icons.FOLDER_SPECIAL_ROUNDED, size=24, tooltip="")
+        # Welcome Title
+        title = QLabel(self.translator.t("dash_welcome_title"))
+        title.setStyleSheet("font-size: 42px; font-weight: bold; color: white;")
+        layout.addWidget(title)
         
-        self.ui_status_section = ft.Column([
-            ft.Text(self.translator.t("dash_route_status"), size=12, weight=ft.FontWeight.W_500, color=ft.Colors.GREY_500),
-            ft.Row([
-                self.status_emus,
-                self.status_roms,
-            ], spacing=20, alignment=ft.MainAxisAlignment.END)
-        ], spacing=5, horizontal_alignment=ft.CrossAxisAlignment.END)
-
-        self.welcome_content = ft.Column(
-            [
-                ft.Text(self.translator.t("dash_welcome_title"), size=42, weight=ft.FontWeight.BOLD),
-                ft.Text(self.translator.t("dash_welcome_subtitle"), size=18, color=ft.Colors.BLUE_200),
-            ],
-            expand=True,
-        )
-
-        self.content = ft.Stack([
-            self.welcome_content,
-            ft.Container(
-                content=self.ui_status_section,
-                alignment=ft.Alignment.BOTTOM_RIGHT,
-                expand=True
-            )
-        ], expand=True)
-
-        self.padding = 30
-        self.expand = True
-        self.alignment = ft.Alignment.TOP_LEFT
+        # Subtitle
+        subtitle = QLabel(self.translator.t("dash_welcome_subtitle"))
+        subtitle.setStyleSheet("font-size: 18px; color: #a0c0ff;")
+        layout.addWidget(subtitle)
+        
+        layout.addStretch()
+        
+        # Status Section
+        status_layout = QVBoxLayout()
+        status_layout.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignBottom)
+        
+        route_status = QLabel(self.translator.t("dash_route_status"))
+        route_status.setStyleSheet("font-size: 12px; color: #888888;")
+        route_status.setAlignment(Qt.AlignmentFlag.AlignRight)
+        status_layout.addWidget(route_status)
+        
+        self.status_emus_lbl = QLabel()
+        self.status_roms_lbl = QLabel()
+        
+        status_icons_layout = QHBoxLayout()
+        status_icons_layout.setAlignment(Qt.AlignmentFlag.AlignRight)
+        status_icons_layout.addWidget(self.status_emus_lbl)
+        status_icons_layout.addWidget(self.status_roms_lbl)
+        
+        status_layout.addLayout(status_icons_layout)
+        layout.addLayout(status_layout)
+        
         self.update_dashboard_status()
-
+        
     def update_dashboard_status(self):
-        def get_status_data(path, label):
+        import os
+        def get_status_text(path, label):
             if not path:
-                return ft.Icons.ERROR_OUTLINE, ft.Colors.RED, f"{label}: {self.translator.t('dash_missing')}"
+                return f"❌ {label}: {self.translator.t('dash_missing')}"
             if not os.path.exists(path):
-                return ft.Icons.WARNING_AMBER_ROUNDED, ft.Colors.AMBER_400, f"{label}: {self.translator.t('dash_path_missing')}"
-            return ft.Icons.CHECK_CIRCLE_OUTLINE_ROUNDED, ft.Colors.GREEN, f"{label}: {self.translator.t('dash_configured')}"
-
-        # Actualizar Emuladores
-        icon_e, color_e, tip_e = get_status_data(self.emu_manager.install_path, self.translator.t("dash_status_emus"))
-        self.status_emus.name = icon_e
-        self.status_emus.color = color_e
-        self.status_emus.tooltip = tip_e
-
-        # Actualizar ROMs
-        icon_r, color_r, tip_r = get_status_data(self.emu_manager.roms_path, self.translator.t("dash_status_roms"))
-        self.status_roms.name = icon_r
-        self.status_roms.color = color_r
-        self.status_roms.tooltip = tip_r
-
-        # No llamamos a update() si aún no está en la página (el primer render lo mostrará bien)
-        try:
-            if self.ui_status_section.page:
-                self.ui_status_section.update()
-        except:
-            pass
+                return f"⚠️ {label}: {self.translator.t('dash_path_missing')}"
+            return f"✅ {label}: {self.translator.t('dash_configured')}"
+            
+        self.status_emus_lbl.setText(get_status_text(self.emu_manager.install_path, self.translator.t("dash_status_emus")))
+        self.status_roms_lbl.setText(get_status_text(self.emu_manager.roms_path, self.translator.t("dash_status_roms")))

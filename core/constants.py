@@ -1,3 +1,8 @@
+"""
+constants.py — Diccionarios y configuraciones fijas del sistema
+Aquí se definen los emuladores soportados y sus metadatos de Libretro.
+"""
+
 AVAILABLE_EMULATORS = [
     {
         "id": "retroarch",
@@ -8,7 +13,8 @@ AVAILABLE_EMULATORS = [
         "github": "libretro/RetroArch",
         "fallback_url": "https://buildbot.libretro.com/stable/1.17.0/linux/x86_64/RetroArch.7z",
         "extensions": [".bin", ".cue", ".rom", ".zip"],
-        "libretro_platform": None
+        "libretro_platform": None,
+        "color": "#9b9b9b" # Gray
     },
     {
         "id": "dolphin",
@@ -19,7 +25,8 @@ AVAILABLE_EMULATORS = [
         "github": "pkgforge-dev/Dolphin-emu-AppImage",
         "fallback_url": None,
         "extensions": [".iso", ".wbfs", ".gcm", ".rvz"],
-        "libretro_platform": "Nintendo - GameCube"
+        "libretro_platform": "Nintendo - GameCube",
+        "color": "#6350E1" # Purple
     },
     {
         "id": "pcsx2",
@@ -30,7 +37,8 @@ AVAILABLE_EMULATORS = [
         "github": "PCSX2/pcsx2",
         "fallback_url": None,
         "extensions": [".iso", ".bin", ".chd", ".gz"],
-        "libretro_platform": "Sony - PlayStation 2"
+        "libretro_platform": "Sony - PlayStation 2",
+        "color": "#003087" # Sony Blue
     },
     {
         "id": "rpcs3",
@@ -41,7 +49,8 @@ AVAILABLE_EMULATORS = [
         "github": "RPCS3/rpcs3-binaries-linux",
         "fallback_url": None,
         "extensions": [".ps3", ".pkg", ".iso"],
-        "libretro_platform": None
+        "libretro_platform": None,
+        "color": "#1a1a1a" # Black
     },
     {
         "id": "ppsspp",
@@ -52,7 +61,8 @@ AVAILABLE_EMULATORS = [
         "github": "hrydgard/ppsspp",
         "fallback_url": None,
         "extensions": [".iso", ".cso", ".pbp"],
-        "libretro_platform": "Sony - PlayStation Portable"
+        "libretro_platform": "Sony - PlayStation Portable",
+        "color": "#21409A" # PSP Blue
     },
     {
         "id": "duckstation",
@@ -63,7 +73,8 @@ AVAILABLE_EMULATORS = [
         "github": "stenzek/duckstation",
         "fallback_url": None,
         "extensions": [".bin", ".cue", ".chd", ".pbp", ".m3u"],
-        "libretro_platform": "Sony - PlayStation"
+        "libretro_platform": "Sony - PlayStation",
+        "color": "#E60012" # PS1 Acccent (Reddish or Light Gray) - Let's use Nintendo Red for Nintendo later
     },
     {
         "id": "xemu",
@@ -74,7 +85,8 @@ AVAILABLE_EMULATORS = [
         "github": "xemu-project/xemu",
         "fallback_url": None,
         "extensions": [".iso", ".xbe"],
-        "libretro_platform": "Microsoft - Xbox"
+        "libretro_platform": "Microsoft - Xbox",
+        "color": "#107C10" # Xbox Green
     },
     {
         "id": "mgba",
@@ -85,7 +97,8 @@ AVAILABLE_EMULATORS = [
         "github": "mgba-emu/mgba",
         "fallback_url": None,
         "extensions": [".gba", ".gbp", ".zip"],
-        "libretro_platform": "Nintendo - Game Boy Advance"
+        "libretro_platform": "Nintendo - Game Boy Advance",
+        "color": "#8b1d90" # Purple GBA
     },
     {
         "id": "rmg",
@@ -96,7 +109,8 @@ AVAILABLE_EMULATORS = [
         "github": "Rosalie241/RMG",
         "fallback_url": None,
         "extensions": [".z64", ".n64", ".v64"],
-        "libretro_platform": "Nintendo - Nintendo 64"
+        "libretro_platform": "Nintendo - Nintendo 64",
+        "color": "#e60012" # N64 Red
     },
     {
         "id": "mesen",
@@ -107,7 +121,8 @@ AVAILABLE_EMULATORS = [
         "github": "SourMesen/Mesen2",
         "fallback_url": None,
         "extensions": [".nes", ".sfc", ".smc", ".zip"],
-        "libretro_platform": "Nintendo - Nintendo Entertainment System"
+        "libretro_platform": "Nintendo - Nintendo Entertainment System",
+        "color": "#e22216" # NES Red
     },
     {
         "id": "snes9x",
@@ -118,7 +133,8 @@ AVAILABLE_EMULATORS = [
         "github": "snes9xgit/snes9x",
         "fallback_url": None,
         "extensions": [".sfc", ".smc", ".zip"],
-        "libretro_platform": "Nintendo - Super Nintendo Entertainment System"
+        "libretro_platform": "Nintendo - Super Nintendo Entertainment System",
+        "color": "#4b0082" # SNES Purple
     },
     {
         "id": "lime3ds",
@@ -129,7 +145,8 @@ AVAILABLE_EMULATORS = [
         "github": "Lime3DS/Lime3DS",
         "fallback_url": None,
         "extensions": [".3ds", ".cia", ".app"],
-        "libretro_platform": "Nintendo - Nintendo 3DS"
+        "libretro_platform": "Nintendo - Nintendo 3DS",
+        "color": "#00AEEF" # Blue 3DS
     },
     {
         "id": "switch",
@@ -140,6 +157,7 @@ AVAILABLE_EMULATORS = [
         "github": "TechDevangelist/Sudachi-AppImage",
         "fallback_url": "https://github.com/TechDevangelist/Sudachi-AppImage/releases/download/Snapshot-1.0.15/Sudachi-x86_64_v3.AppImage",
         "extensions": [".nsp", ".xci"],
-        "libretro_platform": None
+        "libretro_platform": None,
+        "color": "#e60012" # Switch Red
     }
 ]

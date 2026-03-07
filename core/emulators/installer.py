@@ -62,41 +62,44 @@ class Installer:
         is_x64 = any(x in arch for x in ["x86_64", "amd64", "x64"])
         is_arm = any(x in arch for x in ["arm64", "aarch64"])
 
+        # Prioridad 1: Coincidencia exacta de arquitectura + extensión preferida
         if sys_name == "Windows":
-            for asset in assets:
-                name = asset["name"].lower()
-                if any(x in name for x in ["installer", "setup", "msi", ".exe"]): continue
-                if name.endswith(".zip") and not any(x in name for x in ["linux", "macos", "android"]):
-                    if is_x64 and any(x in name for x in ["x64", "64", "amd64"]): return asset
-                    return asset
-            
-            for asset in assets:
-                name = asset["name"].lower()
-                if any(x in name for x in ["installer", "setup", "msi", ".exe"]): continue
-                if any(name.endswith(ext) for ext in [".7z", ".rar"]): return asset
-
+            # Buscar ZIP o EXE para x64 si aplica
             for asset in assets:
                 name = asset["name"].lower()
                 if any(x in name for x in ["installer", "setup", "msi"]): continue
-                if name.endswith(".exe") and not any(x in name for x in ["linux", "macos"]): return asset
-                
-            for asset in assets:
-                name = asset["name"].lower()
-                if name.endswith(".exe") and not any(x in name for x in ["linux", "macos"]): return asset
+                if name.endswith(".zip") or name.endswith(".exe"):
+                    if is_x64 and any(x in name for x in ["x64", "64", "amd64"]): return asset
+                    if not is_x64 and not any(x in name for x in ["x64", "64", "amd64"]): return asset
 
         elif sys_name == "Linux":
+            # Buscar AppImage con arquitectura correcta
             for asset in assets:
                 name = asset["name"].lower()
                 if name.endswith(".appimage") and "libretro" not in name:
                     if is_x64 and any(x in name for x in ["x86_64", "amd64", "x64"]): return asset
                     if is_arm and any(x in name for x in ["arm64", "aarch64"]): return asset
-                    return asset
             
+            # Buscar binarios comprimidos con arquitectura correcta
             for asset in assets:
                 name = asset["name"].lower()
-                if any(x in name for x in ["linux", "ubuntu", "debian", "tar.gz", "tar.xz"]):
+                if any(ext in name for ext in [".tar.gz", ".tar.xz", ".7z", ".zip"]):
                     if "libretro" in name or "core" in name: continue
-                    return asset
+                    if is_x64 and any(x in name for x in ["x86_64", "amd64", "x64"]): return asset
+                    if is_arm and any(x in name for x in ["arm64", "aarch64"]): return asset
+
+        # Prioridad 2: Fallback genérico (solo si no se detectó arquitectura específica en los nombres)
+        # Pero filtramos para que NO descargue la arquitectura contraria
+        for asset in assets:
+            name = asset["name"].lower()
+            # Si soy x64, no descargar algo que diga arm/aarch
+            if is_x64 and any(x in name for x in ["arm64", "aarch64", "armv7", "armv8"]): continue
+            # Si soy ARM, no descargar algo que diga x86/amd64
+            if is_arm and any(x in name for x in ["x86_64", "amd64", "x64", "i386"]): continue
+            
+            if sys_name == "Linux" and name.endswith(".appimage"): return asset
+            if sys_name == "Windows" and name.endswith(".zip") and not any(x in name for x in ["linux", "macos"]): return asset
+            
         return None
 
     async def instalar_emulador(self, repo_github: str):

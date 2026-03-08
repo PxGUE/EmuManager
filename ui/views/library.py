@@ -11,7 +11,7 @@ from PyQt6.QtWidgets import (
     QLineEdit, QSizePolicy, QProgressBar, QApplication
 )
 from PyQt6.QtCore import Qt, QSize, QTimer, QVariantAnimation, QEasingCurve, QRectF
-from PyQt6.QtGui import QPixmap, QIcon
+from PyQt6.QtGui import QPixmap, QIcon, QColor
 from PyQt6.QtWidgets import QMessageBox
 from qasync import asyncSlot
 import core.scanner as scanner
@@ -494,7 +494,9 @@ class ConsoleCarousel(QWidget):
 
 
 class GameCard(QFrame):
-    """Tarjeta visual de Juego (ROM) con su carátula."""
+    """Tarjeta visual de Juego (ROM) con diseño premium: carátula full-bleed 
+    y título superpuesto en la parte inferior sobre un degradado oscuro."""
+
     def __init__(self, game, translator, on_launch_callback, on_hover_callback=None, parent=None):
         super().__init__(parent)
         self.game = game
@@ -502,60 +504,143 @@ class GameCard(QFrame):
         self.on_launch_callback = on_launch_callback
         self.on_hover_callback = on_hover_callback
         self.init_ui()
-        
+
     def init_ui(self):
-        """Diseño de la carátula rectangular de juego."""
         self.setObjectName("gameCard")
         self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.setFixedSize(175, 250)
+        
+        from PyQt6.QtWidgets import QGraphicsDropShadowEffect, QGridLayout
+
+        # Efecto de sombra y resplandor
+        shadow = QGraphicsDropShadowEffect(self)
+        shadow.setBlurRadius(16)
+        shadow.setOffset(0, 4)
+        shadow.setColor(QColor(0,0,0,160))
+        self.setGraphicsEffect(shadow)
+
         self.setStyleSheet("""
             QFrame#gameCard {
                 background-color: #1a1c24;
-                border-radius: 8px;
+                border-radius: 12px;
+                border: 1px solid #282b35;
             }
             QFrame#gameCard:hover {
-                border: 2px solid #4da6ff;
-                background-color: #202430;
+                border: 1px solid #4da6ff;
             }
         """)
-        self.setFixedSize(150, 210)
-        
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(5, 5, 5, 5)
-        
-        # --- CARÁTULA (Imagen de Boxart) ---
+
+        # --- LAYOUT DE CAPAS ---
+        # QGridLayout permite superponer widgets en la misma celda (0,0)
+        self.layers = QGridLayout(self)
+        self.layers.setContentsMargins(0, 0, 0, 0)
+        self.layers.setSpacing(0)
+
+        # 1. CAPA BASE: Imagen de la carátula
         self.img_lbl = QLabel()
         self.img_lbl.setScaledContents(True)
-        self.img_lbl.setFixedSize(140, 160)
+        self.img_lbl.setFixedSize(175, 250)
+        self.img_lbl.setStyleSheet("border-radius: 12px;")
         
         ruta_rom = self.game.get("ruta", "")
         caratula_path = artwork.obtener_ruta_caratula(ruta_rom) if ruta_rom else None
         self.set_artwork(caratula_path)
+        self.layers.addWidget(self.img_lbl, 0, 0)
+
+        # 2. CAPA SUPERIOR: Overlay con degradado y título
+        overlay = QFrame()
+        overlay.setFixedSize(175, 250)
+        overlay.setStyleSheet("background: transparent; border: none;")
+        overlay.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
         
-        layout.addWidget(self.img_lbl)
+        overlay_layout = QVBoxLayout(overlay)
+        overlay_layout.setContentsMargins(0, 0, 0, 0)
+        overlay_layout.setSpacing(0)
+
+        # Badge de Playtime (Top-Right)
+        top_row = QHBoxLayout()
+        top_row.setContentsMargins(0, 8, 8, 0)
+        top_row.addStretch()
+        self.playtime_badge = QLabel()
+        self.playtime_badge.setStyleSheet("""
+            background: rgba(0,0,0,0.85); color: #4da6ff;
+            font-size: 9px; font-weight: bold;
+            border-radius: 7px; padding: 2px 8px;
+            border: 1px solid rgba(77,166,255,0.4);
+        """)
+        self.playtime_badge.hide()
+        top_row.addWidget(self.playtime_badge)
+        overlay_layout.addLayout(top_row)
+
+        overlay_layout.addStretch()
+
+        # Franja inferior con degradado "Movie Poster"
+        self.title_strip = QFrame()
+        self.title_strip.setFixedHeight(95)
+        self.title_strip.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
+        self.title_strip.setStyleSheet("""
+            QFrame {
+                background: qlineargradient(
+                    x1:0, y1:0, x2:0, y2:1,
+                    stop:0 rgba(0,0,0,0),
+                    stop:0.45 rgba(0,0,0,0.85),
+                    stop:1 rgba(0,0,0,1)
+                );
+                border-bottom-left-radius: 12px;
+                border-bottom-right-radius: 12px;
+                border: none;
+            }
+        """)
         
-        # --- TÍTULO DEL JUEGO ---
-        name_lbl = QLabel(self.game["nombre"])
-        name_lbl.setProperty("class", "gameCardTitle")
-        name_lbl.setWordWrap(True)
-        name_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(name_lbl)
-        
+        strip_layout = QVBoxLayout(self.title_strip)
+        strip_layout.setContentsMargins(12, 10, 12, 14)
+        strip_layout.setAlignment(Qt.AlignmentFlag.AlignBottom)
+
+        self.name_lbl = QLabel(self.game["nombre"])
+        self.name_lbl.setStyleSheet("""
+            font-size: 11px; font-weight: 900; color: #ffffff;
+            background: transparent; border: none;
+            line-height: 1.2;
+        """)
+        self.name_lbl.setWordWrap(True)
+        strip_layout.addWidget(self.name_lbl)
+
+        overlay_layout.addWidget(self.title_strip)
+        self.layers.addWidget(overlay, 0, 0)
+
     def set_artwork(self, img_path):
         success = False
         if img_path and os.path.exists(img_path):
             pixmap = QPixmap(img_path)
             if not pixmap.isNull():
-                pixmap = pixmap.scaled(140, 160, Qt.AspectRatioMode.KeepAspectRatioByExpanding, Qt.TransformationMode.SmoothTransformation)
+                pixmap = pixmap.scaled(
+                    175, 250,
+                    Qt.AspectRatioMode.KeepAspectRatioByExpanding,
+                    Qt.TransformationMode.SmoothTransformation
+                )
                 self.img_lbl.setPixmap(pixmap)
                 self.img_lbl.setText("")
-                self.img_lbl.setStyleSheet("")
                 success = True
-        
+
         if not success:
-            self.img_lbl.setText("🎮")
+            initial = self.game.get("nombre", "?")[0].upper()
+            self.img_lbl.setPixmap(QPixmap())
+            self.img_lbl.setText(initial)
             self.img_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            self.img_lbl.setProperty("class", "gameCardPlaceholder")
-            self.img_lbl.setFixedHeight(160)
+            # Placeholder con azul profundo y texto más visible
+            self.img_lbl.setStyleSheet("""
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
+                    stop:0 #1a2235, stop:1 #080a12);
+                border-radius: 12px;
+                font-size: 72px; font-weight: 900; 
+                color: rgba(77, 166, 255, 0.2);
+            """)
+
+    def set_playtime(self, hours, minutes):
+        if hours > 0 or minutes > 0:
+            text = f"⏱ {hours}h {minutes}m" if hours > 0 else f"⏱ {minutes}m"
+            self.playtime_badge.setText(text)
+            self.playtime_badge.show()
 
     def mousePressEvent(self, event):
         pass
@@ -565,16 +650,77 @@ class GameCard(QFrame):
             self.on_launch_callback(self.game)
 
     def enterEvent(self, event):
+        eff = self.graphicsEffect()
+        if hasattr(eff, "setColor"):
+            eff.setColor(QColor(0x4d, 0xa6, 0xff, 0x80))
+            eff.setBlurRadius(28)
         if self.on_hover_callback:
             self.on_hover_callback(self.game)
         super().enterEvent(event)
 
     def leaveEvent(self, event):
+        eff = self.graphicsEffect()
+        if hasattr(eff, "setColor"):
+            eff.setColor(QColor(0,0,0,160))
+            eff.setBlurRadius(16)
         if self.on_hover_callback:
             self.on_hover_callback(None)
         super().leaveEvent(event)
 
+    def set_artwork(self, img_path):
+        success = False
+        if img_path and os.path.exists(img_path):
+            pixmap = QPixmap(img_path)
+            if not pixmap.isNull():
+                pixmap = pixmap.scaled(
+                    175, 250,
+                    Qt.AspectRatioMode.KeepAspectRatioByExpanding,
+                    Qt.TransformationMode.SmoothTransformation
+                )
+                self.img_lbl.setPixmap(pixmap)
+                self.img_lbl.setText("")
+                success = True
 
+        if not success:
+            initial = self.game.get("nombre", "?")[0].upper()
+            self.img_lbl.setPixmap(QPixmap())
+            self.img_lbl.setText(initial)
+            self.img_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            # Placeholder elegante: azul oscuro profundo con degradado
+            self.img_lbl.setStyleSheet("""
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
+                    stop:0 #1a2235, stop:1 #080a12);
+                border-radius: 12px;
+                font-size: 64px; font-weight: 900; 
+                color: rgba(77, 166, 255, 0.15);
+            """)
+
+    def set_playtime(self, hours, minutes):
+        if hours > 0 or minutes > 0:
+            text = f"⏱ {hours}h {minutes}m" if hours > 0 else f"⏱ {minutes}m"
+            self.playtime_badge.setText(text)
+            self.playtime_badge.show()
+
+    def mousePressEvent(self, event):
+        pass
+
+    def mouseReleaseEvent(self, event):
+        if event.button() == Qt.MouseButton.LeftButton:
+            self.on_launch_callback(self.game)
+
+    def enterEvent(self, event):
+        eff = self.graphicsEffect()
+        if hasattr(eff, "setColor"):
+            eff.setColor(QColor(0x4d, 0xa6, 0xff, 0x60))
+            eff.setBlurRadius(24)
+        super().enterEvent(event)
+
+    def leaveEvent(self, event):
+        eff = self.graphicsEffect()
+        if hasattr(eff, "setColor"):
+            eff.setColor(QColor(0, 0, 0, 120))
+            eff.setBlurRadius(14)
+        super().leaveEvent(event)
 class LibraryView(QWidget):
     """Controlador principal de la pestaña 'Biblioteca'."""
     def __init__(self, emu_manager, emu_platform_map, translator, parent_app=None):
@@ -625,68 +771,82 @@ class LibraryView(QWidget):
         page_games_layout.setContentsMargins(30, 30, 30, 20)
         
         # EXPLICACIÓN HEADER: El Header es fijo para evitar saltos visuales al mover el ratón
+        # ── Header Compacto e Informativo ───────────────────────────────────
         header_container = QWidget()
-        header_container.setFixedHeight(180) # Altura fija de seguridad
-        header_layout = QVBoxLayout(header_container)
+        header_container.setFixedHeight(110)
+        header_layout = QHBoxLayout(header_container)
         header_layout.setContentsMargins(0, 0, 0, 0)
-        header_layout.setSpacing(10)
+        header_layout.setSpacing(0)
         header_layout.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
-        
-        # Textos informativos de cabecera
+
+        title_block = QVBoxLayout()
+        title_block.setSpacing(6)
+        title_block.setContentsMargins(0, 0, 0, 0)
+
+        # Fila de Título + Badge de Contador
+        title_row = QHBoxLayout()
+        title_row.setSpacing(14)
+        title_row.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+
         self.games_title_lbl = QLabel("")
-        self.games_title_lbl.setProperty("class", "pageTitle")
-        self.games_title_lbl.setFixedHeight(35)
-        
+        self.games_title_lbl.setStyleSheet("""
+            font-size: 32px; font-weight: 900; color: #ffffff;
+            letter-spacing: 1px; background: transparent; border: none;
+        """)
+        title_row.addWidget(self.games_title_lbl)
+
         self.games_subtitle_lbl = QLabel("")
-        self.games_subtitle_lbl.setProperty("class", "libraryGamesSubtitle")
-        self.games_subtitle_lbl.setFixedHeight(20)
-        
+        self.games_subtitle_lbl.setStyleSheet("""
+            background: rgba(77,166,255,0.12); color: #4da6ff;
+            font-size: 11px; font-weight: bold;
+            border-radius: 10px; padding: 4px 14px;
+            border: 1px solid rgba(77,166,255,0.25);
+        """)
+        self.games_subtitle_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        title_row.addWidget(self.games_subtitle_lbl)
+        title_row.addStretch()
+        title_block.addLayout(title_row)
+
         self.games_desc_lbl = QLabel("")
-        self.games_desc_lbl.setProperty("class", "libraryGamesDesc")
+        self.games_desc_lbl.setStyleSheet("""
+            font-size: 13px; color: #666677;
+            background: transparent; border: none;
+        """)
         self.games_desc_lbl.setWordWrap(True)
-        self.games_desc_lbl.setFixedHeight(60)
-        
-        header_layout.addWidget(self.games_title_lbl)
-        header_layout.addWidget(self.games_subtitle_lbl)
-        header_layout.addSpacing(10)
-        header_layout.addWidget(self.games_desc_lbl)
-        header_layout.addSpacing(15)
-        
-        header_layout.addStretch() # Mantener textos arriba
-        
+        self.games_desc_lbl.setMaximumHeight(36)
+        title_block.addWidget(self.games_desc_lbl)
+        title_block.addStretch()
+
+        header_layout.addLayout(title_block, 1)
         page_games_layout.addWidget(header_container)
-        
-        # SECCIÓN SEARCH (Buscador dinámico)
+
+        # ── Barra de Búsqueda Moderna ──────────────────────────────────────
         search_layout = QHBoxLayout()
-        search_layout.setContentsMargins(0, 10, 0, 15)
+        search_layout.setContentsMargins(0, 0, 0, 18)
         self.search_input = QLineEdit()
-        self.search_input.setPlaceholderText(f"🔍 {self.translator.t('lib_search').upper()}")
+        self.search_input.setPlaceholderText(self.translator.t('lib_search'))
+        self.search_input.setFixedHeight(44)
         self.search_input.setFixedWidth(400)
         self.search_input.setStyleSheet("""
             QLineEdit {
-                padding: 10px 18px;
-                background-color: #0c0d12;
-                color: white;
-                border: 2px solid #4da6ff;
+                padding: 0 20px;
+                background-color: #0d0f16;
+                color: #f0f0f0;
+                border: 1px solid #252838;
                 border-radius: 22px;
                 font-size: 14px;
-                selection-background-color: #4da6ff;
-            }
-            QLineEdit:hover {
-                border: 2px solid #7abfff;
-                background-color: #15171e;
             }
             QLineEdit:focus {
-                border: 2px solid #7abfff;
-                background-color: #15171e;
+                border: 2px solid #4da6ff;
+                background-color: #12151e;
             }
         """)
         self.search_input.setClearButtonEnabled(True)
         self.search_input.textChanged.connect(self.filter_games)
         search_layout.addWidget(self.search_input)
-        search_layout.addStretch() # Mantener a la izquierda
+        search_layout.addStretch()
         page_games_layout.addLayout(search_layout)
-        
+
         # --- MIDDLE: Grid de ROMs ---
         middle_layout = QVBoxLayout()
         self.games_scroll = QScrollArea()
@@ -702,60 +862,75 @@ class LibraryView(QWidget):
         self.games_grid.setSpacing(20)
         
         self.games_scroll.setWidget(self.games_grid_container)
+        # Corregir referencia si es necesario, pero games_grid_container es el correcto aqu\u00ed.
+        self.games_scroll.setWidget(self.games_grid_container)
+        
         middle_layout.addWidget(self.games_scroll)
         page_games_layout.addLayout(middle_layout)
-        
-        # --- BOTTOM: Barra de progreso y Botones ---
+
+        # ── Barra Inferior con Botones Pill ────────────────────────────────
         bottom_layout = QHBoxLayout()
         bottom_layout.setAlignment(Qt.AlignmentFlag.AlignVCenter)
-        
-        # Área de Estado vertical [Texto informativo / Barra]
+        bottom_layout.setContentsMargins(0, 10, 0, 0)
+
         status_layout = QVBoxLayout()
         status_layout.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft)
-        status_layout.setSpacing(2)
-        
+        status_layout.setSpacing(4)
+
         self.games_status_lbl = QLabel("")
-        self.games_status_lbl.setProperty("class", "libraryGamesStatus")
-        self.games_status_lbl.setFixedWidth(250)
-        
+        self.games_status_lbl.setStyleSheet(
+            "font-size: 11px; color: #555566; background: transparent; border: none;"
+        )
+        self.games_status_lbl.setFixedWidth(280)
+
         self.games_progress = QProgressBar()
         self.games_progress.setVisible(False)
-        self.games_progress.setFixedHeight(8)
-        self.games_progress.setFixedWidth(250)
+        self.games_progress.setFixedHeight(4)
+        self.games_progress.setFixedWidth(280)
         self.games_progress.setTextVisible(False)
-        
+        self.games_progress.setStyleSheet("""
+            QProgressBar { background: #1a1c24; border-radius: 2px; border: none; }
+            QProgressBar::chunk { background: #4da6ff; border-radius: 2px; }
+        """)
+
         status_layout.addWidget(self.games_status_lbl)
         status_layout.addWidget(self.games_progress)
-        
+
         bottom_layout.addLayout(status_layout)
-        bottom_layout.addStretch() # Dejar los botones a la derecha
-        
+        bottom_layout.addStretch()
+
         btn_refresh = QPushButton(self.translator.t("lib_refresh").upper())
         btn_refresh.clicked.connect(self.refresh_games)
         btn_refresh.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn_refresh.setFixedHeight(40)
         btn_refresh.setStyleSheet("""
             QPushButton {
-                padding: 10px 20px; background-color: #1a1c24; color: #4da6ff; border: 1px solid #4da6ff;
-                border-radius: 5px; font-weight: bold;
+                padding: 0 25px;
+                background: transparent; color: #4da6ff;
+                border: 1px solid #4da6ff; border-radius: 20px;
+                font-size: 11px; font-weight: bold; letter-spacing: 1px;
             }
-            QPushButton:hover { background-color: #4da6ff; color: white; }
+            QPushButton:hover { background: #4da6ff; color: #ffffff; }
         """)
-        
-        # Botón Atrás
+
         btn_back = QPushButton(self.translator.t("lib_btn_back").upper())
         btn_back.clicked.connect(self.back_to_consoles)
         btn_back.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn_back.setFixedHeight(40)
         btn_back.setStyleSheet("""
             QPushButton {
-                padding: 10px 20px; background-color: transparent; color: #a0a0a0; border: 1px solid #555555;
-                border-radius: 5px; font-weight: bold;
+                padding: 0 25px;
+                background: transparent; color: #777788;
+                border: 1px solid #2a2d3a; border-radius: 20px;
+                font-size: 11px; font-weight: bold;
             }
-            QPushButton:hover { background-color: #333333; color: white; }
+            QPushButton:hover { background: #1f2130; color: #ccccdd; border-color: #4a4d5a; }
         """)
-        
+
         bottom_layout.addWidget(btn_refresh)
+        bottom_layout.addSpacing(10)
         bottom_layout.addWidget(btn_back)
-        
+
         page_games_layout.addLayout(bottom_layout)
         
         self.stack.addWidget(self.page_games)
@@ -892,7 +1067,7 @@ class LibraryView(QWidget):
         """Idem para el grid de juegos (ROMs)."""
         if self.stack.currentIndex() == 1 and hasattr(self, 'games_grid') and self.games_grid.count() > 0:
             width = self.games_scroll.viewport().width()
-            card_width = 150
+            card_width = 175
             spacing = self.games_grid.spacing()
             cols = max(1, width // (card_width + spacing))
             
@@ -991,6 +1166,12 @@ class LibraryView(QWidget):
 
         for game in juegos:
             card = GameCard(game, self.translator, self.lanzar_con_info, self._on_game_hover)
+            # Configurar badge de playtime
+            try:
+                _, h, m = self.emu_manager.get_playtime(game.get("ruta", ""))
+                card.set_playtime(h, m)
+            except Exception:
+                pass
             self.games_grid.addWidget(card, 0, 0)
             
         self._current_game_cols = -1

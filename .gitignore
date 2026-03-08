@@ -47,3 +47,6 @@ desktop.ini
 *.tmp
 *.bak
 *.orig
+
+# --- Releases (Binarios) ---
+releases/

@@ -50,3 +50,6 @@ desktop.ini
 
 # --- Releases (Binarios) ---
 releases/
+
+# --- Scripts internos ---
+tools/

@@ -4,6 +4,7 @@ Controla la navegación lateral (Sidebar) y el intercambio de vistas.
 """
 
 import asyncio
+import os
 from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QHBoxLayout, QVBoxLayout, 
     QStackedWidget, QListWidget, QListWidgetItem
@@ -26,12 +27,18 @@ class EmuApp(QMainWindow):
         super().__init__()
         # 1. Configurar título de la aplicación
         self.emu_name = "EmuManager"
-        self.emu_version = "v0.1.1 alpha"
+        self.emu_version = "v0.1.3 alpha"
         self.update_window_title()
         
         # 2. Inicializar los gestores fundamentales
         self.emu_manager = EmuladorManager()                     # Gestión de carpetas/procesos emuladores
         self.translator = Translator(self.emu_manager.language) # Traducciones dinámicas (i18n)
+        
+        # 3. Configurar rutas de arte dinámicas
+        import core.artwork as artwork
+        if self.emu_manager.install_path:
+            media_path = os.path.join(self.emu_manager.install_path, "media")
+            artwork.set_base_media_path(media_path)
         
         # 3. Mapeo de plataformas para las carátulas (Libretro)
         from core.constants import AVAILABLE_EMULATORS
@@ -58,8 +65,8 @@ class EmuApp(QMainWindow):
         
         # --- MENÚ LATERAL (Sidebar) ---
         sidebar_container = QWidget()
+        sidebar_container.setObjectName("sidebarContainer")
         sidebar_container.setFixedWidth(200)
-        sidebar_container.setStyleSheet("background-color: #0c0d12; border-right: 1px solid #1a1c24;")
         sidebar_layout = QVBoxLayout(sidebar_container)
         sidebar_layout.setContentsMargins(0, 0, 0, 0)
         sidebar_layout.setSpacing(0)
@@ -85,30 +92,7 @@ class EmuApp(QMainWindow):
         
         self.sidebar = QListWidget()
         self.sidebar.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        # Estilo oscuro premium con resaltado azul a la izquierda
-        self.sidebar.setStyleSheet("""
-            QListWidget {
-                background-color: #0c0d12;
-                border: none;
-                padding-top: 20px;
-                outline: 0;
-            }
-            QListWidget::item {
-                height: 50px;
-                padding-left: 20px;
-                color: #a0a0a0;
-                font-size: 14px;
-            }
-            QListWidget::item:selected {
-                background-color: #1a1c24;
-                color: #ffffff;
-                border-left: 4px solid #4da6ff;
-            }
-            QListWidget::item:hover {
-                background-color: #15171e;
-                color: #e0e0e0;
-            }
-        """)
+        self.sidebar.setObjectName("sidebarMenu")
         # Detectar el clic en una opción del menú lateral
         self.sidebar.currentRowChanged.connect(self.change_view)
         
@@ -124,13 +108,19 @@ class EmuApp(QMainWindow):
         # --- CONTENEDOR DE VISTAS (Stacked Widget) ---
         # Este controla qué página (Dashboard, Biblioteca, etc.) se muestra
         self.views_stack = QStackedWidget()
-        self.views_stack.setStyleSheet("background-color: #15171e;")
         
         # Instanciar las vistas pasando los gestores necesarios
         self.dashboard_view = DashboardView(self.emu_manager, self.translator)
         self.library_view = LibraryView(self.emu_manager, self.emu_platform_map, self.translator, self)
+        def on_library_needs_refresh():
+            """Marca la biblioteca para que recargue la próxima vez que se muestre."""
+            self.library_view._needs_refresh = True
+            # Si la biblioteca ya está visible, recargar ahora
+            if self.views_stack.currentIndex() == 1:
+                self.library_view.mostrar_consolas()
+        
         # La vista de descargas necesita poder recargar la biblioteca cuando termine de instalar algo
-        self.downloads_view = DownloadsView(self.emu_manager, self.translator, self.library_view.mostrar_consolas)
+        self.downloads_view = DownloadsView(self.emu_manager, self.translator, on_library_needs_refresh)
         # Los ajustes necesitan poder actualizar el dashboard (si cambia el idioma)
         self.settings_view = SettingsView(self.emu_manager, self.translator, self.dashboard_view.update_dashboard_status, self.on_language_change)
         

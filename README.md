@@ -1,6 +1,6 @@
 # EmuManager 🎮
 
-![Versión](https://img.shields.io/badge/version-0.1.1--alpha-blue.svg)
+![Versión](https://img.shields.io/badge/version-0.1.3--alpha-blue.svg)
 ![Licencia](https://img.shields.io/badge/license-GNU%20GPLv3-green.svg)
 
 EmuManager es un gestor integral de juegos retro con una interfaz moderna y sumamente intuitiva, construida con **PyQt6** y **Asyncio**. Te permite descargar, organizar y ejecutar tus emuladores y ROMs clásicas desde un solo lugar, de una forma visualmente atractiva y fácil de usar en entornos de escritorio.

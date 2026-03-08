@@ -14,12 +14,12 @@ class DashboardView(QWidget):
         
         # Welcome Title
         title = QLabel(self.translator.t("dash_welcome_title"))
-        title.setStyleSheet("font-size: 42px; font-weight: bold; color: white;")
+        title.setProperty("class", "pageTitle")
         layout.addWidget(title)
         
         # Subtitle
         subtitle = QLabel(self.translator.t("dash_welcome_subtitle"))
-        subtitle.setStyleSheet("font-size: 18px; color: #a0c0ff;")
+        subtitle.setProperty("class", "pageSubtitle")
         layout.addWidget(subtitle)
         
         layout.addStretch()
@@ -29,7 +29,7 @@ class DashboardView(QWidget):
         status_layout.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignBottom)
         
         route_status = QLabel(self.translator.t("dash_route_status"))
-        route_status.setStyleSheet("font-size: 12px; color: #888888;")
+        route_status.setProperty("class", "dashboardRouteStatus")
         route_status.setAlignment(Qt.AlignmentFlag.AlignRight)
         status_layout.addWidget(route_status)
         

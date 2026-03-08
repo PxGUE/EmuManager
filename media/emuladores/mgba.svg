@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+  <!-- Game Boy Advance Iconic Vector Design -->
+  <g transform="translate(5, 25)">
+    <!-- Main Body Shape -->
+    <path d="M 15 0 
+             L 75 0 
+             C 85 0, 90 5, 90 15 
+             L 90 35 
+             C 90 45, 85 50, 75 50 
+             L 15 50 
+             C 5 50, 0 45, 0 35 
+             L 0 15 
+             C 0 5, 5 0, 15 0 Z" 
+          fill="none" stroke="#ffffff" stroke-width="4" stroke-linejoin="round"/>
+          
+    <path d="M 15 4 
+             L 75 4 
+             C 83 4, 86 7, 86 15 
+             L 86 35 
+             C 86 43, 83 46, 75 46 
+             L 15 46 
+             C 7 46, 4 43, 4 35 
+             L 4 15 
+             C 4 7, 7 4, 15 4 Z" 
+          fill="none" stroke="#ffffff" stroke-width="1.5" stroke-linejoin="round" opacity="0.4"/>
+    
+    <!-- Screen -->
+    <rect x="25" y="8" width="40" height="30" rx="2" fill="none" stroke="#ffffff" stroke-width="3"/>
+    
+    <!-- D-Pad -->
+    <path d="M 12 18 L 15 18 L 15 15 L 18 15 L 18 18 L 21 18 L 21 21 L 18 21 L 18 24 L 15 24 L 15 21 L 12 21 Z" 
+          fill="#ffffff"/>
+          
+    <!-- Left Bumper (L) -->
+    <path d="M 5 10 C 10 5, 20 2, 25 2" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round"/>
+    
+    <!-- Right Bumper (R) -->
+    <path d="M 85 10 C 80 5, 70 2, 65 2" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round"/>
+          
+    <!-- A / B Buttons -->
+    <circle cx="78" cy="18" r="3" fill="#ffffff" /> <!-- A button -->
+    <circle cx="72" cy="24" r="3" fill="#ffffff" /> <!-- B button -->
+    
+    <!-- Select / Start -->
+    <rect x="18" y="32" width="6" height="2" rx="1" fill="#ffffff" transform="rotate(-20 21 33)"/>
+    <rect x="18" y="38" width="6" height="2" rx="1" fill="#ffffff" transform="rotate(-20 21 39)"/>
+    
+    <!-- Speaker Grille -->
+    <circle cx="73" cy="38" r="1" fill="#ffffff" />
+    <circle cx="77" cy="38" r="1" fill="#ffffff" />
+    <circle cx="81" cy="38" r="1" fill="#ffffff" />
+    <circle cx="75" cy="42" r="1" fill="#ffffff" />
+    <circle cx="79" cy="42" r="1" fill="#ffffff" />
+  </g>
+</svg>

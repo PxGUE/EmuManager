@@ -43,6 +43,8 @@ TRANSLATIONS = {
         "lib_status_processing": "Procesando...",
         "lib_status_complete": "¡Actualización completa!",
         "lib_status_downloading": "Descargando: {0}",
+        "lib_empty": "Descarga una consola desde la sección de descarga",
+        "lib_btn_view_games": "VER JUEGOS",
 
         # Downloads
         "dl_title": "Descargar Emuladores",
@@ -116,7 +118,16 @@ TRANSLATIONS = {
         "set_about_link": "Leer detalles de la licencia",
         "set_btn_close": "Cerrar",
         "set_dlg_emus": "Selecciona Carpeta de Emuladores",
-        "set_dlg_roms": "Selecciona Carpeta de ROMs"
+        "set_dlg_roms": "Selecciona Carpeta de ROMs",
+        "set_scraping_title": "Scraping",
+        "set_scraping_sub": "Administra la información y carátulas de tus juegos.",
+        "set_btn_scraping": "Actualizar info y media",
+        "set_scrap_dlg_title": "Scraping de Medios",
+        "set_scrap_dlg_select": "Selecciona las consolas a procesar:",
+        "set_scrap_btn_start": "Iniciar",
+        "set_scrap_btn_close": "Cerrar",
+        "set_scrap_status_idle": "Listo para iniciar",
+        "set_scraping_status": "Estado: {0}"
     },
     "en": {
         # Navigation
@@ -162,6 +173,8 @@ TRANSLATIONS = {
         "lib_status_processing": "Processing...",
         "lib_status_complete": "Update complete!",
         "lib_status_downloading": "Downloading: {0}",
+        "lib_empty": "Download a console from the download section",
+        "lib_btn_view_games": "VIEW GAMES",
 
         # Downloads
         "dl_title": "Download Emulators",
@@ -235,7 +248,16 @@ TRANSLATIONS = {
         "set_about_link": "Read license details",
         "set_btn_close": "Close",
         "set_dlg_emus": "Select Emulators Folder",
-        "set_dlg_roms": "Select ROMs Folder"
+        "set_dlg_roms": "Select ROMs Folder",
+        "set_scraping_title": "Scraping",
+        "set_scraping_sub": "Manage information and artwork for your games.",
+        "set_btn_scraping": "Update info and media",
+        "set_scrap_dlg_title": "Media Scraping",
+        "set_scrap_dlg_select": "Select consoles to process:",
+        "set_scrap_btn_start": "Start",
+        "set_scrap_btn_close": "Close",
+        "set_scrap_status_idle": "Ready to start",
+        "set_scraping_status": "Status: {0}"
     }
 }
 

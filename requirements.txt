@@ -3,4 +3,4 @@ qasync>=0.28.0
 aiohttp>=3.13.0
 beautifulsoup4>=4.14.0
 python-dotenv>=1.0.0
-# Version 0.1.1 alpha dependencies
+# Version 0.1.3 alpha dependencies

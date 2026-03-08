@@ -136,8 +136,8 @@ class EmuApp(QMainWindow):
         
         # La vista de descargas necesita poder recargar la biblioteca cuando termine de instalar algo
         self.downloads_view = DownloadsView(self.emu_manager, self.translator, on_library_needs_refresh)
-        # Los ajustes necesitan poder actualizar el dashboard (si cambia el idioma)
-        self.settings_view = SettingsView(self.emu_manager, self.translator, self.dashboard_view.update_dashboard_status, self.on_language_change)
+        # Los ajustes necesitan poder actualizar el dashboard y la vista de descargas
+        self.settings_view = SettingsView(self.emu_manager, self.translator, self.on_settings_changed, self.on_language_change)
         
         # Apilar las vistas en el stacker
         self.views_stack.addWidget(self.dashboard_view) # Index 0
@@ -151,6 +151,12 @@ class EmuApp(QMainWindow):
         
         # Iniciar en la página de inicio (Dashboard)
         self.sidebar.setCurrentRow(0)
+        
+    def on_settings_changed(self):
+        """Notifica a las vistas que dependen de la configuración global."""
+        self.dashboard_view.update_dashboard_status()
+        self.downloads_view.refresh_emulators()
+        self.library_view._needs_refresh = True
         
     def update_window_title(self):
         """Actualiza el título de la ventana con la versión actual."""

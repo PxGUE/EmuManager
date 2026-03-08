@@ -228,6 +228,11 @@ class EmulatorCard(QFrame):
 
     def update_ui_state(self, keep_status=False):
         is_installed = self.emu_manager.esta_instalado(self.emu["github"])
+        
+        path_emus = self.emu_manager.install_path
+        path_roms = self.emu_manager.roms_path
+        valid_paths = (bool(path_emus and os.path.exists(path_emus)) and
+                      bool(path_roms and os.path.exists(path_roms)))
 
         if is_installed:
             self.action_btn.setText(self.translator.t("dl_btn_uninstall").upper())
@@ -238,7 +243,7 @@ class EmulatorCard(QFrame):
                     border: 1px solid #7f1d1d; border-radius: 19px;
                 }
                 QPushButton:hover { background: #3d1a1a; color: #fca5a5; }
-                QPushButton:disabled { background: #1a1c24; color: #444455; }
+                QPushButton:disabled { background: #1a1c24; color: #444455; border: 1px solid #252830; }
             """)
             self.installed_badge.show()
         else:
@@ -255,9 +260,16 @@ class EmulatorCard(QFrame):
             """)
             self.installed_badge.hide()
 
-        if not keep_status:
-            self.status_lbl.setText("")
-            self.status_lbl.setStyleSheet("font-size: 10px; color: #555566; background: transparent; border: none;")
+        if not valid_paths:
+            self.action_btn.setEnabled(False)
+            if not keep_status:
+                self.status_lbl.setText(self.translator.t("dl_warn_paths_short") or "Configurar rutas")
+                self.status_lbl.setStyleSheet("font-size: 10px; color: #f87171; background: transparent; border: none;")
+        else:
+            self.action_btn.setEnabled(True)
+            if not keep_status:
+                self.status_lbl.setText("")
+                self.status_lbl.setStyleSheet("font-size: 10px; color: #555566; background: transparent; border: none;")
 
     # ── Async logic (INTACTA) ────────────────────────────────────────────────
 
@@ -403,6 +415,13 @@ class DownloadsView(QWidget):
         layout.addLayout(header)
         layout.addSpacing(22)
 
+        # ── Warning Area (Fuera del scroll para que sea fijo arriba) ──────
+        self.warn_area = QWidget()
+        self.warn_area.setVisible(False)
+        self.warn_layout = QVBoxLayout(self.warn_area)
+        self.warn_layout.setContentsMargins(0, 0, 0, 20)
+        layout.addWidget(self.warn_area)
+
         # ── Grid ──────────────────────────────────────────────────────────
         self.scroll_area = QScrollArea()
         self.scroll_area.setWidgetResizable(True)
@@ -473,22 +492,48 @@ class DownloadsView(QWidget):
 
     # ── Load ──────────────────────────────────────────────────────────────────
 
+    def refresh_emulators(self):
+        """Recalcula el estado de las rutas y actualiza las tarjetas o la advertencia."""
+        self.load_emulators()
+
     def load_emulators(self):
+        # Limpiar tarjetas anteriores
+        for card in self._all_cards:
+            card.deleteLater()
+        self._all_cards = []
+        
+        # Limpiar grid layout
+        while self.grid_layout.count():
+            item = self.grid_layout.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+
+        # Limpiar warning area
+        while self.warn_layout.count():
+            item = self.warn_layout.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+
         path_emus = self.emu_manager.install_path
         path_roms = self.emu_manager.roms_path
 
-        if not (bool(path_emus and os.path.exists(path_emus)) and
-                bool(path_roms and os.path.exists(path_roms))):
+        valid_paths = (bool(path_emus and os.path.exists(path_emus)) and
+                      bool(path_roms and os.path.exists(path_roms)))
+
+        if not valid_paths:
             warn = QLabel(self.translator.t("dl_warn_paths"))
             warn.setStyleSheet("""
-                background: #1e1416; color: #fca5a5; font-size: 13px;
-                padding: 16px; border-radius: 10px;
-                border: 1px solid #7f1d1d;
+                background: rgba(30, 20, 22, 0.8); color: #fca5a5; font-size: 13px;
+                padding: 16px; border-radius: 12px;
+                border: 1px solid rgba(127, 29, 29, 0.4);
             """)
             warn.setWordWrap(True)
-            self.grid_layout.addWidget(warn, 0, 0, 1, 3)
+            self.warn_layout.addWidget(warn)
+            self.warn_area.show()
             self.stats_badge.hide()
-            return
+        else:
+            self.warn_area.hide()
+            self.stats_badge.show()
 
         for emu in AVAILABLE_EMULATORS:
             card = EmulatorCard(emu, self.emu_manager, self.translator, self.on_update_library_bg)
@@ -536,14 +581,9 @@ class DownloadsView(QWidget):
 
         row, col = 0, 0
         for w in widgets:
-            if isinstance(w, QLabel):
-                self.grid_layout.addWidget(w, row, 0, 1, cols)
-                row += 1
-                col = 0
-            else:
-                self.grid_layout.addWidget(w, row, col)
-                if w.isVisible():
-                    col += 1
-                    if col >= cols:
-                        col = 0
-                        row += 1
+            self.grid_layout.addWidget(w, row, col)
+            if w.isVisible():
+                col += 1
+                if col >= cols:
+                    col = 0
+                    row += 1

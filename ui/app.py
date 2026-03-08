@@ -71,32 +71,36 @@ class EmuApp(QMainWindow):
         sidebar_layout.setContentsMargins(0, 0, 0, 0)
         sidebar_layout.setSpacing(0)
         
-        # Logo / Icono Superior
+        # --- App name (en lugar del logo) ---
         from PyQt6.QtWidgets import QLabel
-        from PyQt6.QtGui import QPixmap
         from PyQt6.QtCore import Qt, QSize
         import os
         
-        logo_label = QLabel()
-        logo_label.setFixedSize(200, 150)
-        logo_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        app_name_lbl = QLabel("EmuManager")
+        app_name_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        app_name_lbl.setStyleSheet("""
+            color: #4da6ff;
+            font-size: 15px;
+            font-weight: 900;
+            letter-spacing: 1px;
+            padding: 24px 10px 8px 10px;
+            background: transparent;
+        """)
+        sidebar_layout.addWidget(app_name_lbl)
         
-        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        icon_path = os.path.join(base_dir, "media", "icon.svg")
-        
-        if os.path.exists(icon_path):
-            pixmap = QIcon(icon_path).pixmap(QSize(80, 80))
-            logo_label.setPixmap(pixmap)
-        
-        sidebar_layout.addWidget(logo_label)
+        # Línea separadora sutil
+        from PyQt6.QtWidgets import QFrame
+        sep = QFrame()
+        sep.setFrameShape(QFrame.Shape.HLine)
+        sep.setStyleSheet("background: #1a1c24; border: none; max-height: 1px; margin: 0 16px;")
+        sidebar_layout.addWidget(sep)
+        sidebar_layout.addSpacing(10)
         
         self.sidebar = QListWidget()
         self.sidebar.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.sidebar.setObjectName("sidebarMenu")
-        # Detectar el clic en una opción del menú lateral
         self.sidebar.currentRowChanged.connect(self.change_view)
         
-        # Elementos del menú (Nombres obtenidos del traductor)
         self.add_sidebar_item(self.translator.t("nav_home"), "home")
         self.add_sidebar_item(self.translator.t("nav_library"), "folder")
         self.add_sidebar_item(self.translator.t("nav_downloads"), "download")
@@ -104,6 +108,17 @@ class EmuApp(QMainWindow):
         
         sidebar_layout.addWidget(self.sidebar)
         sidebar_layout.addStretch()
+        
+        # Versión al fondo
+        ver_lbl = QLabel("v0.1.3 alpha")
+        ver_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        ver_lbl.setStyleSheet("""
+            color: #333344;
+            font-size: 10px;
+            padding: 12px;
+            background: transparent;
+        """)
+        sidebar_layout.addWidget(ver_lbl)
         
         # --- CONTENEDOR DE VISTAS (Stacked Widget) ---
         # Este controla qué página (Dashboard, Biblioteca, etc.) se muestra

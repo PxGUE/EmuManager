@@ -194,7 +194,46 @@ class ConsoleCarousel(QWidget):
         panel.lbl_empty_icon.setProperty("class", "carouselEmptyIcon")
         panel.lbl_empty_icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
         panel.lbl_empty_icon.hide()
-        
+
+        # --- PANEL ESTADO VACÍO (premium, centrado) ---
+        panel.empty_card = QFrame()
+        panel.empty_card.setStyleSheet("""
+            QFrame {
+                background: rgba(15, 18, 28, 0.92);
+                border-radius: 24px;
+                border: 1px solid rgba(77, 166, 255, 0.25);
+            }
+        """)
+        panel.empty_card.setFixedSize(480, 260)
+        empty_card_layout = QVBoxLayout(panel.empty_card)
+        empty_card_layout.setContentsMargins(48, 36, 48, 36)
+        empty_card_layout.setSpacing(14)
+        empty_card_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        ec_icon = QLabel("🕹️")
+        ec_icon.setStyleSheet("font-size: 56px; background: transparent; border: none;")
+        ec_icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        empty_card_layout.addWidget(ec_icon)
+
+        ec_title = QLabel("Sin emuladores instalados")
+        ec_title.setStyleSheet("""
+            font-size: 20px; font-weight: 900;
+            color: #ffffff; background: transparent; border: none;
+        """)
+        ec_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        empty_card_layout.addWidget(ec_title)
+
+        ec_sub = QLabel("Ve a la sección Descargas para instalar\nun emulador y empezar a jugar.")
+        ec_sub.setStyleSheet("""
+            font-size: 13px; color: #666688;
+            background: transparent; border: none;
+        """)
+        ec_sub.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        ec_sub.setWordWrap(True)
+        empty_card_layout.addWidget(ec_sub)
+
+        panel.empty_card.hide()
+
         panel.btn_play = QPushButton(self.translator.t("lib_btn_view_games").upper())
         panel.btn_play.setStyleSheet("""
             QPushButton {
@@ -206,7 +245,8 @@ class ConsoleCarousel(QWidget):
         panel.btn_play.setFixedSize(180, 45)
         panel.btn_play.setCursor(Qt.CursorShape.PointingHandCursor)
         panel.btn_play.clicked.connect(self.on_play_clicked)
-        
+
+        # Elementos normales (consola con datos)
         layout.addWidget(panel.lbl_title)
         layout.addWidget(panel.lbl_emu)
         layout.addSpacing(5)
@@ -214,6 +254,11 @@ class ConsoleCarousel(QWidget):
         layout.addSpacing(20)
         layout.addWidget(panel.btn_play)
         layout.addWidget(panel.lbl_empty_icon)
+
+        # Empty card centrada (se muestra solo cuando no hay consolas)
+        layout.addStretch(1)
+        layout.addWidget(panel.empty_card, 0, Qt.AlignmentFlag.AlignCenter)
+        layout.addStretch(1)
         
         return panel
 
@@ -313,16 +358,21 @@ class ConsoleCarousel(QWidget):
         pane = target_pane if target_pane else self.current_pane
         
         if not self.consoles_data:
-            pane.lbl_title.setText(self.translator.t("lib_empty"))
-            pane.lbl_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            pane.lbl_title.setMinimumWidth(0)
+            pane.lbl_title.setText("")
+            pane.lbl_title.hide()
             pane.lbl_emu.hide()
             pane.lbl_info.hide()
             pane.btn_play.hide()
-            pane.lbl_empty_icon.show()
+            pane.lbl_empty_icon.hide()
+            if hasattr(pane, 'empty_card'):
+                pane.empty_card.show()
+            # Centrar el layout del panel para que el empty_card quede centrado
+            pane.layout().setContentsMargins(0, 0, 0, 0)
+            pane.layout().setAlignment(Qt.AlignmentFlag.AlignCenter)
             self.btn_left.hide()
             self.btn_right.hide()
             self.current_bg_pixmap = None
+            self.current_color = "#1a2540"
             self.update()
             return
             
@@ -330,14 +380,18 @@ class ConsoleCarousel(QWidget):
         self.btn_left.setVisible(is_carousel)
         self.btn_right.setVisible(is_carousel)
         
-        # Alineación estándar a la izquierda
-        pane.lbl_title.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
-        
+        # Restaurar alineación izquierda y márgenes normales cuando hay consolas
+        pane.layout().setContentsMargins(80, 50, 50, 50)
+        pane.layout().setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
         # Mostrar elementos necesarios
         pane.lbl_emu.show()
         pane.lbl_info.show()
         pane.btn_play.show()
+        # Ocultar panel vacío y restaurar lbl_title
+        if hasattr(pane, 'empty_card'):
+            pane.empty_card.hide()
         pane.lbl_empty_icon.hide()
+        pane.lbl_title.show()
         
         emu, count, playtime = self.consoles_data[self.current_index]
         self.current_color = emu.get("color", "#4da6ff")

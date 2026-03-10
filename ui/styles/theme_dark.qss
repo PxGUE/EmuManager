@@ -503,6 +503,17 @@ QProgressBar#scrapingProgressBar::chunk {
     border-radius: 5px;
 }
 
+/* Settings Scroll Area */
+QScrollArea#settingsScrollArea {
+    background-color: transparent;
+    border: none;
+}
+
+QWidget#settingsScrollContent {
+    background-color: transparent;
+    border: none;
+}
+
 
 /* Dashboard Route Status */
 QLabel.dashboardRouteStatus {

@@ -21,7 +21,23 @@ class SettingsView(QWidget):
         self.init_ui()
         
     def init_ui(self):
-        layout = QVBoxLayout(self)
+        # Layout principal de SettingsView
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(0, 0, 0, 0)
+        
+        # Scroll Area para evitar que se recorte el contenido
+        self.scroll_area = QScrollArea()
+        self.scroll_area.setWidgetResizable(True)
+        self.scroll_area.setFrameShape(QFrame.Shape.NoFrame)
+        self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.scroll_area.setObjectName("settingsScrollArea")
+        
+        # Widget que contendrá todo el contenido de configuración
+        self.scroll_content = QWidget()
+        self.scroll_content.setObjectName("settingsScrollContent")
+        
+        # Layout para el contenido (el layout original)
+        layout = QVBoxLayout(self.scroll_content)
         layout.setContentsMargins(40, 40, 40, 40)
         layout.setSpacing(30)
         layout.setAlignment(Qt.AlignmentFlag.AlignTop)
@@ -159,6 +175,10 @@ class SettingsView(QWidget):
         about_group.addStretch() # Añadir stretch a la derecha para centrar
         layout.addLayout(about_group)
         layout.addSpacing(10) # Pequeño margen inferior
+
+        # Configurar el scroll area con su contenido
+        self.scroll_area.setWidget(self.scroll_content)
+        main_layout.addWidget(self.scroll_area)
 
     def on_lang_changed(self, index):
         new_lang = self.lang_cb.itemData(index)

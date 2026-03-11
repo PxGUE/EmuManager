@@ -97,7 +97,19 @@ TRANSLATIONS = {
         "emu_lime3ds_console": "Nintendo 3DS",
         "emu_lime3ds_desc": "Sucesor espiritual de Citra, optimizado para emular la Nintendo 3DS en hardware moderno.",
         "emu_switch_console": "Nintendo Switch",
-        "emu_switch_desc": "Emulador de Nintendo Switch basado en Sudachi, optimizado para Linux.",
+        "emu_switch_desc": "Emulador de Nintendo Switch híbrido. Alta compatibilidad y rendimiento.",
+        "emu_ryujinx_console": "Nintendo Switch",
+        "emu_ryujinx_desc": "Emulador de Nintendo Switch de código abierto con gran precisión y compatibilidad.",
+        "emu_cemu_console": "Wii U",
+        "emu_cemu_desc": "Emulador de Wii U altamente optimizado para jugar a 4K y 60fps.",
+        "emu_vita3k_console": "PlayStation Vita",
+        "emu_vita3k_desc": "El primer emulador funcional de PS Vita en el mundo.",
+        "emu_sudachi_console": "Nintendo Switch (Sudachi)",
+        "emu_sudachi_desc": "Versión optimizada de emulador de Switch.",
+        "dl_subtitle": "GESTIÓN Y DESCARGA AUTOMÁTICA",
+        "dl_filter_all": "Todos",
+        "dl_filter_installed": "Instalados",
+        "dl_filter_not_installed": "No instalados",
 
         # Settings
         "set_title": "Configuración",
@@ -120,15 +132,6 @@ TRANSLATIONS = {
         "set_btn_close": "Cerrar",
         "set_dlg_emus": "Selecciona Carpeta de Emuladores",
         "set_dlg_roms": "Selecciona Carpeta de ROMs",
-        "set_scraping_title": "Scraping",
-        "set_scraping_sub": "Administra la información y carátulas de tus juegos.",
-        "set_btn_scraping": "Actualizar info y media",
-        "set_scrap_dlg_title": "Scraping de Medios",
-        "set_scrap_dlg_select": "Selecciona las consolas a procesar:",
-        "set_scrap_btn_start": "Iniciar",
-        "set_scrap_btn_close": "Cerrar",
-        "set_scrap_status_idle": "Listo para iniciar",
-        "set_scraping_status": "Estado: {0}"
     },
     "en": {
         # Navigation
@@ -228,7 +231,19 @@ TRANSLATIONS = {
         "emu_lime3ds_console": "Nintendo 3DS",
         "emu_lime3ds_desc": "Spiritual successor to Citra, optimized for emulating the Nintendo 3DS on modern hardware.",
         "emu_switch_console": "Nintendo Switch",
-        "emu_switch_desc": "Nintendo Switch emulator based on Sudachi, optimized for Linux.",
+        "emu_switch_desc": "Hybrid Nintendo Switch emulator. High compatibility and performance.",
+        "emu_ryujinx_console": "Nintendo Switch",
+        "emu_ryujinx_desc": "Open-source Nintendo Switch emulator with great accuracy and compatibility.",
+        "emu_cemu_console": "Wii U",
+        "emu_cemu_desc": "Highly optimized Wii U emulator for playing at 4k and 60fps.",
+        "emu_vita3k_console": "PlayStation Vita",
+        "emu_vita3k_desc": "The first functional PS Vita emulator in the world.",
+        "emu_sudachi_console": "Nintendo Switch (Sudachi)",
+        "emu_sudachi_desc": "Optimized version of Switch emulator.",
+        "dl_subtitle": "MANAGEMENT AND AUTOMATIC DOWNLOAD",
+        "dl_filter_all": "All",
+        "dl_filter_installed": "Installed",
+        "dl_filter_not_installed": "Not installed",
 
         # Settings
         "set_title": "Settings",
@@ -251,15 +266,6 @@ TRANSLATIONS = {
         "set_btn_close": "Close",
         "set_dlg_emus": "Select Emulators Folder",
         "set_dlg_roms": "Select ROMs Folder",
-        "set_scraping_title": "Scraping",
-        "set_scraping_sub": "Manage information and artwork for your games.",
-        "set_btn_scraping": "Update info and media",
-        "set_scrap_dlg_title": "Media Scraping",
-        "set_scrap_dlg_select": "Select consoles to process:",
-        "set_scrap_btn_start": "Start",
-        "set_scrap_btn_close": "Close",
-        "set_scrap_status_idle": "Ready to start",
-        "set_scraping_status": "Status: {0}"
     }
 }
 

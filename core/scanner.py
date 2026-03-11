@@ -111,3 +111,56 @@ def cargar_biblioteca_cache() -> List[dict]:
         except:
             return []
     return []
+
+
+# ── SISTEMA DE FAVORITOS ──────────────────────────────────────────────
+
+_FAVORITES_FILE = os.path.join("data", "favorites.json")
+_favorites_cache: set = None
+
+
+def cargar_favoritos() -> set:
+    """Carga la lista de favoritos desde disco (caché en memoria por sesión)."""
+    global _favorites_cache
+    if _favorites_cache is not None:
+        return _favorites_cache
+    try:
+        if os.path.exists(_FAVORITES_FILE):
+            with open(_FAVORITES_FILE, "r", encoding="utf-8") as f:
+                _favorites_cache = set(json.load(f))
+        else:
+            _favorites_cache = set()
+    except Exception as e:
+        print(f"[SCANNER] Error cargando favoritos: {e}")
+        _favorites_cache = set()
+    return _favorites_cache
+
+
+def guardar_favoritos(favorites: set):
+    """Persiste el conjunto de favoritos en disco."""
+    global _favorites_cache
+    _favorites_cache = favorites
+    try:
+        os.makedirs("data", exist_ok=True)
+        with open(_FAVORITES_FILE, "w", encoding="utf-8") as f:
+            json.dump(list(favorites), f, ensure_ascii=False)
+    except Exception as e:
+        print(f"[SCANNER] Error guardando favoritos: {e}")
+
+
+def toggle_favorito(ruta_rom: str) -> bool:
+    """Alterna el estado favorito de un juego. Devuelve True si ahora es favorito."""
+    favs = cargar_favoritos()
+    if ruta_rom in favs:
+        favs.discard(ruta_rom)
+        is_fav = False
+    else:
+        favs.add(ruta_rom)
+        is_fav = True
+    guardar_favoritos(favs)
+    return is_fav
+
+
+def es_favorito(ruta_rom: str) -> bool:
+    """Devuelve True si el juego está marcado como favorito."""
+    return ruta_rom in cargar_favoritos()

@@ -465,6 +465,10 @@ class DashboardView(QWidget):
         if self.isVisible():
             QTimer.singleShot(50, self.update_dashboard_status)
 
+    def retranslate_ui(self):
+        """Alias para actualizar el contenido traduciendo etiquetas."""
+        self.update_dashboard_status()
+
     def update_dashboard_status(self):
         """Reconstruye el contenido dinámico del dashboard con datos frescos."""
         try:

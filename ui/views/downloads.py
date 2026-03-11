@@ -5,16 +5,15 @@ Diseño premium: nombre de consola como elemento principal, color único, filtro
 
 import asyncio
 import os
-from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel,
-    QPushButton, QScrollArea, QFrame, QProgressBar, QGridLayout,
-    QSizePolicy, QGraphicsDropShadowEffect
-)
-from PyQt6.QtCore import Qt, QTimer, QSize
-from PyQt6.QtGui import QPixmap, QIcon, QColor
+from PyQt6 import QtWidgets, QtCore, QtGui
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QScrollArea, QFrame, QProgressBar, QGridLayout, QSizePolicy, QGraphicsDropShadowEffect, QCheckBox, QDialog, QDialogButtonBox, QApplication, QMessageBox, QFileDialog
+from PyQt6.QtCore import Qt, QTimer, QSize, QUrl
+from PyQt6.QtGui import QPixmap, QIcon, QColor, QDesktopServices
 from qasync import asyncSlot
 from core.constants import AVAILABLE_EMULATORS
 import core.artwork as artwork
+import core.scanner as scanner
+import core.metadata as metadata
 
 ACCENT = "#4da6ff"
 ACCENT_HOVER = "#7abfff"
@@ -24,15 +23,127 @@ CARD_BG_HOVER = "#1b1e2a"
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# MANUAL INSTALL DIALOG
+# ─────────────────────────────────────────────────────────────────────────────
+
+class ManualInstallDialog(QDialog):
+    def __init__(self, emu, translator, parent=None):
+        super().__init__(parent)
+        self.emu = emu
+        self.translator = translator
+        self.selected_file = None
+        self.setWindowTitle(f"Asistente: {emu['name']}")
+        self.setFixedWidth(400)
+        self.init_ui()
+
+    def init_ui(self):
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(24, 24, 24, 24)
+        layout.setSpacing(20)
+
+        # Title
+        title = QLabel("Instalación Manual")
+        title.setStyleSheet("font-size: 18px; font-weight: bold; color: #f8f8ff;")
+        layout.addWidget(title)
+
+        # Step 1: Link
+        step1_box = QFrame()
+        step1_box.setStyleSheet("background: rgba(255,255,255,0.03); border: 1px solid #252830; border-radius: 8px;")
+        s1_layout = QVBoxLayout(step1_box)
+        
+        s1_title = QLabel("1. Descarga el paquete")
+        s1_title.setStyleSheet("font-weight: bold; color: #4da6ff; border: none;")
+        
+        info = QLabel("Descarga la versión portable (.zip, .7z) de la web oficial:")
+        info.setStyleSheet("font-size: 11px; color: #aaaaaa; border: none;")
+        info.setWordWrap(True)
+
+        url_btn = QPushButton("Abrir Página de Descarga")
+        url_btn.setFixedHeight(34)
+        url_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        url_btn.setStyleSheet("""
+            QPushButton { 
+                background: #1e293b; color: #ffffff; border: 1px solid #334155; border-radius: 6px; font-weight: bold; 
+            }
+            QPushButton:hover { background: #334155; }
+        """)
+        url_btn.clicked.connect(lambda: QDesktopServices.openUrl(QUrl(self.emu.get("manual_url", self.emu.get("github")))))
+
+        s1_layout.addWidget(s1_title)
+        s1_layout.addWidget(info)
+        s1_layout.addWidget(url_btn)
+        layout.addWidget(step1_box)
+
+        # Step 2: File Pick
+        step2_box = QFrame()
+        step2_box.setStyleSheet("background: rgba(255,255,255,0.03); border: 1px solid #252830; border-radius: 8px;")
+        s2_layout = QVBoxLayout(step2_box)
+
+        s2_title = QLabel("2. Selecciona el archivo")
+        s2_title.setStyleSheet("font-weight: bold; color: #4da6ff; border: none;")
+
+        self.file_lbl = QLabel("No se ha seleccionado archivo")
+        self.file_lbl.setStyleSheet("font-size: 10px; color: #888888; border: none;")
+        self.file_lbl.setWordWrap(True)
+
+        pick_btn = QPushButton("Seleccionar ZIP / 7Z / EXE")
+        pick_btn.setFixedHeight(34)
+        pick_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        pick_btn.setStyleSheet("""
+            QPushButton { 
+                background: #064e3b; color: #34d399; border: 1px solid #065f46; border-radius: 6px; font-weight: bold; 
+            }
+            QPushButton:hover { background: #065f46; }
+        """)
+        pick_btn.clicked.connect(self.on_pick_file)
+
+        s2_layout.addWidget(s2_title)
+        s2_layout.addWidget(self.file_lbl)
+        s2_layout.addWidget(pick_btn)
+        layout.addWidget(step2_box)
+
+        # Footer
+        btns = QHBoxLayout()
+        cancel_btn = QPushButton("Cancelar")
+        cancel_btn.clicked.connect(self.reject)
+        
+        self.install_btn = QPushButton("Finalizar Instalación")
+        self.install_btn.setEnabled(False)
+        self.install_btn.setFixedHeight(40)
+        self.install_btn.setStyleSheet("""
+            QPushButton:disabled { background: #1a1c24; color: #444455; }
+            QPushButton:enabled { background: #4da6ff; color: #000000; font-weight: bold; }
+        """)
+        self.install_btn.clicked.connect(self.accept)
+
+        btns.addWidget(cancel_btn)
+        btns.addWidget(self.install_btn, 1)
+        layout.addLayout(btns)
+
+    def on_pick_file(self):
+        f, _ = QFileDialog.getOpenFileName(
+            self, "Seleccionar emulador", "",
+            "Archivos de emulador (*.zip *.7z *.tar.gz *.tar.xz *.exe *.AppImage)"
+        )
+        if f:
+            self.selected_file = f
+            self.file_lbl.setText(os.path.basename(f))
+            self.file_lbl.setStyleSheet("font-size: 10px; color: #4ade80; border: none; font-weight: bold;")
+            self.install_btn.setEnabled(True)
+
+# ─────────────────────────────────────────────────────────────────────────────
 # EMULATOR CARD
 # ─────────────────────────────────────────────────────────────────────────────
 
 class EmulatorCard(QFrame):
-    """Tarjeta de emulador. Prioridad: nombre de consola. Color único de acento."""
+    """Tarjeta de consola unificada. Permite elegir entre varios emuladores si están disponibles."""
 
-    def __init__(self, emu, emu_manager, translator, on_update_library_bg, parent=None):
+    def __init__(self, emus, emu_manager, translator, on_update_library_bg, parent=None):
         super().__init__(parent)
-        self.emu = emu
+        self.emus = emus
+        # El emu actual es el primero de la lista por defecto, o el primero instalado
+        self.emu = next((e for e in emus if emu_manager.esta_instalado(e["github"])), emus[0])
+        
         self.emu_manager = emu_manager
         self.translator = translator
         self.on_update_library_bg = on_update_library_bg
@@ -43,7 +154,7 @@ class EmulatorCard(QFrame):
     # ── Layout ────────────────────────────────────────────────────────────────
 
     def init_ui(self):
-        self.setFixedSize(240, 310)
+        self.setFixedSize(240, 320)
         self.setCursor(Qt.CursorShape.ArrowCursor)
 
         self._base_style = """
@@ -72,7 +183,7 @@ class EmulatorCard(QFrame):
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.setSpacing(0)
 
-        # ── BANNER: logo pequeño centrado ──────────────────────────────────
+        # ── BANNER ────────────────────────────────────────────────────────
         banner = QFrame()
         banner.setFixedHeight(100)
         banner.setStyleSheet(f"""
@@ -104,77 +215,108 @@ class EmulatorCard(QFrame):
         self.installed_badge.hide()
 
         # Logo small
-        logo_lbl = QLabel()
-        logo_path = artwork.obtener_ruta_logo_consola(self.emu["id"]).replace(".png", ".svg")
-        if not os.path.exists(logo_path):
-            logo_path = artwork.obtener_ruta_logo_consola(self.emu["id"])
-        if not os.path.exists(logo_path):
-            logo_path = artwork.obtener_ruta_logo_emulador(self.emu["id"]).replace(".png", ".svg")
-        if not os.path.exists(logo_path):
-            logo_path = artwork.obtener_ruta_logo_emulador(self.emu["id"])
-
-        if os.path.exists(logo_path):
-            if logo_path.endswith(".svg"):
-                pixmap = QIcon(logo_path).pixmap(QSize(54, 54))
-            else:
-                pixmap = QPixmap(logo_path).scaled(
-                    54, 54, Qt.AspectRatioMode.KeepAspectRatio,
-                    Qt.TransformationMode.SmoothTransformation
-                )
-            logo_lbl.setPixmap(pixmap)
-        else:
-            logo_lbl.setText("🎮")
-            logo_lbl.setStyleSheet("font-size: 30px;")
-
-        logo_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        logo_lbl.setStyleSheet("background: transparent; border: none;")
+        self.logo_lbl = QLabel()
+        self.logo_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.logo_lbl.setStyleSheet("background: transparent; border: none;")
+        self._update_logo()
 
         banner_layout.addWidget(self.installed_badge, 0, Qt.AlignmentFlag.AlignCenter)
-        banner_layout.addWidget(logo_lbl)
+        banner_layout.addWidget(self.logo_lbl)
 
-        # ── CONTENT: console name FIRST ────────────────────────────────────
+        # ── CONTENT ───────────────────────────────────────────────────────
         content = QFrame()
         content.setStyleSheet("background: transparent; border: none;")
         c_layout = QVBoxLayout(content)
         c_layout.setContentsMargins(16, 14, 16, 8)
-        c_layout.setSpacing(4)
-        c_layout.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignHCenter)
+        c_layout.setSpacing(6)
+        c_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
-        # 1. Console name — primary, biggest
-        console_lbl = QLabel(self.emu.get("console", "Emulador"))
-        console_lbl.setStyleSheet("""
-            font-size: 17px; font-weight: 900; color: #f8f8ff;
-            background: transparent; border: none;
-            letter-spacing: 0.5px;
+        # Console Title
+        self.console_lbl = QLabel(self.emu.get("console", "EL SISTEMA").upper())
+        self.console_lbl.setStyleSheet("""
+            font-size: 15px; font-weight: 900; color: #f8f8ff;
+            background: transparent; border: none; letter-spacing: 0.5px;
         """)
-        console_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        console_lbl.setWordWrap(True)
+        self.console_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        # 2. Emulator name — secondary, muted
-        name_lbl = QLabel(self.emu["name"])
-        name_lbl.setStyleSheet(f"""
-            font-size: 11px; color: {ACCENT};
-            background: transparent; border: none; font-weight: 600;
+        # Emulator Selector (Visible if more than 1)
+        self.selector_box = QtWidgets.QComboBox()
+        self.selector_box.setFixedHeight(28)
+        self.selector_box.setStyleSheet(f"""
+            QComboBox {{
+                background: #1a1c24; color: #aaaabb;
+                border: 1px solid #252830; border-radius: 6px;
+                padding-left: 8px; font-size: 11px; font-weight: bold;
+            }}
+            QComboBox:hover {{ border-color: {ACCENT}; color: #ffffff; }}
         """)
-        name_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        name_lbl.setWordWrap(True)
+        for e in self.emus:
+            self.selector_box.addItem(e["name"], e["id"])
+        
+        # Set selection
+        idx = self.selector_box.findData(self.emu["id"])
+        if idx >= 0: self.selector_box.setCurrentIndex(idx)
+        self.selector_box.currentIndexChanged.connect(self._on_emu_changed)
+        self.selector_box.setVisible(len(self.emus) > 1)
 
-        # 3. Status text — tiny
+        # If only one emu, show its name in a simple label
+        self.single_emu_name = QLabel(self.emu["name"])
+        self.single_emu_name.setStyleSheet("font-size: 11px; color: #666688; font-weight: bold;")
+        self.single_emu_name.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.single_emu_name.setVisible(len(self.emus) == 1)
+
+        # Status text
         self.status_lbl = QLabel("")
-        self.status_lbl.setStyleSheet("""
-            font-size: 10px; color: #555566;
-            background: transparent; border: none;
-        """)
+        self.status_lbl.setStyleSheet("font-size: 10px; color: #555566; background: transparent;")
         self.status_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.status_lbl.setWordWrap(True)
-        self.status_lbl.setMinimumHeight(28)
+        self.status_lbl.setMinimumHeight(24)
 
-        c_layout.addWidget(console_lbl)
-        c_layout.addWidget(name_lbl)
+        c_layout.addWidget(self.console_lbl)
+        c_layout.addWidget(self.selector_box)
+        c_layout.addWidget(self.single_emu_name)
+        
+        # Extra spacing for cleaner look
+        c_layout.addSpacing(4)
+        
+        # Buttons Row (Manual / Folder)
+        btn_row = QHBoxLayout()
+        btn_row.setSpacing(8)
+
+        self.btn_manual = QPushButton("Manual")
+        self.btn_manual.setFixedHeight(26)
+        self.btn_manual.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_manual.setStyleSheet("""
+            QPushButton {
+                background: #1a1c24; color: #888899;
+                font-size: 9px; font-weight: bold;
+                border: 1px solid #252830; border-radius: 6px;
+            }
+            QPushButton:hover { background: #1f2230; color: #ffffff; border-color: #444455; }
+        """)
+        self.btn_manual.clicked.connect(self.on_manual_clicked)
+
+        self.btn_resource = QPushButton("Carpeta")
+        self.btn_resource.setFixedHeight(26)
+        self.btn_resource.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_resource.setStyleSheet("""
+            QPushButton {
+                background: #1a1c24; color: #888899;
+                font-size: 9px; font-weight: bold;
+                border: 1px solid #252830; border-radius: 6px;
+            }
+            QPushButton:hover { background: #1f2230; color: #ffffff; border-color: #444455; }
+        """)
+        self.btn_resource.clicked.connect(self.on_open_folder_clicked)
+
+        btn_row.addWidget(self.btn_manual)
+        btn_row.addWidget(self.btn_resource)
+        c_layout.addLayout(btn_row)
+
         c_layout.addStretch()
         c_layout.addWidget(self.status_lbl)
 
-        # ── BOTTOM: progress + button ──────────────────────────────────────
+        # ── BOTTOM ────────────────────────────────────────────────────────
         bottom = QFrame()
         bottom.setStyleSheet("background: transparent; border: none;")
         b_layout = QVBoxLayout(bottom)
@@ -186,12 +328,8 @@ class EmulatorCard(QFrame):
         self.progress_bar.setFixedHeight(3)
         self.progress_bar.setTextVisible(False)
         self.progress_bar.setStyleSheet(f"""
-            QProgressBar {{
-                background: #252830; border-radius: 2px; border: none;
-            }}
-            QProgressBar::chunk {{
-                background: {ACCENT}; border-radius: 2px;
-            }}
+            QProgressBar {{ background: #252830; border-radius: 2px; border: none; }}
+            QProgressBar::chunk {{ background: {ACCENT}; border-radius: 2px; }}
         """)
 
         self.action_btn = QPushButton()
@@ -205,6 +343,35 @@ class EmulatorCard(QFrame):
         main_layout.addWidget(banner)
         main_layout.addWidget(content)
         main_layout.addWidget(bottom)
+
+    def _update_logo(self):
+        """Actualiza el logo del banner según el emulador actual."""
+        logo_path = artwork.obtener_ruta_logo_consola(self.emu["id"]).replace(".png", ".svg")
+        if not os.path.exists(logo_path):
+            logo_path = artwork.obtener_ruta_logo_consola(self.emu["id"])
+        if not os.path.exists(logo_path):
+            # Probar con ID de consola si existe un mapeo o id específico
+            cid = self.emu.get("console_id", self.emu["id"])
+            logo_path = artwork.obtener_ruta_logo_consola(cid).replace(".png", ".svg")
+            if not os.path.exists(logo_path):
+                logo_path = artwork.obtener_ruta_logo_consola(cid)
+
+        if os.path.exists(logo_path):
+            if logo_path.endswith(".svg"):
+                pixmap = QIcon(logo_path).pixmap(QSize(54, 54))
+            else:
+                pixmap = QPixmap(logo_path).scaled(54, 54, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+            self.logo_lbl.setPixmap(pixmap)
+        else:
+            self.logo_lbl.setText("🎮")
+            self.logo_lbl.setStyleSheet("font-size: 30px; background: transparent;")
+
+    def _on_emu_changed(self, index):
+        """Cambia el emulador seleccionado para esta tarjeta."""
+        emu_id = self.selector_box.itemData(index)
+        self.emu = next((e for e in self.emus if e["id"] == emu_id), self.emus[0])
+        self._update_logo()
+        self.update_ui_state()
 
     # ── Hover ────────────────────────────────────────────────────────────────
 
@@ -223,6 +390,76 @@ class EmulatorCard(QFrame):
             eff.setColor(QColor(0, 0, 0, 110))
             eff.setBlurRadius(18)
         super().leaveEvent(event)
+
+    def on_manual_clicked(self):
+        """Muestra el asistente de instalación manual sin bloquear el loop de qasync de forma insegura."""
+        dialog = ManualInstallDialog(self.emu, self.translator, self)
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            zip_path = dialog.selected_file
+            if zip_path and os.path.exists(zip_path):
+                # Lanzamos la tarea asíncrona de instalación fuera del flujo del diálogo
+                asyncio.create_task(self._do_manual_install(zip_path))
+
+    async def _do_manual_install(self, zip_path):
+        """Ejecuta la instalación manual de forma asíncrona."""
+        self.action_btn.setEnabled(False)
+        self.progress_bar.setVisible(True)
+        self.progress_bar.setValue(0)
+        self.action_btn.setText("INSTALANDO...")
+
+        error_occurred = False
+        async for output in self.emu_manager.installer.instalar_emulador_local(self.emu["github"], zip_path):
+            if output.startswith("PROGRESS:"):
+                try:
+                    parts = output.replace("PROGRESS:", "").split("|")
+                    val = float(parts[0]) * 100
+                    msg = parts[1] if len(parts) > 1 else ""
+                    self.progress_bar.setValue(int(val))
+                    self.status_lbl.setText(msg)
+                except:
+                    pass
+            elif output.startswith("ERROR:"):
+                error_occurred = True
+                # Mensajes amigables y cortos
+                raw_err = output.replace("ERROR:", "").lower()
+                if "404" in raw_err or "not found" in raw_err:
+                    err_msg = "No disponible v铆a auto"
+                elif "timeout" in raw_err or "connection" in raw_err:
+                    err_msg = "Error de red"
+                elif "manual" in raw_err:
+                    err_msg = "Usa instalaci贸n Manual"
+                else:
+                    err_msg = "Error al instalar"
+                
+                self.status_lbl.setText(err_msg)
+                self.status_lbl.setStyleSheet("font-size: 10px; color: #f87171; background: transparent;")
+        
+        if not error_occurred:
+            self.status_lbl.setText("¡Instalación manual exitosa!")
+            self.status_lbl.setStyleSheet("font-size: 10px; color: #4ade80; background: transparent;")
+        
+        self.update_ui_state(keep_status=True)
+        self.action_btn.setEnabled(True)
+        self.progress_bar.setVisible(False)
+        
+        # Ocultar mensaje después de 3 segundos
+        QTimer.singleShot(3000, lambda: self.status_lbl.setText(""))
+        
+        # Actualizar biblioteca si es necesario
+        if self.on_update_library_bg:
+            self.on_update_library_bg()
+
+    def on_open_folder_clicked(self):
+        """Abre la carpeta de instalación del emulador."""
+        info = self.emu_manager.installed_emus.get(self.emu["github"])
+        if info:
+            # Intentar obtener 'path' o deducir del primer archivo
+            path = info.get("path")
+            if not path and info.get("files"):
+                path = os.path.dirname(info["files"][0])
+            
+            if path and os.path.exists(path):
+                QDesktopServices.openUrl(QUrl.fromLocalFile(os.path.abspath(path)))
 
     # ── State ─────────────────────────────────────────────────────────────────
 
@@ -246,6 +483,7 @@ class EmulatorCard(QFrame):
                 QPushButton:disabled { background: #1a1c24; color: #444455; border: 1px solid #252830; }
             """)
             self.installed_badge.show()
+            self.btn_resource.show()
         else:
             self.action_btn.setText(self.translator.t("dl_btn_install").upper())
             self.action_btn.setStyleSheet(f"""
@@ -259,6 +497,7 @@ class EmulatorCard(QFrame):
                 QPushButton:disabled {{ background: #1a1c24; color: #444455; border: none; }}
             """)
             self.installed_badge.hide()
+            self.btn_resource.hide()
 
         if not valid_paths:
             self.action_btn.setEnabled(False)
@@ -290,18 +529,24 @@ class EmulatorCard(QFrame):
                     try:
                         parts = output_line.replace("PROGRESS:", "").split("|")
                         val = float(parts[0]) * 100
-                        msg = parts[1] if len(parts) > 1 else self.translator.t("lib_status_processing")
+                        msg = parts[1] if len(parts) > 1 else ""
                         self.progress_bar.setValue(int(val))
                         self.status_lbl.setText(msg)
-                        self.status_lbl.setStyleSheet("font-size: 10px; color: #aaaacc; background: transparent; border: none;")
                     except:
-                        self.status_lbl.setText(output_line)
+                        pass
                 elif output_line.startswith("ERROR:") or "Error" in output_line:
                     error_occurred = True
-                    self.status_lbl.setText(output_line.replace("ERROR:", "").strip())
+                    raw_err = output_line.lower()
+                    if "404" in raw_err or "not found" in raw_err:
+                        friendly = "No disponible v铆a auto"
+                    elif "timeout" in raw_err or "connection" in raw_err:
+                        friendly = "Error de red"
+                    else:
+                        friendly = "Error en descarga"
+                    self.status_lbl.setText(friendly)
                     self.status_lbl.setStyleSheet("font-size: 10px; color: #f87171; background: transparent; border: none;")
                 else:
-                    self.status_lbl.setText(output_line[-60:])
+                    self.status_lbl.setText(output_line[-40:])
 
             if not error_occurred:
                 self.status_lbl.setText(self.translator.t("dl_installed_ok"))
@@ -366,12 +611,19 @@ class DownloadsView(QWidget):
         title_row.setSpacing(12)
         title_row.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
 
-        title = QLabel("EMULADORES")
-        title.setStyleSheet("""
+        self.title_lbl = QLabel("EMULADORES")
+        self.title_lbl.setStyleSheet("""
             font-size: 26px; font-weight: 900; color: #ffffff;
             letter-spacing: 2px; background: transparent; border: none;
         """)
-        title_row.addWidget(title)
+        title_row.addWidget(self.title_lbl)
+
+        self.subtitle_lbl = QLabel("GESTIÓN Y DESCARGA AUTOMÁTICA")
+        self.subtitle_lbl.setStyleSheet("""
+            font-size: 11px; color: #666688; font-weight: bold;
+            letter-spacing: 1px; background: transparent; border: none;
+        """)
+        left.addWidget(self.subtitle_lbl)
 
         self.stats_badge = QLabel()
         self.stats_badge.setStyleSheet(f"""
@@ -422,6 +674,83 @@ class DownloadsView(QWidget):
         self.warn_layout.setContentsMargins(0, 0, 0, 20)
         layout.addWidget(self.warn_area)
 
+        # ── Scraping Section ─────────────────────────────────────────────
+        scrap_frame = QFrame()
+        scrap_frame.setStyleSheet("""
+            QFrame {
+                background: rgba(77,166,255,0.05);
+                border: 1px solid rgba(77,166,255,0.15);
+                border-radius: 12px;
+            }
+        """)
+        scrap_layout = QHBoxLayout(scrap_frame)
+        scrap_layout.setContentsMargins(20, 14, 20, 14)
+        scrap_layout.setSpacing(16)
+
+        scrap_icon = QLabel("🖼")
+        scrap_icon.setStyleSheet("font-size: 22px; background: transparent; border: none;")
+        scrap_layout.addWidget(scrap_icon)
+
+        scrap_text = QVBoxLayout()
+        scrap_text.setSpacing(2)
+        scrap_title = QLabel("Descargar recursos de juegos")
+        scrap_title.setStyleSheet("font-size: 14px; font-weight: 900; color: #ffffff; background: transparent; border: none;")
+        
+        scrap_sub = QLabel("Obtén carátulas, fondos e información detallada de tus juegos.")
+        scrap_sub.setStyleSheet("font-size: 11px; color: #666688; background: transparent; border: none;")
+        
+        scrap_text.addWidget(scrap_title)
+        scrap_text.addWidget(scrap_sub)
+        scrap_layout.addLayout(scrap_text)
+
+        # ── Spacer ──────────────────────────────────────────────────
+        self.scrap_spacer = QWidget()
+        self.scrap_spacer.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+        scrap_layout.addWidget(self.scrap_spacer)
+
+        # ── Middle: Progress Area (Label + Bar) ─────────────────────
+        self.progress_container = QWidget()
+        self.progress_container.setStyleSheet("background: transparent; border: none;")
+        self.progress_container.setVisible(False)
+        p_layout = QVBoxLayout(self.progress_container)
+        p_layout.setContentsMargins(0, 0, 0, 0)
+        p_layout.setSpacing(4)
+
+        self.scrap_status_lbl = QLabel("")
+        self.scrap_status_lbl.setStyleSheet("font-size: 11px; color: #4da6ff; font-weight: bold; background: transparent; border: none;")
+        
+        self.scrap_bar = QProgressBar()
+        self.scrap_bar.setFixedHeight(6)
+        self.scrap_bar.setRange(0, 100)
+        self.scrap_bar.setTextVisible(False)
+        self.scrap_bar.setStyleSheet("""
+            QProgressBar { background: #1a1c24; border-radius: 3px; border: none; }
+            QProgressBar::chunk { background: #4da6ff; border-radius: 3px; }
+        """)
+        
+        p_layout.addWidget(self.scrap_status_lbl)
+        p_layout.addWidget(self.scrap_bar)
+        scrap_layout.addWidget(self.progress_container, 1)
+
+        self.btn_scrap = QPushButton("Descarga")
+        self.btn_scrap.setToolTip("Escanea los juegos disponibles en la carpeta de roms de la consola")
+        self.btn_scrap.setFixedSize(120, 40)
+        self.btn_scrap.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_scrap.setStyleSheet(f"""
+            QPushButton {{
+                background: {ACCENT}; color: #ffffff;
+                font-size: 12px; font-weight: bold; letter-spacing: 0.5px;
+                border: none; border-radius: 20px;
+            }}
+            QPushButton:hover {{ background: {ACCENT_HOVER}; }}
+            QPushButton:disabled {{ background: #1a1c24; color: #444455; }}
+        """)
+        self.btn_scrap.clicked.connect(self._on_scrap_clicked)
+        scrap_layout.addWidget(self.btn_scrap)
+
+        layout.addWidget(scrap_frame)
+        layout.addSpacing(16)
+
         # ── Grid ──────────────────────────────────────────────────────────
         self.scroll_area = QScrollArea()
         self.scroll_area.setWidgetResizable(True)
@@ -440,12 +769,30 @@ class DownloadsView(QWidget):
 
         self._apply_filter_styles()
 
+    def retranslate_ui(self):
+        """Actualiza todos los textos de la vista al cambiar el idioma."""
+        self.title_lbl.setText(self.translator.t("nav_downloads").upper())
+        self.subtitle_lbl.setText(self.translator.t("dl_subtitle").upper())
+        
+        # Filtros
+        if self.FILTER_ALL in self.filter_btns:
+            self.filter_btns[self.FILTER_ALL].setText(self.translator.t("dl_filter_all") or "Todos")
+        if self.FILTER_INSTALLED in self.filter_btns:
+            self.filter_btns[self.FILTER_INSTALLED].setText(self.translator.t("dl_filter_installed") or "Instalados")
+        if self.FILTER_NOT_INSTALLED in self.filter_btns:
+            self.filter_btns[self.FILTER_NOT_INSTALLED].setText(self.translator.t("dl_filter_not_installed") or "No instalados")
+        
+        self.refresh_emulators() # Traduce las tarjetas
+        self._update_stats_badge()
+
     # ── Filter ────────────────────────────────────────────────────────────────
 
     def _set_filter(self, key):
         self._active_filter = key
         self._apply_filter_styles()
         self._apply_filter_visibility()
+        # Forzar un recalculado del layout completo
+        self._current_cols = -1 
         QTimer.singleShot(10, lambda: self.resizeEvent(None))
 
     def _apply_filter_styles(self):
@@ -492,6 +839,177 @@ class DownloadsView(QWidget):
 
     # ── Load ──────────────────────────────────────────────────────────────────
 
+    @asyncSlot()
+    async def _on_scrap_clicked(self):
+        """Muestra el diálogo de opciones y lanza el proceso de descarga."""
+        dlg = QDialog(self)
+        dlg.setWindowTitle("Configurar Descarga")
+        dlg.setMinimumWidth(380)
+        dlg.setModal(True)
+        dlg.setStyleSheet("""
+            QDialog { background: #13151c; color: #ffffff; }
+            QLabel { color: #ffffff; background: transparent; border: none; }
+            QCheckBox { color: #ccccdd; font-size: 13px; background: transparent; }
+            QCheckBox::indicator { width: 16px; height: 16px; border-radius: 4px;
+                background: #1e2130; border: 1px solid #3a3d5a; }
+            QCheckBox::indicator:checked { background: #4da6ff; border-color: #4da6ff; }
+            QPushButton { border-radius: 8px; }
+        """)
+        dlg_layout = QVBoxLayout(dlg)
+        dlg_layout.setContentsMargins(24, 20, 24, 20)
+        dlg_layout.setSpacing(14)
+
+        title_lbl = QLabel("¿Qué deseas descargar?")
+        title_lbl.setStyleSheet("font-size: 15px; font-weight: 900; color: #ffffff; background:transparent;")
+        dlg_layout.addWidget(title_lbl)
+
+        cb_artwork = QCheckBox("🖼  Carátulas (cover art)")
+        cb_artwork.setChecked(True)
+        dlg_layout.addWidget(cb_artwork)
+
+        cb_backgrounds = QCheckBox("🌄  Fondos de consola")
+        cb_backgrounds.setChecked(True)
+        dlg_layout.addWidget(cb_backgrounds)
+
+        cb_metadata = QCheckBox("📋  Información del juego (descripción, año, desarrollador)")
+        cb_metadata.setChecked(True)
+        dlg_layout.addWidget(cb_metadata)
+
+        sep = QFrame()
+        sep.setFrameShape(QFrame.Shape.HLine)
+        sep.setStyleSheet("background: #1e2130; border: none; max-height: 1px;")
+        dlg_layout.addWidget(sep)
+
+        note = QLabel("⚠ La descarga de metadatos requiere conexión a internet. "
+                       "Las carátulas se guardan junto a cada ROM.")
+
+        note.setStyleSheet("font-size: 11px; color: #555577; background: transparent;")
+        note.setWordWrap(True)
+        dlg_layout.addWidget(note)
+
+        btn_box = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel
+        )
+        btn_box.setStyleSheet("""
+            QPushButton {
+                background: #4da6ff; color: #fff; font-weight: bold;
+                border: none; padding: 6px 20px; border-radius: 8px; min-width: 80px;
+            }
+            QPushButton:hover { background: #7abfff; }
+            QPushButton[text="Cancel"] { background: #1a1c24; color: #888; border: 1px solid #252830; }
+        """)
+        btn_box.accepted.connect(dlg.accept)
+        btn_box.rejected.connect(dlg.reject)
+        dlg_layout.addWidget(btn_box)
+
+        # En lugar de exec() que bloquea el loop de asyncio/qasync, usamos open() o manejamos el loop
+        # pero para mayor estabilidad con qasync, vamos a usar un truco: esperar a que termine el dialogo
+        # de forma no bloqueante para el loop.
+        
+        loop = asyncio.get_event_loop()
+        future = loop.create_future()
+        dlg.finished.connect(lambda r: future.set_result(r))
+        dlg.show()
+        
+        result = await future
+
+        if result != QDialog.DialogCode.Accepted:
+            return
+
+        # Capturar opciones
+        options = {
+            "artwork": cb_artwork.isChecked(),
+            "backgrounds": cb_backgrounds.isChecked(),
+            "metadata": cb_metadata.isChecked()
+        }
+
+        # Ejecutar la descarga real
+        await self._ejecutar_descargas(options)
+
+    async def _ejecutar_descargas(self, opts):
+        """Lógica real de descarga asíncrona."""
+        do_artwork = opts["artwork"]
+        do_backgrounds = opts["backgrounds"]
+        do_metadata = opts["metadata"]
+
+        self.btn_scrap.setEnabled(False)
+        self.scrap_spacer.setVisible(False)
+        self.progress_container.setVisible(True)
+        self.scrap_bar.setRange(0, 0) # Indeterminado al principio
+        
+        # Primero asegurar que tenemos la biblioteca escaneada
+        roms_path = self.emu_manager.roms_path
+        if not roms_path or not os.path.exists(roms_path):
+             QMessageBox.warning(self, "Error", "Configura la ruta de ROMs en Ajustes antes de escanear.")
+             self.btn_scrap.setEnabled(True)
+             self.progress_container.setVisible(False)
+             return
+
+        self.scrap_status_lbl.setText("Buscando juegos...")
+        juegos_lista = await scanner.escanear_roms(roms_path)
+        
+        if not juegos_lista:
+            self.scrap_status_lbl.setText("No se encontraron juegos.")
+            self.btn_scrap.setEnabled(True)
+            QTimer.singleShot(3000, lambda: self.progress_container.setVisible(False))
+            return
+        
+        # Convertir a dicts si es necesario
+        juegos = [j if isinstance(j, dict) else scanner.asdict(j) for j in juegos_lista]
+
+        from core.constants import AVAILABLE_EMULATORS
+        emu_map = {e["id"]: e.get("libretro_platform") for e in AVAILABLE_EMULATORS}
+        total = len(juegos)
+
+        if do_artwork:
+            self.scrap_status_lbl.setText("Descargando carátulas...")
+            self.scrap_bar.setRange(0, total)
+            self.scrap_bar.setValue(0)
+            
+            def on_art_progress(idx, tot, nombre):
+                self.scrap_status_lbl.setText(f"Carátulas: {nombre[:20]}...")
+                self.scrap_bar.setValue(idx)
+
+            stats = await artwork.descargar_caratulas_biblioteca(
+                juegos, emu_map, on_progress=on_art_progress
+            )
+            print(f"[DOWNLOADS] Carátulas: {stats}")
+
+        if do_backgrounds:
+            self.scrap_status_lbl.setText("Actualizando fondos de consola...")
+            self.scrap_bar.setRange(0, 0)
+            await artwork.descargar_fondos_consolas()
+
+        if do_metadata:
+            self.scrap_status_lbl.setText("Obteniendo información (Metadata)...")
+            self.scrap_bar.setRange(0, total)
+            self.scrap_bar.setValue(0)
+            
+            def on_meta_progress(idx, tot, nombre):
+                self.scrap_status_lbl.setText(f"Info: {nombre[:20]}...")
+                self.scrap_bar.setValue(idx)
+
+            meta_stats = await metadata.descargar_metadata_biblioteca(
+                juegos, emu_map, on_progress=on_meta_progress
+            )
+            print(f"[DOWNLOADS] Metadatos: {meta_stats}")
+
+        # Finalizar
+        self.scrap_status_lbl.setText("¡Descarga completada!")
+        self.scrap_bar.setRange(0, 100)
+        self.scrap_bar.setValue(100)
+        self.btn_scrap.setEnabled(True)
+        
+        if self.on_update_library_bg:
+            self.on_update_library_bg()
+
+        # Ocultar progreso tras unos segundos y volver al estado normal
+        def finalize_ui():
+            self.progress_container.setVisible(False)
+            self.scrap_spacer.setVisible(True)
+
+        QTimer.singleShot(2000, finalize_ui)
+
     def refresh_emulators(self):
         """Recalcula el estado de las rutas y actualiza las tarjetas o la advertencia."""
         self.load_emulators()
@@ -535,10 +1053,19 @@ class DownloadsView(QWidget):
             self.warn_area.hide()
             self.stats_badge.show()
 
+        # Agrupar emuladores por console_id
+        console_groups = {}
         for emu in AVAILABLE_EMULATORS:
-            card = EmulatorCard(emu, self.emu_manager, self.translator, self.on_update_library_bg)
+            cid = emu.get("console_id", emu["id"])
+            if cid not in console_groups:
+                console_groups[cid] = []
+            console_groups[cid].append(emu)
+
+        for cid, emus in console_groups.items():
+            card = EmulatorCard(emus, self.emu_manager, self.translator, self.on_update_library_bg, self.grid_container)
+            card.show()
             self._all_cards.append(card)
-            self.grid_layout.addWidget(card)
+            self.grid_layout.addWidget(card, 0, 0) 
 
         self._update_stats_badge()
         QTimer.singleShot(50, lambda: self.resizeEvent(None))
@@ -570,20 +1097,25 @@ class DownloadsView(QWidget):
             self._rearrange_grid(cols)
 
     def _rearrange_grid(self, cols):
-        widgets = []
-        for i in range(self.grid_layout.count()):
-            item = self.grid_layout.itemAt(i)
-            if item and item.widget():
-                widgets.append(item.widget())
+        """Reposiciona solo las tarjetas visibles en el grid según las columnas."""
+        if not hasattr(self, 'grid_layout'):
+            return
 
+        # Usamos la lista maestra para asegurar que no perdemos referencias
+        widgets = self._all_cards
+
+        # Limpiar el layout actual
         for w in widgets:
             self.grid_layout.removeWidget(w)
 
         row, col = 0, 0
         for w in widgets:
-            self.grid_layout.addWidget(w, row, col)
-            if w.isVisible():
+            if not w.isHidden():
+                self.grid_layout.addWidget(w, row, col)
                 col += 1
                 if col >= cols:
                     col = 0
                     row += 1
+        
+        # Opcional: añadir un stretch al final si fuera necesario, 
+        # pero con AlignTop|AlignLeft en el grid suele bastar.

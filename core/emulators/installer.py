@@ -64,41 +64,53 @@ class Installer:
 
         # Prioridad 1: Coincidencia exacta de arquitectura + extensión preferida
         if sys_name == "Windows":
-            # Buscar ZIP o EXE para x64 si aplica
+            # Extensiones preferidas para Windows (portables)
+            valid_exts = (".zip", ".7z", ".exe")
+            
+            # 1.1 Intentar buscar x64 portable
+            for asset in assets:
+                name = asset["name"].lower()
+                # Saltar instaladores
+                if any(x in name for x in ["installer", "setup", "msi"]): continue
+                # Saltar otras plataformas
+                if any(x in name for x in ["linux", "macos", "android", "appimage", "flatpak"]): continue
+                
+                if name.endswith(valid_exts):
+                    if is_x64 and any(x in name for x in ["x64", "64", "amd64", "win64"]): return asset
+            
+            # 1.2 Intentar buscar cualquier portable para la plataforma
             for asset in assets:
                 name = asset["name"].lower()
                 if any(x in name for x in ["installer", "setup", "msi"]): continue
-                if name.endswith(".zip") or name.endswith(".exe"):
-                    if is_x64 and any(x in name for x in ["x64", "64", "amd64"]): return asset
-                    if not is_x64 and not any(x in name for x in ["x64", "64", "amd64"]): return asset
+                if any(x in name for x in ["linux", "macos", "android", "appimage"]): continue
+                if name.endswith(valid_exts):
+                    if "win" in name or "windows" in name: return asset
 
         elif sys_name == "Linux":
-            # Buscar AppImage con arquitectura correcta
+            # 1.1 Buscar AppImage
             for asset in assets:
                 name = asset["name"].lower()
                 if name.endswith(".appimage") and "libretro" not in name:
                     if is_x64 and any(x in name for x in ["x86_64", "amd64", "x64"]): return asset
                     if is_arm and any(x in name for x in ["arm64", "aarch64"]): return asset
             
-            # Buscar binarios comprimidos con arquitectura correcta
+            # 1.2 Buscar binarios comprimidos
             for asset in assets:
                 name = asset["name"].lower()
                 if any(ext in name for ext in [".tar.gz", ".tar.xz", ".7z", ".zip"]):
                     if "libretro" in name or "core" in name: continue
-                    if is_x64 and any(x in name for x in ["x86_64", "amd64", "x64"]): return asset
-                    if is_arm and any(x in name for x in ["arm64", "aarch64"]): return asset
+                    if "windows" in name or "win64" in name or "exe" in name: continue
+                    if is_x64 and any(x in name for x in ["x86_64", "amd64", "x64", "linux"]): return asset
 
-        # Prioridad 2: Fallback genérico (solo si no se detectó arquitectura específica en los nombres)
-        # Pero filtramos para que NO descargue la arquitectura contraria
+        # Fallback genérico: el primero que parezca portable y no sea de otra arquitectura
         for asset in assets:
             name = asset["name"].lower()
-            # Si soy x64, no descargar algo que diga arm/aarch
-            if is_x64 and any(x in name for x in ["arm64", "aarch64", "armv7", "armv8"]): continue
-            # Si soy ARM, no descargar algo que diga x86/amd64
-            if is_arm and any(x in name for x in ["x86_64", "amd64", "x64", "i386"]): continue
+            if is_x64 and any(x in name for x in ["arm64", "aarch64", "armv7"]): continue
+            if sys_name == "Windows" and any(x in name for x in ["linux", "macos", "appimage"]): continue
+            if sys_name == "Linux" and any(x in name for x in ["windows", "win64", "win32", ".exe"]): continue
             
-            if sys_name == "Linux" and name.endswith(".appimage"): return asset
-            if sys_name == "Windows" and name.endswith(".zip") and not any(x in name for x in ["linux", "macos"]): return asset
+            if sys_name == "Windows" and name.endswith((".zip", ".7z")): return asset
+            if sys_name == "Linux" and (name.endswith(".appimage") or ".tar" in name): return asset
             
         return None
 
@@ -110,8 +122,18 @@ class Installer:
         self.manager.install_path = os.path.abspath(self.manager.install_path)
         os.makedirs(self.manager.install_path, exist_ok=True)
 
+        emu_info = next((e for e in AVAILABLE_EMULATORS if e["github"] == repo_github), None)
+        
+        # Determinar el repo real según plataforma
+        target_repo = repo_github
+        if emu_info:
+            if platform.system() == "Windows" and emu_info.get("github_win"):
+                target_repo = emu_info["github_win"]
+            elif platform.system() == "Linux" and emu_info.get("github_linux"):
+                target_repo = emu_info["github_linux"]
+
         yield "PROGRESS:0.05|Buscando versiones en GitHub..."
-        releases_data = await asyncio.to_thread(self._fetch_release_data, repo_github)
+        releases_data = await asyncio.to_thread(self._fetch_release_data, target_repo)
         
         download_url = None
         filename = None
@@ -133,10 +155,18 @@ class Installer:
 
         if not download_url:
             for emu in AVAILABLE_EMULATORS:
-                if emu["github"] == repo_github and emu.get("fallback_url"):
-                    download_url = emu["fallback_url"]
-                    filename = download_url.split("/")[-1]
-                    yield "PROGRESS:0.1|Usando descarga de repuesto..."
+                if emu["github"] == repo_github:
+                    # Intentar fallback específico por OS
+                    if platform.system() == "Windows" and emu.get("fallback_win"):
+                        download_url = emu["fallback_win"]
+                    elif platform.system() == "Linux" and emu.get("fallback_linux"):
+                        download_url = emu["fallback_linux"]
+                    else:
+                        download_url = emu.get("fallback_url")
+                        
+                    if download_url:
+                        filename = download_url.split("/")[-1]
+                        yield "PROGRESS:0.1|Usando descarga de repuesto..."
                     break
 
         emu_info = next((e for e in AVAILABLE_EMULATORS if e["github"] == repo_github), None)
@@ -238,6 +268,100 @@ class Installer:
             yield "PROGRESS:1.0|¡Instalación exitosa!"
         else:
             yield "ERROR:No se encontró el archivo instalado."
+
+    async def instalar_emulador_local(self, repo_github: str, local_zip_path: str):
+        """Instala un emulador desde un archivo local proporcionado por el usuario."""
+        if not self.manager.install_path:
+            yield "ERROR:No se ha configurado una ruta de instalación."
+            return
+
+        emu_info = next((e for e in AVAILABLE_EMULATORS if e["github"] == repo_github), None)
+        subfolder = emu_info["folder"] if emu_info else "Otros"
+        full_install_path = os.path.abspath(os.path.join(self.manager.install_path, subfolder))
+        os.makedirs(full_install_path, exist_ok=True)
+
+        filename = os.path.basename(local_zip_path)
+        target_file = os.path.join(full_install_path, filename)
+
+        yield f"PROGRESS:0.2|Copiando archivo {filename}..."
+        try:
+            await asyncio.to_thread(shutil.copy2, local_zip_path, target_file)
+        except Exception as e:
+            yield f"ERROR:Error al copiar archivo: {e}"
+            return
+
+        yield "PROGRESS:0.5|Extrayendo archivos..."
+        success_ext, installed_files = await self._ejecutar_extraccion(target_file, filename, full_install_path)
+
+        if not success_ext:
+            yield "ERROR:Falla en la extracción manual."
+            return
+
+        self.manager.installed_emus[repo_github] = {
+            "installed_at": time.strftime("%Y-%m-%d %H:%M:%S"),
+            "files": installed_files,
+            "version": "manual"
+        }
+        self.manager._save_installed()
+        self.manager.crear_carpetas_roms(repo_github)
+        yield "PROGRESS:1.0|¡Instalación manual exitosa!"
+
+    async def _ejecutar_extraccion(self, target_file, filename, full_install_path):
+        """Lógica común de extracción."""
+        installed_files = [target_file]
+
+        def _extract():
+            try:
+                if filename.lower().endswith(".zip"):
+                    with zipfile.ZipFile(target_file, 'r') as zip_ref:
+                        zip_ref.extractall(full_install_path)
+                elif filename.lower().endswith((".tar.gz", ".tar.xz")):
+                    with tarfile.open(target_file, 'r:*') as tar_ref:
+                        tar_ref.extractall(full_install_path)
+                elif filename.lower().endswith(".7z"):
+                    binary = self._find_7z_binary()
+                    extracted = False
+                    if binary:
+                        try:
+                            import subprocess
+                            subprocess.run([binary, "x", target_file, f"-o{full_install_path}", "-y"], check=True)
+                            extracted = True
+                        except: pass
+                    
+                    if not extracted and platform.system() == "Windows":
+                        try:
+                            import subprocess
+                            # Windows sometimes has tar even if binary not in paths
+                            subprocess.run(["tar", "-axf", target_file, "-C", full_install_path], check=True)
+                            extracted = True
+                        except: pass
+
+                    if not extracted:
+                        try:
+                            import py7zr
+                            with py7zr.SevenZipFile(target_file, mode='r') as archive:
+                                archive.extractall(path=full_install_path)
+                        except Exception as e:
+                            print(f"[DEBUG] Fallo 7z local: {e}")
+                            return False
+
+                for root, dirs, files in os.walk(full_install_path):
+                    for f in files:
+                        installed_files.append(os.path.join(root, f))
+                
+                if platform.system() == "Linux":
+                    for path in installed_files:
+                        low_f = os.path.basename(path).lower()
+                        if low_f.endswith(".appimage") or "linux" in low_f or ".x86_64" in low_f or "retroarch" in low_f:
+                            try: os.chmod(path, 0o755)
+                            except: pass
+                return True
+            except Exception as e:
+                print(f"[DEBUG] Error en extracción: {e}")
+                return False
+
+        success = await asyncio.to_thread(_extract)
+        return success, installed_files
 
     def _find_7z_binary(self):
         paths = ["7z", r"C:\Program Files\7-Zip\7z.exe", r"C:\Program Files (x86)\7-Zip\7z.exe"]

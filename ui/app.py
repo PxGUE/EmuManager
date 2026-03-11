@@ -172,7 +172,7 @@ class EmuApp(QMainWindow):
         self.views_stack.setCurrentIndex(index)
         
     def on_language_change(self, new_lang):
-        """Actualiza todos los textos de la interfaz cuando el usuario cambia el idioma en Ajustes."""
+        """Actualiza todos los textos de la interfaz cuando el usuario cambia el idioma."""
         self.translator.set_language(new_lang)
         
         # 1. Repintar menú lateral
@@ -181,24 +181,14 @@ class EmuApp(QMainWindow):
         self.sidebar.item(2).setText(self.translator.t("nav_downloads"))
         self.sidebar.item(3).setText(self.translator.t("nav_settings"))
         
-        # 2. Recrear las vistas para forzar actualización de textos (hard reload)
-        for i in reversed(range(self.views_stack.count())): 
-            widget = self.views_stack.widget(i)
-            self.views_stack.removeWidget(widget)
-            widget.deleteLater()
+        # 2. Notificar a las vistas que traduzcan sus textos (Soft reload)
+        # En lugar de borrar todo (que causa crashes si la vista está activa),
+        # llamamos a métodos de actualización si existen.
+        for i in range(self.views_stack.count()):
+            view = self.views_stack.widget(i)
+            if hasattr(view, "retranslate_ui"):
+                view.retranslate_ui()
             
-        self.dashboard_view = DashboardView(self.emu_manager, self.translator)
-        self.library_view = LibraryView(self.emu_manager, self.emu_platform_map, self.translator, self)
-        self.downloads_view = DownloadsView(self.emu_manager, self.translator, self.library_view.mostrar_consolas)
-        self.settings_view = SettingsView(self.emu_manager, self.translator, self.dashboard_view.update_dashboard_status, self.on_language_change)
-        
-        self.views_stack.addWidget(self.dashboard_view)
-        self.views_stack.addWidget(self.library_view)
-        self.views_stack.addWidget(self.downloads_view)
-        self.views_stack.addWidget(self.settings_view)
-        
-        # Mantener al usuario en la pestaña de Ajustes tras la actualización
-        self.views_stack.setCurrentIndex(3)
         self.update_window_title()
 
     def start_background_tasks(self):

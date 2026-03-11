@@ -11,7 +11,7 @@ from PyQt6.QtWidgets import (
     QLineEdit, QSizePolicy, QProgressBar, QApplication, QSplitter,
     QGraphicsDropShadowEffect
 )
-from PyQt6.QtCore import Qt, QSize, QTimer, QVariantAnimation, QEasingCurve, QRectF, QPropertyAnimation
+from PyQt6.QtCore import Qt, QSize, QTimer, QVariantAnimation, QEasingCurve, QRectF, QPropertyAnimation, pyqtSignal
 from PyQt6.QtGui import QPixmap, QColor, QPainter, QLinearGradient, QPainterPath, QFont, QPen
 from PyQt6.QtWidgets import QMessageBox
 from qasync import asyncSlot
@@ -172,7 +172,7 @@ class ConsoleCarousel(QWidget):
 
     def _create_content_panel(self):
         """Crea la estructura de labels para un panel de consola."""
-        panel = QWidget()
+        panel = QWidget(self)
         layout = QVBoxLayout(panel)
         layout.setContentsMargins(80, 50, 50, 50)
         layout.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
@@ -192,13 +192,13 @@ class ConsoleCarousel(QWidget):
         panel.lbl_info.setProperty("class", "carouselInfo")
         panel.lbl_info.setFixedHeight(30)
         
-        panel.lbl_empty_icon = QLabel("🗄️")
+        panel.lbl_empty_icon = QLabel("🗄️", panel)
         panel.lbl_empty_icon.setProperty("class", "carouselEmptyIcon")
         panel.lbl_empty_icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
         panel.lbl_empty_icon.hide()
 
         # --- PANEL ESTADO VACÍO (premium, centrado) ---
-        panel.empty_card = QFrame()
+        panel.empty_card = QFrame(panel)
         panel.empty_card.setStyleSheet("""
             QFrame {
                 background: rgba(15, 18, 28, 0.92);
@@ -269,10 +269,12 @@ class ConsoleCarousel(QWidget):
         self._update_geometries()
         
     def set_data(self, consoles_data):
+        self.setUpdatesEnabled(False)
         self.consoles_data = consoles_data
         self.current_index = 0
-        self._update_dots()
         self.update_ui()
+        self._update_dots()
+        self.setUpdatesEnabled(True)
         
     def _update_dots(self):
         # Limpiar dots previos
@@ -515,105 +517,121 @@ class GameCard(QFrame):
         self.init_ui()
 
     def init_ui(self):
-        self.setObjectName("gameCard")
-        self.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.setFixedSize(self.CARD_W, self.CARD_H)
+        # La tarjeta SIEMPRE ocupa el espacio maximo (hover) para que el grid jamas se mueva
+        self.setFixedSize(self.CARD_W_HOVER, self.CARD_H_HOVER)
+        
+        # --- Contenedor Interno (La tarjeta real que se escala) ---
+        self.container = QFrame(self)
+        self.container.setObjectName("gameCardInner")
+        self.container.setFixedSize(self.CARD_W, self.CARD_H)
+        # Centrar inicialmente el contenedor
+        self.container.move((self.CARD_W_HOVER - self.CARD_W)//2, (self.CARD_H_HOVER - self.CARD_H)//2)
 
-        self._shadow = QGraphicsDropShadowEffect(self)
+        self._shadow = QGraphicsDropShadowEffect(self.container)
         self._shadow.setBlurRadius(18)
         self._shadow.setOffset(0, 5)
         self._shadow.setColor(QColor(0, 0, 0, 170))
-        self.setGraphicsEffect(self._shadow)
+        self.container.setGraphicsEffect(self._shadow)
 
-        self.setStyleSheet("""
-            QFrame#gameCard {
+        # Estilo del contenedor
+        self.container.setStyleSheet(f"""
+            QFrame#gameCardInner {{
                 background-color: #141620;
                 border-radius: 14px;
                 border: 1.5px solid #22253a;
-            }
+            }}
         """)
 
-        layers = QGridLayout(self)
+        layers = QGridLayout(self.container)
         layers.setContentsMargins(0, 0, 0, 0)
         layers.setSpacing(0)
 
-        # Layer 1: artwork — fixed size container with rounded corners
-        # KeepAspectRatio preserves image ratio, painted manually
+        # Layer 1: Art
         self.img_lbl = QLabel()
         self.img_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.img_lbl.setFixedSize(self.CARD_W, self.CARD_H)
-        self.img_lbl.setStyleSheet("""
-            background: #0e1018;
-            border-radius: 14px;
-        """)
+        self.img_lbl.setStyleSheet("background: #0e1018; border-radius: 14px;")
         ruta_rom = self.game.get("ruta", "")
         caratula_path = artwork.obtener_ruta_caratula(ruta_rom) if ruta_rom else None
         self.set_artwork(caratula_path)
         layers.addWidget(self.img_lbl, 0, 0)
 
-        # Layer 2: overlay
-        overlay = QFrame()
-        overlay.setFixedSize(self.CARD_W, self.CARD_H)
-        overlay.setStyleSheet("background: transparent; border: none;")
-        overlay.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
-        ov_layout = QVBoxLayout(overlay)
+        # Layer 2: Overlay interactivo
+        self.overlay = QFrame()
+        self.overlay.setFixedSize(self.CARD_W, self.CARD_H)
+        self.overlay.setStyleSheet("background: transparent; border: none;")
+        ov_layout = QVBoxLayout(self.overlay)
         ov_layout.setContentsMargins(0, 0, 0, 0)
         ov_layout.setSpacing(0)
 
         top_row = QHBoxLayout()
         top_row.setContentsMargins(8, 8, 8, 0)
+        top_row.setSpacing(6)
+
         self.fav_lbl = QLabel("\u2605")
         self.fav_lbl.setFixedSize(26, 26)
-        self.fav_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._update_fav_label()
         top_row.addWidget(self.fav_lbl)
+        
         top_row.addStretch()
-        self.playtime_badge = QLabel()
-        self.playtime_badge.setStyleSheet("""
-            background: rgba(0,0,0,0.82); color: #4da6ff;
-            font-size: 9px; font-weight: bold;
-            border-radius: 7px; padding: 2px 8px;
-            border: 1px solid rgba(77,166,255,0.35);
+
+        # Botón Play (Superior Derecha)
+        self.btn_play = QPushButton("\u25b6")
+        self.btn_play.setFixedSize(28, 28)
+        self.btn_play.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_play.setStyleSheet(f"""
+            QPushButton {{
+                background: {self.accent_color}; color: white;
+                border-radius: 14px; font-size: 12px; font-weight: bold; border: none;
+            }}
+            QPushButton:hover {{ background: #ffffff; color: {self.accent_color}; }}
         """)
-        self.playtime_badge.hide()
-        top_row.addWidget(self.playtime_badge)
+        self.btn_play.clicked.connect(lambda: self.on_launch_callback(self.game))
+        self.btn_play.hide() # Solo visible en hover
+        top_row.addWidget(self.btn_play)
+
+        # Botón Info (Superior Derecha)
+        self.btn_info = QPushButton("i")
+        self.btn_info.setFixedSize(28, 28)
+        self.btn_info.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_info.setStyleSheet("""
+            QPushButton {
+                background: rgba(255,255,255,0.15); color: white;
+                border-radius: 14px; font-size: 14px; font-weight: 900;
+                border: 1px solid rgba(255,255,255,0.2);
+            }
+            QPushButton:hover { background: rgba(255,255,255,0.3); }
+        """)
+        self.btn_info.clicked.connect(lambda: self.on_hover_callback(self.game, pinned=True))
+        self.btn_info.hide() # Solo visible en hover
+        top_row.addWidget(self.btn_info)
+
         ov_layout.addLayout(top_row)
         ov_layout.addStretch()
 
         title_strip = QFrame()
         title_strip.setFixedHeight(100)
-        title_strip.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         title_strip.setStyleSheet("""
             QFrame {
                 background: qlineargradient(x1:0,y1:0,x2:0,y2:1,
-                    stop:0 rgba(0,0,0,0),
-                    stop:0.4 rgba(0,0,0,0.82),
-                    stop:1 rgba(0,0,0,0.97));
-                border-bottom-left-radius: 14px;
-                border-bottom-right-radius: 14px;
-                border: none;
+                    stop:0 rgba(0,0,0,0), stop:0.4 rgba(0,0,0,0.85), stop:1 rgba(0,0,0,0.98));
+                border-bottom-left-radius: 14px; border-bottom-right-radius: 14px;
             }
         """)
         strip_layout = QVBoxLayout(title_strip)
         strip_layout.setContentsMargins(12, 8, 12, 14)
         strip_layout.setAlignment(Qt.AlignmentFlag.AlignBottom)
         self.name_lbl = QLabel(self.game["nombre"])
-        self.name_lbl.setStyleSheet("""
-            font-size: 11px; font-weight: 900; color: #ffffff;
-            background: transparent; border: none;
-        """)
+        self.name_lbl.setStyleSheet("font-size: 11px; font-weight: 900; color: #ffffff; background: transparent;")
         self.name_lbl.setWordWrap(True)
         strip_layout.addWidget(self.name_lbl)
         ov_layout.addWidget(title_strip)
-        layers.addWidget(overlay, 0, 0)
+        layers.addWidget(self.overlay, 0, 0)
 
-        # Layer 3: hover border
-        self._hover_frame = QFrame(self)
+        # Layer 3: Borde de selección/hover
+        self._hover_frame = QFrame(self.container)
         self._hover_frame.setFixedSize(self.CARD_W, self.CARD_H)
-        self._hover_frame.setStyleSheet("""
-            QFrame { background: transparent; border-radius: 14px;
-                     border: 2px solid transparent; }
-        """)
+        self._hover_frame.setStyleSheet("background: transparent; border-radius: 14px; border: 2px solid transparent;")
         self._hover_frame.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
         layers.addWidget(self._hover_frame, 0, 0)
 
@@ -698,37 +716,57 @@ class GameCard(QFrame):
                     self.on_hover_callback(self.game, pinned=True)
 
     def enterEvent(self, event):
-        """Hover: resaltar borde, shadow glow, y escalar la tarjeta."""
+        """Hover: resaltar borde, glow y escala sin mover el grid."""
         self._shadow.setColor(QColor(self.accent_color))
         self._shadow.setBlurRadius(36)
-        self._shadow.setOffset(0, 8)
-        self._hover_frame.setStyleSheet(f"""
-            QFrame {{ background: transparent; border-radius: 14px;
-                     border: 2.5px solid {self.accent_color}; }}
-        """)
-        # Scale up
-        self.setFixedSize(self.CARD_W_HOVER, self.CARD_H_HOVER)
-        if self.on_hover_callback:
-            self.on_hover_callback(self.game)
+        self._hover_frame.setStyleSheet(f"border: 2.5px solid {self.accent_color}; border-radius: 14px;")
+        
+        # Escalar solo el contenedor interno
+        self.container.setFixedSize(self.CARD_W_HOVER, self.CARD_H_HOVER)
+        self.container.move(0, 0)
+        self.img_lbl.setFixedSize(self.CARD_W_HOVER, self.CARD_H_HOVER)
+        self.overlay.setFixedSize(self.CARD_W_HOVER, self.CARD_H_HOVER)
+        self._hover_frame.setFixedSize(self.CARD_W_HOVER, self.CARD_H_HOVER)
+        
+        # Actualizar arte para el nuevo tamaño
+        ruta_rom = self.game.get("ruta", "")
+        caratula_path = artwork.obtener_ruta_caratula(ruta_rom) if ruta_rom else None
+        self.set_artwork(caratula_path)
+
+        # Mostrar botones de accion
+        self.btn_play.show()
+        self.btn_info.show()
+        
         super().enterEvent(event)
 
     def leaveEvent(self, event):
-        """Leave: restaurar tamano y glow. El hero panel NO se limpia (queda el ultimo)."""
+        """Leave: restaurar escala y ocultar botones."""
         self._shadow.setColor(QColor(0, 0, 0, 170))
         self._shadow.setBlurRadius(18)
-        self._shadow.setOffset(0, 5)
-        self._hover_frame.setStyleSheet("""
-            QFrame { background: transparent; border-radius: 14px;
-                     border: 2px solid transparent; }
-        """)
-        # Scale back to normal
-        self.setFixedSize(self.CARD_W, self.CARD_H)
-        # No llamar on_hover_callback(None) — el hero panel persiste
+        self._hover_frame.setStyleSheet("border: 2px solid transparent;")
+        
+        # Restaurar tamaño y volver a centrar
+        self.container.setFixedSize(self.CARD_W, self.CARD_H)
+        self.container.move((self.CARD_W_HOVER - self.CARD_W)//2, (self.CARD_H_HOVER - self.CARD_H)//2)
+        self.img_lbl.setFixedSize(self.CARD_W, self.CARD_H)
+        self.overlay.setFixedSize(self.CARD_W, self.CARD_H)
+        self._hover_frame.setFixedSize(self.CARD_W, self.CARD_H)
+        
+        # Actualizar arte para el tamaño base
+        ruta_rom = self.game.get("ruta", "")
+        caratula_path = artwork.obtener_ruta_caratula(ruta_rom) if ruta_rom else None
+        self.set_artwork(caratula_path)
+
+        self.btn_play.hide()
+        self.btn_info.hide()
+        
         super().leaveEvent(event)
 
 
 class GameHeroPanel(QFrame):
     """Panel lateral derecho que muestra los detalles del juego seleccionado/hovered."""
+
+    panel_closed = pyqtSignal()
 
     def __init__(self, translator, on_launch_callback, parent=None):
         super().__init__(parent)
@@ -753,6 +791,28 @@ class GameHeroPanel(QFrame):
         main_layout = QVBoxLayout(self)
         main_layout.setContentsMargins(0, 0, 0, 0)
         main_layout.setSpacing(0)
+
+        # Botón cerrar (X)
+        self.btn_close = QPushButton("✕")
+        self.btn_close.setFixedSize(32, 32)
+        self.btn_close.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_close.setStyleSheet("""
+            QPushButton {
+                background: rgba(255,255,255,0.05); color: #8888aa;
+                border-radius: 16px; border: none; font-size: 14px;
+            }
+            QPushButton:hover { background: rgba(255,255,255,0.1); color: #ffffff; }
+        """)
+        self.btn_close.clicked.connect(self._trigger_close)
+        
+        # Contenedor para el boton (flotante superior derecha)
+        close_layer = QHBoxLayout()
+        close_layer.addStretch()
+        close_layer.addWidget(self.btn_close)
+        close_layer.setContentsMargins(0, 12, 12, 0)
+        
+        # Usar un layout absolute o simplemente insertarlo antes
+        main_layout.addLayout(close_layer)
 
         # ── Artwork section (top half) ────────────────────────────────────
         self.art_container = QFrame()
@@ -979,17 +1039,19 @@ class GameHeroPanel(QFrame):
             self.on_launch_callback(self.current_game)
 
     def _on_fav_toggle(self):
-        if not self.current_game:
-            return
-        ruta = self.current_game.get("ruta", "")
-        is_fav = scanner.toggle_favorito(ruta)
-        self._set_fav_style(is_fav)
+        if self.current_game:
+            scanner.toggle_favorito(self.current_game.get("ruta", ""))
+            self._set_fav_style(scanner.es_favorito(self.current_game.get("ruta", "")))
+
+    def _trigger_close(self):
+        self.hide()
+        self.panel_closed.emit()
 
 
 class LibraryView(QWidget):
     """Controlador principal de la pestaña 'Biblioteca'."""
     def __init__(self, emu_manager, emu_platform_map, translator, parent_app=None):
-        super().__init__()
+        super().__init__(parent_app)
         self.emu_manager = emu_manager
         self.emu_platform_map = emu_platform_map # Mapeo de IDs a Libretro Platforms
         self.translator = translator
@@ -1165,10 +1227,11 @@ class LibraryView(QWidget):
         left_layout.addWidget(self.games_scroll)
 
         # Right: hero panel (Hidden by default)
-        self.hero_panel = GameHeroPanel(self.translator, self.lanzar_con_info)
+        self.hero_panel = GameHeroPanel(self.translator, self.lanzar_con_info, self)
         self.hero_panel.setMinimumWidth(270)
         self.hero_panel.setMaximumWidth(420)
         self.hero_panel.hide()
+        self.hero_panel.panel_closed.connect(self._on_hero_panel_closed)
 
         self.games_splitter.addWidget(left_widget)
         self.games_splitter.addWidget(self.hero_panel)
@@ -1377,7 +1440,7 @@ class LibraryView(QWidget):
         """Idem para el grid de juegos (ROMs)."""
         if self.stack.currentIndex() == 1 and hasattr(self, 'games_grid') and self.games_grid.count() > 0:
             width = self.games_scroll.viewport().width()
-            card_width = 175
+            card_width = 183 # Usar el ancho de hover para que el grid sea estable
             spacing = self.games_grid.spacing()
             cols = max(1, width // (card_width + spacing))
             
@@ -1517,30 +1580,56 @@ class LibraryView(QWidget):
         if self.overlay.isVisible():
             QTimer.singleShot(250, self.overlay.hide_loading)
 
+    def _toggle_hero_panel(self, visible):
+        """Maneja el cierre real del panel y libera el grid de juegos."""
+        if not hasattr(self, 'hero_panel') or not hasattr(self, 'games_splitter'):
+            return
+
+        if visible:
+            self.hero_panel.show()
+            self.games_splitter.setHandleWidth(1)
+            self.games_splitter.handle(1).setEnabled(True)
+            # Asegurar que el tamaño sea razonable al abrir
+            if self.games_splitter.sizes()[1] < 100:
+                self.games_splitter.setSizes([self.width() - 320, 320])
+        else:
+            self.hero_panel.hide()
+            # "Cerrar" de verdad: desactivamos el divisor para que no se pueda arrastrar
+            self.games_splitter.setHandleWidth(0)
+            self.games_splitter.handle(1).setEnabled(False)
+            self.games_splitter.setSizes([self.width(), 0])
+        
+        # Forzar recalculado de layout y grid inmediatamente
+        self.games_splitter.update()
+        QTimer.singleShot(50, self._reflow_games)
+
     def _on_game_hover(self, game, pinned=False):
-        """Actualiza el Hero Panel.
-        pinned=True: se fija el juego seleccionado (clic), no se limpia al salir.
-        pinned=False: hover simple, actualiza sin fijar.
-        """
+        """Actualiza el Hero Panel."""
         if pinned:
             self._pinned_game = game
+        
         self.current_hovered_game = game or self._pinned_game
-
         display_game = self.current_hovered_game
 
-        # Update hero panel (siempre muestra algo si hay pinned)
+        # Control de visibilidad
         if hasattr(self, 'hero_panel'):
             if display_game:
-                self.hero_panel.show()
-                self.hero_panel.set_game(display_game)
-                try:
-                    _, h, m = self.emu_manager.get_playtime(display_game.get("ruta", ""))
-                    self.hero_panel.set_playtime(h, m)
-                except Exception:
-                    self.hero_panel.set_playtime(0, 0)
+                # Solo abrimos el panel si es una seleccion explicita (pinned)
+                if pinned and self.hero_panel.isHidden():
+                    self._toggle_hero_panel(True)
+                
+                # Si el panel ya esta visible o acabamos de abrirlo, actualizamos datos
+                if not self.hero_panel.isHidden():
+                    self.hero_panel.set_game(display_game)
+                    try:
+                        _, h, m = self.emu_manager.get_playtime(display_game.get("ruta", ""))
+                        self.hero_panel.set_playtime(h, m)
+                    except Exception:
+                        self.hero_panel.set_playtime(0, 0)
             elif not self._pinned_game:
-                # No hay hover ni pinned -> ocultar
-                self.hero_panel.hide()
+                # Si no hay juego ni pinning, cerramos
+                if not self.hero_panel.isHidden():
+                    self._toggle_hero_panel(False)
 
         # Update header label
         if display_game:
@@ -1550,6 +1639,13 @@ class LibraryView(QWidget):
                 emu = self.current_emu_data
                 console_key = f"emu_{emu['id']}_console"
                 self.games_title_lbl.setText(self.translator.t(console_key))
+
+    def _on_hero_panel_closed(self):
+        """Al cerrar el panel manualmente, liberamos el grid y limpiamos el juego fijado."""
+        self._pinned_game = None
+        self._toggle_hero_panel(False)
+        # Resetear el título del header a la consola
+        self._on_game_hover(None)
                 
                 
     def filter_games(self, text=None):

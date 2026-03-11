@@ -125,7 +125,7 @@ class EmuApp(QMainWindow):
         self.views_stack = QStackedWidget()
         
         # Instanciar las vistas pasando los gestores necesarios
-        self.dashboard_view = DashboardView(self.emu_manager, self.translator)
+        self.dashboard_view = DashboardView(self.emu_manager, self.translator, self)
         self.library_view = LibraryView(self.emu_manager, self.emu_platform_map, self.translator, self)
         def on_library_needs_refresh():
             """Marca la biblioteca para que recargue la próxima vez que se muestre."""
@@ -135,9 +135,9 @@ class EmuApp(QMainWindow):
                 self.library_view.mostrar_consolas()
         
         # La vista de descargas necesita poder recargar la biblioteca cuando termine de instalar algo
-        self.downloads_view = DownloadsView(self.emu_manager, self.translator, on_library_needs_refresh)
+        self.downloads_view = DownloadsView(self.emu_manager, self.translator, on_library_needs_refresh, self)
         # Los ajustes necesitan poder actualizar el dashboard y la vista de descargas
-        self.settings_view = SettingsView(self.emu_manager, self.translator, self.on_settings_changed, self.on_language_change)
+        self.settings_view = SettingsView(self.emu_manager, self.translator, self.on_settings_changed, self.on_language_change, self)
         
         # Apilar las vistas en el stacker
         self.views_stack.addWidget(self.dashboard_view) # Index 0

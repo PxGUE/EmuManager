@@ -17,6 +17,9 @@ import difflib
 from urllib.parse import unquote
 from bs4 import BeautifulSoup
 from typing import Optional, Callable, List
+from .normalization import normalize_title
+from .scraper_engine import ScraperEngine
+import core.metadata as metadata
 
 # URL BASE del CDN de Libretro Thumbnails
 LIBRETRO_CDN = "https://thumbnails.libretro.com"
@@ -74,25 +77,31 @@ FONDO_CONSOLA_MAPPING = {
 # Para emuladores que cubren varias consolas (mesen, retroarch),
 # usamos la extensión del archivo para deducir la plataforma correcta.
 EXTENSION_PLATFORM_MAP = {
-    # mesen
+    # Nintendo
     ".nes":  "Nintendo - Nintendo Entertainment System",
     ".sfc":  "Nintendo - Super Nintendo Entertainment System",
     ".smc":  "Nintendo - Super Nintendo Entertainment System",
-    # retroarch genérico
     ".gba":  "Nintendo - Game Boy Advance",
     ".gb":   "Nintendo - Game Boy",
     ".gbc":  "Nintendo - Game Boy Color",
+    ".n64":  "Nintendo - Nintendo 64",
+    ".z64":  "Nintendo - Nintendo 64",
+    ".v64":  "Nintendo - Nintendo 64",
+    ".wbfs": "Nintendo - Wii",
+    ".rvz":  "Nintendo - GameCube",
+    # Sony
+    ".cue":  "Sony - PlayStation",
+    ".bin":  "Sony - PlayStation",
+    ".chd":  "Sony - PlayStation 2", 
+    # Sega
     ".md":   "Sega - Mega Drive - Genesis",
     ".smd":  "Sega - Mega Drive - Genesis",
     ".gen":  "Sega - Mega Drive - Genesis",
     ".sms":  "Sega - Master System - Mark III",
     ".gg":   "Sega - Game Gear",
+    ".ms":   "Sega - Master System - Mark III",
+    # NEC
     ".pce":  "NEC - PC Engine - TurboGrafx 16",
-    ".cue":  "Sony - PlayStation",
-    ".bin":  "Sony - PlayStation",
-    ".z64":  "Nintendo - Nintendo 64",
-    ".n64":  "Nintendo - Nintendo 64",
-    ".v64":  "Nintendo - Nintendo 64",
 }
 
 def get_platform_for_rom(emu_id: str, ruta_rom: str, default_platform: Optional[str]) -> Optional[str]:
@@ -126,20 +135,8 @@ def get_platform_for_rom(emu_id: str, ruta_rom: str, default_platform: Optional[
 # FIX #3: normalizar_nombre mejorado
 # ──────────────────────────────────────────────────────────────
 def normalizar_nombre(nombre: str) -> str:
-    """
-    Limpia un nombre para compararlo (Fuzzy Matching).
-    FIX: Preserva guiones y otros separadores válidos antes de eliminarlos,
-    para evitar falsos negativos en títulos como "A Link to the Past".
-    """
-    n = nombre.replace("_", " ")
-    # Eliminar etiquetas entre paréntesis/corchetes: (USA), [v1.1], etc.
-    n = re.sub(r'[\(\[].*?[\)\]]', '', n)
-    # Reemplazar guiones y puntos por espacios (en vez de eliminarlo)
-    n = re.sub(r'[-–—.]', ' ', n)
-    # Eliminar caracteres que no son letras, números o espacios
-    n = re.sub(r'[^a-zA-Z0-9\s]', '', n)
-    # Colapsar espacios múltiples
-    return re.sub(r'\s+', ' ', n).strip().lower()
+    """Delegates to unified normalization utility."""
+    return normalize_title(nombre)
 
 
 async def obtener_indice_plataforma(session: aiohttp.ClientSession, platform: str) -> list:
@@ -178,73 +175,9 @@ async def obtener_indice_plataforma(session: aiohttp.ClientSession, platform: st
 
 def encontrar_mejor_coincidencia(nombre_buscado: str, lista_disponibles: list) -> Optional[str]:
     """
-    Motor de busqueda fuzzy reescrito con uso completo de difflib:
-
-    1. Coincidencia exacta tras normalizar (O(1) lookup)
-    2. get_close_matches con cutoff 0.82 — rapido, alta precision
-    3. Busqueda por subcadena: si el nombre buscado aparece DENTRO de algun titulo del indice
-    4. SequenceMatcher.ratio() sobre todos los elementos si los pasos anteriores fallan,
-       tomando el de mayor ratio siempre que supere 0.60. Esto aprovecha difflib al maximo
-       en lugar de depender solo de get_close_matches.
-    5. Coincidencia por palabras clave: si el nombre buscado tiene palabras significativas
-       que aparecen en el titulo del indice.
+    Motor de busqueda fuzzy unificado via ScraperEngine.
     """
-    norm_target = normalizar_nombre(nombre_buscado)
-    if not norm_target:
-        return None
-
-    # Construir mapa normalizado -> original (una sola vez)
-    mapa = {normalizar_nombre(orig): orig for orig in lista_disponibles}
-    keys_norm = list(mapa.keys())
-
-    # Nivel 1: Exacto
-    if norm_target in mapa:
-        return mapa[norm_target]
-
-    # Nivel 2: get_close_matches rapido (cutoff alto — pocos falsos positivos)
-    matches = difflib.get_close_matches(norm_target, keys_norm, n=3, cutoff=0.82)
-    if matches:
-        # Desempate: el de mayor ratio real
-        best = max(matches, key=lambda m: difflib.SequenceMatcher(None, norm_target, m).ratio())
-        return mapa[best]
-
-    # Nivel 3: Subcadena — el nombre buscado aparece dentro del titulo del indice
-    substr_hits = [k for k in keys_norm if norm_target in k or k in norm_target]
-    if substr_hits:
-        # Tomar el de mayor similitud entre los hits de subcadena
-        best = max(substr_hits, key=lambda m: difflib.SequenceMatcher(None, norm_target, m).ratio())
-        if difflib.SequenceMatcher(None, norm_target, best).ratio() >= 0.55:
-            return mapa[best]
-
-    # Nivel 4: SequenceMatcher exhaustivo (cutoff 0.62)
-    # get_close_matches usa internamente SequenceMatcher pero con heuristicas que
-    # pueden descartar buenos matches. Aqui calculamos el ratio directamente.
-    best_ratio = 0.0
-    best_key = None
-    for k in keys_norm:
-        ratio = difflib.SequenceMatcher(None, norm_target, k).ratio()
-        if ratio > best_ratio:
-            best_ratio = ratio
-            best_key = k
-
-    if best_ratio >= 0.62 and best_key:
-        return mapa[best_key]
-
-    # Nivel 5: Palabras clave (al menos 2 palabras significativas coinciden)
-    stop_words = {"the", "a", "an", "of", "and", "in", "no", "de", "el", "la", "los"}
-    target_words = [w for w in norm_target.split() if w not in stop_words and len(w) > 2]
-    if len(target_words) >= 2:
-        scored = []
-        for k in keys_norm:
-            k_words = set(k.split())
-            hits = sum(1 for w in target_words if w in k_words)
-            if hits >= 2:
-                scored.append((hits, k))
-        if scored:
-            scored.sort(reverse=True)
-            return mapa[scored[0][1]]
-
-    return None
+    return ScraperEngine.find_best_match(nombre_buscado, lista_disponibles)
 
 
 def obtener_ruta_caratula(ruta_rom: str) -> str:
@@ -275,9 +208,12 @@ def obtener_ruta_logo_emulador(id_emu: str, flet_path: bool = False) -> str:
 async def _descargar_archivo(session: aiohttp.ClientSession, url: str, ruta_destino: str,
                               retries: int = 2) -> bool:
     """Descarga binaria con reintentos automáticos ante fallos de red."""
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+    }
     for intento in range(retries + 1):
         try:
-            async with session.get(url, timeout=aiohttp.ClientTimeout(total=15)) as resp:
+            async with session.get(url, headers=headers, timeout=aiohttp.ClientTimeout(total=15)) as resp:
                 if resp.status == 200:
                     contenido = await resp.read()
                     os.makedirs(os.path.dirname(ruta_destino), exist_ok=True)
@@ -299,19 +235,18 @@ async def _descargar_archivo(session: aiohttp.ClientSession, url: str, ruta_dest
 
 
 async def descargar_caratula(session: aiohttp.ClientSession, platform: str, nombre_juego: str,
-                              ruta_rom: str) -> bool:
+                             ruta_rom: str) -> bool:
     """
-    Lógica principal de descarga para un juego individual.
+    Descarga la carátula de un juego con lógica de múltiples fuentes.
+    1. Intenta Libretro CDN (Alta calidad).
+    2. Intenta URL de Boxart de Metadata (TGDB) si está disponible.
     """
     caratula_path = obtener_ruta_caratula(ruta_rom)
-    if os.path.exists(caratula_path): return True
-
     lista_nombres = await obtener_indice_plataforma(session, platform)
-    if not lista_nombres:
-        return False
-
+    
     candidato_principal = os.path.splitext(os.path.basename(ruta_rom))[0]
-
+    
+    # --- FUENTE 1: Libretro CDN ---
     mejor_match = encontrar_mejor_coincidencia(candidato_principal, lista_nombres)
     if not mejor_match:
         mejor_match = encontrar_mejor_coincidencia(nombre_juego, lista_nombres)
@@ -320,15 +255,20 @@ async def descargar_caratula(session: aiohttp.ClientSession, platform: str, nomb
         url = f"{LIBRETRO_CDN}/{urllib.parse.quote(platform)}/{THUMBNAIL_TYPE}/{urllib.parse.quote(mejor_match + '.png')}"
         ok = await _descargar_archivo(session, url, caratula_path)
         if ok:
-            ratio = int(difflib.SequenceMatcher(
-                None,
-                normalizar_nombre(candidato_principal),
-                normalizar_nombre(mejor_match)
-            ).ratio() * 100)
-            print(f"[ARTWORK] ✓ Match al {ratio}%: '{candidato_principal}' → '{mejor_match}'")
+            ratio = int(difflib.SequenceMatcher(None, normalize_title(candidato_principal), normalize_title(mejor_match)).ratio() * 100)
+            # print(f"[ARTWORK] ✓ Libretro match {ratio}%: '{mejor_match}'")
             return True
-    else:
-        print(f"[ARTWORK] ~ Sin coincidencia para '{candidato_principal}' en '{platform}'")
+
+    # --- FUENTE 2: Metadata / TGDB (Fallback) ---
+    meta = metadata.obtener_metadata_local(ruta_rom)
+    tgdb_url = meta.get("boxart_url")
+    if tgdb_url:
+        # print(f"[ARTWORK] ~ Intentando fallback TGDB para '{candidato_principal}'...")
+        ok = await _descargar_archivo(session, tgdb_url, caratula_path)
+        if ok:
+            print(f"[ARTWORK] ✓ TGDB match para '{candidato_principal}'")
+            return True
+
     return False
 
 
@@ -384,13 +324,16 @@ async def descargar_caratulas_biblioteca(
                     if on_progress: on_progress(idx + 1, total, nombre)
                     return
 
-                if tiene_caratula(ruta_rom):
-                    stats["skip"] += 1
-                    if on_progress: on_progress(idx + 1, total, nombre)
-                    return
-
+                # Intentar descargar siempre para asegurar "carátulas correctas" como pidió el usuario
+                # (aunque ya exista, si encontramos un mejor match o fuente, se actualizará)
                 ok = await descargar_caratula(session, platform, nombre, ruta_rom)
-                stats["ok" if ok else "fail"] += 1
+                if ok:
+                    stats["ok"] += 1
+                else:
+                    if tiene_caratula(ruta_rom):
+                        stats["skip"] += 1
+                    else:
+                        stats["fail"] += 1
 
                 if on_progress: on_progress(idx + 1, total, nombre)
 

@@ -184,7 +184,7 @@ class EmulatorCard(QFrame):
         main_layout.setSpacing(0)
 
         # ── BANNER ────────────────────────────────────────────────────────
-        banner = QFrame()
+        banner = QFrame(self)
         banner.setFixedHeight(100)
         banner.setStyleSheet(f"""
             QFrame {{
@@ -202,7 +202,7 @@ class EmulatorCard(QFrame):
         banner_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         # Installed badge
-        self.installed_badge = QLabel("✓ INSTALADO")
+        self.installed_badge = QLabel("✓ INSTALADO", banner)
         self.installed_badge.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.installed_badge.setStyleSheet(f"""
             background: rgba(34, 197, 94, 0.18);
@@ -212,10 +212,10 @@ class EmulatorCard(QFrame):
             border: 1px solid rgba(74, 222, 128, 0.3);
         """)
         self.installed_badge.setFixedHeight(18)
-        self.installed_badge.hide()
+        self.installed_badge.setVisible(False)
 
         # Logo small
-        self.logo_lbl = QLabel()
+        self.logo_lbl = QLabel(banner)
         self.logo_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.logo_lbl.setStyleSheet("background: transparent; border: none;")
         self._update_logo()
@@ -224,7 +224,7 @@ class EmulatorCard(QFrame):
         banner_layout.addWidget(self.logo_lbl)
 
         # ── CONTENT ───────────────────────────────────────────────────────
-        content = QFrame()
+        content = QFrame(self)
         content.setStyleSheet("background: transparent; border: none;")
         c_layout = QVBoxLayout(content)
         c_layout.setContentsMargins(16, 14, 16, 8)
@@ -232,7 +232,7 @@ class EmulatorCard(QFrame):
         c_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
         # Console Title
-        self.console_lbl = QLabel(self.emu.get("console", "EL SISTEMA").upper())
+        self.console_lbl = QLabel(self.emu.get("console", "EL SISTEMA").upper(), content)
         self.console_lbl.setStyleSheet("""
             font-size: 15px; font-weight: 900; color: #f8f8ff;
             background: transparent; border: none; letter-spacing: 0.5px;
@@ -240,7 +240,7 @@ class EmulatorCard(QFrame):
         self.console_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         # Emulator Selector (Visible if more than 1)
-        self.selector_box = QtWidgets.QComboBox()
+        self.selector_box = QtWidgets.QComboBox(content)
         self.selector_box.setFixedHeight(28)
         self.selector_box.setStyleSheet(f"""
             QComboBox {{
@@ -260,13 +260,13 @@ class EmulatorCard(QFrame):
         self.selector_box.setVisible(len(self.emus) > 1)
 
         # If only one emu, show its name in a simple label
-        self.single_emu_name = QLabel(self.emu["name"])
+        self.single_emu_name = QLabel(self.emu["name"], content)
         self.single_emu_name.setStyleSheet("font-size: 11px; color: #666688; font-weight: bold;")
         self.single_emu_name.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.single_emu_name.setVisible(len(self.emus) == 1)
 
         # Status text
-        self.status_lbl = QLabel("")
+        self.status_lbl = QLabel("", content)
         self.status_lbl.setStyleSheet("font-size: 10px; color: #555566; background: transparent;")
         self.status_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.status_lbl.setWordWrap(True)
@@ -283,7 +283,7 @@ class EmulatorCard(QFrame):
         btn_row = QHBoxLayout()
         btn_row.setSpacing(8)
 
-        self.btn_manual = QPushButton("Manual")
+        self.btn_manual = QPushButton("Manual", content)
         self.btn_manual.setFixedHeight(26)
         self.btn_manual.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_manual.setStyleSheet("""
@@ -296,7 +296,7 @@ class EmulatorCard(QFrame):
         """)
         self.btn_manual.clicked.connect(self.on_manual_clicked)
 
-        self.btn_resource = QPushButton("Carpeta")
+        self.btn_resource = QPushButton("Carpeta", content)
         self.btn_resource.setFixedHeight(26)
         self.btn_resource.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_resource.setStyleSheet("""
@@ -317,13 +317,13 @@ class EmulatorCard(QFrame):
         c_layout.addWidget(self.status_lbl)
 
         # ── BOTTOM ────────────────────────────────────────────────────────
-        bottom = QFrame()
+        bottom = QFrame(self)
         bottom.setStyleSheet("background: transparent; border: none;")
         b_layout = QVBoxLayout(bottom)
         b_layout.setContentsMargins(14, 0, 14, 14)
         b_layout.setSpacing(8)
 
-        self.progress_bar = QProgressBar()
+        self.progress_bar = QProgressBar(bottom)
         self.progress_bar.setVisible(False)
         self.progress_bar.setFixedHeight(3)
         self.progress_bar.setTextVisible(False)
@@ -332,7 +332,7 @@ class EmulatorCard(QFrame):
             QProgressBar::chunk {{ background: {ACCENT}; border-radius: 2px; }}
         """)
 
-        self.action_btn = QPushButton()
+        self.action_btn = QPushButton(bottom)
         self.action_btn.setFixedHeight(38)
         self.action_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.action_btn.clicked.connect(self.on_action_clicked)
@@ -482,8 +482,8 @@ class EmulatorCard(QFrame):
                 QPushButton:hover { background: #3d1a1a; color: #fca5a5; }
                 QPushButton:disabled { background: #1a1c24; color: #444455; border: 1px solid #252830; }
             """)
-            self.installed_badge.show()
-            self.btn_resource.show()
+            self.installed_badge.setVisible(True)
+            self.btn_resource.setVisible(True)
         else:
             self.action_btn.setText(self.translator.t("dl_btn_install").upper())
             self.action_btn.setStyleSheet(f"""
@@ -584,8 +584,8 @@ class DownloadsView(QWidget):
     FILTER_INSTALLED = "installed"
     FILTER_NOT_INSTALLED = "not_installed"
 
-    def __init__(self, emu_manager, translator, on_update_library_bg):
-        super().__init__()
+    def __init__(self, emu_manager, translator, on_update_library_bg, parent=None):
+        super().__init__(parent)
         self.emu_manager = emu_manager
         self.translator = translator
         self.on_update_library_bg = on_update_library_bg
@@ -961,6 +961,20 @@ class DownloadsView(QWidget):
         emu_map = {e["id"]: e.get("libretro_platform") for e in AVAILABLE_EMULATORS}
         total = len(juegos)
 
+        if do_metadata:
+            self.scrap_status_lbl.setText("Obteniendo información (Metadata)...")
+            self.scrap_bar.setRange(0, total)
+            self.scrap_bar.setValue(0)
+            
+            def on_meta_progress(idx, tot, nombre):
+                self.scrap_status_lbl.setText(f"Info: {nombre[:20]}...")
+                self.scrap_bar.setValue(idx)
+
+            meta_stats = await metadata.descargar_metadata_biblioteca(
+                juegos, emu_map, on_progress=on_meta_progress
+            )
+            print(f"[DOWNLOADS] Metadatos: {meta_stats}")
+
         if do_artwork:
             self.scrap_status_lbl.setText("Descargando carátulas...")
             self.scrap_bar.setRange(0, total)
@@ -979,20 +993,6 @@ class DownloadsView(QWidget):
             self.scrap_status_lbl.setText("Actualizando fondos de consola...")
             self.scrap_bar.setRange(0, 0)
             await artwork.descargar_fondos_consolas()
-
-        if do_metadata:
-            self.scrap_status_lbl.setText("Obteniendo información (Metadata)...")
-            self.scrap_bar.setRange(0, total)
-            self.scrap_bar.setValue(0)
-            
-            def on_meta_progress(idx, tot, nombre):
-                self.scrap_status_lbl.setText(f"Info: {nombre[:20]}...")
-                self.scrap_bar.setValue(idx)
-
-            meta_stats = await metadata.descargar_metadata_biblioteca(
-                juegos, emu_map, on_progress=on_meta_progress
-            )
-            print(f"[DOWNLOADS] Metadatos: {meta_stats}")
 
         # Finalizar
         self.scrap_status_lbl.setText("¡Descarga completada!")
@@ -1039,7 +1039,7 @@ class DownloadsView(QWidget):
                       bool(path_roms and os.path.exists(path_roms)))
 
         if not valid_paths:
-            warn = QLabel(self.translator.t("dl_warn_paths"))
+            warn = QLabel(self.translator.t("dl_warn_paths"), self)
             warn.setStyleSheet("""
                 background: rgba(30, 20, 22, 0.8); color: #fca5a5; font-size: 13px;
                 padding: 16px; border-radius: 12px;
@@ -1055,20 +1055,26 @@ class DownloadsView(QWidget):
 
         # Agrupar emuladores por console_id
         console_groups = {}
+        from core.constants import AVAILABLE_EMULATORS
         for emu in AVAILABLE_EMULATORS:
             cid = emu.get("console_id", emu["id"])
             if cid not in console_groups:
                 console_groups[cid] = []
             console_groups[cid].append(emu)
 
+        self.setUpdatesEnabled(False)
         for cid, emus in console_groups.items():
             card = EmulatorCard(emus, self.emu_manager, self.translator, self.on_update_library_bg, self.grid_container)
-            card.show()
             self._all_cards.append(card)
-            self.grid_layout.addWidget(card, 0, 0) 
+            # No los mostramos ni los acomodamos hasta el final para evitar parpadeos
+            card.hide()
+            self.grid_layout.addWidget(card)
 
+        self._apply_filter_visibility()
         self._update_stats_badge()
-        QTimer.singleShot(50, lambda: self.resizeEvent(None))
+        self.setUpdatesEnabled(True)
+        # Forzar reordenamiento inmediato sin esperar al timer si es posible
+        QTimer.singleShot(0, lambda: self.resizeEvent(None))
 
     # ── Responsive grid ───────────────────────────────────────────────────────
 

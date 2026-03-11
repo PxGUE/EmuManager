@@ -141,8 +141,8 @@ class SectionTitle(QLabel):
 
 
 class DashboardView(QWidget):
-    def __init__(self, emu_manager, translator):
-        super().__init__()
+    def __init__(self, emu_manager, translator, parent=None):
+        super().__init__(parent)
         self.emu_manager = emu_manager
         self.translator = translator
         self._stat_cards = []

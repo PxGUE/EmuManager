@@ -412,7 +412,7 @@ class ConsoleCarousel(QWidget):
         count_str = self.translator.t("lib_games_count", count).upper()
         pane.lbl_info.setText(f"{count_str}   |   {time_str}")
         
-        bg_path = artwork.obtener_ruta_fondo_consola(emu["id"])
+        bg_path = artwork.obtener_ruta_fondo_consola(emu)
         self.current_bg_pixmap = QPixmap(bg_path) if os.path.exists(bg_path) else None
         
         # Pre-cachear fondo si no estamos en animación (estado estático)
@@ -1477,7 +1477,7 @@ class LibraryView(QWidget):
         # Inicializar fondo de LibraryView con la consola actual del carrusel
         if consoles_data:
             current_emu = consoles_data[self.carousel.current_index][0]
-            bg_path = artwork.obtener_ruta_fondo_consola(current_emu["id"])
+            bg_path = artwork.obtener_ruta_fondo_consola(current_emu)
             self.current_bg_pixmap = QPixmap(bg_path) if os.path.exists(bg_path) else None
             self.current_color = current_emu.get("color", "#4da6ff")
             self.cached_bg = self._get_scaled_bg(self.current_bg_pixmap)

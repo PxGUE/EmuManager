@@ -13,6 +13,7 @@ from PyQt6.QtCore import Qt, QSize
 from PyQt6.QtGui import QIcon
 from core.emulators import EmuladorManager
 from core.i18n import Translator
+from core.config import APP_NAME, APP_VERSION
 
 # Importación diferida para las vistas principales
 from ui.views.dashboard import DashboardView
@@ -25,9 +26,9 @@ class EmuApp(QMainWindow):
     
     def __init__(self):
         super().__init__()
-        # 1. Configurar título de la aplicación
-        self.emu_name = "EmuManager"
-        self.emu_version = "v0.1.3 alpha"
+        # 1. Configurar metadatos globales (ahora centralizados en core.config)
+        self.emu_name = APP_NAME
+        self.emu_version = APP_VERSION
         self.update_window_title()
         
         # 2. Inicializar los gestores fundamentales

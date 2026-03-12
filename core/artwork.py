@@ -109,6 +109,9 @@ def tiene_caratula(ruta_rom: str) -> bool:
     return os.path.exists(obtener_ruta_caratula(ruta_rom))
 
 def obtener_ruta_logo_consola(id_emu: str, flet_path: bool = False) -> str:
+    """
+    Localiza el logo SVG o PNG de una consola en el directorio de recursos del sistema.
+    """
     if flet_path: return f"/consolas/{id_emu}.png"
     return os.path.abspath(os.path.join(get_system_consoles_dir(), f"{id_emu}.png"))
 
@@ -212,20 +215,26 @@ async def descargar_fondos_consolas(**kwargs) -> dict:
     # Lista de fondos a descargar (Id de consola -> URL)
     # Usamos console_id para que sea compartido
     FONDOS_MAP = {
-        "switch": "https://images7.alphacoders.com/831/831411.jpg", 
-        "ps2": "https://images7.alphacoders.com/109/1095345.jpg",
-        "gc-wii": "https://images5.alphacoders.com/414/414761.jpg",
-        "psp": "https://images.wallpapersden.com/image/download/sony-playstation-portable_a2VqZ2aUmZqaraWkpJRmbmdlrWZmZ2m5.jpg",
-        "ps1": "https://images5.alphacoders.com/904/904910.jpg",
-        "ps3": "https://images7.alphacoders.com/849/849615.jpg",
-        "n64": "https://images.wallpapersden.com/image/download/nintendo-64-logo_a2VqZ2aUmZqaraWkpJRmbmdlrWZmZ2m5.jpg",
-        "gba": "https://images8.alphacoders.com/493/493108.jpg",
-        "nes": "https://images5.alphacoders.com/462/462499.jpg",
-        "snes": "https://images.wallpapersden.com/image/download/nintendo-snes-controller_a2VqZ2aUmZqaraWkpJRmbmdlrWZmZ2m5.jpg",
-        "wiiu": "https://images4.alphacoders.com/264/264639.jpg",
-        "xbox": "https://images2.alphacoders.com/714/714247.jpg",
-        "psvita": "https://images.wallpapersden.com/image/download/playstation-vita-logo_a2VqZ2aUmZqaraWkpJRmbmdlrWZmZ2m5.jpg",
-        "multi": "https://wallpapercave.com/wp/wp4268688.jpg" # RetroArch style
+        "switch": "https://images.wallpaperscraft.com/image/single/nintendo_switch_logo_white_background_116743_1920x1080.jpg",
+        "ps2": "https://images.wallpaperscraft.com/image/single/playstation_2_logo_symbol_116752_1920x1080.jpg",
+        "gc-wii": "https://images.wallpaperscraft.com/image/single/nintendo_gamecube_logo_white_background_116738_1920x1080.jpg",
+        "gamecube": "https://images.wallpaperscraft.com/image/single/nintendo_gamecube_logo_white_background_116738_1920x1080.jpg",
+        "wii": "https://images.wallpaperscraft.com/image/single/wii_u_logo_white_background_116742_1920x1080.jpg", # Using Wii U for now or similar
+        "psp": "https://images.wallpaperscraft.com/image/single/playstation_portable_logo_symbol_116753_1920x1080.jpg",
+        "ps1": "https://images.wallpaperscraft.com/image/single/playstation_logo_symbol_116751_1920x1080.jpg",
+        "ps3": "https://images.wallpaperscraft.com/image/single/playstation_3_logo_symbol_116755_1920x1080.jpg",
+        "n64": "https://images.wallpaperscraft.com/image/single/nintendo_64_logo_white_background_116737_1920x1080.jpg",
+        "gba": "https://images.wallpaperscraft.com/image/single/game_boy_advance_logo_white_background_116736_1920x1080.jpg",
+        "gb": "https://images.wallpaperscraft.com/image/single/game_boy_logo_white_background_116733_1920x1080.jpg",
+        "gbc": "https://images.wallpaperscraft.com/image/single/game_boy_color_logo_white_background_116734_1920x1080.jpg",
+        "ds": "https://images.wallpaperscraft.com/image/single/nintendo_ds_logo_white_background_116735_1920x1080.jpg",
+        "nes": "https://images.wallpaperscraft.com/image/single/nintendo_entertainment_system_logo_white_background_116739_1920x1080.jpg",
+        "snes": "https://images.wallpaperscraft.com/image/single/super_nintendo_entertainment_system_logo_white_background_116740_1920x1080.jpg",
+        "wiiu": "https://images.wallpaperscraft.com/image/single/wii_u_logo_white_background_116742_1920x1080.jpg",
+        "xbox": "https://images.wallpaperscraft.com/image/single/xbox_logo_white_background_116757_1920x1080.jpg",
+        "psvita": "https://images.wallpaperscraft.com/image/single/playstation_vita_logo_symbol_116754_1920x1080.jpg",
+        "3ds": "https://images.wallpaperscraft.com/image/single/nintendo_3ds_logo_white_background_116741_1920x1080.jpg",
+        "multi": "https://images.wallpaperscraft.com/image/single/joystick_gamepad_games_126388_1920x1080.jpg"
     }
 
     total = len(FONDOS_MAP)
@@ -236,12 +245,10 @@ async def descargar_fondos_consolas(**kwargs) -> dict:
         for i, (cid, url) in enumerate(FONDOS_MAP.items()):
             dest_path = os.path.join(dest_dir, f"{cid}_bg.jpg")
             
-            if os.path.exists(dest_path):
-                stats["skip"] += 1
-            else:
-                ok = await _descargar_archivo(session, url, dest_path)
-                if ok: stats["ok"] += 1
-                else: stats["fail"] += 1
+            # Forzamos descarga para corregir los fondos erróneos (como el carro y la ensalada)
+            ok = await _descargar_archivo(session, url, dest_path)
+            if ok: stats["ok"] += 1
+            else: stats["fail"] += 1
             
             if on_progress:
                 on_progress(i + 1, total, f"Fondo: {cid}")

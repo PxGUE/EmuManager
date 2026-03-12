@@ -1,6 +1,9 @@
 # EmuManager 🎮
 
-![Versión](https://img.shields.io/badge/version-0.1.3--alpha-blue.svg)
+![Versión](https://img.shields.io/badge/version-0.1.5--alpha-blue.svg)
+
+- **Fondos de Consola Dinámicos**: Nuevo sistema que descarga fondos de alta resolución específicos para cada sistema.
+- **Background Sharing**: Múltiples emuladores de una misma consola comparten el mismo arte de fondo, ahorrando espacio y manteniendo la coherencia visual.
 ![Licencia](https://img.shields.io/badge/license-GNU%20GPLv3-green.svg)
 ![Python](https://img.shields.io/badge/python-3.9%2B-yellow.svg)
 

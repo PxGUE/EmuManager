@@ -1,8 +1,8 @@
 """
 EmuManager - Punto de entrada principal
-Versión: 0.1.3 alpha
-Descripción: Gestor de emuladores y ROMs basado en PyQt6 y Asyncio.
 """
+
+from core.config import APP_VERSION, APP_NAME
 
 import sys
 import os
@@ -39,6 +39,7 @@ def main():
     """Inicialización del bucle de eventos asíncrono y la ventana principal"""
     # 1. Crear la instancia de aplicación de Qt
     app = QApplication(sys.argv)
+    app.setApplicationName(APP_NAME)
     
     # Aplicar el tema (QSS) en toda la App
     load_stylesheet(app)
@@ -50,11 +51,13 @@ def main():
         app.setWindowIcon(QIcon(icon_path))
     
     # 2. Integrar Asyncio con el Event Loop de Qt usando qasync
+    # qasync permite que las corrutinas de asyncio corran sobre el loop de Qt
     loop = QEventLoop(app)
     asyncio.set_event_loop(loop)
     
     # 3. Lanzar la ventana principal
     window = EmuApp()
+    window.setWindowTitle(f"{APP_NAME} v{APP_VERSION}")
     window.resize(1200, 800) # Tamaño inicial recomendado
     window.show()
     

@@ -14,6 +14,27 @@ class Installer:
         self.manager = manager
         self.headers = {"User-Agent": "EmuManager-App"}
         self.cache_duration = 3600
+        self.linux_distro = self._get_linux_distro()
+
+    def _get_linux_distro(self):
+        """Detecta la distribución de Linux de forma básica."""
+        if platform.system() != "Linux":
+            return None
+        try:
+            # Intentar con la API moderna de Python 3.10+
+            if hasattr(platform, "freedesktop_os_release"):
+                info = platform.freedesktop_os_release()
+                return info.get("ID", "generic").lower()
+            
+            # Fallback manual leyendo /etc/os-release
+            if os.path.exists("/etc/os-release"):
+                with open("/etc/os-release") as f:
+                    for line in f:
+                        if line.startswith("ID="):
+                            return line.split("=")[1].strip().strip('"').lower()
+        except Exception as e:
+            print(f"[DEBUG] Error detectando distro: {e}")
+        return "generic"
 
     def _fetch_release_data(self, repo_github: str):
         now = time.time()
@@ -87,14 +108,36 @@ class Installer:
                     if "win" in name or "windows" in name: return asset
 
         elif sys_name == "Linux":
-            # 1.1 Buscar AppImage
+            # 1.1 Intentar buscar AppImage (es lo más universal)
             for asset in assets:
                 name = asset["name"].lower()
                 if name.endswith(".appimage") and "libretro" not in name:
                     if is_x64 and any(x in name for x in ["x86_64", "amd64", "x64"]): return asset
                     if is_arm and any(x in name for x in ["arm64", "aarch64"]): return asset
+
+            # 1.2 Priorizar por distribución (Debian/Ubuntu son comunes)
+            distro_keywords = {
+                "ubuntu": ["ubuntu", "debian", "pop", "mint"],
+                "debian": ["debian", "ubuntu"],
+                "arch": ["arch", "manjaro"],
+                "fedora": ["fedora", "redhat", "suse"]
+            }
             
-            # 1.2 Buscar binarios comprimidos
+            # Si detectamos una distro específica, buscar keywords relacionadas
+            search_keywords = distro_keywords.get(self.linux_distro, [self.linux_distro])
+            
+            for asset in assets:
+                name = asset["name"].lower()
+                if any(ext in name for ext in [".tar.gz", ".tar.xz", ".7z", ".zip", ".deb"]):
+                    if "libretro" in name or "core" in name or "windows" in name or "exe" in name: continue
+                    # Comprobar arquitectura
+                    if is_x64 and not any(x in name for x in ["x86_64", "amd64", "x64", "linux"]): continue
+                    
+                    # Si coincide con la distro detectada
+                    if any(k in name for k in search_keywords):
+                        return asset
+
+            # 1.3 Buscar binarios comprimidos genéricos de Linux
             for asset in assets:
                 name = asset["name"].lower()
                 if any(ext in name for ext in [".tar.gz", ".tar.xz", ".7z", ".zip"]):
@@ -176,7 +219,11 @@ class Installer:
         os.makedirs(full_install_path, exist_ok=True)
 
         if not download_url:
-            yield "ERROR:No se encontró descarga disponible."
+            sys_info = f"{platform.system()} ({platform.machine()})"
+            if platform.system() == "Linux":
+                sys_info += f" - Distro: {self.linux_distro}"
+            
+            yield f"ERROR:No se encontró una versión compatible para {sys_info}."
             return
 
         target_file = os.path.abspath(os.path.join(full_install_path, filename))

@@ -767,6 +767,7 @@ class GameHeroPanel(QFrame):
     """Panel lateral derecho que muestra los detalles del juego seleccionado/hovered."""
 
     panel_closed = pyqtSignal()
+    fav_toggled = pyqtSignal(str)
 
     def __init__(self, translator, on_launch_callback, parent=None):
         super().__init__(parent)
@@ -887,16 +888,34 @@ class GameHeroPanel(QFrame):
         sep.setStyleSheet("background: #1e2130; border: none; margin: 4px 0;")
         info_layout.addWidget(sep)
 
-        # Description
+        # Description with ScrollArea
+        self.desc_scroll = QScrollArea()
+        self.desc_scroll.setWidgetResizable(True)
+        self.desc_scroll.setFrameShape(QFrame.Shape.NoFrame)
+        self.desc_scroll.setStyleSheet("""
+            QScrollArea { background: transparent; border: none; }
+            QScrollBar:vertical {
+                border: none; background: transparent;
+                width: 4px; margin: 0;
+            }
+            QScrollBar::handle:vertical {
+                background: rgba(77, 166, 255, 0.3); border-radius: 2px; min-height: 20px;
+            }
+            QScrollBar::handle:vertical:hover { background: rgba(77, 166, 255, 0.5); }
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height: 0; }
+        """)
+        
         self.desc_lbl = QLabel()
         self.desc_lbl.setStyleSheet("""
             font-size: 12px; color: #7788aa; line-height: 1.5;
             background: transparent; border: none;
         """)
         self.desc_lbl.setWordWrap(True)
-        self.desc_lbl.setMaximumHeight(90)
         self.desc_lbl.setAlignment(Qt.AlignmentFlag.AlignTop)
-        info_layout.addWidget(self.desc_lbl)
+        
+        self.desc_scroll.setWidget(self.desc_lbl)
+        self.desc_scroll.setMaximumHeight(100)
+        info_layout.addWidget(self.desc_scroll)
 
         info_layout.addStretch()
 
@@ -1050,9 +1069,13 @@ class GameHeroPanel(QFrame):
         self.meta_lbl.show()
 
         if desc:
-            # Truncate at 220 chars
-            short_desc = desc[:220] + "..." if len(desc) > 220 else desc
-            self.desc_lbl.setText(short_desc)
+            # Mostrar solo el primer párrafo (hasta el primer \n\n o \n)
+            paragraphs = [p.strip() for p in desc.split('\n') if p.strip()]
+            first_para = paragraphs[0] if paragraphs else ""
+            
+            # Si el párrafo es excesivamente largo, un recorte de seguridad, 
+            # pero el scroll ya permite leerlo cómodo.
+            self.desc_lbl.setText(first_para)
         else:
             self.desc_lbl.setText("")
 
@@ -1093,8 +1116,11 @@ class GameHeroPanel(QFrame):
 
     def _on_fav_toggle(self):
         if self.current_game:
-            scanner.toggle_favorito(self.current_game.get("ruta", ""))
-            self._set_fav_style(scanner.es_favorito(self.current_game.get("ruta", "")))
+            ruta = self.current_game.get("ruta", "")
+            scanner.toggle_favorito(ruta)
+            is_fav = scanner.es_favorito(ruta)
+            self._set_fav_style(is_fav)
+            self.fav_toggled.emit(ruta)
 
     def _trigger_close(self):
         self.hide()
@@ -1285,6 +1311,7 @@ class LibraryView(QWidget):
         self.hero_panel.setMaximumWidth(420)
         self.hero_panel.hide()
         self.hero_panel.panel_closed.connect(self._on_hero_panel_closed)
+        self.hero_panel.fav_toggled.connect(self._on_hero_panel_fav_sync)
 
         self.games_splitter.addWidget(left_widget)
         self.games_splitter.addWidget(self.hero_panel)
@@ -1699,6 +1726,22 @@ class LibraryView(QWidget):
         self._toggle_hero_panel(False)
         # Resetear el título del header a la consola
         self._on_game_hover(None)
+
+    def _on_hero_panel_fav_sync(self, ruta):
+        """Sincroniza el estado de favoritos desde el Hero Panel hacia las tarjetas del grid."""
+        # Si el filtro de favoritos está activo, lo más seguro es re-filtrar
+        if self.btn_fav_filter.isChecked():
+            self.filter_games()
+            return
+
+        # Si no, simplemente buscamos la tarjeta y refrescamos su icono
+        for i in range(self.games_grid.count()):
+            item = self.games_grid.itemAt(i)
+            if item and item.widget() and isinstance(item.widget(), GameCard):
+                card = item.widget()
+                if card.game.get("ruta") == ruta:
+                    card.refresh_fav()
+                    break
                 
                 
     def filter_games(self, text=None):

@@ -157,7 +157,11 @@ class SettingsView(QWidget):
         self.providers_data = get_providers_config()
         self.provider_widgets = []
 
-        for p_data in self.providers_data:
+        # Categorizar proveedores
+        art_providers = [p for p in self.providers_data if p.get("type") == "artwork"]
+        meta_providers = [p for p in self.providers_data if p.get("type") == "metadata"]
+
+        def create_provider_card(p_data):
             card = QFrame()
             card.setObjectName("providerCard")
             card.setMinimumHeight(70)
@@ -187,28 +191,48 @@ class SettingsView(QWidget):
             p_layout.addLayout(v_info)
             p_layout.addStretch()
 
-            # Botón Configuración
-            btn_cfg = QPushButton("Configurar")
-            btn_cfg.setFixedWidth(100)
-            btn_cfg.setCursor(Qt.CursorShape.PointingHandCursor)
-            btn_cfg.setStyleSheet("""
-                QPushButton {
-                    background: rgba(255,255,255,0.08); border: none; 
-                    border-radius: 6px; padding: 6px; font-size: 11px;
-                }
-                QPushButton:hover { background: rgba(255,255,255,0.15); }
-            """)
-            btn_cfg.clicked.connect(lambda checked, p=p_data: self.configure_provider(p))
-            p_layout.addWidget(btn_cfg)
+            # Botón Configuración (Solo si tiene campos configurables)
+            has_config = p_data["id"] in ["tgdb", "rawg", "steamgriddb", "screenscraper"]
+            if has_config:
+                btn_cfg = QPushButton("Configurar")
+                btn_cfg.setFixedWidth(100)
+                btn_cfg.setCursor(Qt.CursorShape.PointingHandCursor)
+                btn_cfg.setStyleSheet("""
+                    QPushButton {
+                        background: rgba(255,255,255,0.08); border: none; 
+                        border-radius: 6px; padding: 6px; font-size: 11px;
+                    }
+                    QPushButton:hover { background: rgba(255,255,255,0.15); }
+                """)
+                btn_cfg.clicked.connect(lambda checked, p=p_data: self.configure_provider(p))
+                p_layout.addWidget(btn_cfg)
 
             # Switch (Checkbox estilizado)
             cb = QCheckBox()
             cb.setCursor(Qt.CursorShape.PointingHandCursor)
             cb.setChecked(p_data.get("enabled", False))
             cb.stateChanged.connect(lambda state, p=p_data, s=p_status: self.toggle_provider(p, state, s))
+            
+            # Wikipedia and Libretro might be "core" and not toggleable? 
+            # No, user should be able to disable them if they want only one source.
             p_layout.addWidget(cb)
+            return card
 
-            scrapers_group.addWidget(card)
+        # --- Subsección: ARTE ---
+        art_title = QLabel("🖼 FUENTES DE ARTE")
+        art_title.setStyleSheet("font-size: 12px; color: #888; font-weight: bold; margin-top: 10px;")
+        scrapers_group.addWidget(art_title)
+        for p in art_providers:
+            scrapers_group.addWidget(create_provider_card(p))
+
+        scrapers_group.addSpacing(10)
+
+        # --- Subsección: INFORMACIÓN ---
+        meta_title = QLabel("📋 FUENTES DE INFORMACIÓN (METADATA)")
+        meta_title.setStyleSheet("font-size: 12px; color: #888; font-weight: bold; margin-top: 10px;")
+        scrapers_group.addWidget(meta_title)
+        for p in meta_providers:
+            scrapers_group.addWidget(create_provider_card(p))
         
         layout.addLayout(scrapers_group)
 

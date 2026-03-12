@@ -20,8 +20,8 @@ def normalize_title(title: str) -> str:
     # 1. Underscores to spaces
     t = title.replace("_", " ")
     
-    # 2. Remove tags like (USA), [v1.0]
-    t = re.sub(r'[\(\[].*?[\)\]]', '', t)
+    # 2. Open brackets/parentheses to spaces (Preserve content details for matching)
+    t = t.replace('(', ' ').replace(')', ' ').replace('[', ' ').replace(']', ' ')
     
     # 3. Lowercase
     t = t.lower()

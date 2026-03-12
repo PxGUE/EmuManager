@@ -1,4 +1,4 @@
-# EmuManager 🎮
+# EmuManager
 
 ![Versión](https://img.shields.io/badge/version-0.1.5--alpha-blue.svg)
 ![Licencia](https://img.shields.io/badge/license-GNU%20GPLv3-green.svg)

@@ -817,15 +817,42 @@ class GameHeroPanel(QFrame):
         # ── Artwork section (top half) ────────────────────────────────────
         self.art_container = QFrame()
         self.art_container.setFixedHeight(300)
-        self.art_container.setStyleSheet("background: transparent; border: none;")
-        art_layout = QVBoxLayout(self.art_container)
+        self.art_container.setStyleSheet("background: #0e1018; border-bottom: 1px solid #1e2130;")
+        art_layout = QGridLayout(self.art_container)
         art_layout.setContentsMargins(0, 0, 0, 0)
+        art_layout.setSpacing(0)
 
+        # 1. Background (Hero/Backdrop/Blurred)
+        self.bg_lbl = QLabel()
+        self.bg_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.bg_lbl.setStyleSheet("background: transparent; border: none;")
+        self.bg_lbl.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
+        
+        # Overlay oscuro para legibilidad (Vignette)
+        self.bg_dim = QFrame()
+        self.bg_dim.setStyleSheet("background: qlineargradient(x1:0,y1:0,x2:0,y2:1, stop:0 rgba(0,0,0,0.5), stop:1 rgba(14,16,24,1));")
+        
+        # 2. Boxart (Front)
         self.art_lbl = QLabel()
         self.art_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.art_lbl.setStyleSheet("background: transparent; border: none;")
+        self._shadow_art = QGraphicsDropShadowEffect()
+        self._shadow_art.setBlurRadius(25)
+        self._shadow_art.setOffset(0, 0)
+        self._shadow_art.setColor(QColor(0,0,0,220))
+        self.art_lbl.setGraphicsEffect(self._shadow_art)
         self.art_lbl.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
-        art_layout.addWidget(self.art_lbl)
+
+        # 3. Logo (Clear Logo)
+        self.logo_lbl = QLabel()
+        self.logo_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.logo_lbl.setStyleSheet("background: transparent; border: none;")
+
+        art_layout.addWidget(self.bg_lbl, 0, 0)
+        art_layout.addWidget(self.bg_dim, 0, 0)
+        art_layout.addWidget(self.art_lbl, 0, 0)
+        art_layout.addWidget(self.logo_lbl, 0, 0, Qt.AlignmentFlag.AlignCenter)
+
         main_layout.addWidget(self.art_container)
 
         # ── Info section (bottom half) ─────────────────────────────────────
@@ -960,41 +987,67 @@ class GameHeroPanel(QFrame):
         self.empty_state.hide()
         self.art_container.show()
 
-        # Artwork
         ruta_rom = game.get("ruta", "")
-        caratula_path = artwork.obtener_ruta_caratula(ruta_rom) if ruta_rom else None
-        if caratula_path and os.path.exists(caratula_path):
-            pix = QPixmap(caratula_path).scaled(
-                self.art_lbl.width() or 240, 300,
-                Qt.AspectRatioMode.KeepAspectRatio,
-                Qt.TransformationMode.SmoothTransformation
-            )
-            self.art_lbl.setPixmap(pix)
+        # Cargamos metadatos antes para los assets visuales
+        meta = metadata.obtener_metadata_local(ruta_rom)
+
+        # 1. Background (Hero)
+        bg_path = artwork.obtener_ruta_background(ruta_rom)
+        if os.path.exists(bg_path):
+            pix_bg = QPixmap(bg_path).scaled(500, 300, Qt.AspectRatioMode.KeepAspectRatioByExpanding, Qt.TransformationMode.SmoothTransformation)
+            self.bg_lbl.setPixmap(pix_bg)
         else:
-            self.art_lbl.setPixmap(QPixmap())
-            self.art_lbl.setText(game.get("nombre", "?")[0].upper())
-            self.art_lbl.setStyleSheet("""
-                font-size: 96px; font-weight: 900;
-                color: rgba(77,166,255,0.12);
-                background: transparent; border: none;
-            """)
+            self.bg_lbl.setPixmap(QPixmap())
+
+        # 2. Logo (Clear Logo)
+        logo_path = artwork.obtener_ruta_logo(ruta_rom)
+        show_text_title = True
+        if os.path.exists(logo_path):
+            # Escalar el logo con un margen
+            pix_logo = QPixmap(logo_path).scaled(260, 120, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+            self.logo_lbl.setPixmap(pix_logo)
+            self.logo_lbl.show()
+            show_text_title = False # Si hay logo, ocultamos el titulo texto
+        else:
+            self.logo_lbl.hide()
+
+        # 3. BoxArt (Frontal)
+        caratula_path = artwork.obtener_ruta_caratula(ruta_rom)
+        if os.path.exists(caratula_path) and not os.path.exists(logo_path):
+            # Si NO hay logo, mostramos la carátula frontal centrada
+            pix = QPixmap(caratula_path).scaled(200, 260, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+            self.art_lbl.setPixmap(pix)
+            self.art_lbl.show()
+        else:
+            self.art_lbl.hide()
 
         # Title
-        self.title_lbl.setText(game.get("nombre", ""))
+        if show_text_title:
+            self.title_lbl.setText(game.get("nombre", ""))
+            self.title_lbl.show()
+        else:
+            self.title_lbl.hide()
 
         # Metadata from local cache
         meta = metadata.obtener_metadata_local(ruta_rom)
         year = meta.get("year", "")
         developer = meta.get("developer", "")
+        publisher = meta.get("publisher", "")
         genre = meta.get("genre", "")
+        players = meta.get("players", "")
         desc = meta.get("description", "")
-        rating = meta.get("rating", "")
 
         meta_parts = []
+        # En el panel Hero mostramos datos premium del juego
         if developer: meta_parts.append(developer)
+        elif publisher: meta_parts.append(publisher)
+        
         if year: meta_parts.append(year)
-        if genre: meta_parts.append(genre)
+        if genre and genre != "Video Game": meta_parts.append(genre)
+        if players: meta_parts.append(players)
+        
         self.meta_lbl.setText("  \u2022  ".join(meta_parts) if meta_parts else game.get("consola", ""))
+        self.meta_lbl.show()
 
         if desc:
             # Truncate at 220 chars

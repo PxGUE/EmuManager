@@ -16,7 +16,7 @@ import urllib.parse
 import difflib
 from urllib.parse import unquote
 from bs4 import BeautifulSoup
-from typing import Optional, Callable, List
+from typing import Optional, Callable, List, Dict
 from .normalization import normalize_title
 from .scraper_engine import ScraperEngine
 import core.metadata as metadata
@@ -24,6 +24,61 @@ import core.metadata as metadata
 # URL BASE del CDN de Libretro Thumbnails
 LIBRETRO_CDN = "https://thumbnails.libretro.com"
 THUMBNAIL_TYPE = "Named_Boxarts"
+
+class SGDBAssetFetcher:
+    """Clase interna para obtener assets de SteamGridDB sin depender de metadata.py."""
+    URL_SEARCH = "https://www.steamgriddb.com/api/v2/search/autocomplete"
+    URL_ASSETS = "https://www.steamgriddb.com/api/v2/{asset_type}/game/{game_id}"
+
+    @staticmethod
+    async def fetch_assets(session: aiohttp.ClientSession, query: str) -> Dict[str, str]:
+        import core.metadata as metadata
+        configs = metadata.get_providers_config()
+        sgdb_cfg = next((c for c in configs if c["id"] == "steamgriddb"), None)
+        if not sgdb_cfg or not sgdb_cfg.get("enabled"): return {}
+        
+        api_key = sgdb_cfg.get("api_key")
+        if not api_key: return {}
+
+        headers = {"Authorization": f"Bearer {api_key}"}
+        clean_query = re.sub(r'\(.*?\)', '', query).strip()
+        
+        try:
+            # 1. Autocomplete Search
+            search_url = f"{SGDBAssetFetcher.URL_SEARCH}/{urllib.parse.quote(clean_query)}"
+            async with session.get(search_url, headers=headers, timeout=5) as resp:
+                if resp.status != 200: return {}
+                data = await resp.json()
+                results = data.get("data", [])
+                if not results: return {}
+                
+                # Mejor match con difflib
+                best = None
+                best_score = 0
+                for r in results:
+                    score = difflib.SequenceMatcher(None, clean_query.lower(), r["name"].lower()).ratio()
+                    if score > best_score:
+                        best_score = score
+                        best = r
+                
+                if not best or best_score < 0.4: return {}
+                game_id = best["id"]
+                
+                # 2. Get grids, heroes, logos
+                assets = {}
+                types = {"grids": "boxart_url", "heroes": "background_url", "logos": "logo_url"}
+                for a_type, key in types.items():
+                    url = SGDBAssetFetcher.URL_ASSETS.format(asset_type=a_type, game_id=game_id)
+                    async with session.get(url, headers=headers, timeout=5) as a_resp:
+                        if a_resp.status == 200:
+                            a_data = await a_resp.json()
+                            a_list = a_data.get("data", [])
+                            if a_list: assets[key] = a_list[0]["url"]
+                
+                if assets: print(f"[ARTWORK] SGDB ¡EXITO! Encontrados assets para '{clean_query}'")
+                return assets
+        except: return {}
+        return {}
 
 # Directorios para recursos del sistema (Propios del proyecto)
 PROJECT_ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -186,6 +241,18 @@ def obtener_ruta_caratula(ruta_rom: str) -> str:
     game_name = os.path.splitext(os.path.basename(ruta_rom))[0]
     return os.path.join(rom_dir, "media", f"{game_name}.png")
 
+def obtener_ruta_background(ruta_rom: str) -> str:
+    """Devuelve la ruta absoluta del fondo (hero) del juego."""
+    rom_dir = os.path.dirname(ruta_rom)
+    game_name = os.path.splitext(os.path.basename(ruta_rom))[0]
+    return os.path.join(rom_dir, "media", f"{game_name}_bg.jpg")
+
+def obtener_ruta_logo(ruta_rom: str) -> str:
+    """Devuelve la ruta absoluta del logo (clear logo) del juego."""
+    rom_dir = os.path.dirname(ruta_rom)
+    game_name = os.path.splitext(os.path.basename(ruta_rom))[0]
+    return os.path.join(rom_dir, "media", f"{game_name}_logo.png")
+
 def tiene_caratula(ruta_rom: str) -> bool:
     """Verifica la existencia física del archivo de carátula."""
     return os.path.exists(obtener_ruta_caratula(ruta_rom))
@@ -259,17 +326,30 @@ async def descargar_caratula(session: aiohttp.ClientSession, platform: str, nomb
             # print(f"[ARTWORK] ✓ Libretro match {ratio}%: '{mejor_match}'")
             return True
 
-    # --- FUENTE 2: Metadata / TGDB (Fallback) ---
-    meta = metadata.obtener_metadata_local(ruta_rom)
-    tgdb_url = meta.get("boxart_url")
-    if tgdb_url:
-        # print(f"[ARTWORK] ~ Intentando fallback TGDB para '{candidato_principal}'...")
-        ok = await _descargar_archivo(session, tgdb_url, caratula_path)
-        if ok:
-            print(f"[ARTWORK] ✓ TGDB match para '{candidato_principal}'")
-            return True
+    # --- FUENTE 2: SteamGridDB (PREMIUM) ---
+    sgdb_assets = await SGDBAssetFetcher.fetch_assets(session, candidato_principal)
+    if not sgdb_assets:
+        sgdb_assets = await SGDBAssetFetcher.fetch_assets(session, nombre_juego)
+    
+    if sgdb_assets:
+        # 2.1 Carátula (Grid)
+        grid_url = sgdb_assets.get("boxart_url")
+        if grid_url and not os.path.exists(caratula_path):
+            await _descargar_archivo(session, grid_url, caratula_path)
 
-    return False
+        # 2.2 Fondo (Hero)
+        bg_url = sgdb_assets.get("background_url")
+        bg_path = obtener_ruta_background(ruta_rom)
+        if bg_url and not os.path.exists(bg_path):
+            await _descargar_archivo(session, bg_url, bg_path)
+
+        # 2.3 Logo
+        logo_url = sgdb_assets.get("logo_url")
+        logo_path = obtener_ruta_logo(ruta_rom)
+        if logo_url and not os.path.exists(logo_path):
+            await _descargar_archivo(session, logo_url, logo_path)
+
+    return os.path.exists(caratula_path)
 
 
 async def descargar_recursos_estaticos():

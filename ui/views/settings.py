@@ -1,4 +1,5 @@
 import os
+import json
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
     QLineEdit, QPushButton, QComboBox, QFileDialog, QMessageBox, QFrame, QSizePolicy,
@@ -310,9 +311,9 @@ class SettingsView(QWidget):
         
         inputs = {}
         # Renderizar campos según el proveedor
-        if p["id"] in ["tgdb", "rawg"]:
+        if p["id"] in ["tgdb", "rawg", "steamgriddb"]:
             v.addWidget(QLabel("API Key:"))
-            edt = QLineEdit(p.get("api_key", ""))
+            edt = QLineEdit(str(p.get("api_key", "")))
             edt.setProperty("class", "formInput")
             v.addWidget(edt)
             inputs["api_key"] = edt

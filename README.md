@@ -1,11 +1,11 @@
 # EmuManager 🎮
 
 ![Versión](https://img.shields.io/badge/version-0.1.5--alpha-blue.svg)
+![Licencia](https://img.shields.io/badge/license-GNU%20GPLv3-green.svg)
+![Python](https://img.shields.io/badge/python-3.9%2B-yellow.svg)
 
 - **Fondos de Consola Dinámicos**: Nuevo sistema que descarga fondos de alta resolución específicos para cada sistema.
 - **Background Sharing**: Múltiples emuladores de una misma consola comparten el mismo arte de fondo, ahorrando espacio y manteniendo la coherencia visual.
-![Licencia](https://img.shields.io/badge/license-GNU%20GPLv3-green.svg)
-![Python](https://img.shields.io/badge/python-3.9%2B-yellow.svg)
 
 EmuManager es un gestor integral de juegos retro con una interfaz moderna y sumamente intuitiva, construida con **PyQt6** y **Asyncio**. Te permite descargar, organizar y ejecutar tus emuladores y ROMs clásicas desde un solo lugar, de una forma visualmente atractiva y fácil de usar en entornos de escritorio.
 

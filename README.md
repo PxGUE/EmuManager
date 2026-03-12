@@ -7,7 +7,7 @@
 
 EmuManager es un gestor integral de juegos retro con una interfaz moderna y sumamente intuitiva, construida con **PyQt6** y **Asyncio**. Te permite descargar, organizar y ejecutar tus emuladores y ROMs clásicas desde un solo lugar, de una forma visualmente atractiva y fácil de usar en entornos de escritorio.
 
-## ✨ Características Principales
+## Características Principales
 
 - **Interfaz Nativa Premium**: Construida con PyQt6 para una experiencia fluida y robusta en escritorio.
 - **Gestión Centralizada**: Configura y administra tus emuladores favoritos (mGBA, Dolphin, PCSX2, DuckStation, SNES9x, PPSSPP, entre otros).
@@ -19,7 +19,7 @@ EmuManager es un gestor integral de juegos retro con una interfaz moderna y suma
 - **Seguimiento de Tiempo**: Registra automáticamente cuánto tiempo has dedicado a cada juego.
 - **Multi-idioma**: Soporte para Español e Inglés.
 
-## 🚀 Requisitos y Configuración
+## Requisitos y Configuración
 
 1. Clonar el repositorio:
    ```bash
@@ -39,7 +39,7 @@ EmuManager es un gestor integral de juegos retro con una interfaz moderna y suma
 
 *Nota: Requiere Python 3.9 o superior.*
 
-## 📦 Dependencias
+## Dependencias
 
 | Paquete | Versión mínima | Uso |
 |---|---|---|
@@ -49,12 +49,12 @@ EmuManager es un gestor integral de juegos retro con una interfaz moderna y suma
 | beautifulsoup4 | 4.13.0 | Scraping de artwork |
 | psutil | 6.1.0 | Gestión de procesos de emuladores |
 
-## ⚙️ Instrucciones de Uso (Guía Paso a Paso)
+## Instrucciones de Uso (Guía Paso a Paso)
 
 Para que EmuManager funcione correctamente, sigue estos pasos:
 
 ### 1. Configuración Inicial (Primer Inicio)
-Al abrir la aplicación por primera vez, ve a la pestaña de **Configuración** (`⚙️`) y define las rutas:
+Al abrir la aplicación por primera vez, ve a la pestaña de **Configuración** y define las rutas:
 - **Ruta de Emuladores**: Carpeta donde se descargarán los ejecutables.
 - **Ruta de ROMs/Juegos**: Carpeta principal de tu colección de juegos.
 
@@ -62,19 +62,19 @@ Al abrir la aplicación por primera vez, ve a la pestaña de **Configuración** 
 Coloca tus ROMs en las carpetas que el programa creará automáticamente (GBA, SNES, PS1, etc.) para que el escáner pueda identificarlas correctamente.
 
 ### 3. Instalación de Emuladores
-En la pestaña de **Descargas** (`⬇️`), selecciona el emulador deseado y pulsa **Instalar**. El sistema se encarga del resto.
+En la pestaña de **Descargas**, selecciona el emulador deseado y pulsa **Instalar**. El sistema se encarga del resto.
 
 ### 4. Escaneo de la Biblioteca
-En la pestaña de **Biblioteca** (`📚`), entra en la consola deseada y pulsa **REFRESCAR**. El programa buscará los juegos y descargará su arte oficial automáticamente.
+En la pestaña de **Biblioteca**, entra en la consola deseada y pulsa **REFRESCAR**. El programa buscará los juegos y descargará su arte oficial automáticamente.
 
 ### 5. ¡A Jugar!
 Haz clic en cualquier tarjeta de juego para lanzarlo instantáneamente con su emulador.
 
 ---
 
-## 👨‍💻 Autor
+## Autor
 - **Christian A. Ordoñez** - *Desarrollador Principal*
 - Correo: cris.ordonezal@gmail.com
 
-## 📄 Licencia
+## Licencia
 Este proyecto está bajo la [Licencia GNU GPLv3](https://www.gnu.org/licenses/gpl-3.0.html).

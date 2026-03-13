@@ -172,7 +172,7 @@ class DashboardView(QWidget):
         stats_layout = QVBoxLayout(stats_section)
         stats_layout.setContentsMargins(0, 0, 0, 0)
         stats_layout.setSpacing(12)
-        stats_layout.addWidget(SectionTitle("ESTADÍSTICAS"))
+        stats_layout.addWidget(SectionTitle(self.translator.t("dash_stats_title")))
         stats_layout.addLayout(self._build_stats_row())
         main_layout.addWidget(stats_section)
 
@@ -186,7 +186,7 @@ class DashboardView(QWidget):
         recent_layout = QVBoxLayout(recent_section)
         recent_layout.setContentsMargins(0, 0, 0, 0)
         recent_layout.setSpacing(12)
-        recent_layout.addWidget(SectionTitle("ACTIVIDAD RECIENTE"))
+        recent_layout.addWidget(SectionTitle(self.translator.t("dash_recent_title")))
         recent_panel = self._build_recent_games()
         recent_layout.addWidget(recent_panel)
         recent_section.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
@@ -198,7 +198,7 @@ class DashboardView(QWidget):
         status_layout = QVBoxLayout(status_section)
         status_layout.setContentsMargins(0, 0, 0, 0)
         status_layout.setSpacing(12)
-        status_layout.addWidget(SectionTitle("ESTADO DEL SISTEMA"))
+        status_layout.addWidget(SectionTitle(self.translator.t("dash_status_title_panel")))
         status_layout.addWidget(self._build_status_panel())
         status_layout.addStretch()
         status_section.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
@@ -235,7 +235,7 @@ class DashboardView(QWidget):
         left.setSpacing(6)
         left.setAlignment(Qt.AlignmentFlag.AlignVCenter)
 
-        greeting = QLabel("BIENVENIDO DE VUELTA")
+        greeting = QLabel(self.translator.t("dash_greeting"))
         greeting.setStyleSheet("""
             font-size: 11px; font-weight: bold; color: #4da6ff;
             letter-spacing: 2px; background: transparent; border: none;
@@ -249,7 +249,7 @@ class DashboardView(QWidget):
         """)
         left.addWidget(app_name)
 
-        tagline = QLabel("Tu centro de mando retro — v0.1.3 alpha")
+        tagline = QLabel(self.translator.t("dash_tagline", "v0.1.3 alpha"))
         tagline.setStyleSheet("""
             font-size: 13px; color: #666666;
             background: transparent; border: none;
@@ -294,10 +294,10 @@ class DashboardView(QWidget):
         total_hours = int(total_seconds // 3600)
 
         cards_data = [
-            ("🎯", installed,      "Emuladores instalados",  "#4da6ff"),
-            ("📀", total_roms,     "ROMs en biblioteca",     "#7c6ff7"),
-            ("🖥️", total_consoles, "Consolas con ROMs",      "#4dc6a6"),
-            ("⏱️", total_hours,    "Horas jugadas",          "#f0a040"),
+            ("🎯", installed,      self.translator.t("dash_stat_installed"),  "#4da6ff"),
+            ("📀", total_roms,     self.translator.t("dash_stat_roms"),       "#7c6ff7"),
+            ("🖥️", total_consoles, self.translator.t("dash_stat_consoles"),   "#4dc6a6"),
+            ("⏱️", total_hours,    self.translator.t("dash_stat_hours"),      "#f0a040"),
         ]
 
         row = QHBoxLayout()
@@ -350,7 +350,7 @@ class DashboardView(QWidget):
                 row = RecentGameRow(j["nombre"], j.get("consola", ""), time_str, color)
                 layout.addWidget(row)
         else:
-            empty_lbl = QLabel("Aún no has jugado ningún juego.\n¡Ve a la Biblioteca y lanza tu primera partida!")
+            empty_lbl = QLabel(self.translator.t("dash_empty_recent"))
             empty_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
             empty_lbl.setStyleSheet("""
                 color: #555566; font-size: 13px;
@@ -379,11 +379,11 @@ class DashboardView(QWidget):
             if not path:
                 state = "❌"
                 color = "#e05050"
-                note = "Sin configurar"
+                note = self.translator.t("dash_missing")
             elif not os.path.exists(path):
                 state = "⚠️"
                 color = "#f0a040"
-                note = "Ruta no encontrada"
+                note = self.translator.t("dash_path_missing")
             else:
                 state = "✅"
                 color = ok_color
@@ -408,8 +408,8 @@ class DashboardView(QWidget):
             row.addStretch()
             return row
 
-        layout.addLayout(status_row("📁", "Ruta de emuladores", self.emu_manager.install_path))
-        layout.addLayout(status_row("🎮", "Ruta de ROMs", self.emu_manager.roms_path))
+        layout.addLayout(status_row("📁", self.translator.t("dash_status_path_emus"), self.emu_manager.install_path))
+        layout.addLayout(status_row("🎮", self.translator.t("dash_status_path_roms"), self.emu_manager.roms_path))
 
         # Separator
         sep = QFrame()
@@ -423,7 +423,7 @@ class DashboardView(QWidget):
             if self.emu_manager.esta_instalado(emu["github"])
         ]
 
-        emus_title = QLabel("Emuladores instalados")
+        emus_title = QLabel(self.translator.t("dash_stat_installed"))
         emus_title.setStyleSheet("font-size: 11px; color: #666666; font-weight: bold; background: transparent; border: none;")
         layout.addWidget(emus_title)
 
@@ -439,12 +439,13 @@ class DashboardView(QWidget):
                 name.setStyleSheet("font-size: 12px; color: #c0c0c0; background: transparent; border: none;")
                 row_w.addWidget(name)
                 row_w.addStretch()
-                console_lbl = QLabel(emu["console"])
+                console_translated = self.translator.t(f"emu_{emu['id']}_console", emu.get("console", "SYSTEM"))
+                console_lbl = QLabel(console_translated)
                 console_lbl.setStyleSheet("font-size: 10px; color: #555555; background: transparent; border: none;")
                 row_w.addWidget(console_lbl)
                 layout.addLayout(row_w)
         else:
-            none_lbl = QLabel("Ninguno instalado aún.\nVe a Descargas para instalar.")
+            none_lbl = QLabel(self.translator.t("dash_status_no_emus"))
             none_lbl.setStyleSheet("font-size: 11px; color: #555555; background: transparent; border: none;")
             layout.addWidget(none_lbl)
 
@@ -501,7 +502,7 @@ class DashboardView(QWidget):
             stats_layout = QVBoxLayout(stats_section)
             stats_layout.setContentsMargins(0, 0, 0, 0)
             stats_layout.setSpacing(12)
-            stats_layout.addWidget(SectionTitle("ESTADÍSTICAS"))
+            stats_layout.addWidget(SectionTitle(self.translator.t("dash_stats_title")))
             stats_layout.addLayout(self._build_stats_row())
             main_layout.addWidget(stats_section)
 
@@ -513,7 +514,7 @@ class DashboardView(QWidget):
             recent_layout = QVBoxLayout(recent_section)
             recent_layout.setContentsMargins(0, 0, 0, 0)
             recent_layout.setSpacing(12)
-            recent_layout.addWidget(SectionTitle("ACTIVIDAD RECIENTE"))
+            recent_layout.addWidget(SectionTitle(self.translator.t("dash_recent_title")))
             recent_layout.addWidget(self._build_recent_games())
             recent_section.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
             content_layout.addWidget(recent_section, 3, Qt.AlignmentFlag.AlignTop)
@@ -523,7 +524,7 @@ class DashboardView(QWidget):
             status_layout = QVBoxLayout(status_section)
             status_layout.setContentsMargins(0, 0, 0, 0)
             status_layout.setSpacing(12)
-            status_layout.addWidget(SectionTitle("ESTADO DEL SISTEMA"))
+            status_layout.addWidget(SectionTitle(self.translator.t("dash_status_title_panel")))
             status_layout.addWidget(self._build_status_panel())
             status_layout.addStretch()
             status_section.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)

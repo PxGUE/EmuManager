@@ -77,7 +77,7 @@ class EmuApp(QMainWindow):
         from PyQt6.QtCore import Qt, QSize
         import os
         
-        app_name_lbl = QLabel("EmuManager")
+        app_name_lbl = QLabel(self.emu_name)
         app_name_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
         app_name_lbl.setStyleSheet("""
             color: #4da6ff;
@@ -111,7 +111,7 @@ class EmuApp(QMainWindow):
         sidebar_layout.addStretch()
         
         # Versión al fondo
-        ver_lbl = QLabel("v0.1.3 alpha")
+        ver_lbl = QLabel(f"v{self.emu_version}")
         ver_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
         ver_lbl.setStyleSheet("""
             color: #333344;

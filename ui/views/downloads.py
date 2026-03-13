@@ -42,7 +42,7 @@ class ManualInstallDialog(QDialog):
         layout.setSpacing(20)
 
         # Title
-        title = QLabel("Instalación Manual")
+        title = QLabel(self.translator.t("dl_manual_title"))
         title.setStyleSheet("font-size: 18px; font-weight: bold; color: #f8f8ff;")
         layout.addWidget(title)
 
@@ -51,14 +51,14 @@ class ManualInstallDialog(QDialog):
         step1_box.setStyleSheet("background: rgba(255,255,255,0.03); border: 1px solid #252830; border-radius: 8px;")
         s1_layout = QVBoxLayout(step1_box)
         
-        s1_title = QLabel("1. Descarga el paquete")
+        s1_title = QLabel(self.translator.t("dl_manual_step1"))
         s1_title.setStyleSheet("font-weight: bold; color: #4da6ff; border: none;")
         
-        info = QLabel("Descarga la versión portable (.zip, .7z) de la web oficial:")
+        info = QLabel(self.translator.t("dl_manual_step1_info"))
         info.setStyleSheet("font-size: 11px; color: #aaaaaa; border: none;")
         info.setWordWrap(True)
 
-        url_btn = QPushButton("Abrir Página de Descarga")
+        url_btn = QPushButton(self.translator.t("dl_manual_btn_open"))
         url_btn.setFixedHeight(34)
         url_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         url_btn.setStyleSheet("""
@@ -79,14 +79,14 @@ class ManualInstallDialog(QDialog):
         step2_box.setStyleSheet("background: rgba(255,255,255,0.03); border: 1px solid #252830; border-radius: 8px;")
         s2_layout = QVBoxLayout(step2_box)
 
-        s2_title = QLabel("2. Selecciona el archivo")
+        s2_title = QLabel(self.translator.t("dl_manual_step2"))
         s2_title.setStyleSheet("font-weight: bold; color: #4da6ff; border: none;")
 
-        self.file_lbl = QLabel("No se ha seleccionado archivo")
+        self.file_lbl = QLabel(self.translator.t("dl_manual_no_file"))
         self.file_lbl.setStyleSheet("font-size: 10px; color: #888888; border: none;")
         self.file_lbl.setWordWrap(True)
 
-        pick_btn = QPushButton("Seleccionar ZIP / 7Z / EXE")
+        pick_btn = QPushButton(self.translator.t("dl_manual_btn_select"))
         pick_btn.setFixedHeight(34)
         pick_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         pick_btn.setStyleSheet("""
@@ -104,10 +104,10 @@ class ManualInstallDialog(QDialog):
 
         # Footer
         btns = QHBoxLayout()
-        cancel_btn = QPushButton("Cancelar")
+        cancel_btn = QPushButton(self.translator.t("dl_btn_cancel"))
         cancel_btn.clicked.connect(self.reject)
         
-        self.install_btn = QPushButton("Finalizar Instalación")
+        self.install_btn = QPushButton(self.translator.t("dl_manual_btn_finish"))
         self.install_btn.setEnabled(False)
         self.install_btn.setFixedHeight(40)
         self.install_btn.setStyleSheet("""
@@ -122,8 +122,8 @@ class ManualInstallDialog(QDialog):
 
     def on_pick_file(self):
         f, _ = QFileDialog.getOpenFileName(
-            self, "Seleccionar emulador", "",
-            "Archivos de emulador (*.zip *.7z *.tar.gz *.tar.xz *.exe *.AppImage)"
+            self, self.translator.t("dl_manual_dlg_title"), "",
+            self.translator.t("dl_manual_files_type")
         )
         if f:
             self.selected_file = f
@@ -202,7 +202,7 @@ class EmulatorCard(QFrame):
         banner_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         # Installed badge
-        self.installed_badge = QLabel("✓ INSTALADO", banner)
+        self.installed_badge = QLabel(self.translator.t("dl_badge_installed"), banner)
         self.installed_badge.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.installed_badge.setStyleSheet(f"""
             background: rgba(34, 197, 94, 0.18);
@@ -232,7 +232,8 @@ class EmulatorCard(QFrame):
         c_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
         # Console Title
-        self.console_lbl = QLabel(self.emu.get("console", "EL SISTEMA").upper(), content)
+        console_translated = self.translator.t(f"emu_{self.emu['id']}_console", self.emu.get("console", "SYSTEM"))
+        self.console_lbl = QLabel(console_translated.upper(), content)
         self.console_lbl.setStyleSheet("""
             font-size: 15px; font-weight: 900; color: #f8f8ff;
             background: transparent; border: none; letter-spacing: 0.5px;
@@ -283,7 +284,7 @@ class EmulatorCard(QFrame):
         btn_row = QHBoxLayout()
         btn_row.setSpacing(8)
 
-        self.btn_manual = QPushButton("Manual", content)
+        self.btn_manual = QPushButton(self.translator.t("dl_btn_manual"), content)
         self.btn_manual.setFixedHeight(26)
         self.btn_manual.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_manual.setStyleSheet("""
@@ -296,7 +297,7 @@ class EmulatorCard(QFrame):
         """)
         self.btn_manual.clicked.connect(self.on_manual_clicked)
 
-        self.btn_resource = QPushButton("Carpeta", content)
+        self.btn_resource = QPushButton(self.translator.t("dl_btn_folder"), content)
         self.btn_resource.setFixedHeight(26)
         self.btn_resource.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_resource.setStyleSheet("""
@@ -423,19 +424,19 @@ class EmulatorCard(QFrame):
                 # Mensajes amigables y cortos
                 raw_err = output.replace("ERROR:", "").lower()
                 if "404" in raw_err or "not found" in raw_err:
-                    err_msg = "No disponible v铆a auto"
+                    err_msg = self.translator.t("dl_err_no_auto")
                 elif "timeout" in raw_err or "connection" in raw_err:
-                    err_msg = "Error de red"
+                    err_msg = self.translator.t("dl_err_network")
                 elif "manual" in raw_err:
-                    err_msg = "Usa instalaci贸n Manual"
+                    err_msg = self.translator.t("dl_err_manual")
                 else:
-                    err_msg = "Error al instalar"
+                    err_msg = self.translator.t("dl_err_installing")
                 
                 self.status_lbl.setText(err_msg)
                 self.status_lbl.setStyleSheet("font-size: 10px; color: #f87171; background: transparent;")
         
         if not error_occurred:
-            self.status_lbl.setText("¡Instalación manual exitosa!")
+            self.status_lbl.setText(self.translator.t("dl_manual_success"))
             self.status_lbl.setStyleSheet("font-size: 10px; color: #4ade80; background: transparent;")
         
         self.update_ui_state(keep_status=True)
@@ -538,11 +539,11 @@ class EmulatorCard(QFrame):
                     error_occurred = True
                     raw_err = output_line.lower()
                     if "404" in raw_err or "not found" in raw_err:
-                        friendly = "No disponible v铆a auto"
+                        friendly = self.translator.t("dl_err_no_auto")
                     elif "timeout" in raw_err or "connection" in raw_err:
-                        friendly = "Error de red"
+                        friendly = self.translator.t("dl_err_network")
                     else:
-                        friendly = "Error en descarga"
+                        friendly = self.translator.t("dl_err_installing")
                     self.status_lbl.setText(friendly)
                     self.status_lbl.setStyleSheet("font-size: 10px; color: #f87171; background: transparent; border: none;")
                 else:
@@ -611,14 +612,14 @@ class DownloadsView(QWidget):
         title_row.setSpacing(12)
         title_row.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
 
-        self.title_lbl = QLabel("EMULADORES")
+        self.title_lbl = QLabel(self.translator.t("nav_downloads").upper())
         self.title_lbl.setStyleSheet("""
             font-size: 26px; font-weight: 900; color: #ffffff;
             letter-spacing: 2px; background: transparent; border: none;
         """)
         title_row.addWidget(self.title_lbl)
 
-        self.subtitle_lbl = QLabel("GESTIÓN Y DESCARGA AUTOMÁTICA")
+        self.subtitle_lbl = QLabel(self.translator.t("dl_subtitle").upper())
         self.subtitle_lbl.setStyleSheet("""
             font-size: 11px; color: #666688; font-weight: bold;
             letter-spacing: 1px; background: transparent; border: none;
@@ -651,12 +652,12 @@ class DownloadsView(QWidget):
         filter_layout.setSpacing(6)
         filter_layout.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
 
-        for key, label in [
-            (self.FILTER_ALL, "Todos"),
-            (self.FILTER_INSTALLED, "Instalados"),
-            (self.FILTER_NOT_INSTALLED, "No instalados"),
+        for key, label_key in [
+            (self.FILTER_ALL, "dl_filter_all"),
+            (self.FILTER_INSTALLED, "dl_filter_installed"),
+            (self.FILTER_NOT_INSTALLED, "dl_filter_not_installed"),
         ]:
-            btn = QPushButton(label)
+            btn = QPushButton(self.translator.t(label_key))
             btn.setCursor(Qt.CursorShape.PointingHandCursor)
             btn.setFixedHeight(32)
             btn.clicked.connect(lambda _, k=key: self._set_filter(k))
@@ -693,14 +694,14 @@ class DownloadsView(QWidget):
 
         scrap_text = QVBoxLayout()
         scrap_text.setSpacing(2)
-        scrap_title = QLabel("Descargar recursos de juegos")
-        scrap_title.setStyleSheet("font-size: 14px; font-weight: 900; color: #ffffff; background: transparent; border: none;")
+        self.scrap_title_lbl = QLabel(self.translator.t("dl_scrap_title"))
+        self.scrap_title_lbl.setStyleSheet("font-size: 14px; font-weight: 900; color: #ffffff; background: transparent; border: none;")
         
-        scrap_sub = QLabel("Obtén carátulas, fondos e información detallada de tus juegos.")
-        scrap_sub.setStyleSheet("font-size: 11px; color: #666688; background: transparent; border: none;")
+        self.scrap_sub_lbl = QLabel(self.translator.t("dl_scrap_sub"))
+        self.scrap_sub_lbl.setStyleSheet("font-size: 11px; color: #666688; background: transparent; border: none;")
         
-        scrap_text.addWidget(scrap_title)
-        scrap_text.addWidget(scrap_sub)
+        scrap_text.addWidget(self.scrap_title_lbl)
+        scrap_text.addWidget(self.scrap_sub_lbl)
         scrap_layout.addLayout(scrap_text)
 
         # ── Spacer ──────────────────────────────────────────────────
@@ -732,8 +733,8 @@ class DownloadsView(QWidget):
         p_layout.addWidget(self.scrap_bar)
         scrap_layout.addWidget(self.progress_container, 1)
 
-        self.btn_scrap = QPushButton("Descarga")
-        self.btn_scrap.setToolTip("Escanea los juegos disponibles en la carpeta de roms de la consola")
+        self.btn_scrap = QPushButton(self.translator.t("dl_btn_scrap"))
+        self.btn_scrap.setToolTip(self.translator.t("dl_tip_scrap"))
         self.btn_scrap.setFixedSize(120, 40)
         self.btn_scrap.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_scrap.setStyleSheet(f"""
@@ -759,9 +760,11 @@ class DownloadsView(QWidget):
         self.scroll_area.setStyleSheet("background: transparent;")
 
         self.grid_container = QWidget()
+        self.grid_container.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
         self.grid_container.setStyleSheet("background: transparent;")
         self.grid_layout = QGridLayout(self.grid_container)
         self.grid_layout.setSpacing(20)
+        self.grid_layout.setContentsMargins(0, 0, 0, 0)
         self.grid_layout.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
 
         self.scroll_area.setWidget(self.grid_container)
@@ -782,18 +785,29 @@ class DownloadsView(QWidget):
         if self.FILTER_NOT_INSTALLED in self.filter_btns:
             self.filter_btns[self.FILTER_NOT_INSTALLED].setText(self.translator.t("dl_filter_not_installed") or "No instalados")
         
+        # Scraper section
+        self.scrap_title_lbl.setText(self.translator.t("dl_scrap_title"))
+        self.scrap_sub_lbl.setText(self.translator.t("dl_scrap_sub"))
+        self.btn_scrap.setText(self.translator.t("dl_btn_scrap"))
+        self.btn_scrap.setToolTip(self.translator.t("dl_tip_scrap"))
+        
         self.refresh_emulators() # Traduce las tarjetas
         self._update_stats_badge()
 
     # ── Filter ────────────────────────────────────────────────────────────────
 
     def _set_filter(self, key):
+        """Cambia el filtro activo y reconstruye el grid."""
         self._active_filter = key
         self._apply_filter_styles()
-        self._apply_filter_visibility()
-        # Forzar un recalculado del layout completo
-        self._current_cols = -1 
-        QTimer.singleShot(10, lambda: self.resizeEvent(None))
+        
+        # Resetear scroll
+        if hasattr(self, 'scroll_area'):
+            self.scroll_area.verticalScrollBar().setValue(0)
+
+        # Forzar recálculo total
+        self._current_cols = -1
+        self.resizeEvent(None)
 
     def _apply_filter_styles(self):
         active = f"""
@@ -817,15 +831,8 @@ class DownloadsView(QWidget):
             btn.setStyleSheet(active if key == self._active_filter else inactive)
 
     def _apply_filter_visibility(self):
-        for card in self._all_cards:
-            if not isinstance(card, EmulatorCard):
-                continue
-            if self._active_filter == self.FILTER_ALL:
-                card.setVisible(True)
-            elif self._active_filter == self.FILTER_INSTALLED:
-                card.setVisible(self.emu_manager.esta_instalado(card.emu["github"]))
-            else:
-                card.setVisible(not self.emu_manager.esta_instalado(card.emu["github"]))
+        # Esta función ahora está integrada en _set_filter para mayor consistencia
+        pass
 
     def _update_stats_badge(self):
         total = len(AVAILABLE_EMULATORS)
@@ -833,7 +840,8 @@ class DownloadsView(QWidget):
             1 for e in AVAILABLE_EMULATORS
             if self.emu_manager.esta_instalado(e["github"])
         )
-        self.stats_badge.setText(f"  {installed} / {total} instalados  ")
+        badge_text = self.translator.t("dl_installed_count", f"{installed} / {total}")
+        self.stats_badge.setText(f"  {badge_text}  ")
         self._apply_filter_visibility()
         QTimer.singleShot(10, lambda: self.resizeEvent(None))
 
@@ -843,7 +851,7 @@ class DownloadsView(QWidget):
     async def _on_scrap_clicked(self):
         """Muestra el diálogo de opciones y lanza el proceso de descarga."""
         dlg = QDialog(self)
-        dlg.setWindowTitle("Configurar Descarga")
+        dlg.setWindowTitle(self.translator.t("dl_dlg_scrap_title"))
         dlg.setMinimumWidth(380)
         dlg.setModal(True)
         dlg.setStyleSheet("""
@@ -859,19 +867,19 @@ class DownloadsView(QWidget):
         dlg_layout.setContentsMargins(24, 20, 24, 20)
         dlg_layout.setSpacing(14)
 
-        title_lbl = QLabel("¿Qué deseas descargar?")
+        title_lbl = QLabel(self.translator.t("dl_scrap_dlg_q"))
         title_lbl.setStyleSheet("font-size: 15px; font-weight: 900; color: #ffffff; background:transparent;")
         dlg_layout.addWidget(title_lbl)
 
-        cb_artwork = QCheckBox("🖼  Carátulas (cover art)")
+        cb_artwork = QCheckBox(self.translator.t("dl_scrap_opt_artwork"))
         cb_artwork.setChecked(True)
         dlg_layout.addWidget(cb_artwork)
 
-        cb_backgrounds = QCheckBox("🌄  Fondos de consola")
+        cb_backgrounds = QCheckBox(self.translator.t("dl_scrap_opt_backgrounds"))
         cb_backgrounds.setChecked(True)
         dlg_layout.addWidget(cb_backgrounds)
 
-        cb_metadata = QCheckBox("📋  Información del juego (descripción, año, desarrollador)")
+        cb_metadata = QCheckBox(self.translator.t("dl_scrap_opt_metadata"))
         cb_metadata.setChecked(True)
         dlg_layout.addWidget(cb_metadata)
 
@@ -880,8 +888,7 @@ class DownloadsView(QWidget):
         sep.setStyleSheet("background: #1e2130; border: none; max-height: 1px;")
         dlg_layout.addWidget(sep)
 
-        note = QLabel("⚠ La descarga de metadatos requiere conexión a internet. "
-                       "Las carátulas se guardan junto a cada ROM.")
+        note = QLabel(self.translator.t("dl_scrap_note"))
 
         note.setStyleSheet("font-size: 11px; color: #555577; background: transparent;")
         note.setWordWrap(True)
@@ -940,12 +947,12 @@ class DownloadsView(QWidget):
         # Primero asegurar que tenemos la biblioteca escaneada
         roms_path = self.emu_manager.roms_path
         if not roms_path or not os.path.exists(roms_path):
-             QMessageBox.warning(self, "Error", "Configura la ruta de ROMs en Ajustes antes de escanear.")
+             QMessageBox.warning(self, "Error", self.translator.t("dl_err_no_roms"))
              self.btn_scrap.setEnabled(True)
              self.progress_container.setVisible(False)
              return
 
-        self.scrap_status_lbl.setText("Buscando juegos...")
+        self.scrap_status_lbl.setText(self.translator.t("dl_scrap_scanning"))
         juegos_lista = await scanner.escanear_roms(roms_path)
         
         if not juegos_lista:
@@ -1073,8 +1080,10 @@ class DownloadsView(QWidget):
         self._apply_filter_visibility()
         self._update_stats_badge()
         self.setUpdatesEnabled(True)
-        # Forzar reordenamiento inmediato sin esperar al timer si es posible
-        QTimer.singleShot(0, lambda: self.resizeEvent(None))
+        
+        # Forzar reordenamiento inmediato
+        self._current_cols = -1 
+        self.resizeEvent(None)
 
     # ── Responsive grid ───────────────────────────────────────────────────────
 
@@ -1086,42 +1095,68 @@ class DownloadsView(QWidget):
     def resizeEvent(self, event):
         if event:
             super().resizeEvent(event)
-        if not hasattr(self, 'grid_layout') or self.grid_layout.count() == 0:
+            
+        if not hasattr(self, 'grid_layout') or not self._all_cards:
             return
 
+        # Calcular ancho disponible
         width = self.scroll_area.viewport().width()
+        if width <= 0: # Si la app está minimizada o en otra pestaña
+            width = self.width() - 40
+            
         card_width = 240
         spacing = self.grid_layout.spacing()
+        
+        # Calcular columnas posibles
         cols = max(1, width // (card_width + spacing))
 
+        # Centrado horizontal
         used_width = cols * card_width + (cols - 1) * spacing
         margin = max(0, (width - used_width) // 2)
         self.grid_layout.setContentsMargins(margin, 10, margin, 20)
 
+        # Reordenar siempre si el filtro cambió o las columnas variaron
         if getattr(self, '_current_cols', 0) != cols:
             self._current_cols = cols
             self._rearrange_grid(cols)
+        elif self.grid_layout.count() == 0:
+            # Caso especial: acabamos de filtrar y el layout se vació
+            self._rearrange_grid(cols)
 
     def _rearrange_grid(self, cols):
-        """Reposiciona solo las tarjetas visibles en el grid según las columnas."""
+        """Acomoda las tarjetas visibles en el grid."""
         if not hasattr(self, 'grid_layout'):
             return
 
-        # Usamos la lista maestra para asegurar que no perdemos referencias
-        widgets = self._all_cards
+        # Vaciar layout
+        while self.grid_layout.count():
+            self.grid_layout.takeAt(0)
 
-        # Limpiar el layout actual
-        for w in widgets:
-            self.grid_layout.removeWidget(w)
+        # Filtrar visibles según estado actual del emu_manager y el filtro activo
+        visible_cards = []
+        for card in self._all_cards:
+            is_installed = self.emu_manager.esta_instalado(card.emu["github"])
+            
+            show = True
+            if self._active_filter == self.FILTER_INSTALLED:
+                show = is_installed
+            elif self._active_filter == self.FILTER_NOT_INSTALLED:
+                show = not is_installed
+                
+            card.setVisible(show)
+            if show:
+                visible_cards.append(card)
 
-        row, col = 0, 0
-        for w in widgets:
-            if not w.isHidden():
-                self.grid_layout.addWidget(w, row, col)
-                col += 1
-                if col >= cols:
-                    col = 0
-                    row += 1
-        
-        # Opcional: añadir un stretch al final si fuera necesario, 
-        # pero con AlignTop|AlignLeft en el grid suele bastar.
+        if not visible_cards:
+            self.grid_container.setMinimumHeight(200)
+            return
+
+        # Re-añadir al grid
+        for i, card in enumerate(visible_cards):
+            self.grid_layout.addWidget(card, i // cols, i % cols)
+
+        # Actualizar altura del contenedor para el scroll
+        self.grid_layout.activate()
+        h = self.grid_layout.sizeHint().height()
+        self.grid_container.setMinimumHeight(h + 50)
+        self.grid_container.updateGeometry()

@@ -9,7 +9,61 @@ from PyQt6.QtCore import Qt, QTimer
 from qasync import asyncSlot
 import core.artwork as artwork
 import core.scanner as scanner
-from core.constants import AVAILABLE_EMULATORS
+from core.config import APP_VERSION
+
+class CollapsibleSection(QWidget):
+    """Contenedor simple para secciones desplegables con un arrow animado."""
+    def __init__(self, title_key, translator, parent=None):
+        super().__init__(parent)
+        self.title_key = title_key
+        self.translator = translator
+        
+        self.main_layout = QVBoxLayout(self)
+        self.main_layout.setContentsMargins(0, 0, 0, 0)
+        self.main_layout.setSpacing(0)
+        
+        # Header (Botón)
+        self.toggle_btn = QPushButton()
+        self.toggle_btn.setCheckable(True)
+        self.toggle_btn.setChecked(False)
+        self.toggle_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.toggle_btn.setStyleSheet("""
+            QPushButton {
+                background: transparent;
+                color: #888;
+                font-size: 11px;
+                font-weight: 900;
+                text-align: left;
+                border: none;
+                padding: 15px 0 10px 0;
+                letter-spacing: 1px;
+            }
+            QPushButton:hover { color: #4da6ff; }
+        """)
+        self.toggle_btn.toggled.connect(self.set_content_visible)
+        
+        self.content_area = QWidget()
+        self.content_area.setVisible(False)
+        self.content_layout = QVBoxLayout(self.content_area)
+        self.content_layout.setContentsMargins(20, 0, 0, 15)
+        self.content_layout.setSpacing(10)
+        
+        self.main_layout.addWidget(self.toggle_btn)
+        self.main_layout.addWidget(self.content_area)
+        
+        self.retranslate_ui()
+
+    def set_content_visible(self, visible):
+        self.content_area.setVisible(visible)
+        self.retranslate_ui()
+
+    def add_widget(self, widget):
+        self.content_layout.addWidget(widget)
+
+    def retranslate_ui(self):
+        arrow = "▼" if self.toggle_btn.isChecked() else "▶"
+        title = self.translator.t(self.title_key).upper()
+        self.toggle_btn.setText(f"{arrow}   {title}")
 
 class SettingsView(QWidget):
     def __init__(self, emu_manager, translator, on_update_dashboard, on_language_change, parent=None):
@@ -143,9 +197,9 @@ class SettingsView(QWidget):
 
         # --- SECCIÓN BASES DE DATOS (Scrapers) ---
         scrapers_group = QVBoxLayout()
-        self.scrapers_title = QLabel("CONFIGURACIÓN DE BASES DE DATOS")
+        self.scrapers_title = QLabel(self.translator.t("set_scrapers_title"))
         self.scrapers_title.setProperty("class", "sectionTitle")
-        self.scrapers_sub = QLabel("Activa y configura las fuentes de información para tus juegos.")
+        self.scrapers_sub = QLabel(self.translator.t("set_scrapers_sub"))
         self.scrapers_sub.setProperty("class", "sectionSubtitle")
         
         scrapers_group.addWidget(self.scrapers_title)
@@ -155,7 +209,8 @@ class SettingsView(QWidget):
         # Lista de Proveedores (Tarjetas)
         from core.metadata import get_providers_config
         self.providers_data = get_providers_config()
-        self.provider_widgets = []
+        self.provider_status_labels = [] # List of tuples (label, p_data)
+        self.provider_config_btns = [] # List of buttons
 
         # Categorizar proveedores
         art_providers = [p for p in self.providers_data if p.get("type") == "artwork"]
@@ -184,8 +239,10 @@ class SettingsView(QWidget):
             v_info = QVBoxLayout()
             p_name = QLabel(p_data["name"])
             p_name.setStyleSheet("font-weight: bold; font-size: 14px; color: #ffffff;")
-            p_status = QLabel("Conectado" if p_data.get("enabled") else "Desactivado")
+            p_status_text = self.translator.t("set_status_connected") if p_data.get("enabled") else self.translator.t("set_status_disconnected")
+            p_status = QLabel(p_status_text)
             p_status.setStyleSheet("font-size: 11px; color: #4da6ff;" if p_data.get("enabled") else "font-size: 11px; color: #777;")
+            self.provider_status_labels.append((p_status, p_data))
             v_info.addWidget(p_name)
             v_info.addWidget(p_status)
             p_layout.addLayout(v_info)
@@ -194,7 +251,7 @@ class SettingsView(QWidget):
             # Botón Configuración (Solo si tiene campos configurables)
             has_config = p_data["id"] in ["tgdb", "rawg", "steamgriddb", "screenscraper"]
             if has_config:
-                btn_cfg = QPushButton("Configurar")
+                btn_cfg = QPushButton(self.translator.t("set_btn_configure"))
                 btn_cfg.setFixedWidth(100)
                 btn_cfg.setCursor(Qt.CursorShape.PointingHandCursor)
                 btn_cfg.setStyleSheet("""
@@ -205,6 +262,7 @@ class SettingsView(QWidget):
                     QPushButton:hover { background: rgba(255,255,255,0.15); }
                 """)
                 btn_cfg.clicked.connect(lambda checked, p=p_data: self.configure_provider(p))
+                self.provider_config_btns.append(btn_cfg)
                 p_layout.addWidget(btn_cfg)
 
             # Switch (Checkbox estilizado)
@@ -219,20 +277,18 @@ class SettingsView(QWidget):
             return card
 
         # --- Subsección: ARTE ---
-        art_title = QLabel("🖼 FUENTES DE ARTE")
-        art_title.setStyleSheet("font-size: 12px; color: #888; font-weight: bold; margin-top: 10px;")
-        scrapers_group.addWidget(art_title)
+        self.art_section = CollapsibleSection("set_art_sources", self.translator)
         for p in art_providers:
-            scrapers_group.addWidget(create_provider_card(p))
+            self.art_section.add_widget(create_provider_card(p))
+        scrapers_group.addWidget(self.art_section)
 
-        scrapers_group.addSpacing(10)
+        scrapers_group.addSpacing(5)
 
         # --- Subsección: INFORMACIÓN ---
-        meta_title = QLabel("📋 FUENTES DE INFORMACIÓN (METADATA)")
-        meta_title.setStyleSheet("font-size: 12px; color: #888; font-weight: bold; margin-top: 10px;")
-        scrapers_group.addWidget(meta_title)
+        self.meta_section = CollapsibleSection("set_meta_sources", self.translator)
         for p in meta_providers:
-            scrapers_group.addWidget(create_provider_card(p))
+            self.meta_section.add_widget(create_provider_card(p))
+        scrapers_group.addWidget(self.meta_section)
         
         layout.addLayout(scrapers_group)
 
@@ -282,6 +338,26 @@ class SettingsView(QWidget):
         self.auto_save_lbl.setText(self.translator.t("set_auto_save"))
         self.btn_about.setText(self.translator.t("set_btn_about"))
         
+        # Scrapers section
+        self.scrapers_title.setText(self.translator.t("set_scrapers_title"))
+        self.scrapers_sub.setText(self.translator.t("set_scrapers_sub"))
+        
+        self.art_section.retranslate_ui()
+        self.meta_section.retranslate_ui()
+
+        # Update provider cards
+        for lbl, p_data in self.provider_status_labels:
+            status_text = self.translator.t("set_status_connected") if p_data.get("enabled") else self.translator.t("set_status_disconnected")
+            lbl.setText(status_text)
+        
+        for btn in self.provider_config_btns:
+            btn.setText(self.translator.t("set_btn_configure"))
+        
+        # We need to refresh the provider cards too if they were dynamic, but since they are 
+        # rebuild in init_ui, for now we just reload the view or update what we can.
+        # Actually, let's just trigger a full sync if needed or keep it simple.
+        self.on_update_dashboard() # This might help refresh some states
+        
     def browse_install_path(self):
         directory = QFileDialog.getExistingDirectory(self, self.translator.t("set_dlg_emus"), self.install_path_input.text())
         if directory:
@@ -318,41 +394,41 @@ class SettingsView(QWidget):
     def toggle_provider(self, provider_data, state, status_label):
         enabled = (state == 2) # 2 es Checked en Qt
         provider_data["enabled"] = enabled
-        status_label.setText("Conectado" if enabled else "Desactivado")
+        status_label.setText(self.translator.t("set_status_connected") if enabled else self.translator.t("set_status_disconnected"))
         status_label.setStyleSheet("font-size: 11px; color: #4da6ff;" if enabled else "font-size: 11px; color: #777;")
         self.save_provider_config()
 
     def configure_provider(self, p):
         """Abre un diálogo para configurar el proveedor específico."""
         dialog = QDialog(self)
-        dialog.setWindowTitle(f"Configurar {p['name']}")
+        dialog.setWindowTitle(self.translator.t("set_dlg_config_title", p['name']))
         dialog.setFixedWidth(350)
         v = QVBoxLayout(dialog)
         v.setContentsMargins(20, 20, 20, 20)
         v.setSpacing(10)
 
-        v.addWidget(QLabel(f"<b>Configuración para {p['name']}</b>"))
+        v.addWidget(QLabel(self.translator.t("set_dlg_config_for", p['name'])))
         
         inputs = {}
         # Renderizar campos según el proveedor
         if p["id"] in ["tgdb", "rawg", "steamgriddb"]:
-            v.addWidget(QLabel("API Key:"))
+            v.addWidget(QLabel(self.translator.t("set_lbl_api_key")))
             edt = QLineEdit(str(p.get("api_key", "")))
             edt.setProperty("class", "formInput")
             v.addWidget(edt)
             inputs["api_key"] = edt
         elif p["id"] == "screenscraper":
-            v.addWidget(QLabel("Usuario:"))
+            v.addWidget(QLabel(self.translator.t("set_lbl_user")))
             u_edt = QLineEdit(p.get("user", ""))
             v.addWidget(u_edt)
-            v.addWidget(QLabel("Contraseña:"))
+            v.addWidget(QLabel(self.translator.t("set_lbl_pass")))
             p_edt = QLineEdit(p.get("password", ""))
             p_edt.setEchoMode(QLineEdit.EchoMode.Password)
             v.addWidget(p_edt)
             inputs["user"] = u_edt
             inputs["password"] = p_edt
 
-        btn_save = QPushButton("Guardar")
+        btn_save = QPushButton(self.translator.t("set_btn_save"))
         btn_save.clicked.connect(dialog.accept)
         v.addWidget(btn_save)
 
@@ -360,7 +436,7 @@ class SettingsView(QWidget):
             for k, edt in inputs.items():
                 p[k] = edt.text()
             self.save_provider_config()
-            QMessageBox.information(self, "Guardado", f"Configuración de {p['name']} actualizada.")
+            QMessageBox.information(self, self.translator.t("set_msg_saved_title"), self.translator.t("set_msg_saved_text", p['name']))
 
     def save_provider_config(self):
         """Guarda la configuración de los proveedores en el disco."""
@@ -409,7 +485,7 @@ class SettingsView(QWidget):
         name_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(name_label)
 
-        ver_label = QLabel(self.translator.t("set_about_ver"))
+        ver_label = QLabel(self.translator.t("set_about_ver", APP_VERSION))
         ver_label.setObjectName("aboutVersionText")
         ver_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(ver_label)

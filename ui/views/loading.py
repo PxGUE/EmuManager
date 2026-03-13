@@ -8,9 +8,10 @@ class LoadingOverlay(QWidget):
     Capa semitransparente bloqueadora que se superpone sobre la aplicación 
     o un widget específico para indicar que hay lógica pesada corriendo.
     """
-    def __init__(self, parent=None, text="Cargando..."):
+    def __init__(self, parent=None, text=None, translator=None):
         super().__init__(parent)
-        self.text = text
+        self.translator = translator
+        self.text = text or (self.translator.t("loading_text") if self.translator else "Cargando...")
         self.init_ui()
         
     def init_ui(self):

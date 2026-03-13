@@ -217,7 +217,7 @@ class ConsoleCarousel(QWidget):
         ec_icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
         empty_card_layout.addWidget(ec_icon)
 
-        ec_title = QLabel("Sin emuladores instalados")
+        ec_title = QLabel(self.translator.t("lib_empty_title"))
         ec_title.setStyleSheet("""
             font-size: 20px; font-weight: 900;
             color: #ffffff; background: transparent; border: none;
@@ -225,7 +225,7 @@ class ConsoleCarousel(QWidget):
         ec_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         empty_card_layout.addWidget(ec_title)
 
-        ec_sub = QLabel("Ve a la sección Descargas para instalar\nun emulador y empezar a jugar.")
+        ec_sub = QLabel(self.translator.t("lib_empty_sub"))
         ec_sub.setStyleSheet("""
             font-size: 13px; color: #666688;
             background: transparent; border: none;
@@ -358,8 +358,15 @@ class ConsoleCarousel(QWidget):
         self.on_click_callback(emu)
         
     def update_ui(self, target_pane=None):
-        """Si target_pane es None, actualiza el actual. Si no, actualiza el especificado."""
-        pane = target_pane if target_pane else self.current_pane
+        """Si target_pane es None, actualiza ambos para consistencia."""
+        if target_pane:
+            self._update_pane(target_pane)
+        else:
+            self._update_pane(self.panel_a)
+            self._update_pane(self.panel_b)
+
+    def _update_pane(self, pane):
+        """Lógica real de actualización de un pane."""
         
         if not self.consoles_data:
             pane.lbl_title.setText("")
@@ -411,6 +418,7 @@ class ConsoleCarousel(QWidget):
         time_str = f"⏱ {self.translator.t('lib_played_hours', h, m)}" if h > 0 or m > 0 else ""
         count_str = self.translator.t("lib_games_count", count).upper()
         pane.lbl_info.setText(f"{count_str}   |   {time_str}")
+        pane.btn_play.setText(self.translator.t("lib_btn_view_games").upper())
         
         bg_path = artwork.obtener_ruta_fondo_consola(emu)
         self.current_bg_pixmap = QPixmap(bg_path) if os.path.exists(bg_path) else None
@@ -931,7 +939,7 @@ class GameHeroPanel(QFrame):
         btn_row = QHBoxLayout()
         btn_row.setSpacing(10)
 
-        self.btn_play = QPushButton("\u25b6  JUGAR")
+        self.btn_play = QPushButton("\u25b6  " + self.translator.t("lib_btn_play"))
         self.btn_play.setFixedHeight(44)
         self.btn_play.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_play.setStyleSheet("""
@@ -974,14 +982,15 @@ class GameHeroPanel(QFrame):
         empty_icon.setStyleSheet("font-size: 52px; background: transparent; border: none;")
         empty_icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
         empty_layout.addWidget(empty_icon)
-        empty_hint = QLabel("Pasa el cursor sobre un juego\npara ver sus detalles")
-        empty_hint.setStyleSheet("""
+        empty_hint_text = self.translator.t("lib_hero_hint")
+        self.empty_hint = QLabel(empty_hint_text)
+        self.empty_hint.setStyleSheet("""
             font-size: 13px; color: #2d3250;
             background: transparent; border: none;
             font-weight: 600; letter-spacing: 0.3px;
         """)
-        empty_hint.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        empty_layout.addWidget(empty_hint)
+        self.empty_hint.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        empty_layout.addWidget(self.empty_hint)
         main_layout.addWidget(self.empty_state)
 
         self._show_empty()
@@ -1093,6 +1102,7 @@ class GameHeroPanel(QFrame):
                 }
                 QPushButton:hover { background: rgba(255,215,0,0.25); }
             """)
+
         else:
             self.btn_fav.setStyleSheet("""
                 QPushButton {
@@ -1102,6 +1112,10 @@ class GameHeroPanel(QFrame):
                 }
                 QPushButton:hover { background: #1e2436; color: #FFD700; border-color: #FFD700; }
             """)
+
+    def retranslate_ui(self):
+        self.btn_play.setText("\u25b6  " + self.translator.t("lib_btn_play"))
+        self.empty_hint.setText(self.translator.t("lib_hero_hint"))
 
     def set_playtime(self, hours, minutes):
         if hours > 0 or minutes > 0:
@@ -1256,7 +1270,7 @@ class LibraryView(QWidget):
         search_layout.addWidget(self.search_input)
 
         # Favorites filter pill
-        self.btn_fav_filter = QPushButton("★  Favoritos")
+        self.btn_fav_filter = QPushButton("★  " + self.translator.t("lib_fav_filter"))
         self.btn_fav_filter.setCheckable(True)
         self.btn_fav_filter.setFixedHeight(40)
         self.btn_fav_filter.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -1352,11 +1366,11 @@ class LibraryView(QWidget):
         bottom_layout.addLayout(status_layout)
         bottom_layout.addStretch()
 
-        btn_refresh = QPushButton(self.translator.t("lib_refresh").upper())
-        btn_refresh.clicked.connect(self.refresh_games)
-        btn_refresh.setCursor(Qt.CursorShape.PointingHandCursor)
-        btn_refresh.setFixedHeight(40)
-        btn_refresh.setStyleSheet("""
+        self.btn_refresh = QPushButton(self.translator.t("lib_refresh").upper())
+        self.btn_refresh.clicked.connect(self.refresh_games)
+        self.btn_refresh.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_refresh.setFixedHeight(40)
+        self.btn_refresh.setStyleSheet("""
             QPushButton {
                 padding: 0 25px;
                 background: transparent; color: #4da6ff;
@@ -1366,11 +1380,11 @@ class LibraryView(QWidget):
             QPushButton:hover { background: #4da6ff; color: #ffffff; }
         """)
 
-        btn_back = QPushButton(self.translator.t("lib_btn_back").upper())
-        btn_back.clicked.connect(self.back_to_consoles)
-        btn_back.setCursor(Qt.CursorShape.PointingHandCursor)
-        btn_back.setFixedHeight(40)
-        btn_back.setStyleSheet("""
+        self.btn_back = QPushButton(self.translator.t("lib_btn_back").upper())
+        self.btn_back.clicked.connect(self.back_to_consoles)
+        self.btn_back.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_back.setFixedHeight(40)
+        self.btn_back.setStyleSheet("""
             QPushButton {
                 padding: 0 25px;
                 background: transparent; color: #777788;
@@ -1380,9 +1394,9 @@ class LibraryView(QWidget):
             QPushButton:hover { background: #1f2130; color: #ccccdd; border-color: #4a4d5a; }
         """)
 
-        bottom_layout.addWidget(btn_refresh)
+        bottom_layout.addWidget(self.btn_refresh)
         bottom_layout.addSpacing(10)
-        bottom_layout.addWidget(btn_back)
+        bottom_layout.addWidget(self.btn_back)
 
         page_games_layout.addLayout(bottom_layout)
         
@@ -1553,8 +1567,13 @@ class LibraryView(QWidget):
     def retranslate_ui(self):
         """Actualiza todos los textos de la vista biblioteca al cambiar el idioma."""
         self.search_input.setPlaceholderText(self.translator.t('lib_search'))
+        self.btn_fav_filter.setText("★  " + self.translator.t("lib_fav_filter"))
+        self.btn_refresh.setText(self.translator.t("lib_refresh").upper())
+        self.btn_back.setText(self.translator.t("lib_btn_back").upper())
         # Actualizar carrusel
         self.carousel.update_ui()
+        # Actualizar Hero Panel
+        self.hero_panel.retranslate_ui()
         # Reforzar carga si estamos en la vista de consolas o juegos
         if self.stack.currentIndex() == 0:
             self.mostrar_consolas()

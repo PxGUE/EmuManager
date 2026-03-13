@@ -1,74 +1,82 @@
-"""
-EmuManager - Punto de entrada principal
-"""
-
-from core.config import APP_VERSION, APP_NAME
-
 import sys
 import os
 import asyncio
-from PyQt6.QtWidgets import QApplication
-from PyQt6.QtGui import QIcon
-from PyQt6.QtCore import qInstallMessageHandler
+from PySide6.QtWidgets import QApplication
+from PySide6.QtGui import QIcon
+from PySide6.QtQml import QQmlApplicationEngine
+from PySide6.QtCore import qInstallMessageHandler, Qt
+from PySide6.QtQuickControls2 import QQuickStyle
 from qasync import QEventLoop
-from ui.app import EmuApp
+
+from core.emulators.manager import EmuladorManager
+from core.i18n import Translator
+from ui.bridge import AppBridge
 
 def get_resource_path(relative_path):
-    """
-    Obtiene la ruta absoluta a un recurso. 
-    Compatible con ejecución directa y con binarios congelados (Nuitka).
-    """
+    """Obtiene la ruta absoluta a un recurso, compatible con Nuitka."""
     base_path = os.path.dirname(os.path.abspath(__file__))
     return os.path.join(base_path, relative_path)
 
-# --- CONFIGURACIÓN DE LOGS Y FILTROS ---
 def qt_message_handler(mode, context, message):
-    """Filtra y silencia las advertencias molestas de perfiles de color PNG (iCCP)"""
     if "libpng warning: iCCP" in message or "CRC error" in message:
         return
-    # Puedes habilitar estos prints si necesitas debuggear otros errores de Qt
-    # print(f"Qt Msg: {message}")
+    print(f"[QT] {message}")
 
-# Instalar el manejador de mensajes de Qt para limpiar la consola
 qInstallMessageHandler(qt_message_handler)
 
-def load_stylesheet(app):
-    """Carga la hoja de estilos global QSS."""
-    qss_path = get_resource_path(os.path.join("ui", "styles", "theme_dark.qss"))
-    if os.path.exists(qss_path):
-        with open(qss_path, "r", encoding="utf-8") as f:
-            app.setStyleSheet(f.read())
-    else:
-        print(f"[WARN] No se encontró el tema QSS en {qss_path}")
+async def monitor_playtime(emu_manager):
+    while True:
+        if emu_manager.is_emulator_running():
+            try:
+                launcher = emu_manager.launcher
+                game_obj = launcher.current_game
+                start_time = launcher.current_game_start
+                emu_manager.update_playtime(game_obj, start_time)
+            except: pass
+        await asyncio.sleep(5)
 
 def main():
-    """Inicialización del bucle de eventos asíncrono y la ventana principal"""
-    # 1. Crear la instancia de aplicación de Qt
-    app = QApplication(sys.argv)
-    app.setApplicationName(APP_NAME)
+    # 0. Configurar estilo
+    QQuickStyle.setStyle("Fusion")
     
-    # Aplicar el tema (QSS) en toda la App
-    load_stylesheet(app)
+    # 1. Configurar aplicación
+    app = QApplication(sys.argv)
     
     # Configurar el icono de la aplicación
     icon_path = get_resource_path(os.path.join("media", "icon.svg"))
     if os.path.exists(icon_path):
         app.setWindowIcon(QIcon(icon_path))
     
-    # 2. Integrar Asyncio con el Event Loop de Qt usando qasync
-    # qasync permite que las corrutinas de asyncio corran sobre el loop de Qt
-    loop = QEventLoop(app)
-    asyncio.set_event_loop(loop)
+    # 2. Inicializar lógica central
+    emu_manager = EmuladorManager()
+    translator = Translator(emu_manager.language)
     
-    # 3. Lanzar la ventana principal
-    window = EmuApp()
-    window.setWindowTitle(f"{APP_NAME} v{APP_VERSION}")
-    window.resize(1200, 800) # Tamaño inicial recomendado
-    window.show()
+    # 3. Crear el puente Python-QML
+    bridge = AppBridge(emu_manager, translator)
     
-    # 4. Iniciar el loop infinito
-    with loop:
-        loop.run_forever()
+    # 4. Configurar motor QML
+    engine = QQmlApplicationEngine()
+    engine.rootContext().setContextProperty("bridge", bridge)
+    
+    # Cargar archivo principal
+    qml_file = get_resource_path(os.path.join("ui", "qml", "Main.qml"))
+    engine.load(qml_file)
+    
+    if not engine.rootObjects():
+        sys.exit(-1)
+        
+    # 5. Integrar Asyncio con el loop de Qt
+    event_loop = QEventLoop(app)
+    asyncio.set_event_loop(event_loop)
+    
+    # Tareas en segundo plano
+    event_loop.create_task(monitor_playtime(emu_manager))
+    
+    with event_loop:
+        event_loop.run_forever()
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        pass

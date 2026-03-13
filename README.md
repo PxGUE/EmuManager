@@ -5,19 +5,19 @@
 ![Python](https://img.shields.io/badge/python-3.9%2B-yellow.svg)
 
 
-EmuManager es un gestor integral de juegos retro con una interfaz moderna y sumamente intuitiva, construida con **PyQt6** y **Asyncio**. Te permite descargar, organizar y ejecutar tus emuladores y ROMs clásicas desde un solo lugar, de una forma visualmente atractiva y fácil de usar en entornos de escritorio.
+EmuManager es un gestor integral de juegos retro con una interfaz moderna y sumamente intuitiva, construida con **PySide6** (Qt) y **QML** para una experiencia visual declarativa y fluida, integrada con **Asyncio**. Te permite descargar, organizar y ejecutar tus emuladores y ROMs clásicas desde un solo lugar, de una forma visualmente atractiva y fácil de usar en entornos de escritorio.
 
 ## Características Principales
 
-- **Interfaz Nativa Premium**: Construida con PyQt6 para una experiencia fluida y robusta en escritorio.
+- **Interfaz Declarativa Premium**: Construida con QML para una experiencia visual moderna, fluida y con animaciones de alta calidad.
 - **Gestión Centralizada**: Configura y administra tus emuladores favoritos (mGBA, Dolphin, PCSX2, DuckStation, SNES9x, PPSSPP, entre otros).
-- **Descarga Directa**: Descarga e instala emuladores directamente desde la aplicación.
+- **Descarga Directa**: Descarga e instala emuladores directamente desde la aplicación con seguimiento de progreso real.
 - **Escáner Inteligente**: Encuentra automáticamente tus ROMs y las organiza por consola.
-- **Artwork Scraper**: Sistema de búsqueda por similitud (Fuzzy Match) contra el índice de Libretro para encontrar carátulas automáticamente.
-- **Carrusel de Consolas**: Navegación animada entre consolas con imagen de fondo, degradado de color y estadísticas de juego.
-- **Búsqueda en Tiempo Real**: Barra de búsqueda con limpieza rápida (botón ✕) para filtrar juegos al instante.
+- **Artwork Scraper**: Sistema de búsqueda multicanal (Scraper Hub) para encontrar carátulas automáticamente.
+- **Carrusel de Consolas**: Navegación animada entre consolas estadisticas de juego.
+- **Búsqueda en Tiempo Real**: Barra de búsqueda integrada para filtrar juegos al instante.
 - **Seguimiento de Tiempo**: Registra automáticamente cuánto tiempo has dedicado a cada juego.
-- **Multi-idioma**: Soporte para Español e Inglés.
+- **Multi-idioma**: Soporte para Español e Inglés con cambio dinámico.
 
 ## Requisitos y Configuración
 
@@ -43,7 +43,7 @@ EmuManager es un gestor integral de juegos retro con una interfaz moderna y suma
 
 | Paquete | Versión mínima | Uso |
 |---|---|---|
-| PyQt6 | 6.7.0 | Interfaz gráfica |
+| PySide6 | 6.8.0 | Interfaz gráfica (QML) |
 | qasync | 0.28.0 | Integración asyncio + Qt |
 | aiohttp | 3.11.0 | Descargas HTTP asíncronas |
 | beautifulsoup4 | 4.13.0 | Scraping de artwork |

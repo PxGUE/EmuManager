@@ -1,5 +1,5 @@
 # EmuManager v0.1.5 - alpha — Dependencias de Python
-PyQt6>=6.10.0
+PySide6>=6.8.0
 qasync>=0.28.0
 aiohttp>=3.11.0
 requests>=2.32.0

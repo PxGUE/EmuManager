@@ -7,6 +7,7 @@ from typing import Optional, Dict, Any, List
 from .scrapers.metadata.wikipedia import WikipediaScraper
 from .scrapers.metadata.rawg import RAWGScraper
 from .scrapers.metadata.tgdb import TGDBScraper
+from .security import get_secret
 
 # --- Motor de Metadatos (Hub) ---
 
@@ -89,28 +90,34 @@ def get_providers_config() -> List[Dict]:
     path = os.path.join("data", "scrapers_config.json")
     default = [
         {"id": "libretro", "name": "Libretro CDN", "enabled": True, "type": "artwork", "priority": 0},
-        {"id": "steamgriddb", "name": "SteamGridDB", "enabled": True, "type": "artwork", "priority": 1, "api_key": "9dcc920d6a209a34802ce9463af6834f"},
+        {"id": "steamgriddb", "name": "SteamGridDB", "enabled": True, "type": "artwork", "priority": 1, "api_key": ""},
         {"id": "wikipedia", "name": "Wikipedia", "enabled": True, "type": "metadata", "priority": 0},
-        {"id": "tgdb", "name": "TheGamesDB", "enabled": True, "type": "metadata", "priority": 1, "api_key": "legacy"},
-        {"id": "rawg", "name": "RAWG.io", "enabled": True, "type": "metadata", "priority": 2, "api_key": "da1c12149b5c46bba8479e0a6d6545b7"},
-        {"id": "screenscraper", "name": "ScreenScraper", "enabled": True, "type": "metadata", "priority": 3, "user": "paidex", "password": "Shiro347"}
+        {"id": "tgdb", "name": "TheGamesDB", "enabled": True, "type": "metadata", "priority": 1, "api_key": ""},
+        {"id": "rawg", "name": "RAWG.io", "enabled": True, "type": "metadata", "priority": 2, "api_key": ""},
+        {"id": "screenscraper", "name": "ScreenScraper", "enabled": True, "type": "metadata", "priority": 3, "user": "", "password": ""}
     ]
     
     if os.path.exists(path):
         try:
             with open(path, "r", encoding="utf-8") as f:
                 saved = json.load(f)
-                # Migración: Si 'saved' es una lista, actualizamos los defaults con los valores guardados
                 if isinstance(saved, list):
                     for d in default:
                         s = next((x for x in saved if x.get("id") == d["id"]), None)
                         if s:
-                            # Preservar valores del usuario pero mantener la estructura nueva
-                            for field in ["enabled", "api_key", "user", "password", "priority"]:
+                            # Solo cargamos 'enabled' y 'priority' del JSON
+                            for field in ["enabled", "priority"]:
                                 if field in s:
                                     d[field] = s[field]
-                return default
         except Exception as e:
-            print(f"[METADATA] Error cargando config: {e}")
-            
+            print(f"[METADATA] Error cargando config JSON: {e}")
+    
+    # Cargar secretos de forma segura para cada proveedor
+    for d in default:
+        for field in ["api_key", "user", "password"]:
+            if field in d:
+                val = get_secret(d["id"], field)
+                if val:
+                    d[field] = val
+
     return default

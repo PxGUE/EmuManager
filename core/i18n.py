@@ -179,7 +179,9 @@ TRANSLATIONS = {
         "set_about_copy": "Copyright © 2026 Christian A. Ordoñez",
         "set_about_license_title": "Licencia y Filosofía",
         "set_about_license": "Software libre y gratuito. Este programa es software libre: puedes redistribuirlo y/o modificarlo bajo los términos de la Licencia Pública General GNU (GPLv3).",
-        "set_about_link": "Leer detalles de la licencia",
+        "set_about_privacy_title": "Privacidad y Datos",
+        "set_about_privacy_desc": "• <b>Almacenamiento Local:</b> Tus credenciales se guardan de forma encriptada en el sistema (Windows Credential Manager).\n• <b>Sin Telemetría:</b> La app no rastrea ni envía datos de uso a ningún servidor.\n• <b>Software Transparente:</b> Código abierto y auditable.",
+        "set_about_link": "Detalles de la licencia",
         "set_btn_close": "Cerrar",
         "set_dlg_emus": "Selecciona Carpeta de Emuladores",
         "set_dlg_roms": "Selecciona Carpeta de ROMs",
@@ -198,6 +200,9 @@ TRANSLATIONS = {
         "set_btn_save": "Guardar",
         "set_msg_saved_title": "Guardado",
         "set_msg_saved_text": "Configuración de {0} actualizada.",
+        "set_btn_clear": "Limpiar credenciales",
+        "set_tip_clear": "Elimina las llaves y contraseñas de {0} de tu sistema.",
+        "set_msg_cleared": "Credenciales eliminadas del sistema.",
 
         # General
         "loading_text": "Cargando...",
@@ -382,7 +387,9 @@ TRANSLATIONS = {
         "set_about_copy": "Copyright © 2026 Christian A. Ordoñez",
         "set_about_license_title": "License & Philosophy",
         "set_about_license": "Free and open source software. This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License (GPLv3).",
-        "set_about_link": "Read license details",
+        "set_about_privacy_title": "Privacy and Data",
+        "set_about_privacy_desc": "• <b>Local Storage:</b> Your credentials are saved encrypted in the system (Windows Credential Manager).\n• <b>No Telemetry:</b> The app does not track or send usage data to any server.\n• <b>Transparent Software:</b> Open source and auditable code.",
+        "set_about_link": "License details",
         "set_btn_close": "Close",
         "set_dlg_emus": "Select Emulators Folder",
         "set_dlg_roms": "Select ROMs Folder",
@@ -401,6 +408,9 @@ TRANSLATIONS = {
         "set_btn_save": "Save",
         "set_msg_saved_title": "Saved",
         "set_msg_saved_text": "Configuration for {0} updated.",
+        "set_btn_clear": "Clear credentials",
+        "set_tip_clear": "Removes keys and passwords for {0} from your system.",
+        "set_msg_cleared": "Credentials removed from the system.",
 
         # General
         "loading_text": "Loading...",

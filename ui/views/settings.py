@@ -8,6 +8,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, QTimer
 import core.artwork as artwork
 import core.scanner as scanner
+import core.security as security
 from core.config import APP_VERSION
 
 class CollapsibleSection(QWidget):
@@ -75,12 +76,23 @@ class SettingsView(QWidget):
         self.init_ui()
 
     def save_provider_config(self):
-        """Guarda la configuración de los proveedores en el disco."""
+        """Guarda la configuración de los proveedores en el disco (sin datos sensibles)."""
         path = os.path.join("data", "scrapers_config.json")
         try:
+            # Crear una copia limpia para guardar sin secretos
+            clean_data = []
+            secrets_blacklist = ["api_key", "user", "password"]
+            
+            for p in self.providers_data:
+                clean_p = p.copy()
+                for key in secrets_blacklist:
+                    if key in clean_p:
+                        del clean_p[key]
+                clean_data.append(clean_p)
+
             os.makedirs("data", exist_ok=True)
             with open(path, "w", encoding="utf-8") as f:
-                json.dump(self.providers_data, f, indent=2)
+                json.dump(clean_data, f, indent=2)
         except Exception as e:
             print(f"Error guardando scrapers_config: {e}")
 
@@ -159,6 +171,25 @@ class SettingsView(QWidget):
         license_layout.addWidget(license_text)
         license_layout.addWidget(license_link)
         layout.addWidget(license_box)
+
+        # Sección de Privacidad (Nueva)
+        privacy_box = QFrame()
+        privacy_box.setObjectName("licenseBox")
+        privacy_layout = QVBoxLayout(privacy_box)
+        privacy_layout.setContentsMargins(15, 12, 15, 12)
+        
+        privacy_title = QLabel(self.translator.t("set_about_privacy_title"))
+        privacy_title.setObjectName("licenseTitleText")
+        privacy_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        
+        privacy_text = QLabel(self.translator.t("set_about_privacy_desc"))
+        privacy_text.setObjectName("licenseContentText")
+        privacy_text.setWordWrap(True)
+        privacy_text.setStyleSheet("font-size: 11px; line-height: 1.4;")
+        
+        privacy_layout.addWidget(privacy_title)
+        privacy_layout.addWidget(privacy_text)
+        layout.addWidget(privacy_box)
 
         copy_label = QLabel(self.translator.t("set_about_copy"))
         copy_label.setObjectName("copyText")
@@ -517,7 +548,7 @@ class SettingsView(QWidget):
         dialog = ScraperConfigDialog(p, self.translator, self)
         if dialog.exec() == QDialog.DialogCode.Accepted:
             self.save_provider_config()
-            QMessageBox.information(self, self.translator.t("set_msg_saved_title"), self.translator.t("set_msg_saved_text", p['name']))
+            # Ya no mostramos pop-up aquí, el diálogo interno da feedback o se asume el éxito.
 
 
 class ScraperConfigDialog(QDialog):
@@ -534,7 +565,13 @@ class ScraperConfigDialog(QDialog):
     def init_ui(self):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(24, 24, 24, 24)
-        layout.setSpacing(20)
+        layout.setSpacing(15)
+
+        # Mensaje de estado con espacio reservado para evitar saltos en el layout
+        self.status_msg = QLabel("")
+        self.status_msg.setStyleSheet("color: #4da6ff; font-size: 11px; font-weight: bold;")
+        self.status_msg.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.status_msg.setFixedHeight(20) # Reservamos el espacio
 
         # Título
         title = QLabel(self.translator.t("set_dlg_config_title", self.provider['name']))
@@ -563,14 +600,31 @@ class ScraperConfigDialog(QDialog):
         form_layout = QVBoxLayout(form_box)
         form_layout.setSpacing(15)
 
-        # Renderizar campos según el proveedor
+        # Renderizar campos según el proveedor (Ocultamos API Keys por seguridad)
         if self.provider["id"] in ["tgdb", "rawg", "steamgriddb"]:
-            self._add_field(form_layout, self.translator.t("set_lbl_api_key"), "api_key", self.provider.get("api_key", ""))
+            self._add_field(form_layout, self.translator.t("set_lbl_api_key"), "api_key", self.provider.get("api_key", ""), is_password=True)
         elif self.provider["id"] == "screenscraper":
             self._add_field(form_layout, self.translator.t("set_lbl_user"), "user", self.provider.get("user", ""))
             self._add_field(form_layout, self.translator.t("set_lbl_pass"), "password", self.provider.get("password", ""), is_password=True)
 
         layout.addWidget(form_box)
+
+        # Botón de borrar (Control de usuario)
+        clear_btn = QPushButton(self.translator.t("set_btn_clear"))
+        clear_btn.setStyleSheet("""
+            QPushButton { 
+                background: transparent; color: #ff4d4d; border: none; font-size: 11px; text-decoration: underline;
+            }
+            QPushButton:hover { color: #ff3333; }
+        """)
+        clear_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        clear_btn.setToolTip(self.translator.t("set_tip_clear", self.provider['name']))
+        clear_btn.clicked.connect(self.on_clear)
+        layout.addWidget(clear_btn, 0, Qt.AlignmentFlag.AlignLeft)
+
+        layout.addSpacing(10)
+        layout.addWidget(self.status_msg) # Espacio fijo aquí
+        layout.addStretch()
 
         # Footer
         btns = QHBoxLayout()
@@ -604,25 +658,77 @@ class ScraperConfigDialog(QDialog):
         v.setSpacing(5)
         lbl = QLabel(label_text)
         lbl.setStyleSheet("font-size: 11px; font-weight: 900; color: #4da6ff; border: none;")
+        v.addWidget(lbl)
+        
+        # Contenedor del input (para el ojo)
+        input_container = QFrame()
+        input_container.setObjectName("inputContainer")
+        input_container.setFixedHeight(34)
+        input_container.setStyleSheet("""
+            QFrame#inputContainer {
+                background: #1a1c24; border: 1px solid #334155; border-radius: 6px;
+            }
+            QFrame#inputContainer:focus-within { border-color: #4da6ff; background: #1e202a; }
+        """)
+        h = QHBoxLayout(input_container)
+        h.setContentsMargins(10, 0, 5, 0)
+        h.setSpacing(5)
         
         edt = QLineEdit(str(initial_value))
-        edt.setFixedHeight(34)
+        edt.setFrame(False)
+        edt.setStyleSheet("background: transparent; color: #ffffff; border: none;")
+        h.addWidget(edt)
+        
         if is_password:
             edt.setEchoMode(QLineEdit.EchoMode.Password)
-        edt.setStyleSheet("""
-            QLineEdit {
-                background: #1a1c24; color: #ffffff; border: 1px solid #334155; border-radius: 6px; padding-left: 10px;
-            }
-            QLineEdit:focus { border-color: #4da6ff; background: #1e202a; }
-        """)
-        v.addWidget(lbl)
-        v.addWidget(edt)
+            toggle_btn = QPushButton("👁")
+            toggle_btn.setFixedSize(24, 24)
+            toggle_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+            toggle_btn.setStyleSheet("""
+                QPushButton { background: transparent; color: #888; border: none; font-size: 14px; }
+                QPushButton:hover { color: #4da6ff; }
+            """)
+            
+            def toggle_pass():
+                if edt.echoMode() == QLineEdit.EchoMode.Password:
+                    edt.setEchoMode(QLineEdit.EchoMode.Normal)
+                    toggle_btn.setText("🔒")
+                else:
+                    edt.setEchoMode(QLineEdit.EchoMode.Password)
+                    toggle_btn.setText("👁")
+            
+            toggle_btn.clicked.connect(toggle_pass)
+            h.addWidget(toggle_btn)
+            
+        v.addWidget(input_container)
         layout.addLayout(v)
         self.inputs[key] = edt
 
     def on_save(self):
         for k, edt in self.inputs.items():
-            self.provider[k] = edt.text()
-        self.accept()
+            val = edt.text().strip()
+            if k in ["api_key", "user", "password"]:
+                security.save_secret(self.provider["id"], k, val)
+                self.provider[k] = val
+            else:
+                self.provider[k] = val
+        
+        # Mostrar feedback breve antes de cerrar
+        self.status_msg.setText(self.translator.t("set_msg_saved_title"))
+        QTimer.singleShot(800, self.accept)
+
+    def on_clear(self):
+        # Borrar de keyring sin preguntar (para menos clics)
+        security.clear_all_secrets(self.provider["id"])
+        # Limpiar memoria e inputs
+        for k, edt in self.inputs.items():
+            if k in ["api_key", "user", "password"]:
+                edt.setText("")
+                self.provider[k] = ""
+        
+        # Feedback en el label
+        self.status_msg.setText(self.translator.t("set_msg_cleared"))
+        # Ocultar mensaje después de 3 segundos (borrando el texto)
+        QTimer.singleShot(3000, lambda: self.status_msg.setText(""))
 
 

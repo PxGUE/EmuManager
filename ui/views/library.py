@@ -21,6 +21,7 @@ from core.constants import AVAILABLE_EMULATORS
 import core.artwork as artwork
 import core.metadata as metadata
 from ui.views.loading import LoadingOverlay
+from ui.components.dialogs import ModernConfirmDialog
 
 class ConsoleShelfItem(QFrame):
     """Tarjeta individual para la estantería de consolas."""
@@ -1965,17 +1966,12 @@ class LibraryView(QWidget):
             
             # Crear un cuadro de diálogo con MessageBox
             # Usa el tema oscuro global gracias al qss que aplicamos
-            msg_box = QMessageBox(self)
-            msg_box.setWindowTitle(self.translator.t("lib_change_game_title"))
-            msg_box.setText(self.translator.t("lib_change_game_msg", nombre_actual, consola_actual, game['nombre']))
-            msg_box.setIcon(QMessageBox.Icon.Warning)
-            
-            btn_yes = msg_box.addButton(self.translator.t("lib_yes_change"), QMessageBox.ButtonRole.YesRole)
-            btn_no = msg_box.addButton(self.translator.t("lib_keep_current"), QMessageBox.ButtonRole.NoRole)
-            
-            msg_box.exec()
-            
-            if msg_box.clickedButton() == btn_yes:
+            if ModernConfirmDialog.ask(
+                self,
+                self.translator.t("lib_change_game_title"),
+                self.translator.t("lib_change_game_msg", nombre_actual, consola_actual, game['nombre']),
+                self.translator
+            ):
                 self.emu_manager.terminar_proceso_actual()
                 asyncio.get_event_loop().create_task(self._ejecutar_lanzamiento(game))
         else:

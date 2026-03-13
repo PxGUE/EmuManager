@@ -14,6 +14,7 @@ from core.constants import AVAILABLE_EMULATORS
 import core.artwork as artwork
 import core.scanner as scanner
 import core.metadata as metadata
+from ui.components.dialogs import ModernConfirmDialog
 
 ACCENT = "#4da6ff"
 ACCENT_HOVER = "#7abfff"
@@ -947,7 +948,7 @@ class DownloadsView(QWidget):
         # Primero asegurar que tenemos la biblioteca escaneada
         roms_path = self.emu_manager.roms_path
         if not roms_path or not os.path.exists(roms_path):
-             QMessageBox.warning(self, "Error", self.translator.t("dl_err_no_roms"))
+             ModernConfirmDialog.inform(self, "Error", self.translator.t("dl_err_no_roms"), self.translator)
              self.btn_scrap.setEnabled(True)
              self.progress_container.setVisible(False)
              return

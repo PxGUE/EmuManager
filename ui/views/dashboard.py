@@ -13,6 +13,7 @@ from PyQt6.QtGui import QPixmap, QLinearGradient, QColor, QPainter, QFont, QPain
 import core.scanner as scanner
 from core.constants import AVAILABLE_EMULATORS
 import core.artwork as artwork
+from core.config import APP_VERSION
 
 
 class AnimatedCounterLabel(QLabel):
@@ -249,7 +250,7 @@ class DashboardView(QWidget):
         """)
         left.addWidget(app_name)
 
-        tagline = QLabel(self.translator.t("dash_tagline", "v0.1.3 alpha"))
+        tagline = QLabel(self.translator.t("dash_tagline", APP_VERSION))
         tagline.setStyleSheet("""
             font-size: 13px; color: #666666;
             background: transparent; border: none;

@@ -147,75 +147,168 @@ class DashboardView(QWidget):
         self.emu_manager = emu_manager
         self.translator = translator
         self._stat_cards = []
-        self.init_ui()
+        
+        # Layout base persistente
+        self.main_layout = QVBoxLayout(self)
+        self.main_layout.setContentsMargins(0, 0, 0, 0)
+        
+        self.update_dashboard_status()
 
-    def init_ui(self):
-        # Main scroll area so content doesn't get cut off on small screens
-        scroll = QScrollArea(self)
-        scroll.setWidgetResizable(True)
-        scroll.setFrameShape(QFrame.Shape.NoFrame)
-        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        scroll.setStyleSheet("background: transparent;")
+    def update_dashboard_status(self):
+        """Reconstruye el contenido dinámico del dashboard con datos frescos."""
+        try:
+            self._stat_cards.clear()
+            
+            # Limpiar contenido anterior
+            while self.main_layout.count():
+                item = self.main_layout.takeAt(0)
+                if item.widget():
+                    item.widget().deleteLater()
 
+            # --- VERIFICAR SI HAY DATOS ---
+            biblioteca = scanner.cargar_biblioteca_cache()
+            has_emus = len(self.emu_manager.installed_emus) > 0
+            has_games = len(biblioteca) > 0
+
+            if not has_emus and not has_games:
+                # Mostrar estado inicial centrado
+                self.main_layout.addWidget(self._build_empty_state())
+                return
+
+            # --- VISTA NORMAL CON DATOS ---
+            scroll = QScrollArea(self)
+            scroll.setWidgetResizable(True)
+            scroll.setFrameShape(QFrame.Shape.NoFrame)
+            scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+            scroll.setStyleSheet("background: transparent;")
+
+            container = QWidget()
+            container.setStyleSheet("background: transparent;")
+            scroll_layout = QVBoxLayout(container)
+            scroll_layout.setContentsMargins(40, 40, 40, 40)
+            scroll_layout.setSpacing(32)
+
+            # 1. Hero
+            scroll_layout.addWidget(self._build_hero())
+
+            # 2. Estadísticas
+            stats_section = QWidget()
+            stats_section.setStyleSheet("background: transparent;")
+            stats_layout = QVBoxLayout(stats_section)
+            stats_layout.setContentsMargins(0, 0, 0, 0)
+            stats_layout.setSpacing(12)
+            stats_layout.addWidget(SectionTitle(self.translator.t("dash_stats_title")))
+            stats_layout.addLayout(self._build_stats_row())
+            scroll_layout.addWidget(stats_section)
+
+            # 3. Contenido (Juegos recientes + Estado)
+            content_layout = QHBoxLayout()
+            content_layout.setSpacing(24)
+
+            # Izquierda: Actividad reciente
+            recent_section = QWidget()
+            recent_section.setStyleSheet("background: transparent;")
+            recent_layout = QVBoxLayout(recent_section)
+            recent_layout.setContentsMargins(0, 0, 0, 0)
+            recent_layout.setSpacing(12)
+            recent_layout.addWidget(SectionTitle(self.translator.t("dash_recent_title")))
+            recent_layout.addWidget(self._build_recent_games())
+            recent_section.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+            content_layout.addWidget(recent_section, 3, Qt.AlignmentFlag.AlignTop)
+
+            # Derecha: Estado del sistema
+            status_section = QWidget()
+            status_section.setStyleSheet("background: transparent;")
+            status_layout = QVBoxLayout(status_section)
+            status_layout.setContentsMargins(0, 0, 0, 0)
+            status_layout.setSpacing(12)
+            status_layout.addWidget(SectionTitle(self.translator.t("dash_status_title_panel")))
+            status_layout.addWidget(self._build_status_panel())
+            status_layout.addStretch()
+            status_section.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+            content_layout.addWidget(status_section, 2, Qt.AlignmentFlag.AlignTop)
+
+            scroll_layout.addLayout(content_layout)
+            scroll_layout.addStretch()
+
+            scroll.setWidget(container)
+            self.main_layout.addWidget(scroll)
+
+            # Iniciar animaciones
+            QTimer.singleShot(200, self._start_animations)
+        except Exception as e:
+            print(f"[DASHBOARD] Error al actualizar: {e}")
+
+    def _build_empty_state(self):
+        """Crea una vista minimalista para cuando el programa no tiene datos configurados."""
         container = QWidget()
-        container.setStyleSheet("background: transparent;")
-        main_layout = QVBoxLayout(container)
-        main_layout.setContentsMargins(40, 40, 40, 40)
-        main_layout.setSpacing(32)
+        layout = QVBoxLayout(container)
+        layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.setSpacing(20)
 
-        # ─── HERO HEADER ────────────────────────────────────────────────
-        hero = self._build_hero()
-        main_layout.addWidget(hero)
+        # Recuadro central (Card)
+        card = QFrame()
+        card.setFixedSize(450, 320)
+        card.setStyleSheet("""
+            QFrame {
+                background-color: #1a1c24;
+                border-radius: 24px;
+                border: 1px solid #2a2d3a;
+            }
+        """)
+        
+        card_layout = QVBoxLayout(card)
+        card_layout.setContentsMargins(40, 40, 40, 40)
+        card_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        card_layout.setSpacing(10)
 
-        # ─── STATS ROW ──────────────────────────────────────────────────
-        stats_section = QWidget()
-        stats_section.setStyleSheet("background: transparent;")
-        stats_layout = QVBoxLayout(stats_section)
-        stats_layout.setContentsMargins(0, 0, 0, 0)
-        stats_layout.setSpacing(12)
-        stats_layout.addWidget(SectionTitle(self.translator.t("dash_stats_title")))
-        stats_layout.addLayout(self._build_stats_row())
-        main_layout.addWidget(stats_section)
+        # 1. Logo
+        logo = QLabel()
+        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        icon_path = os.path.join(base_dir, "media", "icon.svg")
+        if os.path.exists(icon_path):
+            from PyQt6.QtGui import QIcon
+            pixmap = QIcon(icon_path).pixmap(100, 100)
+            logo.setPixmap(pixmap)
+        else:
+            logo.setText("🎮")
+            logo.setStyleSheet("font-size: 80px; color: #4da6ff;")
+        
+        logo.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        logo.setStyleSheet("background: transparent; border: none; margin-bottom: 5px;")
+        card_layout.addWidget(logo)
 
-        # ─── CONTENT: Recent games + Quick Status ───────────────────────
-        content_layout = QHBoxLayout()
-        content_layout.setSpacing(24)
+        # 2. Bloque de Texto (Nombre + Versión)
+        text_container = QWidget()
+        text_container.setStyleSheet("background: transparent; border: none;")
+        text_layout = QVBoxLayout(text_container)
+        text_layout.setSpacing(0)
+        text_layout.setContentsMargins(0, 0, 0, 0)
+        text_layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
 
-        # Left: Recent activity
-        recent_section = QWidget()
-        recent_section.setStyleSheet("background: transparent;")
-        recent_layout = QVBoxLayout(recent_section)
-        recent_layout.setContentsMargins(0, 0, 0, 0)
-        recent_layout.setSpacing(12)
-        recent_layout.addWidget(SectionTitle(self.translator.t("dash_recent_title")))
-        recent_panel = self._build_recent_games()
-        recent_layout.addWidget(recent_panel)
-        recent_section.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
-        content_layout.addWidget(recent_section, 3, Qt.AlignmentFlag.AlignTop)
+        name = QLabel(self.translator.t("app_name", "EmuManager"))
+        name.setStyleSheet("""
+            font-size: 42px; font-weight: 900; color: #ffffff;
+            background: transparent; border: none;
+        """)
+        name.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        text_layout.addWidget(name)
 
-        # Right: System status
-        status_section = QWidget()
-        status_section.setStyleSheet("background: transparent;")
-        status_layout = QVBoxLayout(status_section)
-        status_layout.setContentsMargins(0, 0, 0, 0)
-        status_layout.setSpacing(12)
-        status_layout.addWidget(SectionTitle(self.translator.t("dash_status_title_panel")))
-        status_layout.addWidget(self._build_status_panel())
-        status_layout.addStretch()
-        status_section.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
-        content_layout.addWidget(status_section, 2, Qt.AlignmentFlag.AlignTop)
+        from core.config import APP_VERSION
+        version = QLabel(self.translator.t("app_version", APP_VERSION))
+        version.setStyleSheet("""
+            font-size: 11px; font-weight: bold; color: #555566;
+            background: transparent; border: none;
+            padding-left: 4px;
+        """)
+        # Alineamos a la derecha respecto al bloque del nombre
+        version.setAlignment(Qt.AlignmentFlag.AlignRight)
+        text_layout.addWidget(version)
 
-        main_layout.addLayout(content_layout)
-        main_layout.addStretch()
+        card_layout.addWidget(text_container, 0, Qt.AlignmentFlag.AlignCenter)
 
-        scroll.setWidget(container)
-
-        outer = QVBoxLayout(self)
-        outer.setContentsMargins(0, 0, 0, 0)
-        outer.addWidget(scroll)
-
-        # Trigger animations after a short delay
-        QTimer.singleShot(200, self._start_animations)
+        layout.addWidget(card)
+        return container
 
     def _build_hero(self):
         """Panel hero con saludo y resumen visual."""
@@ -471,71 +564,3 @@ class DashboardView(QWidget):
         """Alias para actualizar el contenido traduciendo etiquetas."""
         self.update_dashboard_status()
 
-    def update_dashboard_status(self):
-        """Reconstruye el contenido dinámico del dashboard con datos frescos."""
-        try:
-            self._stat_cards.clear()
-            # Eliminar el scroll anterior y recrear todo el contenido
-            layout = self.layout()
-            if layout:
-                while layout.count():
-                    item = layout.takeAt(0)
-                    if item.widget():
-                        item.widget().deleteLater()
-
-            # Recrear el scroll y el contenedor
-            scroll = QScrollArea(self)
-            scroll.setWidgetResizable(True)
-            scroll.setFrameShape(QFrame.Shape.NoFrame)
-            scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-            scroll.setStyleSheet("background: transparent;")
-
-            container = QWidget()
-            container.setStyleSheet("background: transparent;")
-            main_layout = QVBoxLayout(container)
-            main_layout.setContentsMargins(40, 40, 40, 40)
-            main_layout.setSpacing(32)
-
-            main_layout.addWidget(self._build_hero())
-
-            stats_section = QWidget()
-            stats_section.setStyleSheet("background: transparent;")
-            stats_layout = QVBoxLayout(stats_section)
-            stats_layout.setContentsMargins(0, 0, 0, 0)
-            stats_layout.setSpacing(12)
-            stats_layout.addWidget(SectionTitle(self.translator.t("dash_stats_title")))
-            stats_layout.addLayout(self._build_stats_row())
-            main_layout.addWidget(stats_section)
-
-            content_layout = QHBoxLayout()
-            content_layout.setSpacing(24)
-
-            recent_section = QWidget()
-            recent_section.setStyleSheet("background: transparent;")
-            recent_layout = QVBoxLayout(recent_section)
-            recent_layout.setContentsMargins(0, 0, 0, 0)
-            recent_layout.setSpacing(12)
-            recent_layout.addWidget(SectionTitle(self.translator.t("dash_recent_title")))
-            recent_layout.addWidget(self._build_recent_games())
-            recent_section.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
-            content_layout.addWidget(recent_section, 3, Qt.AlignmentFlag.AlignTop)
-
-            status_section = QWidget()
-            status_section.setStyleSheet("background: transparent;")
-            status_layout = QVBoxLayout(status_section)
-            status_layout.setContentsMargins(0, 0, 0, 0)
-            status_layout.setSpacing(12)
-            status_layout.addWidget(SectionTitle(self.translator.t("dash_status_title_panel")))
-            status_layout.addWidget(self._build_status_panel())
-            status_layout.addStretch()
-            status_section.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
-            content_layout.addWidget(status_section, 2, Qt.AlignmentFlag.AlignTop)
-
-            main_layout.addLayout(content_layout)
-            main_layout.addStretch()
-            scroll.setWidget(container)
-            layout.addWidget(scroll)
-
-            QTimer.singleShot(200, self._start_animations)
-        except (RuntimeError, AttributeError):
-            pass

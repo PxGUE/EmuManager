@@ -5,6 +5,8 @@ TRANSLATIONS = {
         "nav_library": "Biblioteca",
         "nav_downloads": "Descargar",
         "nav_settings": "Configuración",
+        "app_name": "EmuManager",
+        "app_version": "Versión {0}",
 
         # Dashboard
         "dash_welcome_title": "¡Bienvenido a EmuManager!",
@@ -57,10 +59,10 @@ TRANSLATIONS = {
         "lib_status_downloading": "Descargando: {0}",
         "lib_empty": "Descarga una consola desde la sección de descarga",
         "lib_btn_view_games": "VER JUEGOS",
-        "lib_empty_title": "Sin emuladores instalados",
-        "lib_empty_sub": "Instala un emulador desde 'Descargas'. EmuManager creará la carpeta correspondiente en tu ruta de ROMs para que guardes tus juegos allí.",
+        "lib_empty_title": "Biblioteca Vacía",
+        "lib_empty_sub": "Tu colección aparecerá aquí conforme instales emuladores.",
         "lib_btn_play": "JUGAR",
-        "lib_hero_hint": "Pasa el cursor sobre un juego para ver sus detalles",
+        "lib_empty_hint": "¡Vamos a empezar! Descarga tu primer emulador para ver tus juegos aquí.",
         "lib_fav_filter": "Favoritos",
 
         # Downloads
@@ -99,6 +101,7 @@ TRANSLATIONS = {
         "dl_manual_btn_finish": "Finalizar Instalación",
         "dl_manual_dlg_title": "Seleccionar emulador",
         "dl_manual_files_type": "Archivos de emulador (*.zip *.7z *.tar.gz *.tar.xz *.exe *.AppImage)",
+        "dl_warn_paths_short": "Faltan rutas de configuración",
         "dl_badge_installed": "✓ INSTALADO",
         "dl_btn_manual": "Manual",
         "dl_btn_folder": "Carpeta",
@@ -213,6 +216,8 @@ TRANSLATIONS = {
         "nav_library": "Library",
         "nav_downloads": "Downloads",
         "nav_settings": "Settings",
+        "app_name": "EmuManager",
+        "app_version": "Version {0}",
 
         # Dashboard
         "dash_welcome_title": "Welcome to EmuManager!",
@@ -265,10 +270,10 @@ TRANSLATIONS = {
         "lib_status_downloading": "Downloading: {0}",
         "lib_empty": "Download a console from the download section",
         "lib_btn_view_games": "VIEW GAMES",
-        "lib_empty_title": "No emulators installed",
-        "lib_empty_sub": "Install an emulator from 'Downloads'. EmuManager will create the corresponding folder in your ROMs path for you to save your games there.",
+        "lib_empty_title": "Empty Library",
+        "lib_empty_sub": "Your Collection will appear here as you install emulators.",
         "lib_btn_play": "PLAY",
-        "lib_hero_hint": "Hover over a game to see its details",
+        "lib_empty_hint": "Let's get started! Download your first emulator to see your games here.",
         "lib_fav_filter": "Favorites",
 
         # Downloads
@@ -314,6 +319,7 @@ TRANSLATIONS = {
         "dl_err_network": "Network error",
         "dl_err_manual": "Use Manual installation",
         "dl_err_installing": "Error installing",
+        "dl_warn_paths_short": "Setup paths first",
         "dl_manual_success": "Manual installation successful!",
         "dl_scrap_title": "Download game resources",
         "dl_scrap_sub": "Get covers, backgrounds, and detailed information for your games.",

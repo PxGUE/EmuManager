@@ -1057,9 +1057,13 @@ class DownloadsView(QWidget):
             self.warn_layout.addWidget(warn)
             self.warn_area.show()
             self.stats_badge.hide()
+            self.btn_scrap.setEnabled(False)
+            self.btn_scrap.setToolTip(self.translator.t("dl_warn_paths_short"))
         else:
             self.warn_area.hide()
             self.stats_badge.show()
+            self.btn_scrap.setEnabled(True)
+            self.btn_scrap.setToolTip(self.translator.t("dl_tip_scrap"))
 
         # Agrupar emuladores por console_id
         console_groups = {}

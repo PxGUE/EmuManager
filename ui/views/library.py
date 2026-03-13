@@ -395,11 +395,14 @@ class ConsoleCarousel(QWidget):
         self.dots_layout.setContentsMargins(0, 0, 0, 0)
         
         # Layout Principal para organizar Título y Dots
-        main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(0, 20, 0, 40)
-        main_layout.addWidget(self.details_pane)
-        main_layout.addStretch(1) # Espacio para el carrusel
-        main_layout.addWidget(self.dots_container)
+        self.main_carousel_layout = QVBoxLayout(self)
+        self.main_carousel_layout.setContentsMargins(0, 20, 0, 40)
+        
+        # Añadimos stretches que controlaremos en update_ui
+        self.main_carousel_layout.addStretch(0) # Index 0: Top spacing
+        self.main_carousel_layout.addWidget(self.details_pane) # Index 1
+        self.main_carousel_layout.addStretch(1) # Index 2: Main body spacing (carousel space)
+        self.main_carousel_layout.addWidget(self.dots_container) # Index 3
         
         # Garantizar orden de visibilidad
         self.shelf_container.lower()
@@ -424,19 +427,11 @@ class ConsoleCarousel(QWidget):
         panel.lbl_title.setWordWrap(True)
         panel.lbl_title.setMinimumHeight(120) # Más espacio para el título
 
-        # Panel para estado vacío
-        panel.empty_card = QFrame()
-        panel.empty_card.setFixedSize(400, 200)
-        panel.empty_card.setStyleSheet("background: rgba(15,18,28,0.8); border-radius: 20px; border: 1px solid #333;")
-        ec_layout = QVBoxLayout(panel.empty_card)
-        ec_lbl = QLabel(self.translator.t("lib_empty_title"))
-        ec_lbl.setStyleSheet("color: white; font-weight: bold; font-size: 18px;")
-        ec_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        ec_layout.addWidget(ec_lbl)
+        # Panel para estado vacío unificado con el Dashboard
+        panel.empty_card = self._build_empty_state()
         panel.empty_card.hide()
 
         layout.addWidget(panel.lbl_title)
-        layout.addStretch(1) # Empujar todo hacia arriba para dar aire
         layout.addWidget(panel.empty_card, 0, Qt.AlignmentFlag.AlignCenter)
         
         return panel
@@ -566,14 +561,38 @@ class ConsoleCarousel(QWidget):
     def update_ui(self):
         """Actualiza los textos del panel de detalles central."""
         if not self.consoles_data:
-            self.details_pane.lbl_title.setText("")
             self.details_pane.lbl_title.hide()
             self.details_pane.empty_card.show()
+            
+            # Actualizar textos del estado vacío (i18n) de forma robusta
+            try:
+                self.details_pane.empty_card.lbl_empty_title.setText(self.translator.t("lib_empty_title"))
+                self.details_pane.empty_card.lbl_empty_sub.setText(self.translator.t("lib_empty_sub"))
+            except Exception:
+                pass
+
+            # Ocultar botones y paginación si no hay datos
+            self.btn_left.hide()
+            self.btn_right.hide()
+            self.dots_container.hide()
+            
+            # Centrar VERTICALMENTE ajustando los stretches del layout principal
+            self.main_carousel_layout.setStretch(0, 1) # Activa stretch superior
+            self.main_carousel_layout.setStretch(2, 1) # Mantiene stretch inferior
+            
             self.update()
             return
-            
-        self.details_pane.empty_card.hide()
+
+        # Mostrar controles si hay datos
         self.details_pane.lbl_title.show()
+        self.details_pane.empty_card.hide()
+        self.btn_left.show()
+        self.btn_right.show()
+        self.dots_container.show()
+        
+        # Resetear stretches para vista normal (título arriba)
+        self.main_carousel_layout.setStretch(0, 0)
+        self.main_carousel_layout.setStretch(2, 1)
         
         emu, count, playtime = self.consoles_data[self.current_index]
         self.current_color = emu.get("color", "#4da6ff")
@@ -603,6 +622,51 @@ class ConsoleCarousel(QWidget):
         return pixmap.scaled(self.size(), 
                             Qt.AspectRatioMode.KeepAspectRatioByExpanding, 
                             Qt.TransformationMode.SmoothTransformation)
+
+    def _build_empty_state(self):
+        """Crea una vista minimalista unificada con el diseño del Dashboard."""
+        card = QFrame()
+        card.setFixedSize(500, 360)
+        card.setStyleSheet("""
+            QFrame {
+                background-color: #1a1c24;
+                border-radius: 24px;
+                border: 1px solid #2a2d3a;
+            }
+        """)
+        
+        card_layout = QVBoxLayout(card)
+        card_layout.setContentsMargins(40, 40, 40, 40)
+        card_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        card_layout.setSpacing(15)
+
+        # 1. Logo sutil (Opcional, para unificar)
+        logo = QLabel()
+        logo.setText("🎮")
+        logo.setStyleSheet("font-size: 60px; color: rgba(77, 166, 255, 0.4); background: transparent; border: none;")
+        logo.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        card_layout.addWidget(logo)
+
+        # 2. Título
+        card.lbl_empty_title = QLabel(self.translator.t("lib_empty_title"))
+        card.lbl_empty_title.setStyleSheet("""
+            font-size: 24px; font-weight: 900; color: #ffffff;
+            background: transparent; border: none;
+        """)
+        card.lbl_empty_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        card_layout.addWidget(card.lbl_empty_title)
+
+        # 3. Texto descriptivo amigable
+        card.lbl_empty_sub = QLabel(self.translator.t("lib_empty_sub"))
+        card.lbl_empty_sub.setStyleSheet("""
+            font-size: 13px; color: #888899;
+            background: transparent; border: none;
+        """)
+        card.lbl_empty_sub.setWordWrap(True)
+        card.lbl_empty_sub.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        card_layout.addWidget(card.lbl_empty_sub)
+
+        return card
         
     def paintEvent(self, event):
         # El fondo principal ahora lo dibuja LibraryView para persistencia
@@ -1166,8 +1230,7 @@ class GameHeroPanel(QFrame):
         empty_icon.setStyleSheet("font-size: 52px; background: transparent; border: none;")
         empty_icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
         empty_layout.addWidget(empty_icon)
-        empty_hint_text = self.translator.t("lib_hero_hint")
-        self.empty_hint = QLabel(empty_hint_text)
+        self.empty_hint = QLabel(self.translator.t("lib_empty_sub"))
         self.empty_hint.setStyleSheet("""
             font-size: 13px; color: #2d3250;
             background: transparent; border: none;
@@ -1299,7 +1362,7 @@ class GameHeroPanel(QFrame):
 
     def retranslate_ui(self):
         self.btn_play.setText("\u25b6  " + self.translator.t("lib_btn_play"))
-        self.empty_hint.setText(self.translator.t("lib_hero_hint"))
+        self.empty_hint.setText(self.translator.t("lib_empty_sub"))
 
     def set_playtime(self, hours, minutes):
         if hours > 0 or minutes > 0:
@@ -1754,7 +1817,7 @@ class LibraryView(QWidget):
         self.btn_fav_filter.setText("★  " + self.translator.t("lib_fav_filter"))
         self.btn_refresh.setText(self.translator.t("lib_refresh").upper())
         self.btn_back.setText(self.translator.t("lib_btn_back").upper())
-        # Actualizar carrusel
+        # Actualizar carrusel y forzar refresco de textos internos
         self.carousel.update_ui()
         # Actualizar Hero Panel
         self.hero_panel.retranslate_ui()

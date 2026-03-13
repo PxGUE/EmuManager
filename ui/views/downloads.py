@@ -641,9 +641,9 @@ class DownloadsView(QWidget):
 
         left.addLayout(title_row)
 
-        subtitle = QLabel(self.translator.t("dl_list_sub"))
-        subtitle.setStyleSheet("font-size: 13px; color: #555566; background: transparent; border: none;")
-        left.addWidget(subtitle)
+        self.list_subtitle_lbl = QLabel(self.translator.t("dl_list_sub"))
+        self.list_subtitle_lbl.setStyleSheet("font-size: 13px; color: #555566; background: transparent; border: none;")
+        left.addWidget(self.list_subtitle_lbl)
 
         header.addLayout(left, 1)
 
@@ -777,6 +777,7 @@ class DownloadsView(QWidget):
         """Actualiza todos los textos de la vista al cambiar el idioma."""
         self.title_lbl.setText(self.translator.t("nav_downloads").upper())
         self.subtitle_lbl.setText(self.translator.t("dl_subtitle").upper())
+        self.list_subtitle_lbl.setText(self.translator.t("dl_list_sub"))
         
         # Filtros
         if self.FILTER_ALL in self.filter_btns:

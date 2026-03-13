@@ -10,3 +10,5 @@ keyring>=25.7.0
 # Compatibilidad con Linux (Secret Service)
 SecretStorage>=3.3.0; sys_platform == 'linux'
 jeepney>=0.8.0; sys_platform == 'linux'
+nuitka>=4.0.4
+zstandard>=0.23.0

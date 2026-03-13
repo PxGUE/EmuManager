@@ -14,12 +14,11 @@ from qasync import QEventLoop
 from ui.app import EmuApp
 
 def get_resource_path(relative_path):
-    """Obtiene la ruta absoluta a un recurso, compatible con PyInstaller."""
-    try:
-        # PyInstaller crea una carpeta temporal y guarda la ruta en _MEIPASS
-        base_path = sys._MEIPASS
-    except Exception:
-        base_path = os.path.abspath(".")
+    """
+    Obtiene la ruta absoluta a un recurso. 
+    Compatible con ejecución directa y con binarios congelados (Nuitka).
+    """
+    base_path = os.path.dirname(os.path.abspath(__file__))
     return os.path.join(base_path, relative_path)
 
 # --- CONFIGURACIÓN DE LOGS Y FILTROS ---

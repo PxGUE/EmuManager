@@ -87,8 +87,6 @@ def get_consoles_bg_dir():
 def get_system_consoles_dir():
     return os.path.join(SYSTEM_MEDIA_DIR, "consolas")
 
-def get_system_emulators_dir():
-    return os.path.join(SYSTEM_MEDIA_DIR, "emuladores")
 
 def obtener_ruta_caratula(ruta_rom: str) -> str:
     rom_dir = os.path.dirname(ruta_rom)
@@ -108,12 +106,19 @@ def obtener_ruta_logo(ruta_rom: str) -> str:
 def tiene_caratula(ruta_rom: str) -> bool:
     return os.path.exists(obtener_ruta_caratula(ruta_rom))
 
-def obtener_ruta_logo_consola(id_emu: str, flet_path: bool = False) -> str:
+def obtener_ruta_logo_consola(id_emu: str) -> str:
     """
-    Localiza el logo SVG o PNG de una consola en el directorio de recursos del sistema.
+    Localiza el logo SVG (preferido) o PNG de una consola.
     """
-    if flet_path: return f"/consolas/{id_emu}.png"
-    return os.path.abspath(os.path.join(get_system_consoles_dir(), f"{id_emu}.png"))
+    base_path = os.path.join(get_system_consoles_dir(), id_emu)
+    
+    # Prioridad: SVG > PNG
+    for ext in (".svg", ".png"):
+        full_path = os.path.abspath(base_path + ext)
+        if os.path.exists(full_path):
+            return full_path
+            
+    return os.path.abspath(base_path + ".png")
 
 def obtener_ruta_fondo_consola(emu) -> str:
     """Obtiene la ruta del fondo de la consola, prefiriendo console_id para compartir fondos."""

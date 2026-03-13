@@ -7,10 +7,9 @@ from core.config import APP_VERSION, APP_NAME
 import sys
 import os
 import asyncio
-import logging
 from PyQt6.QtWidgets import QApplication
-from PyQt6.QtGui import QPalette, QColor, QIcon
-from PyQt6.QtCore import qInstallMessageHandler, QtMsgType
+from PyQt6.QtGui import QIcon
+from PyQt6.QtCore import qInstallMessageHandler
 from qasync import QEventLoop
 from ui.app import EmuApp
 

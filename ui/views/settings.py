@@ -2,11 +2,10 @@ import os
 import json
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
-    QLineEdit, QPushButton, QComboBox, QFileDialog, QMessageBox, QFrame, QSizePolicy,
-    QDialog, QCheckBox, QProgressBar, QScrollArea
+    QLineEdit, QPushButton, QComboBox, QFileDialog, QMessageBox, QFrame,
+    QDialog, QCheckBox, QScrollArea
 )
 from PyQt6.QtCore import Qt, QTimer
-from qasync import asyncSlot
 import core.artwork as artwork
 import core.scanner as scanner
 from core.config import APP_VERSION
@@ -74,6 +73,111 @@ class SettingsView(QWidget):
         self.on_language_change_callback = on_language_change
         
         self.init_ui()
+
+    def save_provider_config(self):
+        """Guarda la configuración de los proveedores en el disco."""
+        path = os.path.join("data", "scrapers_config.json")
+        try:
+            os.makedirs("data", exist_ok=True)
+            with open(path, "w", encoding="utf-8") as f:
+                json.dump(self.providers_data, f, indent=2)
+        except Exception as e:
+            print(f"Error guardando scrapers_config: {e}")
+
+    def show_about(self):
+        """Muestra un diálogo de 'Acerca de' con diseño premium."""
+        from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel, QPushButton, QFrame
+        from PyQt6.QtGui import QPixmap, QIcon, QDesktopServices
+        from PyQt6.QtCore import QSize, QUrl
+        from core.config import APP_VERSION
+
+        dialog = QDialog(self)
+        dialog.setWindowTitle(self.translator.t("set_about_title"))
+        dialog.setFixedWidth(460)
+        dialog.setObjectName("aboutDialog")
+
+        layout = QVBoxLayout(dialog)
+        layout.setContentsMargins(35, 35, 35, 35)
+        layout.setSpacing(18)
+
+        logo_label = QLabel()
+        logo_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        logo_label.setObjectName("aboutLogo")
+        
+        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        icon_path = os.path.join(base_dir, "media", "icon.svg")
+        
+        if os.path.exists(icon_path):
+            pixmap = QIcon(icon_path).pixmap(QSize(90, 90))
+            logo_label.setPixmap(pixmap)
+        
+        layout.addWidget(logo_label)
+
+        name_label = QLabel("EmuManager")
+        name_label.setObjectName("aboutTitleText")
+        name_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(name_label)
+
+        ver_label = QLabel(self.translator.t("set_about_ver", APP_VERSION))
+        ver_label.setObjectName("aboutVersionText")
+        ver_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(ver_label)
+
+        line = QFrame()
+        line.setFrameShape(QFrame.Shape.HLine)
+        line.setObjectName("aboutSeparator")
+        line.setFixedHeight(1)
+        layout.addWidget(line)
+
+        desc_label = QLabel(self.translator.t("set_about_desc"))
+        desc_label.setObjectName("aboutDescText")
+        desc_label.setWordWrap(True)
+        desc_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(desc_label)
+
+        license_box = QFrame()
+        license_box.setObjectName("licenseBox")
+        license_layout = QVBoxLayout(license_box)
+        license_layout.setContentsMargins(15, 15, 15, 15)
+        license_layout.setSpacing(8)
+        
+        license_title = QLabel(self.translator.t("set_about_license_title"))
+        license_title.setObjectName("licenseTitleText")
+        license_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        
+        license_text = QLabel(self.translator.t("set_about_license"))
+        license_text.setObjectName("licenseContentText")
+        license_text.setWordWrap(True)
+        license_text.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        
+        license_link = QLabel(f'<a href="https://www.gnu.org/licenses/gpl-3.0.html" style="color: #4da6ff; text-decoration: none; font-weight: bold;">{self.translator.t("set_about_link")}</a>')
+        license_link.setObjectName("licenseLinkText")
+        license_link.setOpenExternalLinks(True)
+        license_link.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        
+        license_layout.addWidget(license_title)
+        license_layout.addWidget(license_text)
+        license_layout.addWidget(license_link)
+        layout.addWidget(license_box)
+
+        copy_label = QLabel(self.translator.t("set_about_copy"))
+        copy_label.setObjectName("copyText")
+        copy_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(copy_label)
+
+        btn_close = QPushButton(self.translator.t("set_btn_close"))
+        btn_close.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn_close.setFixedWidth(120)
+        btn_close.setObjectName("aboutCloseBtn")
+        btn_close.clicked.connect(dialog.accept)
+        
+        btn_layout = QHBoxLayout()
+        btn_layout.addStretch()
+        btn_layout.addWidget(btn_close)
+        btn_layout.addStretch()
+        layout.addLayout(btn_layout)
+
+        dialog.exec()
         
     def init_ui(self):
         # Layout principal de SettingsView
@@ -219,47 +323,59 @@ class SettingsView(QWidget):
         def create_provider_card(p_data):
             card = QFrame()
             card.setObjectName("providerCard")
-            card.setMinimumHeight(70)
+            card.setMinimumHeight(85)
             card.setStyleSheet("""
                 QFrame#providerCard {
-                    background: rgba(255,255,255,0.03);
-                    border: 1px solid rgba(255,255,255,0.08);
-                    border-radius: 12px;
+                    background: #16181f;
+                    border: 1px solid #252830;
+                    border-radius: 14px;
                 }
                 QFrame#providerCard:hover {
-                    background: rgba(255,255,255,0.05);
-                    border-color: rgba(77, 166, 255, 0.4);
+                    background: #1b1e2a;
+                    border: 1px solid #4da6ff;
                 }
             """)
             
             p_layout = QHBoxLayout(card)
-            p_layout.setContentsMargins(20, 10, 20, 10)
+            p_layout.setContentsMargins(20, 15, 20, 15)
+            p_layout.setSpacing(15)
+
+            # Icono representativo o círculo de color según tipo
+            icon_circle = QLabel("●")
+            clr = "#4da6ff" if p_data.get("type") == "artwork" else "#7c6ff7"
+            icon_circle.setStyleSheet(f"color: {clr}; font-size: 14px; background: transparent; border: none;")
+            p_layout.addWidget(icon_circle)
 
             # Info del proveedor
             v_info = QVBoxLayout()
+            v_info.setSpacing(2)
             p_name = QLabel(p_data["name"])
-            p_name.setStyleSheet("font-weight: bold; font-size: 14px; color: #ffffff;")
+            p_name.setStyleSheet("font-weight: 900; font-size: 14px; color: #ffffff; background: transparent; border: none;")
+            
             p_status_text = self.translator.t("set_status_connected") if p_data.get("enabled") else self.translator.t("set_status_disconnected")
             p_status = QLabel(p_status_text)
-            p_status.setStyleSheet("font-size: 11px; color: #4da6ff;" if p_data.get("enabled") else "font-size: 11px; color: #777;")
+            status_clr = "#4da6ff" if p_data.get("enabled") else "#555"
+            p_status.setStyleSheet(f"font-size: 10px; font-weight: bold; color: {status_clr}; background: transparent; border: none;")
             self.provider_status_labels.append((p_status, p_data))
+            
             v_info.addWidget(p_name)
             v_info.addWidget(p_status)
             p_layout.addLayout(v_info)
             p_layout.addStretch()
 
-            # Botón Configuración (Solo si tiene campos configurables)
+            # Botón Configuración (Estilo minimalista y premium)
             has_config = p_data["id"] in ["tgdb", "rawg", "steamgriddb", "screenscraper"]
             if has_config:
                 btn_cfg = QPushButton(self.translator.t("set_btn_configure"))
-                btn_cfg.setFixedWidth(100)
+                btn_cfg.setFixedWidth(90)
+                btn_cfg.setFixedHeight(28)
                 btn_cfg.setCursor(Qt.CursorShape.PointingHandCursor)
                 btn_cfg.setStyleSheet("""
                     QPushButton {
-                        background: rgba(255,255,255,0.08); border: none; 
-                        border-radius: 6px; padding: 6px; font-size: 11px;
+                        background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); 
+                        border-radius: 6px; padding: 4px; font-size: 10px; font-weight: bold; color: #aaa;
                     }
-                    QPushButton:hover { background: rgba(255,255,255,0.15); }
+                    QPushButton:hover { background: rgba(255,255,255,0.1); color: white; border-color: #4da6ff; }
                 """)
                 btn_cfg.clicked.connect(lambda checked, p=p_data: self.configure_provider(p))
                 self.provider_config_btns.append(btn_cfg)
@@ -271,8 +387,6 @@ class SettingsView(QWidget):
             cb.setChecked(p_data.get("enabled", False))
             cb.stateChanged.connect(lambda state, p=p_data, s=p_status: self.toggle_provider(p, state, s))
             
-            # Wikipedia and Libretro might be "core" and not toggleable? 
-            # No, user should be able to disable them if they want only one source.
             p_layout.addWidget(cb)
             return card
 
@@ -399,157 +513,116 @@ class SettingsView(QWidget):
         self.save_provider_config()
 
     def configure_provider(self, p):
-        """Abre un diálogo para configurar el proveedor específico."""
-        dialog = QDialog(self)
-        dialog.setWindowTitle(self.translator.t("set_dlg_config_title", p['name']))
-        dialog.setFixedWidth(350)
-        v = QVBoxLayout(dialog)
-        v.setContentsMargins(20, 20, 20, 20)
-        v.setSpacing(10)
-
-        v.addWidget(QLabel(self.translator.t("set_dlg_config_for", p['name'])))
-        
-        inputs = {}
-        # Renderizar campos según el proveedor
-        if p["id"] in ["tgdb", "rawg", "steamgriddb"]:
-            v.addWidget(QLabel(self.translator.t("set_lbl_api_key")))
-            edt = QLineEdit(str(p.get("api_key", "")))
-            edt.setProperty("class", "formInput")
-            v.addWidget(edt)
-            inputs["api_key"] = edt
-        elif p["id"] == "screenscraper":
-            v.addWidget(QLabel(self.translator.t("set_lbl_user")))
-            u_edt = QLineEdit(p.get("user", ""))
-            v.addWidget(u_edt)
-            v.addWidget(QLabel(self.translator.t("set_lbl_pass")))
-            p_edt = QLineEdit(p.get("password", ""))
-            p_edt.setEchoMode(QLineEdit.EchoMode.Password)
-            v.addWidget(p_edt)
-            inputs["user"] = u_edt
-            inputs["password"] = p_edt
-
-        btn_save = QPushButton(self.translator.t("set_btn_save"))
-        btn_save.clicked.connect(dialog.accept)
-        v.addWidget(btn_save)
-
+        """Abre un diálogo para configurar el proveedor específico al estilo del Asistente Manual."""
+        dialog = ScraperConfigDialog(p, self.translator, self)
         if dialog.exec() == QDialog.DialogCode.Accepted:
-            for k, edt in inputs.items():
-                p[k] = edt.text()
             self.save_provider_config()
             QMessageBox.information(self, self.translator.t("set_msg_saved_title"), self.translator.t("set_msg_saved_text", p['name']))
 
-    def save_provider_config(self):
-        """Guarda la configuración de los proveedores en el disco."""
-        # Por ahora lo guardamos en un archivo separado para no romper el emu_manager config
-        path = os.path.join("data", "scrapers_config.json")
-        try:
-            os.makedirs("data", exist_ok=True)
-            with open(path, "w", encoding="utf-8") as f:
-                json.dump(self.providers_data, f, indent=2)
-        except Exception as e:
-            print(f"Error guardando scrapers_config: {e}")
 
-    def show_about(self):
-        """Muestra un diálogo de 'Acerca de' con diseño premium."""
-        from PyQt6.QtWidgets import QDialog, QVBoxLayout, QLabel, QPushButton, QFrame
-        from PyQt6.QtGui import QPixmap, QIcon, QDesktopServices
-        from PyQt6.QtCore import QSize, QUrl
+class ScraperConfigDialog(QDialog):
+    """Diálogo de configuración de scraper con el diseño premium de 'Instalación Manual'."""
+    def __init__(self, provider, translator, parent=None):
+        super().__init__(parent)
+        self.provider = provider
+        self.translator = translator
+        self.inputs = {}
+        self.setWindowTitle(self.translator.t("set_dlg_config_title", provider['name']))
+        self.setFixedWidth(400)
+        self.init_ui()
+
+    def init_ui(self):
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(24, 24, 24, 24)
+        layout.setSpacing(20)
+
+        # Título
+        title = QLabel(self.translator.t("set_dlg_config_title", self.provider['name']))
+        title.setStyleSheet("font-size: 18px; font-weight: bold; color: #f8f8ff;")
+        layout.addWidget(title)
+
+        # Información / Instrucciones
+        info_box = QFrame()
+        info_box.setStyleSheet("background: rgba(255,255,255,0.03); border: 1px solid #252830; border-radius: 8px;")
+        info_layout = QVBoxLayout(info_box)
         
-
-        dialog = QDialog(self)
-        dialog.setWindowTitle(self.translator.t("set_about_title"))
-        dialog.setFixedWidth(460)  # Aumentamos el ancho para que el texto respire
-        dialog.setObjectName("aboutDialog")
-
-        layout = QVBoxLayout(dialog)
-        layout.setContentsMargins(35, 35, 35, 35)
-        layout.setSpacing(18)
-
-        # Icono Logo
-        logo_label = QLabel()
-        logo_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        logo_label.setObjectName("aboutLogo")
+        info_title = QLabel(self.translator.t("set_dlg_config_for", self.provider['name']))
+        info_title.setStyleSheet("font-weight: bold; color: #4da6ff; border: none;")
         
-        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        icon_path = os.path.join(base_dir, "media", "icon.svg")
+        info_desc = QLabel(self.translator.t("set_scrapers_sub")) # Reusamos subtitulo o info general
+        info_desc.setStyleSheet("font-size: 11px; color: #aaaaaa; border: none;")
+        info_desc.setWordWrap(True)
+
+        info_layout.addWidget(info_title)
+        info_layout.addWidget(info_desc)
+        layout.addWidget(info_box)
+
+        # Formulario de Configuración
+        form_box = QFrame()
+        form_box.setStyleSheet("background: rgba(255,255,255,0.03); border: 1px solid #252830; border-radius: 8px;")
+        form_layout = QVBoxLayout(form_box)
+        form_layout.setSpacing(15)
+
+        # Renderizar campos según el proveedor
+        if self.provider["id"] in ["tgdb", "rawg", "steamgriddb"]:
+            self._add_field(form_layout, self.translator.t("set_lbl_api_key"), "api_key", self.provider.get("api_key", ""))
+        elif self.provider["id"] == "screenscraper":
+            self._add_field(form_layout, self.translator.t("set_lbl_user"), "user", self.provider.get("user", ""))
+            self._add_field(form_layout, self.translator.t("set_lbl_pass"), "password", self.provider.get("password", ""), is_password=True)
+
+        layout.addWidget(form_box)
+
+        # Footer
+        btns = QHBoxLayout()
+        btns.setSpacing(12)
         
-        if os.path.exists(icon_path):
-            pixmap = QIcon(icon_path).pixmap(QSize(90, 90))
-            logo_label.setPixmap(pixmap)
+        cancel_btn = QPushButton(self.translator.t("dl_btn_cancel") if hasattr(self.translator, 't') else "Cancelar")
+        cancel_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        cancel_btn.setStyleSheet("""
+            QPushButton { background: transparent; color: #888; border: 1px solid #334155; border-radius: 6px; padding: 8px; }
+            QPushButton:hover { color: white; background: rgba(255,255,255,0.05); }
+        """)
+        cancel_btn.clicked.connect(self.reject)
         
-        layout.addWidget(logo_label)
+        save_btn = QPushButton(self.translator.t("set_btn_save"))
+        save_btn.setFixedHeight(40)
+        save_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+        save_btn.setStyleSheet("""
+            QPushButton { 
+                background: #4da6ff; color: #000000; font-weight: bold; border-radius: 6px; 
+            }
+            QPushButton:hover { background: #7abfff; }
+        """)
+        save_btn.clicked.connect(self.on_save)
 
-        # Nombre y Versión
-        name_label = QLabel("EmuManager")
-        name_label.setObjectName("aboutTitleText")
-        name_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(name_label)
+        btns.addWidget(cancel_btn)
+        btns.addWidget(save_btn, 1)
+        layout.addLayout(btns)
 
-        ver_label = QLabel(self.translator.t("set_about_ver", APP_VERSION))
-        ver_label.setObjectName("aboutVersionText")
-        ver_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(ver_label)
-
-        # Separador
-        line = QFrame()
-        line.setFrameShape(QFrame.Shape.HLine)
-        line.setObjectName("aboutSeparator")
-        line.setFixedHeight(1)
-        layout.addWidget(line)
-
-        # Descripción
-        desc_label = QLabel(self.translator.t("set_about_desc"))
-        desc_label.setObjectName("aboutDescText")
-        desc_label.setWordWrap(True)
-        desc_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(desc_label)
-
-        # Información de Licencia (Software Libre / GNU)
-        license_box = QFrame()
-        license_box.setObjectName("licenseBox")
-        license_layout = QVBoxLayout(license_box)
-        license_layout.setContentsMargins(15, 15, 15, 15)
-        license_layout.setSpacing(8)
+    def _add_field(self, layout, label_text, key, initial_value, is_password=False):
+        v = QVBoxLayout()
+        v.setSpacing(5)
+        lbl = QLabel(label_text)
+        lbl.setStyleSheet("font-size: 11px; font-weight: 900; color: #4da6ff; border: none;")
         
-        license_title = QLabel(self.translator.t("set_about_license_title"))
-        license_title.setObjectName("licenseTitleText")
-        license_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        
-        license_text = QLabel(self.translator.t("set_about_license"))
-        license_text.setObjectName("licenseContentText")
-        license_text.setWordWrap(True)
-        license_text.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        
-        # Link de licencia estilizado
-        license_link = QLabel(f'<a href="https://www.gnu.org/licenses/gpl-3.0.html" style="color: #4da6ff; text-decoration: none; font-weight: bold;">{self.translator.t("set_about_link")}</a>')
-        license_link.setObjectName("licenseLinkText")
-        license_link.setOpenExternalLinks(True)
-        license_link.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        
-        license_layout.addWidget(license_title)
-        license_layout.addWidget(license_text)
-        license_layout.addWidget(license_link)
-        layout.addWidget(license_box)
+        edt = QLineEdit(str(initial_value))
+        edt.setFixedHeight(34)
+        if is_password:
+            edt.setEchoMode(QLineEdit.EchoMode.Password)
+        edt.setStyleSheet("""
+            QLineEdit {
+                background: #1a1c24; color: #ffffff; border: 1px solid #334155; border-radius: 6px; padding-left: 10px;
+            }
+            QLineEdit:focus { border-color: #4da6ff; background: #1e202a; }
+        """)
+        v.addWidget(lbl)
+        v.addWidget(edt)
+        layout.addLayout(v)
+        self.inputs[key] = edt
 
-        # Copyright
-        copy_label = QLabel(self.translator.t("set_about_copy"))
-        copy_label.setObjectName("copyText")
-        copy_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        layout.addWidget(copy_label)
-
-        # Botón Cerrar
-        btn_close = QPushButton(self.translator.t("set_btn_close"))
-        btn_close.setCursor(Qt.CursorShape.PointingHandCursor)
-        btn_close.setFixedWidth(120)
-        btn_close.setObjectName("aboutCloseBtn")
-        btn_close.clicked.connect(dialog.accept)
-        
-        btn_layout = QHBoxLayout()
-        btn_layout.addStretch()
-        btn_layout.addWidget(btn_close)
-        btn_layout.addStretch()
-        layout.addLayout(btn_layout)
-
-        dialog.exec()
+    def on_save(self):
+        for k, edt in self.inputs.items():
+            self.provider[k] = edt.text()
+        self.accept()
 
 

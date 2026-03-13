@@ -5,6 +5,7 @@ Controla la navegación lateral (Sidebar) y el intercambio de vistas.
 
 import asyncio
 import os
+
 from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QHBoxLayout, QVBoxLayout, 
     QStackedWidget, QListWidget, QListWidgetItem

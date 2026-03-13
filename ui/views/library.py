@@ -13,6 +13,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt, QSize, QTimer, QVariantAnimation, QEasingCurve, QRectF, QPropertyAnimation, pyqtSignal
 from PyQt6.QtGui import QPixmap, QColor, QPainter, QLinearGradient, QPainterPath, QFont, QPen
+from PyQt6.QtSvg import QSvgRenderer
 from PyQt6.QtWidgets import QMessageBox
 from qasync import asyncSlot
 import core.scanner as scanner
@@ -20,6 +21,221 @@ from core.constants import AVAILABLE_EMULATORS
 import core.artwork as artwork
 import core.metadata as metadata
 from ui.views.loading import LoadingOverlay
+
+class ConsoleShelfItem(QFrame):
+    """Tarjeta individual para la estantería de consolas."""
+    def __init__(self, emu, translator, parent=None):
+        super().__init__(parent)
+        self.emu = emu
+        self.translator = translator
+        self.setFixedSize(200, 280)
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+        self.setObjectName("consoleShelfItem")
+        
+        # Efecto de sombra
+        self.shadow = QGraphicsDropShadowEffect(self)
+        self.shadow.setBlurRadius(20)
+        self.shadow.setOffset(0, 8)
+        self.shadow.setColor(QColor(0, 0, 0, 150))
+        self.setGraphicsEffect(self.shadow)
+        self.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.is_focused = False
+        self.is_hovered = False
+        self.hover_progress = 0.0
+        self.target_color = QColor("#4da6ff")
+        self.init_ui()
+        
+    def init_ui(self):
+        self.container = QFrame(self)
+        self.container.setObjectName("shelfItemContainer")
+        
+        container_layout = QVBoxLayout(self.container)
+        container_layout.setContentsMargins(20, 30, 20, 30)
+        container_layout.setSpacing(10)
+        container_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        
+        # Logo SVG/Pixmap
+        self.logo_lbl = QLabel()
+        self.logo_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._update_logo()
+        
+        # Nombre de la consola
+        self.name_lbl = QLabel(self.emu["name"])
+        self.name_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.name_lbl.setWordWrap(True)
+        
+        # Datos del emulador (Info extra solicitada)
+        self.info_lbl = QLabel()
+        self.info_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.info_lbl.setStyleSheet("color: rgba(255,255,255,0.4); font-size: 11px;")
+        
+        container_layout.addStretch()
+        container_layout.addWidget(self.logo_lbl)
+        container_layout.addSpacing(10)
+        container_layout.addWidget(self.name_lbl)
+        container_layout.addWidget(self.info_lbl)
+        container_layout.addStretch()
+        
+        # Layout principal
+        wrapper = QVBoxLayout(self)
+        wrapper.setContentsMargins(0, 0, 0, 0)
+        wrapper.addWidget(self.container)
+        
+        self._update_style(False)
+
+    def _update_logo(self):
+        logo_path = artwork.obtener_ruta_logo_consola(self.emu["id"])
+        
+        if os.path.exists(logo_path):
+            if logo_path.lower().endswith(".svg"):
+                # Renderizado vectorial de alta calidad
+                renderer = QSvgRenderer(logo_path)
+                pix = QPixmap(140, 140)
+                pix.fill(Qt.GlobalColor.transparent)
+                painter = QPainter(pix)
+                renderer.render(painter)
+                painter.end()
+                self.logo_lbl.setPixmap(pix)
+            else:
+                # Fallback para PNG
+                pix = QPixmap(logo_path).scaled(120, 120, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+                self.logo_lbl.setPixmap(pix)
+        else:
+            self.logo_lbl.setText("🎮")
+            self.logo_lbl.setStyleSheet("font-size: 40px; color: rgba(255,255,255,0.3);")
+
+    def set_stats(self, count, playtime):
+        h = int(playtime // 3600)
+        time_str = f"{h}h" if h > 0 else f"{int(playtime//60)}m"
+        self.info_lbl.setText(f"{count} JUEGOS  •  {time_str}")
+
+    def _update_style(self, focused, color="#4da6ff"):
+        self.is_focused = focused
+        self.target_color = QColor(color)
+        self._apply_dynamic_style()
+
+    def _apply_dynamic_style(self):
+        color = self.target_color
+        # Mezclamos el color base con blanco si está en hover para un efecto de "iluminación"
+        glow_intensity = 100 + int(40 * self.hover_progress)
+        glow_color = color.lighter(glow_intensity)
+        
+        # Opacidades suaves y progresivas
+        bg_opacity = 0.03 + (0.12 * self.hover_progress) if not self.is_focused else 0.2 + (0.1 * self.hover_progress)
+        border_opacity = 0.1 + (0.4 * self.hover_progress) if not self.is_focused else 1.0
+        
+        # Color de borde con brillo dinámico
+        border_color = f"rgba({color.red()}, {color.green()}, {color.blue()}, {border_opacity})"
+        
+        if self.is_focused:
+            # Mantenemos el borde en 2px fijo para evitar el "salto" visual del layout al final de la animación
+            self.container.setStyleSheet(f"""
+                QFrame#shelfItemContainer {{
+                    background: qlineargradient(x1:0, y1:0, x2:1, y2:1, 
+                        stop:0 rgba({color.red()}, {color.green()}, {color.blue()}, {bg_opacity}), 
+                        stop:1 rgba(15,17,26,0.9));
+                    border: 2px solid {border_color};
+                    border-radius: 20px;
+                }}
+            """)
+            self.name_lbl.setStyleSheet(f"color: white; font-weight: 900; font-size: 16px;")
+            self.shadow.setBlurRadius(50 + int(20 * self.hover_progress))
+            self.shadow.setColor(glow_color)
+        else:
+            self.container.setStyleSheet(f"""
+                QFrame#shelfItemContainer {{
+                    background: rgba(255, 255, 255, {bg_opacity});
+                    border: 1px solid {border_color};
+                    border-radius: 20px;
+                }}
+            """)
+            alpha_text = 0.5 + (0.5 * self.hover_progress)
+            self.name_lbl.setStyleSheet(f"color: rgba(255,255,255,{alpha_text}); font-weight: normal; font-size: 13px;")
+            self.shadow.setBlurRadius(15 + int(25 * self.hover_progress))
+            self.shadow.setColor(color if self.is_hovered else QColor(0, 0, 0, 100))
+
+    def enterEvent(self, event):
+        self.is_hovered = True
+        self._animate_hover(True)
+        super().enterEvent(event)
+
+    def leaveEvent(self, event):
+        self.is_hovered = False
+        self._animate_hover(False)
+        super().leaveEvent(event)
+
+    def _animate_hover(self, entering):
+        if not hasattr(self, "hover_anim"):
+            self.hover_anim = QVariantAnimation(self)
+            self.hover_anim.setDuration(250)
+            self.hover_anim.setEasingCurve(QEasingCurve.Type.OutCubic)
+            self.hover_anim.valueChanged.connect(self._on_hover_anim_update)
+        
+        self.hover_anim.stop()
+        self.hover_anim.setStartValue(self.hover_progress)
+        self.hover_anim.setEndValue(1.0 if entering else 0.0)
+        self.hover_anim.start()
+
+    def _on_hover_anim_update(self, value):
+        self.hover_progress = value
+        self._apply_dynamic_style()
+
+    def mousePressEvent(self, event):
+        """Animación de feedback al presionar."""
+        self._play_click_anim(pressed=True)
+        super().mousePressEvent(event)
+
+    def mouseReleaseEvent(self, event):
+        """Al soltar el clic, ejecutar la acción después de un breve delay para ver el feedback."""
+        self._play_click_anim(pressed=False)
+        
+        # Delay corto para que el usuario vea la reacción visual antes del cambio de vista
+        QTimer.singleShot(150, self._handle_click_action)
+        super().mouseReleaseEvent(event)
+
+    def _handle_click_action(self):
+        """Lógica de navegación movida aquí para permitir feedback visual."""
+        # Buscar el carrusel en la jerarquía (self -> wrapper -> shelf_container -> carousel)
+        carousel = self.parentWidget()
+        while carousel and not isinstance(carousel, ConsoleCarousel):
+            carousel = carousel.parentWidget()
+            
+        if carousel and hasattr(carousel, "shelf_items") and carousel.shelf_items:
+            try:
+                idx = carousel.shelf_items.index(self)
+                if idx == carousel.current_index:
+                    carousel.on_play_clicked()
+                else:
+                    carousel.jump_to_console(idx)
+            except ValueError:
+                pass
+
+    def _play_click_anim(self, pressed=True):
+        """Animación de escala para feedback visual."""
+        self.ani_click = QPropertyAnimation(self, b"geometry")
+        self.ani_click.setDuration(100)
+        curr = self.geometry()
+        
+        if pressed:
+            # Se encoge
+            self.ani_click.setStartValue(curr)
+            self.ani_click.setEndValue(curr.adjusted(8, 8, -8, -8))
+        else:
+            # Vuelve a su tamaño
+            # Nota: Al soltar, calculamos la geometría 'normal' basada en la escala actual
+            # para evitar saltos visuales si la animación de escala del carrusel está activa.
+            self.ani_click.setStartValue(self.geometry())
+            # Forzamos un update de la posición/tamaño ideal para que el 'EndValue' sea correcto
+            carousel = self.parentWidget()
+            while carousel and not isinstance(carousel, ConsoleCarousel):
+                carousel = carousel.parentWidget()
+            if carousel:
+                carousel._animate_shelf() 
+            self.ani_click.setEndValue(self.geometry())
+            
+        self.ani_click.setEasingCurve(QEasingCurve.Type.OutQuad)
+        self.ani_click.start()
+
 
 class ConsoleCarousel(QWidget):
     """Carrusel interactivo de consolas a pantalla completa."""
@@ -52,105 +268,124 @@ class ConsoleCarousel(QWidget):
         
     def _on_anim_value_changed(self, value):
         self.progress = value / 100.0
-        self._update_geometries()
+        self._animate_shelf()
         self.update()
         
     def _on_anim_finished(self):
         self.progress = 1.0
-        self._update_geometries()
         self.is_animating = False
         
-        # Rotación de paneles
-        self.current_pane, self.next_pane = self.next_pane, self.current_pane
-        self.next_pane.hide()
-        
-        # ACTUALIZAR FONDO GLOBAL (LibraryView)
-        if hasattr(self.parent(), "parent") and hasattr(self.parent().parent(), "current_bg_pixmap"):
-            lib_view = self.parent().parent() # ConsoleCarousel -> Page -> Stack -> LibraryView (o similar)
-            # En realidad es self.parent() (Page) -> Layout -> Stack -> LibraryView
-            # Vamos a buscarlo de forma más robusto o simplemente emitir un señal si fuera más formal
-            # Pero como estamos en el mismo archivo, usaremos acceso directo al parent_view si lo guardamos
-            pass
-            
-        # Forma simple: El carousel tiene una referencia a LibraryView? No directamente.
-        # Vamos a añadirla en __init__
-        if hasattr(self, "parent_view") and self.parent_view:
+        # Actualizar fondo global
+        if self.parent_view:
             self.parent_view.current_bg_pixmap = self.current_bg_pixmap
             self.parent_view.current_color = self.current_color
             self.parent_view.cached_bg = self.parent_view._get_scaled_bg(self.current_bg_pixmap)
             self.parent_view.update()
 
-        # Limpiar caché viejo
         self.old_bg = None
         self.cached_old_bg = None
-        
-        self.current_pane.setGeometry(self.overlay_container.rect())
         self.update()
+
+    def _animate_shelf(self):
+        """Mueve y escala los items de la estantería según el progreso."""
+        if not self.consoles_data or not self.shelf_items: return
         
-    def _update_geometries(self):
-        """Posiciona los paneles en vivo durante la animación."""
-        try:
-            if not self or not hasattr(self, 'overlay_container') or self.overlay_container is None:
-                return
+        w = self.width()
+        h = self.height()
+        if w == 0 or h == 0: return
+
+        center_x = w / 2
+        
+        # --- REDISEÑO DE UNIFORMIDAD Y ESCALAS ---
+        # Agrandamos el tamaño base y el mínimo según pidió el usuario
+        base_w = max(220, min(300, w // 4.5))
+        base_h = int(base_w * 1.38)
+        min_scale = 0.82  # Más grandes de base (no seleccionadas)
+        max_scale = 1.6 if h > 800 else 1.45 # Selección imponente
+        
+        # Spacing compacto: distancia base entre slots
+        spacing = int(base_w * min_scale) + 60
+        
+        # El offset indica cuánto debe desplazarse el 'estante' basado en el salto (diff)
+        item_offset = (1.0 - self.progress) * self.slide_direction * spacing if self.is_animating else 0
+        
+        # Altura disponible y área segura
+        safe_top = 160
+        safe_bottom = h - 80
+        center_y_ideal = safe_top + (safe_bottom - safe_top) / 2
+        
+        # Cálculo del empuje central actual para suavizar la animación
+        # Esto compensa el ancho extra de la tarjeta que está pasando por el centro
+        center_scale_now = max(min_scale, max_scale - (abs(item_offset) / (spacing * 1.5)))
+        push_compensator = base_w * (center_scale_now - min_scale) * 0.5
+
+        for i, card in enumerate(self.shelf_items):
+            rel_idx = i - self.current_index
+            total = len(self.consoles_data)
+            if total > 1:
+                if rel_idx > total // 2: rel_idx -= total
+                elif rel_idx < -total // 2: rel_idx += total
             
-            rect = self.overlay_container.rect()
-            if rect.isEmpty(): return
+            # Slot lineal estable
+            slot_dist = (rel_idx * spacing) + item_offset
+            dist_abs = abs(slot_dist)
             
-            w = rect.width()
+            # Escala dinámica suave basada en la distancia al slot central
+            card_scale = max(min_scale, max_scale - (dist_abs / (spacing * 1.5)))
             
-            if not self.is_animating:
-                # En estado de reposo, el panel debe estar perfectamente en (0,0)
-                self.current_pane.setGeometry(rect)
-                self.next_pane.hide()
-                return
+            target_w = int(base_w * card_scale)
+            target_h = int(base_h * card_scale)
+            
+            if abs(card.width() - target_w) > 3:
+                card.setFixedSize(target_w, target_h)
+            
+            # --- CORRECCIÓN DE POSICIÓN (EMPÚJE COMPENSATORIO) ---
+            # Si no es la tarjeta central, la empujamos para dejar espacio al ancho extra de la central
+            push = 0
+            if rel_idx != 0:
+                push = (1 if rel_idx > 0 else -1) * push_compensator
                 
-            # Calcular offset preciso
-            offset = self.progress * w * self.slide_direction
+            target_x = center_x + slot_dist + push - (card.width() / 2)
+            card.move(int(target_x), int(center_y_ideal - (card.height() / 2)))
             
-            # Mover paneles con precisión entera final solo para el dibujo
-            self.current_pane.move(int(-offset), 0)
+            dist_factor = dist_abs / spacing
+            card._update_style(dist_factor < 0.2, color=self.consoles_data[i][0].get("color", "#4da6ff"))
+            card.setVisible(dist_factor < 3.8)
             
-            new_start_x = w if self.slide_direction > 0 else -w
-            self.next_pane.move(int(new_start_x - offset), 0)
-            self.next_pane.show()
-        except (RuntimeError, AttributeError):
-            pass
+        # --- ALINEACIÓN DE BOTONES NAV ---
+        # Centramos las flechas verticalmente respecto al área segura del carrusel
+        btn_y = int(center_y_ideal - (self.btn_left.height() / 2))
+        self.btn_left.move(20, btn_y)
+        self.btn_right.move(w - self.btn_right.width() - 20, btn_y)
+        
         
     def init_ui(self):
         self.setProperty("class", "carouselContainer")
         self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
         
-        main_layout = QHBoxLayout(self)
-        main_layout.setContentsMargins(60, 0, 60, 0)
+        # 1. Contenedor de Tarjetas (Fondo)
+        self.shelf_container = QWidget(self)
+        self.shelf_container.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents, False)
         
-        self.btn_left = QPushButton("‹")
+        # 2. Botones de Navegación (Manualmente posicionados para control total)
+        self.btn_left = QPushButton("‹", self)
         self.btn_left.setProperty("class", "carouselNavButton")
-        self.btn_left.setFixedSize(60, 60)
+        self.btn_left.setFixedSize(60, 120)
         self.btn_left.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_left.clicked.connect(self.prev_console)
+        self.btn_left.setStyleSheet("border: none; background: transparent; color: white; font-size: 60px;")
         
-        self.btn_right = QPushButton("›")
+        self.btn_right = QPushButton("›", self)
         self.btn_right.setProperty("class", "carouselNavButton")
-        self.btn_right.setFixedSize(60, 60)
+        self.btn_right.setFixedSize(60, 120)
         self.btn_right.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btn_right.clicked.connect(self.next_console)
+        self.btn_right.setStyleSheet("border: none; background: transparent; color: white; font-size: 60px;")
         
-        # Contenedor para el contenido que se desliza
-        self.overlay_container = QWidget()
-        self.overlay_container.setProperty("class", "transparentBg")
+        # 3. Panel de Detalles (Título) y Dots (Layout Superior/Inferior)
+        self.details_pane = self._create_details_panel()
         
-        # Crear dos paneles idénticos para transiciones fluidas
-        self.panel_a = self._create_content_panel()
-        self.panel_b = self._create_content_panel()
-        self.panel_a.setParent(self.overlay_container)
-        self.panel_b.setParent(self.overlay_container)
-        self.panel_b.hide()
-        
-        self.current_pane = self.panel_a
-        self.next_pane = self.panel_b
-        
-        # Contenedor para Dots
-        self.dots_container = QWidget()
+        self.dots_container = QWidget(self)
         self.dots_container.setProperty("class", "carouselPaginationContainer")
         self.dots_container.setFixedHeight(25)
         self.dots_layout = QHBoxLayout(self.dots_container)
@@ -158,122 +393,80 @@ class ConsoleCarousel(QWidget):
         self.dots_layout.setSpacing(8)
         self.dots_layout.setContentsMargins(0, 0, 0, 0)
         
-        # Layout Vertical que sostiene el Viewport y los Dots
-        self.overlay_layout = QVBoxLayout()
-        self.overlay_layout.addStretch(1)
-        self.overlay_layout.addWidget(self.overlay_container, 2) # Viewport ocupa el centro
-        self.overlay_layout.addStretch(1)
-        self.overlay_layout.addWidget(self.dots_container)
-        self.overlay_layout.addSpacing(20)
+        # Layout Principal para organizar Título y Dots
+        main_layout = QVBoxLayout(self)
+        main_layout.setContentsMargins(0, 20, 0, 40)
+        main_layout.addWidget(self.details_pane)
+        main_layout.addStretch(1) # Espacio para el carrusel
+        main_layout.addWidget(self.dots_container)
         
-        main_layout.addWidget(self.btn_left, 0, Qt.AlignmentFlag.AlignCenter)
-        main_layout.addLayout(self.overlay_layout, 1) 
-        main_layout.addWidget(self.btn_right, 0, Qt.AlignmentFlag.AlignCenter)
+        # Garantizar orden de visibilidad
+        self.shelf_container.lower()
+        self.btn_left.raise_()
+        self.btn_right.raise_()
+        self.details_pane.raise_()
+        self.dots_container.raise_()
+        
+        self.shelf_items = []
 
-    def _create_content_panel(self):
-        """Crea la estructura de labels para un panel de consola."""
-        panel = QWidget(self)
+    def _create_details_panel(self):
+        """Crea el panel que muestra la info de la consola seleccionada."""
+        panel = QWidget()
+        panel.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         layout = QVBoxLayout(panel)
-        layout.setContentsMargins(80, 50, 50, 50)
-        layout.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+        layout.setContentsMargins(60, 20, 60, 0)
+        layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         
         panel.lbl_title = QLabel()
         panel.lbl_title.setProperty("class", "carouselTitle")
+        panel.lbl_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         panel.lbl_title.setWordWrap(True)
-        panel.lbl_title.setMinimumWidth(600)
-        panel.lbl_title.setMinimumHeight(60)
-        panel.lbl_title.setAlignment(Qt.AlignmentFlag.AlignBottom | Qt.AlignmentFlag.AlignLeft)
-        
-        panel.lbl_emu = QLabel()
-        panel.lbl_emu.setProperty("class", "carouselEmu")
-        panel.lbl_emu.setFixedHeight(40)
-        
-        panel.lbl_info = QLabel()
-        panel.lbl_info.setProperty("class", "carouselInfo")
-        panel.lbl_info.setFixedHeight(30)
-        
-        panel.lbl_empty_icon = QLabel("🗄️", panel)
-        panel.lbl_empty_icon.setProperty("class", "carouselEmptyIcon")
-        panel.lbl_empty_icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        panel.lbl_empty_icon.hide()
+        panel.lbl_title.setMinimumHeight(120) # Más espacio para el título
 
-        # --- PANEL ESTADO VACÍO (premium, centrado) ---
-        panel.empty_card = QFrame(panel)
-        panel.empty_card.setStyleSheet("""
-            QFrame {
-                background: rgba(15, 18, 28, 0.92);
-                border-radius: 24px;
-                border: 1px solid rgba(77, 166, 255, 0.25);
-            }
-        """)
-        panel.empty_card.setFixedSize(480, 260)
-        empty_card_layout = QVBoxLayout(panel.empty_card)
-        empty_card_layout.setContentsMargins(48, 36, 48, 36)
-        empty_card_layout.setSpacing(14)
-        empty_card_layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-        ec_icon = QLabel("🕹️")
-        ec_icon.setStyleSheet("font-size: 56px; background: transparent; border: none;")
-        ec_icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        empty_card_layout.addWidget(ec_icon)
-
-        ec_title = QLabel(self.translator.t("lib_empty_title"))
-        ec_title.setStyleSheet("""
-            font-size: 20px; font-weight: 900;
-            color: #ffffff; background: transparent; border: none;
-        """)
-        ec_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        empty_card_layout.addWidget(ec_title)
-
-        ec_sub = QLabel(self.translator.t("lib_empty_sub"))
-        ec_sub.setStyleSheet("""
-            font-size: 13px; color: #666688;
-            background: transparent; border: none;
-        """)
-        ec_sub.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        ec_sub.setWordWrap(True)
-        empty_card_layout.addWidget(ec_sub)
-
+        # Panel para estado vacío
+        panel.empty_card = QFrame()
+        panel.empty_card.setFixedSize(400, 200)
+        panel.empty_card.setStyleSheet("background: rgba(15,18,28,0.8); border-radius: 20px; border: 1px solid #333;")
+        ec_layout = QVBoxLayout(panel.empty_card)
+        ec_lbl = QLabel(self.translator.t("lib_empty_title"))
+        ec_lbl.setStyleSheet("color: white; font-weight: bold; font-size: 18px;")
+        ec_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        ec_layout.addWidget(ec_lbl)
         panel.empty_card.hide()
 
-        panel.btn_play = QPushButton(self.translator.t("lib_btn_view_games").upper())
-        panel.btn_play.setStyleSheet("""
-            QPushButton {
-                background-color: #1976d2; color: white;
-                border-radius: 6px; font-weight: bold; border: none;
-            }
-            QPushButton:hover { background-color: #1565c0; }
-        """)
-        panel.btn_play.setFixedSize(180, 45)
-        panel.btn_play.setCursor(Qt.CursorShape.PointingHandCursor)
-        panel.btn_play.clicked.connect(self.on_play_clicked)
-
-        # Elementos normales (consola con datos)
         layout.addWidget(panel.lbl_title)
-        layout.addWidget(panel.lbl_emu)
-        layout.addSpacing(5)
-        layout.addWidget(panel.lbl_info)
-        layout.addSpacing(20)
-        layout.addWidget(panel.btn_play)
-        layout.addWidget(panel.lbl_empty_icon)
-
-        # Empty card centrada (se muestra solo cuando no hay consolas)
-        layout.addStretch(1)
+        layout.addStretch(1) # Empujar todo hacia arriba para dar aire
         layout.addWidget(panel.empty_card, 0, Qt.AlignmentFlag.AlignCenter)
-        layout.addStretch(1)
         
         return panel
 
+
     def resizeEvent(self, event):
         super().resizeEvent(event)
-        self._update_geometries()
+        self.shelf_container.setGeometry(self.rect())
+        self._animate_shelf()
         
     def set_data(self, consoles_data):
         self.setUpdatesEnabled(False)
         self.consoles_data = consoles_data
+        
+        # Limpiar shelf antiguo
+        for item in self.shelf_items:
+            item.deleteLater()
+        self.shelf_items = []
+        
+        # Crear nuevos items para el shelf
+        for emu, count, play in consoles_data:
+            card = ConsoleShelfItem(emu, self.translator, self.shelf_container)
+            card.set_stats(count, play) # Inyectar datos directamente en la tarjeta
+            card.show()
+            self.shelf_items.append(card)
+        
         self.current_index = 0
         self.update_ui()
         self._update_dots()
+        self.progress = 1.0 # Empezar estático
+        self._animate_shelf()
         self.setUpdatesEnabled(True)
         
     def _update_dots(self):
@@ -319,35 +512,47 @@ class ConsoleCarousel(QWidget):
         self.cached_old_bg = self.cached_bg
         self.old_bg = self.current_bg_pixmap
         
-        # Preparar el panel entrante
-        self.update_ui(self.next_pane)
-        self.next_pane.setGeometry(self.overlay_container.rect())
-        
+        # Actualizar datos de la consola actual (fondos y colores)
+        emu, count, playtime = self.consoles_data[self.current_index]
+        self.current_color = emu.get("color", "#4da6ff")
+        bg_path = artwork.obtener_ruta_fondo_consola(emu)
+        self.current_bg_pixmap = QPixmap(bg_path) if os.path.exists(bg_path) else None
+
         # Pre-cachear el fondo nuevo
         if self.current_bg_pixmap:
             self.cached_bg = self._get_scaled_bg(self.current_bg_pixmap)
         else:
             self.cached_bg = None
             
+        # Actualizar panel de detalles
+        self.update_ui()
+            
         self.is_animating = True
         self.anim.stop()
         self.anim.start()
 
     def jump_to_console(self, index):
-        if self.current_index == index: return
-        direction = 1 if index > self.current_index else -1
+        if self.is_animating: return
+        if not self.consoles_data or self.current_index == index: return
+        
+        total = len(self.consoles_data)
+        diff = index - self.current_index
+        # Lógica de camino más corto circular
+        if diff > total // 2: diff -= total
+        elif diff < -total // 2: diff += total
+        
         self.current_index = index
         self._update_dots()
-        self._start_transition(direction)
+        self._start_transition(diff)
 
     def prev_console(self):
-        if not self.consoles_data: return
+        if self.is_animating or not self.consoles_data: return
         self.current_index = (self.current_index - 1) % len(self.consoles_data)
         self._update_dots()
         self._start_transition(-1)
         
     def next_console(self):
-        if not self.consoles_data: return
+        if self.is_animating or not self.consoles_data: return
         self.current_index = (self.current_index + 1) % len(self.consoles_data)
         self._update_dots()
         self._start_transition(1)
@@ -357,73 +562,28 @@ class ConsoleCarousel(QWidget):
         emu = self.consoles_data[self.current_index][0]
         self.on_click_callback(emu)
         
-    def update_ui(self, target_pane=None):
-        """Si target_pane es None, actualiza ambos para consistencia."""
-        if target_pane:
-            self._update_pane(target_pane)
-        else:
-            self._update_pane(self.panel_a)
-            self._update_pane(self.panel_b)
-
-    def _update_pane(self, pane):
-        """Lógica real de actualización de un pane."""
-        
+    def update_ui(self):
+        """Actualiza los textos del panel de detalles central."""
         if not self.consoles_data:
-            pane.lbl_title.setText("")
-            pane.lbl_title.hide()
-            pane.lbl_emu.hide()
-            pane.lbl_info.hide()
-            pane.btn_play.hide()
-            pane.lbl_empty_icon.hide()
-            if hasattr(pane, 'empty_card'):
-                pane.empty_card.show()
-            # Centrar el layout del panel para que el empty_card quede centrado
-            pane.layout().setContentsMargins(0, 0, 0, 0)
-            pane.layout().setAlignment(Qt.AlignmentFlag.AlignCenter)
-            self.btn_left.hide()
-            self.btn_right.hide()
-            self.current_bg_pixmap = None
-            self.current_color = "#1a2540"
-            self.update()
-            return
-            
-        is_carousel = len(self.consoles_data) > 1
-        self.btn_left.setVisible(is_carousel)
-        self.btn_right.setVisible(is_carousel)
-        
-        # Restaurar alineación izquierda y márgenes normales cuando hay consolas
-        pane.layout().setContentsMargins(80, 50, 50, 50)
-        pane.layout().setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
-        # Mostrar elementos necesarios
-        pane.lbl_emu.show()
-        pane.lbl_info.show()
-        pane.btn_play.show()
-        # Ocultar panel vacío y restaurar lbl_title
-        if hasattr(pane, 'empty_card'):
-            pane.empty_card.hide()
-        pane.lbl_empty_icon.hide()
-        pane.lbl_title.show()
+            self.details_pane.lbl_title.setText("")
+            self.details_pane.lbl_title.hide()
+        self.details_pane.empty_card.hide()
+        self.details_pane.lbl_title.show()
         
         emu, count, playtime = self.consoles_data[self.current_index]
         self.current_color = emu.get("color", "#4da6ff")
         
         console_key = f"emu_{emu['id']}_console"
-        pane.lbl_title.setText(self.translator.t(console_key).upper())
-        pane.lbl_title.setStyleSheet(f"color: qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 {self.current_color}, stop:1 #ffffff);")
-        pane.lbl_emu.setText(emu["name"])
-        pane.lbl_emu.setStyleSheet(f"color: {self.current_color}; font-weight: bold;")
-        
-        h = int(playtime // 3600)
-        m = int((playtime % 3600) // 60)
-        time_str = f"⏱ {self.translator.t('lib_played_hours', h, m)}" if h > 0 or m > 0 else ""
-        count_str = self.translator.t("lib_games_count", count).upper()
-        pane.lbl_info.setText(f"{count_str}   |   {time_str}")
-        pane.btn_play.setText(self.translator.t("lib_btn_view_games").upper())
+        self.details_pane.lbl_title.setText(self.translator.t(console_key).upper())
+        self.details_pane.lbl_title.setStyleSheet(f"""
+            font-size: 54px; font-weight: 900;
+            color: qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 {self.current_color}, stop:1 #ffffff);
+            background: transparent;
+        """)
         
         bg_path = artwork.obtener_ruta_fondo_consola(emu)
         self.current_bg_pixmap = QPixmap(bg_path) if os.path.exists(bg_path) else None
         
-        # Pre-cachear fondo si no estamos en animación (estado estático)
         if not self.is_animating:
             if self.current_bg_pixmap:
                 self.cached_bg = self._get_scaled_bg(self.current_bg_pixmap)
@@ -466,6 +626,25 @@ class ConsoleCarousel(QWidget):
         painter.setOpacity(1.0)
         if hasattr(self, 'parent_view') and self.parent_view:
             self.parent_view._draw_overlay_gradient(painter, self.rect())
+
+    def wheelEvent(self, event):
+        """Permitir navegar el carrusel con la rueda del mouse."""
+        if self.is_animating: return
+        
+        # Pequeño cooldown para evitar saltos bruscos
+        if not hasattr(self, '_last_wheel_time'): self._last_wheel_time = 0
+        import time
+        now = time.time() * 1000
+        if now - self._last_wheel_time < 300: return
+        
+        delta = event.angleDelta().y()
+        if delta > 15: # Scroll arriba
+            self.prev_console()
+            self._last_wheel_time = now
+        elif delta < -15: # Scroll abajo
+            self.next_console()
+            self._last_wheel_time = now
+        event.accept()
 
     def _draw_cached_bg(self, painter, rect, pixmap, color):
         if pixmap:

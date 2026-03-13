@@ -568,6 +568,10 @@ class ConsoleCarousel(QWidget):
         if not self.consoles_data:
             self.details_pane.lbl_title.setText("")
             self.details_pane.lbl_title.hide()
+            self.details_pane.empty_card.show()
+            self.update()
+            return
+            
         self.details_pane.empty_card.hide()
         self.details_pane.lbl_title.show()
         

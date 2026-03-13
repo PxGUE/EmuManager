@@ -72,8 +72,14 @@ class ArtworkHub:
 
 
 # Directorios y Utilerías de Rutas (Se mantienen del original para compatibilidad)
+import sys
 
-PROJECT_ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+def get_base_path():
+    if hasattr(sys, '_MEIPASS'):
+        return sys._MEIPASS
+    return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+PROJECT_ROOT_DIR = get_base_path()
 SYSTEM_MEDIA_DIR = os.path.join(PROJECT_ROOT_DIR, "media")
 USER_MEDIA_PATH = "media"
 

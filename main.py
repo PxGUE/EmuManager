@@ -13,6 +13,15 @@ from PyQt6.QtCore import qInstallMessageHandler
 from qasync import QEventLoop
 from ui.app import EmuApp
 
+def get_resource_path(relative_path):
+    """Obtiene la ruta absoluta a un recurso, compatible con PyInstaller."""
+    try:
+        # PyInstaller crea una carpeta temporal y guarda la ruta en _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)
+
 # --- CONFIGURACIÓN DE LOGS Y FILTROS ---
 def qt_message_handler(mode, context, message):
     """Filtra y silencia las advertencias molestas de perfiles de color PNG (iCCP)"""
@@ -26,8 +35,7 @@ qInstallMessageHandler(qt_message_handler)
 
 def load_stylesheet(app):
     """Carga la hoja de estilos global QSS."""
-    base_dir = os.path.dirname(os.path.abspath(__file__))
-    qss_path = os.path.join(base_dir, "ui", "styles", "theme_dark.qss")
+    qss_path = get_resource_path(os.path.join("ui", "styles", "theme_dark.qss"))
     if os.path.exists(qss_path):
         with open(qss_path, "r", encoding="utf-8") as f:
             app.setStyleSheet(f.read())
@@ -44,8 +52,7 @@ def main():
     load_stylesheet(app)
     
     # Configurar el icono de la aplicación
-    base_dir = os.path.dirname(os.path.abspath(__file__))
-    icon_path = os.path.join(base_dir, "media", "icon.svg")
+    icon_path = get_resource_path(os.path.join("media", "icon.svg"))
     if os.path.exists(icon_path):
         app.setWindowIcon(QIcon(icon_path))
     

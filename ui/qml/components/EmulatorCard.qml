@@ -153,6 +153,21 @@ Item {
         scale: cardHover.hovered ? 1.02 : 1.0
         Behavior on scale { NumberAnimation { duration: 400; easing.type: Easing.OutBack } }
 
+        // Glow de fondo dinámico Premium (Simulado para compatibilidad)
+        Rectangle {
+            anchors.centerIn: parent
+            width: parent.width * 1.4; height: parent.height * 1.4
+            radius: 100
+            opacity: cardHover.hovered ? 0.25 : 0.0
+            gradient: Gradient {
+                orientation: Gradient.Vertical
+                GradientStop { position: 0.0; color: "transparent" }
+                GradientStop { position: 0.5; color: accentColor }
+                GradientStop { position: 1.0; color: "transparent" }
+            }
+            Behavior on opacity { NumberAnimation { duration: 450 } }
+        }
+
         ColumnLayout {
             anchors.fill: parent; anchors.margins: 25; spacing: 0
 

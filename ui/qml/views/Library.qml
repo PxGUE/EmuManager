@@ -1,7 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
-import QtQuick.Effects
 import "../components"
 
 Item {
@@ -33,11 +32,12 @@ Item {
             width: parent.width * 1.5
             height: parent.height * 1.5
             radius: width / 2
-            opacity: 0.15
-            color: currentAccentColor
+            opacity: 0.12
+            gradient: Gradient {
+                GradientStop { position: 0.0; color: currentAccentColor }
+                GradientStop { position: 0.5; color: "transparent" }
+            }
             Behavior on color { ColorAnimation { duration: 1000; easing.type: Easing.OutCubic } }
-            layer.enabled: true
-            layer.effect: MultiEffect { blurEnabled: true; blur: 1.0; blurMax: 100 }
         }
 
         // Fondo Dinámico para la Galería
@@ -48,8 +48,6 @@ Item {
             fillMode: Image.PreserveAspectCrop
             opacity: (libraryRoot.state === "grid" && source != "") ? 0.2 : 0.0
             Behavior on opacity { NumberAnimation { duration: 800 } }
-            layer.enabled: true
-            layer.effect: MultiEffect { blurEnabled: true; blur: 0.7; blurMax: 80 }
         }
         
         Rectangle {
@@ -83,11 +81,11 @@ Item {
             ColumnLayout {
                 spacing: 8
                 Layout.alignment: Qt.AlignHCenter
-                Label { text: "BIBLIOTECA VACÍA"; font.pixelSize: 26; font.bold: true; color: "white"; Layout.alignment: Qt.AlignHCenter }
-                Label { text: "Escanea tus carpetas de juegos desde los ajustes para ver tus títulos aquí."; font.pixelSize: 14; color: "#666677"; horizontalAlignment: Text.AlignHCenter; Layout.preferredWidth: 340; wrapMode: Text.WordWrap; Layout.alignment: Qt.AlignHCenter }
+                Label { text: (bridge && bridge.currentLanguage) ? bridge.translate("lib_empty_title").toUpperCase() : "BIBLIOTECA VACÍA"; font.pixelSize: 26; font.bold: true; color: "white"; Layout.alignment: Qt.AlignHCenter }
+                Label { text: (bridge && bridge.currentLanguage) ? bridge.translate("lib_empty_sub") : "Escanea tus carpetas de juegos de cada consola desde los ajustes para ver tus títulos aquí."; font.pixelSize: 14; color: "#666677"; horizontalAlignment: Text.AlignHCenter; Layout.preferredWidth: 340; wrapMode: Text.WordWrap; Layout.alignment: Qt.AlignHCenter }
             }
             Button {
-                text: "ESCANEAR AHORA"
+                text: (bridge && bridge.currentLanguage) ? bridge.translate("lib_scan_now") : "ESCANEAR AHORA"
                 Layout.alignment: Qt.AlignHCenter
                 onClicked: bridge.scanGames()
                 background: Rectangle { radius: 20; color: "#4da6ff" }
@@ -185,11 +183,6 @@ Item {
                         GradientStop { position: 0.5; color: Qt.alpha(accentColor, 0.8) }
                         GradientStop { position: 1.0; color: "transparent" }
                     }
-                    layer.enabled: true
-                    layer.effect: MultiEffect { 
-                        blurEnabled: true
-                        blur: 0.3 + (Math.abs(floatOffset) / 100) 
-                    }
                 }
 
                 // Capa 2: Difusión Suave (Atmosférica)
@@ -204,11 +197,6 @@ Item {
                         GradientStop { position: 0.0; color: "transparent" }
                         GradientStop { position: 0.5; color: accentColor }
                         GradientStop { position: 1.0; color: "transparent" }
-                    }
-                    layer.enabled: true
-                    layer.effect: MultiEffect { 
-                        blurEnabled: true
-                        blur: 0.8 + (Math.abs(floatOffset) / 50)
                     }
                 }
             }
@@ -262,8 +250,6 @@ Item {
                                 NumberAnimation { from: 1.0; to: 1.6; duration: 1500; easing.type: Easing.OutQuad }
                                 PauseAnimation { duration: 500 }
                             }
-                            layer.enabled: true
-                            layer.effect: MultiEffect { blurEnabled: true; blur: 0.6 }
                         }
 
                         Rectangle {
@@ -306,7 +292,7 @@ Item {
 
                         // Contador de Títulos
                         Label {
-                            text: modelData.count + " TÍTULOS"
+                            text: (bridge && bridge.currentLanguage ? bridge.translateWithArg("lib_games_count", modelData.count) : (modelData.count + " TÍTULOS")).toUpperCase()
                             font.pixelSize: 11 * responsiveScale; font.bold: true; color: "#888899"
                             Layout.fillWidth: true; horizontalAlignment: Text.AlignHCenter
                             opacity: isCurrent ? 0.8 : 0.3
@@ -324,7 +310,7 @@ Item {
                         border.width: isCurrent ? 1 : 0
                         Label {
                             anchors.centerIn: parent
-                            text: "EXPLORAR"
+                            text: (bridge && bridge.currentLanguage) ? bridge.translate("lib_btn_explore").toUpperCase() : "EXPLORAR"
                             font.bold: true; color: isCurrent ? "black" : "white"; font.pixelSize: 12 * responsiveScale
                         }
                     }
@@ -392,7 +378,7 @@ Item {
                         color: "white"
                     }
                     Label {
-                        text: libraryRoot.currentGames.length + " JUEGOS DISPONIBLES"
+                        text: (bridge && bridge.currentLanguage ? bridge.translateWithArg("lib_games_count", libraryRoot.currentGames.length).toUpperCase() : (libraryRoot.currentGames.length + " JUEGOS DISPONIBLES"))
                         font.pixelSize: 10
                         font.bold: true
                         color: currentAccentColor
@@ -421,7 +407,7 @@ Item {
                             font.pixelSize: 14
                             verticalAlignment: TextInput.AlignVCenter
                             Label {
-                                text: "Buscar título..."
+                                text: (bridge && bridge.currentLanguage) ? bridge.translate("lib_search") : "Buscar título..."
                                 color: "#66ffffff"
                                 visible: searchInput.text === ""
                                 anchors.fill: parent
@@ -479,8 +465,6 @@ Item {
                             opacity: isHovered ? 1.0 : 0.2
                             Behavior on border.width { NumberAnimation { duration: 200 } }
                             Behavior on opacity { NumberAnimation { duration: 300 } }
-                            layer.enabled: isHovered
-                            layer.effect: MultiEffect { blurEnabled: true; blur: 0.5; blurMax: 32 }
                         }
 
                         Image {

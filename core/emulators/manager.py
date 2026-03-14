@@ -83,11 +83,23 @@ class EmuladorManager:
                 json.dump(self.playtimes, f, indent=4)
         except: pass
 
-    def _sync_with_disk(self):
+    def _sync_with_disk(self, force=False):
         if not self.install_path or not os.path.exists(self.install_path):
             return
         
         updated = False
+        # 1. Limpiar entradas que ya no existen si forzamos
+        if force:
+            to_remove = []
+            for repo, info in self.installed_emus.items():
+                files = info.get("files", [])
+                if not files or not os.path.exists(files[0]):
+                    to_remove.append(repo)
+            for repo in to_remove:
+                del self.installed_emus[repo]
+                updated = True
+
+        # 2. Escanear nuevas carpetas
         try:
             for console_folder in os.listdir(self.install_path):
                 console_path = os.path.join(self.install_path, console_folder)
@@ -110,8 +122,10 @@ class EmuladorManager:
         except: pass
 
     def save_config(self, install_path=None, roms_path=None, language=None):
-        if install_path is not None:
+        path_changed = False
+        if install_path is not None and install_path != self.install_path:
             self.install_path = install_path
+            path_changed = True
         if roms_path is not None:
             self.roms_path = roms_path
             self.crear_carpetas_roms()
@@ -127,6 +141,8 @@ class EmuladorManager:
         try:
             with open(self.config_file, "w") as f:
                 json.dump(config, f, indent=4)
+            if path_changed:
+                self._sync_with_disk(force=True)
         except Exception as e:
             print(f"[DEBUG] Error al guardar configuración: {e}")
 
@@ -162,7 +178,16 @@ class EmuladorManager:
                 self._save_playtime()
 
     def esta_instalado(self, repo_github: str) -> bool:
-        return repo_github in self.installed_emus
+        if repo_github not in self.installed_emus:
+            return False
+        
+        # Validación real en disco
+        info = self.installed_emus[repo_github]
+        files = info.get("files", [])
+        if not files: return False
+        
+        # Verificar si el archivo principal existe
+        return os.path.exists(files[0])
 
     # Delegated installer methods
     async def get_valid_emulators(self):

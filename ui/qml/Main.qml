@@ -9,8 +9,16 @@ ApplicationWindow {
     width: 1100
     height: 720
     visible: true
-    title: (bridge ? bridge.appName : "EmuManager") + " " + (bridge ? bridge.appVersion : "")
+    title: ((bridge ? bridge.currentLanguage : ""), (bridge ? bridge.appName : "EmuManager") + " " + (bridge ? bridge.appVersion : ""))
     color: "#0f111a"
+
+    // Helper para traducciones reactivas
+    function tr(key, arg) {
+        if (!bridge) return key
+        var _ = bridge.currentLanguage // Fuerza dependencia
+        if (arg !== undefined) return bridge.translateWithArg(key, String(arg))
+        return bridge.translate(key)
+    }
 
     // Fondo base
     Rectangle {
@@ -108,7 +116,7 @@ ApplicationWindow {
 
                             Text {
                                 Layout.fillWidth: true
-                                text: bridge ? bridge.translate(model.name) : ""
+                                text: tr(model.name)
                                 color: sidebarList.currentIndex === index ? "white" : "#888899"
                                 verticalAlignment: Text.AlignVCenter
                                 font.pixelSize: 13

@@ -22,13 +22,13 @@ Item {
             ColumnLayout {
                 spacing: 4
                 Label {
-                    text: bridge ? bridge.translate("nav_downloads") : "Downloads"
+                    text: (bridge && bridge.currentLanguage) ? bridge.translate("nav_downloads") : "Downloads"
                     font.pixelSize: 32
                     font.bold: true
                     color: "white"
                 }
                 Label {
-                    text: bridge ? bridge.translate("dl_list_sub") : ""
+                    text: (bridge && bridge.currentLanguage) ? bridge.translate("dl_list_sub") : ""
                     font.pixelSize: 14
                     color: "#888899"
                 }
@@ -45,7 +45,7 @@ Item {
                 width: 4; height: 24; radius: 2; color: "#4da6ff" 
             }
             Label {
-                text: bridge ? bridge.translate("dl_main_title") : "EMULATORS"
+                text: (bridge && bridge.currentLanguage ? bridge.translate("dl_main_title") : "EMULATORS")
                 font.pixelSize: 18
                 font.bold: true
                 color: "white"
@@ -151,7 +151,7 @@ Item {
                     }
 
                     Label {
-                        text: bridge ? bridge.translate("dl_scrap_title").toUpperCase() : "METADATA & ARTWORK"
+                        text: (bridge && bridge.currentLanguage ? bridge.translate("dl_scrap_title").toUpperCase() : "METADATA & ARTWORK")
                         font.pixelSize: 14
                         font.bold: true
                         color: "white"
@@ -194,7 +194,7 @@ Item {
                         spacing: 2
                         Layout.fillWidth: true
                         Label {
-                            text: bridge ? bridge.translate("dl_scrap_sub") : "Obtén carátulas y fondos para tus juegos."
+                            text: (bridge && bridge.currentLanguage) ? bridge.translate("dl_scrap_sub") : "Obtén carátulas y fondos para tus juegos."
                             font.pixelSize: 11
                             color: "#888899"
                             wrapMode: Text.WordWrap
@@ -219,7 +219,7 @@ Item {
                         }
                         
                         contentItem: Label {
-                            text: "DESCARGAR"
+                            text: (bridge && bridge.currentLanguage) ? bridge.translate("set_btn_download") : "DESCARGAR"
                             color: scrapeBtn.enabled ? "white" : "#888899"
                             font.bold: true
                             font.pixelSize: 11

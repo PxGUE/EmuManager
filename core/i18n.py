@@ -31,6 +31,8 @@ TRANSLATIONS = {
         "dash_missing": "No configurado",
         "dash_path_missing": "La ruta no existe físicamente",
         "dash_emu_running": "Emulador Abierto",
+        "dash_available_systems": "SISTEMAS DISPONIBLES",
+        "dash_no_systems": "Ningún sistema listo",
         
         # Library
         "lib_search": "Buscar juego...",
@@ -47,6 +49,7 @@ TRANSLATIONS = {
         "lib_game_desc": "Juego de {0} ({1}).",
         "lib_btn_back": "Volver a consolas",
         "lib_refresh": "Refrescar",
+        "lib_scan_now": "ESCANEAR AHORA",
         "lib_playtime": "Tiempo jugado: {0}",
         "lib_played_hours": "{0}h {1}m",
         "lib_total_time": "Tiempo total: {0}",
@@ -59,6 +62,7 @@ TRANSLATIONS = {
         "lib_status_downloading": "Descargando: {0}",
         "lib_empty": "Descarga una consola desde la sección de descarga",
         "lib_btn_view_games": "VER JUEGOS",
+        "lib_btn_explore": "EXPLORAR",
         "lib_empty_title": "Biblioteca Vacía",
         "lib_empty_sub": "Tu colección aparecerá aquí conforme instales emuladores.",
         "lib_btn_play": "JUGAR",
@@ -207,6 +211,9 @@ TRANSLATIONS = {
         "set_btn_clear": "Limpiar credenciales",
         "set_tip_clear": "Elimina las llaves y contraseñas de {0} de tu sistema.",
         "set_msg_cleared": "Credenciales eliminadas del sistema.",
+        "set_paths_section": "RUTAS DE EMULADORES",
+        "set_data_section": "CONFIGURACIÓN DE LOS DATOS",
+        "set_btn_download": "DESCARGAR",
 
         # General
         "loading_text": "Cargando...",
@@ -243,6 +250,8 @@ TRANSLATIONS = {
         "dash_missing": "Not configured",
         "dash_path_missing": "Path does not physically exist",
         "dash_emu_running": "Emulator Running",
+        "dash_available_systems": "AVAILABLE SYSTEMS",
+        "dash_no_systems": "No systems ready",
         
         # Library
         "lib_search": "Search game...",
@@ -259,6 +268,7 @@ TRANSLATIONS = {
         "lib_game_desc": "{0} Game ({1}).",
         "lib_btn_back": "Back to consoles",
         "lib_refresh": "Refresh",
+        "lib_scan_now": "SCAN NOW",
         "lib_playtime": "Time played: {0}",
         "lib_played_hours": "{0}h {1}m",
         "lib_total_time": "Total play time: {0}",
@@ -271,6 +281,7 @@ TRANSLATIONS = {
         "lib_status_downloading": "Downloading: {0}",
         "lib_empty": "Download a console from the download section",
         "lib_btn_view_games": "VIEW GAMES",
+        "lib_btn_explore": "EXPLORE",
         "lib_empty_title": "Empty Library",
         "lib_empty_sub": "Your Collection will appear here as you install emulators.",
         "lib_btn_play": "PLAY",
@@ -419,6 +430,9 @@ TRANSLATIONS = {
         "set_btn_clear": "Clear credentials",
         "set_tip_clear": "Removes keys and passwords for {0} from your system.",
         "set_msg_cleared": "Credentials removed from the system.",
+        "set_paths_section": "EMULATOR PATHS",
+        "set_data_section": "DATA CONFIGURATION",
+        "set_btn_download": "DOWNLOAD",
 
         # General
         "loading_text": "Loading...",

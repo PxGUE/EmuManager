@@ -11,9 +11,10 @@ RowLayout {
     spacing: 15
 
     Rectangle {
-        width: 38; height: 38; radius: 12
-        color: root.exists ? "#154d3d" : (root.path ? "#4d3d15" : "#4d1515")
-        opacity: 0.8
+        width: 42; height: 42; radius: 12
+        color: root.exists ? Qt.alpha("#4dc6a6", 0.1) : (root.path ? Qt.alpha("#f0a040", 0.1) : Qt.alpha("#e05050", 0.1))
+        border.color: root.exists ? Qt.alpha("#4dc6a6", 0.2) : (root.path ? Qt.alpha("#f0a040", 0.2) : Qt.alpha("#e05050", 0.2))
+        border.width: 1
         
         Label {
             anchors.centerIn: parent
@@ -24,15 +25,15 @@ RowLayout {
     }
 
     ColumnLayout {
-        spacing: 0
+        spacing: 2
         Label {
             text: root.title.toUpperCase()
-            font.pixelSize: 10; font.bold: true; color: "#555566"; font.letterSpacing: 1
+            font.pixelSize: 10; font.bold: true; color: "#6e7282"; font.letterSpacing: 1.5
         }
         Label {
             text: root.path ? root.path.split(/[\\/]/).pop() : (bridge ? bridge.translate("dash_missing") : "Missing")
-            font.pixelSize: 14; font.weight: Font.Medium; color: "#e0e0e0"
-            Layout.maximumWidth: 280; elide: Text.ElideRight
+            font.pixelSize: 15; font.weight: Font.DemiBold; color: "#ffffff"
+            Layout.maximumWidth: 300; elide: Text.ElideRight
         }
     }
     

@@ -255,7 +255,7 @@ class AppBridge(QObject):
                 }
                 for emu in AVAILABLE_EMULATORS 
                 if self.emu_manager.esta_instalado(emu["github"])
-            ][:6]
+            ]
         }
 
     @Slot()

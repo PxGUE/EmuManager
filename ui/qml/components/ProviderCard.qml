@@ -3,125 +3,97 @@ import QtQuick.Layouts
 import QtQuick.Controls
 
 Item {
-    id: card
+    id: cardRoot
     property string providerId: ""
     property string name: ""
-    property string type: ""
+    property string type: "" // metadata, artworks, hybrid
     property bool enabled: false
     
     signal configureClicked()
 
-    height: 70
+    Layout.preferredHeight: 100
     Layout.fillWidth: true
-
-    ColumnLayout {
+    
+    MouseArea {
+        id: mouseArea
         anchors.fill: parent
-        spacing: 0
+        hoverEnabled: true
+
+        Rectangle {
+            id: bg
+            anchors.fill: parent
+            radius: 20
+            color: mouseArea.containsMouse ? "#1c1f2e" : "#141621"
+            border.color: mouseArea.containsMouse ? "#4da6ff" : "#252835"
+            border.width: 1
+            Behavior on color { ColorAnimation { duration: 250 } }
+            Behavior on border.color { ColorAnimation { duration: 250 } }
+
+            // Glow de fondo dinámico Premium
+            Rectangle {
+                anchors.centerIn: parent
+                width: parent.width * 1.1; height: parent.height * 1.3
+                radius: 40
+                opacity: mouseArea.containsMouse ? 0.25 : 0.0
+                gradient: Gradient {
+                    orientation: Gradient.Horizontal
+                    GradientStop { position: 0.0; color: "transparent" }
+                    GradientStop { position: 0.5; color: "#4da6ff" }
+                    GradientStop { position: 1.0; color: "transparent" }
+                }
+                Behavior on opacity { NumberAnimation { duration: 400 } }
+            }
+        }
 
         RowLayout {
-            Layout.fillWidth: true
-            Layout.preferredHeight: 69
-            spacing: 16
+            anchors.fill: parent
+            anchors.margins: 20
+            spacing: 20
 
-            // Info
-            ColumnLayout {
-                spacing: 4
-                Layout.fillWidth: true
-                
+            Rectangle {
+                width: 50; height: 50; radius: 15
+                color: Qt.alpha("#4da6ff", 0.1)
                 Label {
-                    text: card.name
-                    font.bold: true
-                    font.pixelSize: 15
-                    color: card.enabled ? "white" : "#666677"
-                    elide: Text.ElideRight
-                    Layout.fillWidth: true
-                }
-                
-                RowLayout {
-                    spacing: 8
-                    Rectangle {
-                        width: 8; height: 8; radius: 4
-                        color: card.type === "artwork" ? "#4da6ff" : "#7c6ff7"
-                        opacity: card.enabled ? 0.8 : 0.3
-                    }
-                    Label {
-                        text: card.type.toUpperCase()
-                        font.pixelSize: 10
-                        font.bold: true
-                        color: card.enabled ? "#888899" : "#444455"
-                        font.letterSpacing: 1
-                    }
+                    anchors.centerIn: parent
+                    text: type === "metadata" ? "📝" : (type === "artworks" ? "🖼️" : "🧩")
+                    font.pixelSize: 22
                 }
             }
 
-            // Actions
+            ColumnLayout {
+                spacing: 2
+                Label { text: name; font.pixelSize: 16; font.bold: true; color: "white" }
+                Label { 
+                    text: type.toUpperCase()
+                    font.pixelSize: 10; font.bold: true; color: "#6e7282"; font.letterSpacing: 1.5
+                }
+            }
+
+            Item { Layout.fillWidth: true }
+
             RowLayout {
                 spacing: 12
                 
                 Button {
-                    id: cfgBtn
-                    text: "Configure"
-                    visible: ["tgdb", "rawg", "steamgriddb", "screenscraper", "igdb"].includes(card.providerId)
-                    Layout.preferredHeight: 32
-                    
-                    onClicked: card.configureClicked()
-                    
-                    background: Rectangle {
-                        color: cfgBtn.hovered ? "#303440" : "#252b3d"
-                        radius: 6
-                        border.color: cfgBtn.hovered ? "#4da6ff" : "transparent"
-                        border.width: 1
+                    text: "⚙️"
+                    onClicked: cardRoot.configureClicked()
+                    visible: providerId !== "local"
+                    background: Rectangle { 
+                        implicitWidth: 40; implicitHeight: 40; radius: 10
+                        color: parent.hovered ? "#2a2d3e" : "transparent"
+                        border.color: parent.hovered ? "#4da6ff" : "transparent"
                     }
-                    
-                    contentItem: Label {
-                        text: bridge ? bridge.translate("set_btn_configure") : "Configure"
-                        color: cfgBtn.hovered ? "white" : "#4da6ff"
-                        font.pixelSize: 11
-                        font.bold: true
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                        leftPadding: 12
-                        rightPadding: 12
-                    }
+                    contentItem: Label { text: parent.text; font.pixelSize: 18; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                 }
 
                 Switch {
-                    id: control
-                    checked: card.enabled
+                    id: providerSwitch
+                    checked: enabled
                     onToggled: {
-                        if (bridge) bridge.toggleProvider(card.providerId, checked)
-                    }
-                    
-                    indicator: Rectangle {
-                        implicitWidth: 40
-                        implicitHeight: 22
-                        radius: 11
-                        color: control.checked ? Qt.alpha("#4da6ff", 0.2) : "#1a1c24"
-                        border.color: control.checked ? "#4da6ff" : "#353b4d"
-                        border.width: 1
-
-                        Rectangle {
-                            x: control.checked ? parent.width - width - 4 : 4
-                            y: 4
-                            width: 14
-                            height: 14
-                            radius: 7
-                            color: control.checked ? "#4da6ff" : "#555566"
-                            
-                            Behavior on x { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
-                            Behavior on color { ColorAnimation { duration: 200 } }
-                        }
+                        if (bridge) bridge.toggleProvider(providerId, checked)
                     }
                 }
             }
-        }
-
-        // Separator
-        Rectangle {
-            Layout.fillWidth: true
-            height: 1
-            color: "#252830"
-            opacity: 0.3
         }
     }
 }

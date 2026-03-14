@@ -1,7 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
-import QtQuick.Effects
 import "../components"
 
 Item {
@@ -28,13 +27,13 @@ Item {
             ColumnLayout {
                 spacing: 4
                 Label {
-                    text: bridge ? bridge.translate("set_title") : "Settings"
+                    text: (bridge && bridge.currentLanguage) ? bridge.translate("set_title") : "Settings"
                     font.pixelSize: 32
                     font.bold: true
                     color: "white"
                 }
                 Label {
-                    text: bridge ? bridge.translate("nav_settings") : "Personalize your experience"
+                    text: (bridge && bridge.currentLanguage) ? bridge.translate("nav_settings") : "Personalize your experience"
                     font.pixelSize: 14
                     color: "#888899"
                     opacity: 0.8
@@ -164,14 +163,6 @@ Item {
                             radius: 12
                             border.color: "#303440"
                             border.width: 1
-                            
-                            layer.enabled: true
-                            layer.effect: MultiEffect {
-                                shadowEnabled: true
-                                shadowColor: "#000000"
-                                shadowBlur: 0.8
-                                shadowOpacity: 0.5
-                            }
                         }
                     }
                 }
@@ -186,7 +177,7 @@ Item {
                     spacing: 10
                     Rectangle { width: 4; height: 18; radius: 2; color: "#4da6ff" }
                     Label {
-                        text: "RUTAS DE EMULADORES"
+                        text: bridge ? bridge.translate("set_paths_section").toUpperCase() : "RUTAS DE EMULADORES"
                         font.pixelSize: 14
                         font.bold: true
                         color: "white"
@@ -199,15 +190,15 @@ Item {
                     Layout.fillWidth: true
 
                     PathSetting {
-                        title: bridge ? bridge.translate("set_emus_title") : "Ruta de Aplicaciones"
-                        subtitle: bridge ? bridge.translate("set_emus_sub") : "Donde se instalan los ejecutables"
+                        title: (bridge && bridge.currentLanguage) ? bridge.translate("set_emus_title") : "Ruta de Aplicaciones"
+                        subtitle: (bridge && bridge.currentLanguage) ? bridge.translate("set_emus_sub") : "Donde se instalan los ejecutables"
                         path: bridge ? bridge.installPath : ""
                         onBrowse: bridge.browseInstallPath()
                     }
 
                     PathSetting {
-                        title: bridge ? bridge.translate("set_roms_title") : "Ruta de Juegos (ROMs)"
-                        subtitle: bridge ? bridge.translate("set_roms_sub") : "Donde guardas tus bibliotecas"
+                        title: (bridge && bridge.currentLanguage) ? bridge.translate("set_roms_title") : "Ruta de Juegos (ROMs)"
+                        subtitle: (bridge && bridge.currentLanguage) ? bridge.translate("set_roms_sub") : "Donde guardas tus bibliotecas"
                         path: bridge ? bridge.romsPath : ""
                         onBrowse: bridge.browseRomsPath()
                     }
@@ -223,7 +214,7 @@ Item {
                     spacing: 10
                     Rectangle { width: 4; height: 18; radius: 2; color: "#4da6ff" }
                     Label {
-                        text: "CONFIGURACIÓN DE LOS DATOS"
+                        text: bridge ? bridge.translate("set_data_section").toUpperCase() : "CONFIGURACIÓN DE LOS DATOS"
                         font.pixelSize: 14
                         font.bold: true
                         color: "white"
@@ -263,7 +254,7 @@ Item {
             
             Button {
                 id: aboutBtn
-                text: bridge ? bridge.translate("set_btn_about") : "About EmuManager"
+                text: (bridge && bridge.currentLanguage) ? bridge.translate("set_btn_about") : "About EmuManager"
                 Layout.alignment: Qt.AlignHCenter
                 Layout.preferredWidth: 280
                 Layout.preferredHeight: 44
@@ -431,15 +422,6 @@ Item {
                 radius: 40
                 border.color: "#303440"
                 border.width: 1
-                
-                layer.enabled: true
-                layer.effect: MultiEffect {
-                    shadowEnabled: true
-                    shadowColor: "#000000"
-                    shadowBlur: 1.0
-                    shadowOpacity: 0.6
-                    shadowVerticalOffset: 12
-                }
             }
 
             Rectangle {
@@ -486,10 +468,8 @@ Item {
                     width: 50; height: 50
                     radius: 25
                     color: "#4da6ff"
-                    opacity: 0.15
+                    opacity: 0.1
                     z: -1
-                    layer.enabled: true
-                    layer.effect: MultiEffect { blurEnabled: true; blur: 1.0 }
                 }
             }
             
@@ -513,7 +493,7 @@ Item {
                     width: 40; height: 2; radius: 1; color: "#4da6ff"
                 }
                 Label {
-                    text: bridge ? bridge.translateWithArg("app_version", bridge.appVersion).toUpperCase() : "V1.0"
+                    text: (bridge && bridge.currentLanguage) ? bridge.translateWithArg("app_version", bridge.appVersion).toUpperCase() : "V1.0"
                     font.pixelSize: 10
                     font.bold: true
                     font.letterSpacing: 2
@@ -528,7 +508,7 @@ Item {
 
             // 3. Descripción principal
             Label {
-                text: bridge ? bridge.translate("set_about_desc") : "A premium retro gaming experience managed with elegance."
+                text: (bridge && bridge.currentLanguage) ? bridge.translate("set_about_desc") : "A premium retro gaming experience managed with elegance."
                 wrapMode: Text.WordWrap
                 color: "#9da3b4"
                 font.pixelSize: 14
@@ -621,7 +601,7 @@ Item {
                 
                 Button {
                     id: closeAboutBtn
-                    text: bridge ? bridge.translate("set_btn_close").toUpperCase() : "CLOSE"
+                    text: (bridge && bridge.currentLanguage) ? bridge.translate("set_btn_close").toUpperCase() : "CLOSE"
                     Layout.preferredWidth: 160
                     Layout.preferredHeight: 46
                     Layout.alignment: Qt.AlignHCenter

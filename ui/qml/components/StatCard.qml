@@ -1,97 +1,114 @@
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
-import QtQuick.Effects
 
 Item {
     id: cardRoot
     property string icon: "🎯"
-    property var value: 0
+    property int value: 0
     property string label: "Stat"
     property color accentColor: "#4da6ff"
 
-    Layout.preferredWidth: 220
-    Layout.preferredHeight: 140
-    
-    property bool isHovered: mouseArea.containsMouse
+    property int displayValue: 0
 
-    // Sombra / Glow de fondo
-    Rectangle {
-        anchors.fill: cardBody
-        anchors.margins: -10
-        radius: 32
-        color: Qt.alpha(accentColor, 0.15)
-        visible: isHovered
-        layer.enabled: true
-        layer.effect: MultiEffect { blurEnabled: true; blur: 0.8; blurMax: 60 }
+    implicitWidth: 220
+    implicitHeight: 110
+    
+    Layout.fillWidth: true
+    Layout.preferredWidth: 240
+    Layout.minimumWidth: 180
+    Layout.maximumWidth: 400
+    Layout.preferredHeight: 110
+    
+    // Animación de conteo
+    NumberAnimation {
+        id: counterAnim
+        target: cardRoot
+        property: "displayValue"
+        from: 0
+        to: cardRoot.value
+        duration: 1200
+        easing.type: Easing.OutExpo
+    }
+
+    // Reiniciar animación cuando la tarjeta se hace visible (al cambiar de pestaña)
+    onVisibleChanged: {
+        if (visible) {
+            displayValue = 0
+            counterAnim.restart()
+        }
+    }
+
+    // Reiniciar si el valor cambia mientras es visible
+    onValueChanged: {
+        if (visible) counterAnim.restart()
+        else displayValue = value
     }
 
     Rectangle {
         id: cardBody
         anchors.fill: parent
-        radius: 28
-        color: "#161823"
-        border.color: isHovered ? accentColor : "#2a2d3a"
-        border.width: isHovered ? 2 : 1
+        radius: 20
+        color: "#141621"
+        border.color: "#252835"
+        border.width: 1
         
-        scale: isHovered ? 1.05 : 1.0
-        Behavior on scale { NumberAnimation { duration: 400; easing.type: Easing.OutBack } }
-        Behavior on border.color { ColorAnimation { duration: 300 } }
-
-        // Gradiente interno Glassmorphism
+        // Gradiente sutil constante para profundidad
         Rectangle {
             anchors.fill: parent
             anchors.margins: 1
-            radius: 27
+            radius: 19
             gradient: Gradient {
-                GradientStop { position: 0.0; color: "#1affffff" }
+                GradientStop { position: 0.0; color: "#08ffffff" }
                 GradientStop { position: 1.0; color: "transparent" }
             }
         }
 
-        ColumnLayout {
+        RowLayout {
             anchors.fill: parent
-            anchors.margins: 22
-            spacing: 0
+            anchors.margins: 18
+            spacing: 15
 
             Rectangle {
-                width: 44
-                height: 44
+                width: 48
+                height: 48
                 radius: 14
                 color: Qt.alpha(cardRoot.accentColor, 0.12)
-                border.color: Qt.alpha(cardRoot.accentColor, 0.2)
-                border.width: 1
+                Layout.alignment: Qt.AlignVCenter
                 
                 Label {
                     anchors.centerIn: parent
                     text: cardRoot.icon
-                    font.pixelSize: 22
+                    font.pixelSize: 24
                 }
             }
 
-            Item { Layout.fillHeight: true }
+            ColumnLayout {
+                spacing: 0
+                Layout.fillWidth: true
+                Layout.alignment: Qt.AlignVCenter
 
-            Label {
-                text: cardRoot.value
-                font.pixelSize: 36
-                font.weight: Font.Black
-                color: "white"
-                font.letterSpacing: -0.5
-            }
+                Label {
+                    text: cardRoot.displayValue
+                    font.pixelSize: 28
+                    font.weight: Font.Black
+                    color: "white"
+                    Layout.fillWidth: true
+                    elide: Text.ElideRight
+                }
 
-            Label {
-                text: cardRoot.label.toUpperCase()
-                font.pixelSize: 10
-                font.bold: true
-                color: "#888899"
-                font.letterSpacing: 1.5
+                Label {
+                    text: cardRoot.label.toUpperCase()
+                    font.pixelSize: 11
+                    font.bold: true
+                    color: "#a0a0b0"
+                    font.letterSpacing: 0.5
+                    Layout.fillWidth: true
+                    wrapMode: Text.WordWrap
+                    maximumLineCount: 2
+                    lineHeight: 0.9
+                }
             }
         }
-    }
-
-    MouseArea {
-        id: mouseArea
-        anchors.fill: parent
-        hoverEnabled: true
     }
 }

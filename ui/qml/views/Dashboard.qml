@@ -1,7 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
-import QtQuick.Effects
 import "../components"
 
 Item {
@@ -12,30 +11,32 @@ Item {
 
     Component.onCompleted: if (bridge) bridge.refreshDashboard()
 
-    // --- FONDO ATMOSFÉRICO PREMIUM ---
+    // --- FONDO ATMOSFÉRICO ---
     Rectangle {
         anchors.fill: parent
-        color: "#07080c"
+        color: "#0a0b12"
         z: -2
         
+        // Glow ambiental animado
         Rectangle {
             id: backgroundBlur
             anchors.centerIn: parent
             width: parent.width * 1.5
             height: parent.height * 1.5
             radius: width / 2
-            opacity: 0.12
-            color: currentAccentColor
+            opacity: 0.1
+            
+            gradient: Gradient {
+                GradientStop { position: 0.0; color: currentAccentColor }
+                GradientStop { position: 0.5; color: "transparent" }
+            }
             
             SequentialAnimation on color {
                 loops: Animation.Infinite
-                ColorAnimation { from: "#4da6ff"; to: "#7c6ff7"; duration: 8000; easing.type: Easing.InOutSine }
-                ColorAnimation { from: "#7c6ff7"; to: "#4dc6a6"; duration: 8000; easing.type: Easing.InOutSine }
-                ColorAnimation { from: "#4dc6a6"; to: "#4da6ff"; duration: 8000; easing.type: Easing.InOutSine }
+                ColorAnimation { from: "#4da6ff"; to: "#7c6ff7"; duration: 10000; easing.type: Easing.InOutSine }
+                ColorAnimation { from: "#7c6ff7"; to: "#4dc6a6"; duration: 10000; easing.type: Easing.InOutSine }
+                ColorAnimation { from: "#4dc6a6"; to: "#4da6ff"; duration: 10000; easing.type: Easing.InOutSine }
             }
-
-            layer.enabled: true
-            layer.effect: MultiEffect { blurEnabled: true; blur: 1.0; blurMax: 100 }
         }
     }
 
@@ -44,9 +45,9 @@ Item {
         id: emptyState
         anchors.centerIn: parent
         width: 480
-        height: 380
+        height: 400
         radius: 40
-        color: "#11131a"
+        color: "#12141d"
         border.color: "#252835"
         border.width: 1
         visible: isEmpty
@@ -80,14 +81,14 @@ Item {
                     z: -1
                     SequentialAnimation on scale {
                         loops: Animation.Infinite
-                        NumberAnimation { from: 1.0; to: 1.2; duration: 3000; easing.type: Easing.InOutSine }
-                        NumberAnimation { from: 1.2; to: 1.0; duration: 3000; easing.type: Easing.InOutSine }
+                        NumberAnimation { from: 1.0; to: 1.2; duration: 4000; easing.type: Easing.InOutSine }
+                        NumberAnimation { from: 1.2; to: 1.0; duration: 4000; easing.type: Easing.InOutSine }
                     }
                 }
             }
 
             ColumnLayout {
-                spacing: 4
+                spacing: 8
                 Layout.alignment: Qt.AlignHCenter
 
                 Label {
@@ -103,7 +104,7 @@ Item {
                     font.pixelSize: 12
                     font.bold: true
                     color: currentAccentColor
-                    font.letterSpacing: 2
+                    font.letterSpacing: 4
                     Layout.alignment: Qt.AlignHCenter
                 }
             }
@@ -120,296 +121,242 @@ Item {
         ColumnLayout {
             width: parent.width
             spacing: 40
-            Layout.margins: 40
-            Layout.topMargin: 20
+            Layout.topMargin: 30
+            Layout.bottomMargin: 60
 
-            // 1. HERO PANEL LUXURY
+            // 1. HERO SECTION
             Item {
                 Layout.fillWidth: true
-                height: 240
+                height: 300
                 
                 Rectangle {
                     anchors.fill: parent
-                    radius: 35
-                    color: "#161823"
-                    border.color: "#2a2d3a"
+                    color: "#0f111a"
+                    opacity: 0.5
+                    border.color: "#1d1f2b"
                     border.width: 1
-                    clip: true
+                }
 
-                    // Interior Glow
+                Item {
+                    anchors.fill: parent
+                    z: -1
                     Rectangle {
                         anchors.fill: parent
-                        anchors.margins: 1
-                        radius: 34
+                        opacity: 0.2
                         gradient: Gradient {
                             orientation: Gradient.Horizontal
-                            GradientStop { position: 0.0; color: "#0fffffff" }
-                            GradientStop { position: 1.0; color: "transparent" }
+                            GradientStop { position: 0.0; color: currentAccentColor }
+                            GradientStop { position: 0.8; color: "transparent" }
                         }
-                    }
-
-                    // Background Pattern/Decorative Circle
-                    Rectangle {
-                        anchors.right: parent.right
-                        anchors.verticalCenter: parent.verticalCenter
-                        width: 400; height: 400; radius: 200
-                        color: currentAccentColor
-                        opacity: 0.04
-                        anchors.rightMargin: -100
                     }
                 }
 
                 RowLayout {
                     anchors.fill: parent
-                    anchors.leftMargin: 50
-                    anchors.rightMargin: 50
-                    spacing: 30
+                    anchors.leftMargin: 60
+                    anchors.rightMargin: 60
+                    spacing: 40
 
                     ColumnLayout {
                         spacing: 12
+                        Layout.fillWidth: true
                         Layout.alignment: Qt.AlignVCenter
 
                         Rectangle {
-                            width: 100; height: 26; radius: 13
+                            height: 28; width: childrenRect.width + 24; radius: 14
                             color: Qt.alpha(currentAccentColor, 0.15)
                             border.color: Qt.alpha(currentAccentColor, 0.3)
-                            border.width: 1
-                            
                             Label {
-                                anchors.centerIn: parent
-                                text: bridge ? bridge.translate("dash_greeting").toUpperCase() : "BIENVENIDO"
-                                font.pixelSize: 10; font.bold: true; color: currentAccentColor; font.letterSpacing: 1.5
+                                x: 12; anchors.verticalCenter: parent.verticalCenter
+                                text: (bridge && bridge.currentLanguage) ? bridge.translate("dash_greeting").toUpperCase() : "BIENVENIDO"
+                                font.pixelSize: 11; font.bold: true; color: currentAccentColor; font.letterSpacing: 2
                             }
                         }
 
                         Label {
                             text: bridge ? bridge.appName : "EmuManager"
-                            font.pixelSize: 56; font.weight: Font.Black; color: "#ffffff"
-                            font.letterSpacing: -1
+                            font.pixelSize: 72; font.weight: Font.Black; color: "#ffffff"
+                            font.letterSpacing: -2
                         }
                         
                         Label {
-                            text: (bridge ? bridge.translateWithArg("dash_tagline", "") : "Tu centro de emulación retro") + " • v" + (bridge ? bridge.appVersion : "1.0")
-                            font.pixelSize: 16; color: "#888899"
+                            text: (bridge && bridge.currentLanguage ? bridge.translateWithArg("dash_tagline", "") : "Tu centro de emulación retro") + " • v" + (bridge ? bridge.appVersion : "1.0")
+                            font.pixelSize: 18; color: "#9494a5"; font.weight: Font.Light
                         }
                     }
 
-                    Item { Layout.fillWidth: true }
-
-                    // Decorative Floating Icon
-                    Label {
-                        text: "👾"
-                        font.pixelSize: 100
-                        opacity: 0.12
-                        rotation: -10
-                        Layout.alignment: Qt.AlignVCenter
-                        
+                    Item {
+                        Layout.preferredWidth: 160; Layout.preferredHeight: 160; Layout.alignment: Qt.AlignVCenter
+                        Rectangle {
+                            anchors.centerIn: parent
+                            width: 140; height: 140; radius: 45; opacity: 0.12
+                            gradient: Gradient {
+                                GradientStop { position: 0.0; color: currentAccentColor }
+                                GradientStop { position: 1.0; color: "transparent" }
+                            }
+                        }
+                        Rectangle {
+                            id: logoBox
+                            anchors.centerIn: parent
+                            width: 124; height: 124; radius: 40; color: "#161825"
+                            border.color: Qt.alpha(currentAccentColor, 0.4); border.width: 1
+                            Image {
+                                anchors.fill: parent; anchors.margins: 22
+                                source: bridge ? bridge.logoPath : ""; fillMode: Image.PreserveAspectFit; opacity: 0.95
+                            }
+                        }
                         SequentialAnimation on anchors.verticalCenterOffset {
                             loops: Animation.Infinite
-                            NumberAnimation { from: -10; to: 10; duration: 3000; easing.type: Easing.InOutQuad }
-                            NumberAnimation { from: 10; to: -10; duration: 3000; easing.type: Easing.InOutQuad }
+                            NumberAnimation { from: -10; to: 10; duration: 3500; easing.type: Easing.InOutQuad }
+                            NumberAnimation { from: 10; to: -10; duration: 3500; easing.type: Easing.InOutQuad }
                         }
                     }
                 }
             }
 
-            // 2. STATS ROW
-            ColumnLayout {
+            // 2. STATS SECTION
+            RowLayout {
                 Layout.fillWidth: true
-                spacing: 18
+                Layout.leftMargin: 40
+                Layout.rightMargin: 40
+                spacing: 15
                 
-                Label {
-                    text: (bridge ? bridge.translate("dash_stats_title") : "ESTADÍSTICAS").toUpperCase()
-                    font.pixelSize: 11; font.bold: true; color: currentAccentColor; font.letterSpacing: 3
-                }
-
-                RowLayout {
-                    spacing: 24
+                StatCard {
+                    icon: "🚀"; label: (bridge && bridge.currentLanguage) ? bridge.translate("dash_stat_installed") : "INSTALADOS"; accentColor: "#4da6ff"
+                    value: (bridge && bridge.dashboardStats) ? bridge.dashboardStats.installed : 0
                     Layout.fillWidth: true
-
-                    StatCard {
-                        icon: "🚀"
-                        value: (bridge && bridge.dashboardStats) ? bridge.dashboardStats.installed : 0
-                        label: bridge ? bridge.translate("dash_stat_installed") : "Instalados"
-                        accentColor: "#4da6ff"
-                    }
-                    StatCard {
-                        icon: "🎮"
-                        value: (bridge && bridge.dashboardStats) ? bridge.dashboardStats.totalRoms : 0
-                        label: bridge ? bridge.translate("dash_stat_roms") : "ROMs"
-                        accentColor: "#7c6ff7"
-                    }
-                    StatCard {
-                        icon: "🕹️"
-                        value: (bridge && bridge.dashboardStats) ? bridge.dashboardStats.totalConsoles : 0
-                        label: bridge ? bridge.translate("dash_stat_consoles") : "Consolas"
-                        accentColor: "#4dc6a6"
-                    }
-                    StatCard {
-                        icon: "⏳"
-                        value: (bridge && bridge.dashboardStats) ? bridge.dashboardStats.totalHours : 0
-                        label: bridge ? bridge.translate("dash_stat_hours") : "Horas"
-                        accentColor: "#f0a040"
-                    }
-                    Item { Layout.fillWidth: true }
+                }
+                StatCard {
+                    icon: "🎮"; label: (bridge && bridge.currentLanguage) ? bridge.translate("dash_stat_roms") : "NÚMERO DE ROMS"; accentColor: "#7c6ff7"
+                    value: (bridge && bridge.dashboardStats) ? bridge.dashboardStats.totalRoms : 0
+                    Layout.fillWidth: true
+                }
+                StatCard {
+                    icon: "🕹️"; label: (bridge && bridge.currentLanguage) ? bridge.translate("dash_stat_consoles") : "CONSOLAS"; accentColor: "#4dc6a6"
+                    value: (bridge && bridge.dashboardStats) ? bridge.dashboardStats.totalConsoles : 0
+                    Layout.fillWidth: true
+                }
+                StatCard {
+                    icon: "⏳"; label: (bridge && bridge.currentLanguage) ? bridge.translate("dash_stat_hours") : "TIEMPO JUGADO"; accentColor: "#f0a040"
+                    value: (bridge && bridge.dashboardStats) ? bridge.dashboardStats.totalHours : 0
+                    Layout.fillWidth: true
                 }
             }
 
-            // 3. CONTENT PANELS
+            // 3. MAIN CONTENT (Side by Side)
             RowLayout {
-                Layout.fillWidth: true
-                spacing: 30
-                Layout.alignment: Qt.AlignTop
+                Layout.fillWidth: true; Layout.leftMargin: 60; Layout.rightMargin: 60; spacing: 40
+                Layout.topMargin: 20; Layout.alignment: Qt.AlignTop
 
-                // Recent Activity
+                // Activity Panel
                 ColumnLayout {
-                    Layout.fillWidth: true
-                    Layout.preferredWidth: 3
-                    spacing: 18
-                    Layout.alignment: Qt.AlignTop
-
+                    Layout.fillWidth: true; Layout.preferredWidth: 4; spacing: 15; Layout.alignment: Qt.AlignTop
                     Label {
-                        text: (bridge ? bridge.translate("dash_recent_title") : "ACTIVIDAD RECIENTE").toUpperCase()
-                        font.pixelSize: 11; font.bold: true; color: currentAccentColor; font.letterSpacing: 3
+                        text: (bridge && bridge.currentLanguage ? bridge.translate("dash_recent_title") : "ACTIVIDAD RECIENTE").toUpperCase()
+                        font.pixelSize: 12; font.bold: true; color: "#6e7282"; font.letterSpacing: 2
+                        Layout.leftMargin: 5
                     }
-
                     Rectangle {
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: 320
-                        radius: 28
-                        color: "#161823"
-                        border.color: "#2a2d3a"
-                        border.width: 1
-
+                        Layout.fillWidth: true; Layout.preferredHeight: 380; radius: 28
+                        color: "#141621"; border.color: "#252835"; border.width: 1
                         ColumnLayout {
-                            anchors.fill: parent
-                            anchors.margins: 10
-                            spacing: 0
-
+                            anchors.fill: parent; anchors.margins: 15; spacing: 0
                             Repeater {
                                 model: bridge ? bridge.recentActivity : []
                                 delegate: Item {
-                                    Layout.fillWidth: true
-                                    height: 64
-                                    
+                                    Layout.fillWidth: true; height: 72
                                     Rectangle {
-                                        anchors.fill: parent
-                                        anchors.margins: 4
-                                        radius: 18
-                                        color: "#202336"
-                                        visible: mouseArea.containsMouse
-                                        opacity: 0.5
+                                        anchors.fill: parent; anchors.margins: 4; radius: 20
+                                        color: "#1c1f2e"; visible: mouseAreaAct.containsMouse
                                     }
-
                                     RowLayout {
-                                        anchors.fill: parent
-                                        anchors.leftMargin: 20
-                                        anchors.rightMargin: 20
-                                        spacing: 15
-                                        
+                                        anchors.fill: parent; anchors.leftMargin: 15; anchors.rightMargin: 15; spacing: 15
                                         Rectangle {
-                                            width: 40; height: 40; radius: 20
-                                            color: Qt.alpha(modelData.color, 0.15)
-                                            Label { anchors.centerIn: parent; text: "🕹️"; font.pixelSize: 18 }
+                                            width: 44; height: 44; radius: 12; color: Qt.alpha(modelData.color, 0.1)
+                                            border.color: Qt.alpha(modelData.color, 0.2); border.width: 1
+                                            Label { anchors.centerIn: parent; text: "🎮"; font.pixelSize: 20 }
                                         }
-
                                         ColumnLayout {
-                                            spacing: 1
-                                            Label {
-                                                text: modelData.name
-                                                color: "#ffffff"; font.pixelSize: 14; font.bold: true
-                                            }
-                                            Label {
-                                                text: modelData.console.toUpperCase()
-                                                color: "#666677"; font.pixelSize: 10; font.bold: true; font.letterSpacing: 1
-                                            }
+                                            spacing: 2
+                                            Label { text: modelData.name; color: "#ffffff"; font.pixelSize: 15; font.weight: Font.Bold; elide: Text.ElideRight; Layout.fillWidth: true }
+                                            Label { text: modelData.console.toUpperCase(); color: "#6e7282"; font.pixelSize: 10; font.bold: true; font.letterSpacing: 1 }
                                         }
                                         Item { Layout.fillWidth: true }
-                                        Label {
-                                            text: modelData.playtime
-                                            color: modelData.color; font.pixelSize: 12; font.bold: true
-                                        }
+                                        Label { text: modelData.playtime; color: modelData.color; font.pixelSize: 13; font.weight: Font.DemiBold }
                                     }
-                                    
-                                    MouseArea {
-                                        id: mouseArea
-                                        anchors.fill: parent
-                                        hoverEnabled: true
-                                    }
+                                    MouseArea { id: mouseAreaAct; anchors.fill: parent; hoverEnabled: true }
                                 }
                             }
-
                             Label {
                                 visible: bridge ? bridge.recentActivity.length === 0 : true
-                                text: bridge ? bridge.translate("dash_empty_recent") : "Sin actividad reciente"
-                                color: "#555566"; font.pixelSize: 14; Layout.alignment: Qt.AlignCenter
-                                Layout.margins: 60; horizontalAlignment: Text.AlignHCenter
+                                text: (bridge && bridge.currentLanguage) ? bridge.translate("dash_empty_recent") : "Sin actividad reciente"
+                                color: "#4a4d63"; font.pixelSize: 16; Layout.alignment: Qt.AlignCenter; Layout.topMargin: 100
                             }
                         }
                     }
                 }
 
-                // System Status
+                // Right Side: Multi-Card Column
                 ColumnLayout {
-                    Layout.fillWidth: true
-                    Layout.preferredWidth: 2
-                    spacing: 18
-                    Layout.alignment: Qt.AlignTop
-
-                    Label {
-                        text: (bridge ? bridge.translate("dash_status_title_panel") : "ESTADO DEL SISTEMA").toUpperCase()
-                        font.pixelSize: 11; font.bold: true; color: currentAccentColor; font.letterSpacing: 3
+                    Layout.fillWidth: true; Layout.preferredWidth: 2; spacing: 30; Layout.alignment: Qt.AlignTop
+                    
+                    // Card 1: System Paths
+                    ColumnLayout {
+                        spacing: 12; Layout.fillWidth: true
+                        Label {
+                            text: (bridge && bridge.currentLanguage ? bridge.translate("dash_status_title_panel") : "ESTADO DEL SISTEMA").toUpperCase()
+                            font.pixelSize: 11; font.bold: true; color: "#6e7282"; font.letterSpacing: 2; Layout.leftMargin: 5
+                        }
+                        Rectangle {
+                            Layout.fillWidth: true; implicitHeight: pathCol.implicitHeight + 40
+                            radius: 24; color: "#141621"; border.color: "#252835"; border.width: 1
+                            ColumnLayout {
+                                id: pathCol; anchors.left: parent.left; anchors.right: parent.right; anchors.top: parent.top; anchors.margins: 20; spacing: 18
+                                StatusRow {
+                                    title: (bridge && bridge.currentLanguage) ? bridge.translate("dash_status_path_emus") : "Ruta Emuladores"
+                                    path: (bridge && bridge.systemStatus) ? bridge.systemStatus.emusPath : ""
+                                    exists: (bridge && bridge.systemStatus) ? bridge.systemStatus.emusPathExists : false
+                                }
+                                StatusRow {
+                                    title: (bridge && bridge.currentLanguage) ? bridge.translate("dash_status_path_roms") : "Ruta ROMs"
+                                    path: (bridge && bridge.systemStatus) ? bridge.systemStatus.romsPath : ""
+                                    exists: (bridge && bridge.systemStatus) ? bridge.systemStatus.romsPathExists : false
+                                }
+                            }
+                        }
                     }
 
-                    Rectangle {
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: 320
-                        radius: 28
-                        color: "#161823"
-                        border.color: "#2a2d3a"
-                        border.width: 1
-
-                        ColumnLayout {
-                            anchors.fill: parent
-                            anchors.margins: 25
-                            spacing: 15
-
-                            StatusRow {
-                                title: bridge ? bridge.translate("dash_status_path_emus") : "Ruta Emuladores"
-                                path: (bridge && bridge.systemStatus) ? bridge.systemStatus.emusPath : ""
-                                exists: (bridge && bridge.systemStatus) ? bridge.systemStatus.emusPathExists : false
-                            }
-                            StatusRow {
-                                title: bridge ? bridge.translate("dash_status_path_roms") : "Ruta ROMs"
-                                path: (bridge && bridge.systemStatus) ? bridge.systemStatus.romsPath : ""
-                                exists: (bridge && bridge.systemStatus) ? bridge.systemStatus.romsPathExists : false
-                            }
-
-                            Rectangle {
-                                Layout.fillWidth: true; height: 1; color: "#2a2d3a"
-                            }
-
-                            Label {
-                                text: "EMULADORES INSTALADOS"
-                                font.pixelSize: 10; color: "#555566"; font.bold: true; font.letterSpacing: 1.5
-                            }
-
+                    ColumnLayout {
+                        spacing: 12; Layout.fillWidth: true
+                        Label {
+                            text: (bridge && bridge.currentLanguage ? bridge.translate("dash_available_systems") : "SISTEMAS DISPONIBLES")
+                            font.pixelSize: 11; font.bold: true; color: "#6e7282"; font.letterSpacing: 2; Layout.leftMargin: 5
+                        }
+                        Rectangle {
+                            Layout.fillWidth: true; implicitHeight: emuCol.implicitHeight + 40
+                            radius: 24; color: "#141621"; border.color: "#252835"; border.width: 1
                             ColumnLayout {
-                                spacing: 10
-                                clip: true
+                                id: emuCol; anchors.left: parent.left; anchors.right: parent.right; anchors.top: parent.top; anchors.margins: 20; spacing: 15
                                 Repeater {
                                     model: (bridge && bridge.systemStatus) ? bridge.systemStatus.installedEmus : []
                                     delegate: RowLayout {
-                                        Layout.fillWidth: true
-                                        Rectangle { width: 8; height: 8; radius: 4; color: modelData.color }
-                                        Label { text: modelData.name; color: "#d0d0d0"; font.pixelSize: 13; font.weight: Font.Medium }
-                                        Item { Layout.fillWidth: true }
-                                        Label { text: modelData.console.toUpperCase(); color: "#555566"; font.pixelSize: 9; font.bold: true }
+                                        Layout.fillWidth: true; spacing: 10
+                                        Rectangle { width: 8; height: 8; radius: 4; color: modelData.color; opacity: 0.8; Layout.alignment: Qt.AlignVCenter }
+                                        Label { 
+                                            text: modelData.name; color: "#e0e0e0"; font.pixelSize: 13; font.weight: Font.Medium; 
+                                            Layout.fillWidth: true; elide: Text.ElideRight 
+                                        }
+                                        Label { 
+                                            text: modelData.console.toUpperCase(); color: "#5a5e70"; font.pixelSize: 9; font.bold: true; 
+                                            Layout.alignment: Qt.AlignVCenter 
+                                        }
                                     }
                                 }
+                                Label {
+                                    visible: !bridge || bridge.systemStatus.installedEmus.length === 0
+                                    text: (bridge && bridge.currentLanguage) ? bridge.translate("dash_no_systems") : "Ningún sistema listo"; color: "#4a4d63"; font.pixelSize: 13; Layout.alignment: Qt.AlignCenter; Layout.topMargin: 5
+                                }
                             }
-                            
-                            Item { Layout.fillHeight: true }
                         }
                     }
                 }

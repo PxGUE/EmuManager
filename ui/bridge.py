@@ -8,6 +8,7 @@ from core.i18n import TRANSLATIONS
 import core.scanner as scanner
 from core.constants import AVAILABLE_EMULATORS
 import os
+from core.artwork import obtener_ruta_caratula
 
 class AppBridge(QObject):
     # Señales para notificar cambios a QML
@@ -48,55 +49,130 @@ class AppBridge(QObject):
         """Traduce una clave con un argumento (ej: versión)."""
         return self.translator.t(key, arg)
 
-    def _setup_manager_links(self):
-        """Sobrescribe o extiende métodos del manager para capturar progreso."""
-        # Esto es un poco hacky pero efectivo para no modificar el core
-        original_download = self.emu_manager.instalar_emulador
-        
-        async def wrapped_download(github_url, on_progress=None):
-            def progress_hook(p):
-                self.downloadProgress.emit(github_url, p)
-                if on_progress: on_progress(p)
-            
-            return await original_download(github_url, on_progress=progress_hook)
-        
-        self.emu_manager.instalar_emulador = wrapped_download
-
     @Property(list, notify=statsUpdated)
     def allEmulators(self):
-        """Lista completa de emuladores con estado de instalación."""
-        result = []
+        """Lista de consolas únicas con sus emuladores asociados."""
+        from core.constants import AVAILABLE_EMULATORS
+        consoles = {}
+        
         for emu in AVAILABLE_EMULATORS:
+            c_id = emu["console_id"]
             is_installed = self.emu_manager.esta_instalado(emu["github"])
-            result.append({
+            
+            if c_id not in consoles:
+                consoles[c_id] = {
+                    "id": c_id,
+                    "name": emu["console"], # El nombre de la consola
+                    "accentColor": emu.get("color", "#4da6ff"),
+                    "emulators": []
+                }
+            
+            consoles[c_id]["emulators"].append({
                 "id": emu["id"],
                 "name": emu["name"],
-                "console": emu["console"],
-                "consoleId": emu["console_id"],
-                "description": emu["description"],
                 "github": emu["github"],
                 "isInstalled": is_installed,
-                "color": emu.get("color", "#4da6ff"),
-                "hasManual": "manual_url" in emu
+                "description": emu["description"]
             })
-        return result
+
+        # Marcar la consola como instalada si al menos uno de sus emuladores lo está
+        for c in consoles.values():
+            c["isInstalled"] = any(e["isInstalled"] for e in c["emulators"])
+            # Ordenar emuladores: instalados primero
+            c["emulators"].sort(key=lambda x: x["isInstalled"], reverse=True)
+            
+        return list(consoles.values())
+
+    def _setup_manager_links(self):
+        """No longer needed as we'll handle the iteration in the slots."""
+        pass
 
     @Slot(str)
     def installEmulator(self, github_url):
+        print(f"[DEBUG] Slot installEmulator llamado para: {github_url}")
         import asyncio
         async def do_install():
-            success, msg = await self.emu_manager.instalar_emulador(github_url)
-            self.downloadFinished.emit(github_url, success, msg)
-            if success:
-                self.statsUpdated.emit()
+            print(f"[DEBUG] Iniciando tarea do_install para: {github_url}")
+            success = False
+            message = "Error desconocido"
+            try:
+                # Iterar sobre el generador asíncrono del instalador
+                async for step in self.emu_manager.instalar_emulador(github_url):
+                    print(f"[DEBUG] Proceso instalación {github_url}: {step}")
+                    
+                    if step.startswith("PROGRESS:"):
+                        try:
+                            # Formato "PROGRESS:0.5|Mensaje"
+                            partes = step.split("|")
+                            prog_str = partes[0].split(":")[1]
+                            prog_val = float(prog_str)
+                            self.downloadProgress.emit(github_url, prog_val)
+                            
+                            # Si es el 100% o contiene éxito, marcar como éxito provisional
+                            if len(partes) > 1:
+                                msg_part = partes[1].lower()
+                                if "éxito" in msg_part or "exitosa" in msg_part:
+                                    success = True
+                                    message = partes[1]
+                                elif prog_val >= 1.0:
+                                    success = True
+                                    message = partes[1]
+                        except: pass
+                    elif step.startswith("ERROR:"):
+                        message = step.split(":", 1)[1]
+                        success = False
+                    elif "éxito" in step.lower() or "exitosa" in step.lower():
+                        success = True
+                        message = step
+                
+                print(f"[DEBUG] Finalizado do_install {github_url}: {success} - {message}")
+                self.downloadFinished.emit(github_url, success, message)
+                if success:
+                    self.statsUpdated.emit()
+            except Exception as e:
+                print(f"[DEBUG] Excepción en do_install {github_url}: {e}")
+                self.downloadFinished.emit(github_url, False, str(e))
         
         asyncio.create_task(do_install())
 
     @Slot(str)
     def uninstallEmulator(self, github_url):
-        success = self.emu_manager.desinstalar_emulador(github_url)
-        self.downloadFinished.emit(github_url, success, "Uninstalled" if success else "Error")
-        self.statsUpdated.emit()
+        print(f"[DEBUG] Slot uninstallEmulator llamado para: {github_url}")
+        import asyncio
+        async def do_uninstall():
+            print(f"[DEBUG] Iniciando tarea do_uninstall para: {github_url}")
+            success = False
+            message = "Error al desinstalar"
+            try:
+                async for step in self.emu_manager.desinstalar_emulador(github_url):
+                    print(f"[DEBUG] Proceso desinstalación {github_url}: {step}")
+                    low_step = step.lower()
+                    if "éxito" in low_step or "desinstalado" in low_step:
+                        success = True
+                        message = step
+                    elif "error" in low_step:
+                        success = False
+                        message = step
+                
+                print(f"[DEBUG] Finalizado do_uninstall {github_url}: {success} - {message}")
+                self.downloadFinished.emit(github_url, success, message)
+                self.statsUpdated.emit()
+            except Exception as e:
+                print(f"[DEBUG] Excepción en do_uninstall {github_url}: {e}")
+                self.downloadFinished.emit(github_url, False, str(e))
+
+        asyncio.create_task(do_uninstall())
+
+    @Slot(str)
+    def openEmulatorFolder(self, github_url):
+        info = self.emu_manager.installed_emus.get(github_url)
+        if info:
+            files = info.get("files", [])
+            if files:
+                path = os.path.dirname(files[0])
+                from PySide6.QtGui import QDesktopServices
+                from PySide6.QtCore import QUrl
+                QDesktopServices.openUrl(QUrl.fromLocalFile(path))
 
     @Slot(str, str)
     def manualInstall(self, github_url, file_path):
@@ -213,6 +289,39 @@ class AppBridge(QObject):
             self.emu_manager.save_config()
             self.statsUpdated.emit()
 
+    @Slot()
+    def openInstallFolder(self):
+        if self.installPath:
+            from PySide6.QtGui import QDesktopServices
+            from PySide6.QtCore import QUrl
+            QDesktopServices.openUrl(QUrl.fromLocalFile(self.installPath))
+
+    @Slot()
+    def openRomsFolder(self):
+        if self.romsPath:
+            from PySide6.QtGui import QDesktopServices
+            from PySide6.QtCore import QUrl
+            QDesktopServices.openUrl(QUrl.fromLocalFile(self.romsPath))
+
+    @Slot()
+    def scanGames(self):
+        import asyncio
+        from core.scanner import escanear_roms, asdict
+        async def do_scan():
+            # 1. Escanear archivos (ahora devuelve lista de Juego objects)
+            juegos_obj = await escanear_roms(self.emu_manager.roms_path)
+            library_dicts = [asdict(j) for j in juegos_obj]
+            self.statsUpdated.emit()
+            
+            # 2. Descargar metadatos/arte (Scraping básico)
+            from core.metadata import descargar_metadata_biblioteca
+            emu_map = {e["id"]: e for e in AVAILABLE_EMULATORS}
+            await descargar_metadata_biblioteca(library_dicts, emu_map)
+            
+            self.statsUpdated.emit()
+            
+        asyncio.create_task(do_scan())
+
     @Property(list, notify=statsUpdated)
     def scraperProviders(self):
         from core.metadata import get_providers_config
@@ -262,12 +371,14 @@ class AppBridge(QObject):
         console_ids = set(j.get("id_emu") for j in biblioteca)
         result = []
         for emu in AVAILABLE_EMULATORS:
-            if emu["id"] in console_ids:
+            is_installed = self.emu_manager.esta_instalado(emu["github"])
+            if emu["id"] in console_ids or is_installed:
                 count = sum(1 for j in biblioteca if j.get("id_emu") == emu["id"])
                 total_s = sum(self.emu_manager.get_playtime(j.get("ruta", ""))[0] for j in biblioteca if j.get("id_emu") == emu["id"])
                 result.append({
                     "id": emu["id"],
-                    "name": emu["name"],
+                    "name": emu["console"],      # Title: Console Name
+                    "emu_name": emu["name"],      # Subtitle: Emulator Name
                     "count": count,
                     "playtime": total_s,
                     "color": emu.get("color", "#4da6ff")
@@ -281,14 +392,15 @@ class AppBridge(QObject):
         for j in biblioteca:
             if j.get("id_emu") == console_id:
                 s, h, m = self.emu_manager.get_playtime(j.get("ruta", ""))
-                cover_path = self.emu_manager.get_cover_path(j)
+                cover_path = obtener_ruta_caratula(j.get("ruta", ""))
                 games.append({
                     "name": j["nombre"],
                     "path": j["ruta"],
                     "console": j.get("consola", ""),
                     "playtime": f"{h}h {m}m" if h > 0 else f"{m}m",
                     "cover": cover_path if os.path.exists(cover_path) else "",
-                    "id_emu": console_id
+                    "id_emu": console_id,
+                    "isFavorite": scanner.es_favorito(j.get("ruta", ""))
                 })
         return games
 
@@ -302,6 +414,16 @@ class AppBridge(QObject):
             import asyncio
             asyncio.create_task(do_launch())
 
+    @Slot(str, result=bool)
+    def toggleFavorite(self, game_path):
+        is_fav = scanner.toggle_favorito(game_path)
+        self.statsUpdated.emit()
+        return is_fav
+
+    @Slot(str, result=bool)
+    def isFavorite(self, game_path):
+        return scanner.es_favorito(game_path)
+
     # --- METADATOS BÁSICOS ---
     @Property(str, constant=True)
     def appVersion(self):
@@ -312,6 +434,14 @@ class AppBridge(QObject):
     def appName(self):
         from core.config import APP_NAME
         return APP_NAME
+
+    @Property(str, constant=True)
+    def logoPath(self):
+        import os
+        base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        path = os.path.join(base_path, "media", "icon.svg")
+        from PySide6.QtCore import QUrl
+        return QUrl.fromLocalFile(path).toString()
 
     @Slot()
     def quit(self):

@@ -1,242 +1,333 @@
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
+import QtQuick.Effects
 import "../components"
 
 Item {
     id: dashboardRoot
     
-    Component.onCompleted: bridge.refreshDashboard()
+    property bool isEmpty: bridge ? (bridge.dashboardStats.installed === 0 && bridge.dashboardStats.totalRoms === 0) : true
+    property color currentAccentColor: "#4da6ff"
+
+    Component.onCompleted: if (bridge) bridge.refreshDashboard()
+
+    // --- FONDO ATMOSFÉRICO PREMIUM ---
+    Rectangle {
+        anchors.fill: parent
+        color: "#07080c"
+        z: -2
+        
+        Rectangle {
+            id: backgroundBlur
+            anchors.centerIn: parent
+            width: parent.width * 1.5
+            height: parent.height * 1.5
+            radius: width / 2
+            opacity: 0.12
+            color: currentAccentColor
+            
+            SequentialAnimation on color {
+                loops: Animation.Infinite
+                ColorAnimation { from: "#4da6ff"; to: "#7c6ff7"; duration: 8000; easing.type: Easing.InOutSine }
+                ColorAnimation { from: "#7c6ff7"; to: "#4dc6a6"; duration: 8000; easing.type: Easing.InOutSine }
+                ColorAnimation { from: "#4dc6a6"; to: "#4da6ff"; duration: 8000; easing.type: Easing.InOutSine }
+            }
+
+            layer.enabled: true
+            layer.effect: MultiEffect { blurEnabled: true; blur: 1.0; blurMax: 100 }
+        }
+    }
+
+    // --- EMPTY STATE ---
+    Rectangle {
+        id: emptyState
+        anchors.centerIn: parent
+        width: 480
+        height: 380
+        radius: 40
+        color: "#11131a"
+        border.color: "#252835"
+        border.width: 1
+        visible: isEmpty
+        opacity: visible ? 1.0 : 0.0
+        scale: visible ? 1.0 : 0.9
+
+        Behavior on opacity { NumberAnimation { duration: 600; easing.type: Easing.OutCubic } }
+        Behavior on scale { NumberAnimation { duration: 600; easing.type: Easing.OutBack } }
+
+        ColumnLayout {
+            anchors.centerIn: parent
+            spacing: 32
+
+            Item {
+                Layout.preferredWidth: 140
+                Layout.preferredHeight: 140
+                Layout.alignment: Qt.AlignHCenter
+                
+                Image {
+                    anchors.fill: parent
+                    source: bridge ? bridge.logoPath : ""
+                    fillMode: Image.PreserveAspectFit
+                    smooth: true
+                }
+                
+                Rectangle {
+                    anchors.centerIn: parent
+                    width: 160; height: 160; radius: 80
+                    color: currentAccentColor
+                    opacity: 0.1
+                    z: -1
+                    SequentialAnimation on scale {
+                        loops: Animation.Infinite
+                        NumberAnimation { from: 1.0; to: 1.2; duration: 3000; easing.type: Easing.InOutSine }
+                        NumberAnimation { from: 1.2; to: 1.0; duration: 3000; easing.type: Easing.InOutSine }
+                    }
+                }
+            }
+
+            ColumnLayout {
+                spacing: 4
+                Layout.alignment: Qt.AlignHCenter
+
+                Label {
+                    text: bridge ? bridge.appName : "EmuManager"
+                    font.pixelSize: 42
+                    font.weight: Font.Black
+                    color: "#ffffff"
+                    Layout.alignment: Qt.AlignHCenter
+                }
+
+                Label {
+                    text: bridge ? bridge.appVersion : "1.0"
+                    font.pixelSize: 12
+                    font.bold: true
+                    color: currentAccentColor
+                    font.letterSpacing: 2
+                    Layout.alignment: Qt.AlignHCenter
+                }
+            }
+        }
+    }
 
     ScrollView {
+        id: mainScroll
         anchors.fill: parent
+        visible: !isEmpty
         contentWidth: availableWidth
         ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
         
         ColumnLayout {
             width: parent.width
-            spacing: 32
+            spacing: 40
             Layout.margins: 40
+            Layout.topMargin: 20
 
-            // 1. HERO PANEL
-            Rectangle {
+            // 1. HERO PANEL LUXURY
+            Item {
                 Layout.fillWidth: true
-                height: 180
-                radius: 20
-                clip: true
-                color: "#1a1c24"
+                height: 240
                 
-                // Animated Gradient Background
                 Rectangle {
                     anchors.fill: parent
-                    gradient: Gradient {
-                        orientation: Gradient.Horizontal
-                        GradientStop { position: 0.0; color: "#1a1c24" }
-                        GradientStop { position: 0.8; color: "#1e2b4a" }
+                    radius: 35
+                    color: "#161823"
+                    border.color: "#2a2d3a"
+                    border.width: 1
+                    clip: true
+
+                    // Interior Glow
+                    Rectangle {
+                        anchors.fill: parent
+                        anchors.margins: 1
+                        radius: 34
+                        gradient: Gradient {
+                            orientation: Gradient.Horizontal
+                            GradientStop { position: 0.0; color: "#0fffffff" }
+                            GradientStop { position: 1.0; color: "transparent" }
+                        }
                     }
-                    
+
+                    // Background Pattern/Decorative Circle
                     Rectangle {
                         anchors.right: parent.right
-                        anchors.top: parent.top
-                        width: 300
-                        height: 300
-                        radius: 150
-                        color: "#4da6ff"
-                        opacity: 0.05
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: 400; height: 400; radius: 200
+                        color: currentAccentColor
+                        opacity: 0.04
                         anchors.rightMargin: -100
-                        anchors.topMargin: -100
                     }
                 }
 
                 RowLayout {
                     anchors.fill: parent
-                    anchors.leftMargin: 40
-                    anchors.rightMargin: 40
-                    spacing: 20
+                    anchors.leftMargin: 50
+                    anchors.rightMargin: 50
+                    spacing: 30
 
                     ColumnLayout {
-                        spacing: 8
+                        spacing: 12
                         Layout.alignment: Qt.AlignVCenter
 
                         Rectangle {
-                            width: 80
-                            height: 22
-                            radius: 11
-                            color: Qt.alpha("#4da6ff", 0.15)
+                            width: 100; height: 26; radius: 13
+                            color: Qt.alpha(currentAccentColor, 0.15)
+                            border.color: Qt.alpha(currentAccentColor, 0.3)
+                            border.width: 1
                             
                             Label {
                                 anchors.centerIn: parent
-                                text: bridge.translate("dash_greeting").toUpperCase()
-                                font.pixelSize: 9
-                                font.bold: true
-                                color: "#4da6ff"
-                                font.letterSpacing: 1
+                                text: bridge ? bridge.translate("dash_greeting").toUpperCase() : "BIENVENIDO"
+                                font.pixelSize: 10; font.bold: true; color: currentAccentColor; font.letterSpacing: 1.5
                             }
                         }
 
                         Label {
-                            text: bridge.appName
-                            font.pixelSize: 44
-                            font.weight: Font.Black
-                            color: "#ffffff"
+                            text: bridge ? bridge.appName : "EmuManager"
+                            font.pixelSize: 56; font.weight: Font.Black; color: "#ffffff"
+                            font.letterSpacing: -1
                         }
                         
-                        RowLayout {
-                            spacing: 8
-                            Label {
-                                text: bridge.translateWithArg("dash_tagline", "") 
-                                font.pixelSize: 14
-                                color: "#888899"
-                            }
-                            Label {
-                                text: bridge.appVersion
-                                font.pixelSize: 14
-                                font.bold: true
-                                color: "#4da6ff"
-                            }
+                        Label {
+                            text: (bridge ? bridge.translateWithArg("dash_tagline", "") : "Tu centro de emulación retro") + " • v" + (bridge ? bridge.appVersion : "1.0")
+                            font.pixelSize: 16; color: "#888899"
                         }
                     }
 
                     Item { Layout.fillWidth: true }
 
-                    // Decorative Icon
+                    // Decorative Floating Icon
                     Label {
-                        text: "🚀"
-                        font.pixelSize: 80
-                        opacity: 0.15
-                        rotation: -15
+                        text: "👾"
+                        font.pixelSize: 100
+                        opacity: 0.12
+                        rotation: -10
                         Layout.alignment: Qt.AlignVCenter
+                        
+                        SequentialAnimation on anchors.verticalCenterOffset {
+                            loops: Animation.Infinite
+                            NumberAnimation { from: -10; to: 10; duration: 3000; easing.type: Easing.InOutQuad }
+                            NumberAnimation { from: 10; to: -10; duration: 3000; easing.type: Easing.InOutQuad }
+                        }
                     }
                 }
-                
-                border.color: "#2a2d3a"
-                border.width: 1
             }
 
             // 2. STATS ROW
             ColumnLayout {
                 Layout.fillWidth: true
-                spacing: 12
+                spacing: 18
                 
                 Label {
-                    text: bridge.translate("dash_stats_title")
-                    font.pixelSize: 12
-                    font.bold: true
-                    color: "#4da6ff"
-                    font.letterSpacing: 2
+                    text: (bridge ? bridge.translate("dash_stats_title") : "ESTADÍSTICAS").toUpperCase()
+                    font.pixelSize: 11; font.bold: true; color: currentAccentColor; font.letterSpacing: 3
                 }
 
                 RowLayout {
-                    spacing: 16
+                    spacing: 24
                     Layout.fillWidth: true
 
                     StatCard {
-                        icon: "🎯"
-                        value: bridge.dashboardStats.installed
-                        label: bridge.translate("dash_stat_installed")
+                        icon: "🚀"
+                        value: (bridge && bridge.dashboardStats) ? bridge.dashboardStats.installed : 0
+                        label: bridge ? bridge.translate("dash_stat_installed") : "Instalados"
                         accentColor: "#4da6ff"
                     }
                     StatCard {
-                        icon: "📀"
-                        value: bridge.dashboardStats.totalRoms
-                        label: bridge.translate("dash_stat_roms")
+                        icon: "🎮"
+                        value: (bridge && bridge.dashboardStats) ? bridge.dashboardStats.totalRoms : 0
+                        label: bridge ? bridge.translate("dash_stat_roms") : "ROMs"
                         accentColor: "#7c6ff7"
                     }
                     StatCard {
-                        icon: "🖥️"
-                        value: bridge.dashboardStats.totalConsoles
-                        label: bridge.translate("dash_stat_consoles")
+                        icon: "🕹️"
+                        value: (bridge && bridge.dashboardStats) ? bridge.dashboardStats.totalConsoles : 0
+                        label: bridge ? bridge.translate("dash_stat_consoles") : "Consolas"
                         accentColor: "#4dc6a6"
                     }
                     StatCard {
-                        icon: "⏱️"
-                        value: bridge.dashboardStats.totalHours
-                        label: bridge.translate("dash_stat_hours")
+                        icon: "⏳"
+                        value: (bridge && bridge.dashboardStats) ? bridge.dashboardStats.totalHours : 0
+                        label: bridge ? bridge.translate("dash_stat_hours") : "Horas"
                         accentColor: "#f0a040"
                     }
                     Item { Layout.fillWidth: true }
                 }
             }
 
-            // 3. CONTENT (RECENT & STATUS)
+            // 3. CONTENT PANELS
             RowLayout {
                 Layout.fillWidth: true
-                spacing: 24
+                spacing: 30
                 Layout.alignment: Qt.AlignTop
 
                 // Recent Activity
                 ColumnLayout {
                     Layout.fillWidth: true
                     Layout.preferredWidth: 3
-                    spacing: 12
+                    spacing: 18
                     Layout.alignment: Qt.AlignTop
 
                     Label {
-                        text: bridge.translate("dash_recent_title")
-                        font.pixelSize: 12
-                        font.bold: true
-                        color: "#4da6ff"
-                        font.letterSpacing: 2
+                        text: (bridge ? bridge.translate("dash_recent_title") : "ACTIVIDAD RECIENTE").toUpperCase()
+                        font.pixelSize: 11; font.bold: true; color: currentAccentColor; font.letterSpacing: 3
                     }
 
                     Rectangle {
                         Layout.fillWidth: true
-                        Layout.minimumHeight: 200
-                        radius: 14
-                        color: "#1a1c24"
+                        Layout.preferredHeight: 320
+                        radius: 28
+                        color: "#161823"
                         border.color: "#2a2d3a"
                         border.width: 1
 
                         ColumnLayout {
                             anchors.fill: parent
-                            anchors.margins: 0
+                            anchors.margins: 10
                             spacing: 0
 
                             Repeater {
-                                model: bridge.recentActivity
+                                model: bridge ? bridge.recentActivity : []
                                 delegate: Item {
                                     Layout.fillWidth: true
-                                    height: 52
-                                    property bool hovered: false
+                                    height: 64
                                     
                                     Rectangle {
                                         anchors.fill: parent
-                                        color: parent.hovered ? "#1f2230" : "transparent"
-                                        radius: 8
+                                        anchors.margins: 4
+                                        radius: 18
+                                        color: "#202336"
                                         visible: mouseArea.containsMouse
+                                        opacity: 0.5
                                     }
 
                                     RowLayout {
                                         anchors.fill: parent
-                                        anchors.leftMargin: 12
-                                        anchors.rightMargin: 12
+                                        anchors.leftMargin: 20
+                                        anchors.rightMargin: 20
+                                        spacing: 15
                                         
-                                        Label {
-                                            text: "●"
-                                            color: modelData.color
-                                            font.pixelSize: 10
+                                        Rectangle {
+                                            width: 40; height: 40; radius: 20
+                                            color: Qt.alpha(modelData.color, 0.15)
+                                            Label { anchors.centerIn: parent; text: "🕹️"; font.pixelSize: 18 }
                                         }
 
                                         ColumnLayout {
                                             spacing: 1
                                             Label {
                                                 text: modelData.name
-                                                color: "#e0e0e0"
-                                                font.pixelSize: 13
-                                                font.bold: true
+                                                color: "#ffffff"; font.pixelSize: 14; font.bold: true
                                             }
                                             Label {
-                                                text: modelData.console
-                                                color: "#666666"
-                                                font.pixelSize: 11
+                                                text: modelData.console.toUpperCase()
+                                                color: "#666677"; font.pixelSize: 10; font.bold: true; font.letterSpacing: 1
                                             }
                                         }
                                         Item { Layout.fillWidth: true }
                                         Label {
                                             text: modelData.playtime
-                                            color: modelData.color
-                                            font.pixelSize: 11
-                                            font.bold: true
+                                            color: modelData.color; font.pixelSize: 12; font.bold: true
                                         }
                                     }
                                     
@@ -244,20 +335,15 @@ Item {
                                         id: mouseArea
                                         anchors.fill: parent
                                         hoverEnabled: true
-                                        onEntered: parent.hovered = true
-                                        onExited: parent.hovered = false
                                     }
                                 }
                             }
 
                             Label {
-                                visible: bridge.recentActivity.length === 0
-                                text: bridge.translate("dash_empty_recent")
-                                color: "#555566"
-                                font.pixelSize: 13
-                                Layout.alignment: Qt.AlignCenter
-                                Layout.margins: 40
-                                horizontalAlignment: Text.AlignHCenter
+                                visible: bridge ? bridge.recentActivity.length === 0 : true
+                                text: bridge ? bridge.translate("dash_empty_recent") : "Sin actividad reciente"
+                                color: "#555566"; font.pixelSize: 14; Layout.alignment: Qt.AlignCenter
+                                Layout.margins: 60; horizontalAlignment: Text.AlignHCenter
                             }
                         }
                     }
@@ -267,65 +353,58 @@ Item {
                 ColumnLayout {
                     Layout.fillWidth: true
                     Layout.preferredWidth: 2
-                    spacing: 12
+                    spacing: 18
                     Layout.alignment: Qt.AlignTop
 
                     Label {
-                        text: bridge.translate("dash_status_title_panel")
-                        font.pixelSize: 12
-                        font.bold: true
-                        color: "#4da6ff"
-                        font.letterSpacing: 2
+                        text: (bridge ? bridge.translate("dash_status_title_panel") : "ESTADO DEL SISTEMA").toUpperCase()
+                        font.pixelSize: 11; font.bold: true; color: currentAccentColor; font.letterSpacing: 3
                     }
 
                     Rectangle {
                         Layout.fillWidth: true
-                        Layout.minimumHeight: 300
-                        radius: 14
-                        color: "#1a1c24"
+                        Layout.preferredHeight: 320
+                        radius: 28
+                        color: "#161823"
                         border.color: "#2a2d3a"
                         border.width: 1
 
                         ColumnLayout {
                             anchors.fill: parent
-                            anchors.margins: 20
-                            spacing: 16
+                            anchors.margins: 25
+                            spacing: 15
 
-                            // Paths
                             StatusRow {
-                                title: bridge.translate("dash_status_path_emus")
-                                path: bridge.systemStatus.emusPath
-                                exists: bridge.systemStatus.emusPathExists
+                                title: bridge ? bridge.translate("dash_status_path_emus") : "Ruta Emuladores"
+                                path: (bridge && bridge.systemStatus) ? bridge.systemStatus.emusPath : ""
+                                exists: (bridge && bridge.systemStatus) ? bridge.systemStatus.emusPathExists : false
                             }
                             StatusRow {
-                                title: bridge.translate("dash_status_path_roms")
-                                path: bridge.systemStatus.romsPath
-                                exists: bridge.systemStatus.romsPathExists
+                                title: bridge ? bridge.translate("dash_status_path_roms") : "Ruta ROMs"
+                                path: (bridge && bridge.systemStatus) ? bridge.systemStatus.romsPath : ""
+                                exists: (bridge && bridge.systemStatus) ? bridge.systemStatus.romsPathExists : false
                             }
 
                             Rectangle {
-                                Layout.fillWidth: true
-                                height: 1
-                                color: "#2a2d3a"
+                                Layout.fillWidth: true; height: 1; color: "#2a2d3a"
                             }
 
                             Label {
-                                text: bridge.translate("dash_stat_installed")
-                                font.pixelSize: 11
-                                color: "#666666"
-                                font.bold: true
+                                text: "EMULADORES INSTALADOS"
+                                font.pixelSize: 10; color: "#555566"; font.bold: true; font.letterSpacing: 1.5
                             }
 
                             ColumnLayout {
-                                spacing: 8
+                                spacing: 10
+                                clip: true
                                 Repeater {
-                                    model: bridge.systemStatus.installedEmus
+                                    model: (bridge && bridge.systemStatus) ? bridge.systemStatus.installedEmus : []
                                     delegate: RowLayout {
                                         Layout.fillWidth: true
-                                        Label { text: "●"; color: modelData.color; font.pixelSize: 9 }
-                                        Label { text: modelData.name; color: "#c0c0c0"; font.pixelSize: 12 }
+                                        Rectangle { width: 8; height: 8; radius: 4; color: modelData.color }
+                                        Label { text: modelData.name; color: "#d0d0d0"; font.pixelSize: 13; font.weight: Font.Medium }
                                         Item { Layout.fillWidth: true }
-                                        Label { text: modelData.console; color: "#555555"; font.pixelSize: 10 }
+                                        Label { text: modelData.console.toUpperCase(); color: "#555566"; font.pixelSize: 9; font.bold: true }
                                     }
                                 }
                             }

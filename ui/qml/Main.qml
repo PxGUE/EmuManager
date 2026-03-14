@@ -9,7 +9,7 @@ ApplicationWindow {
     width: 1100
     height: 720
     visible: true
-    title: bridge.appName + " " + bridge.appVersion
+    title: (bridge ? bridge.appName : "EmuManager") + " " + (bridge ? bridge.appVersion : "")
     color: "#0f111a"
 
     // Fondo base
@@ -35,7 +35,7 @@ ApplicationWindow {
 
                 // Logo/Nombre
                 Label {
-                    text: bridge.appName
+                    text: bridge ? bridge.appName : "EmuManager"
                     Layout.fillWidth: true
                     horizontalAlignment: Text.AlignHCenter
                     font.pixelSize: 15
@@ -108,7 +108,7 @@ ApplicationWindow {
 
                             Text {
                                 Layout.fillWidth: true
-                                text: bridge.translate(model.name)
+                                text: bridge ? bridge.translate(model.name) : ""
                                 color: sidebarList.currentIndex === index ? "white" : "#888899"
                                 verticalAlignment: Text.AlignVCenter
                                 font.pixelSize: 13
@@ -127,7 +127,7 @@ ApplicationWindow {
 
                 // Versión
                 Label {
-                    text: "v" + bridge.appVersion
+                    text: bridge ? "v" + bridge.appVersion : ""
                     Layout.fillWidth: true
                     horizontalAlignment: Text.AlignHCenter
                     color: "#333344"

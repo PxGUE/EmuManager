@@ -2,111 +2,126 @@ import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
 
-Rectangle {
+Item {
     id: card
     property string providerId: ""
     property string name: ""
     property string type: ""
     property bool enabled: false
-
-    Layout.fillWidth: true
-    height: 90
-    radius: 16
-    color: "#16181f"
-    border.color: mouseArea.containsMouse ? "#4da6ff" : (card.enabled ? "#2a2d3a" : "#252830")
-    border.width: 1
     
-    Behavior on border.color { ColorAnimation { duration: 150 } }
+    signal configureClicked()
 
-    RowLayout {
+    height: 70
+    Layout.fillWidth: true
+
+    ColumnLayout {
         anchors.fill: parent
-        anchors.margins: 20
-        spacing: 16
+        spacing: 0
 
-        Rectangle {
-            width: 44
-            height: 44
-            radius: 12
-            color: card.enabled ? Qt.alpha(card.type === "artwork" ? "#4da6ff" : "#7c6ff7", 0.1) : "#1a1c24"
-            
-            Label {
-                anchors.centerIn: parent
-                text: card.type === "artwork" ? "🖼️" : "🧩"
-                font.pixelSize: 20
-                opacity: card.enabled ? 1.0 : 0.3
+        RowLayout {
+            Layout.fillWidth: true
+            Layout.preferredHeight: 69
+            spacing: 16
+
+            // Info
+            ColumnLayout {
+                spacing: 4
+                Layout.fillWidth: true
+                
+                Label {
+                    text: card.name
+                    font.bold: true
+                    font.pixelSize: 15
+                    color: card.enabled ? "white" : "#666677"
+                    elide: Text.ElideRight
+                    Layout.fillWidth: true
+                }
+                
+                RowLayout {
+                    spacing: 8
+                    Rectangle {
+                        width: 8; height: 8; radius: 4
+                        color: card.type === "artwork" ? "#4da6ff" : "#7c6ff7"
+                        opacity: card.enabled ? 0.8 : 0.3
+                    }
+                    Label {
+                        text: card.type.toUpperCase()
+                        font.pixelSize: 10
+                        font.bold: true
+                        color: card.enabled ? "#888899" : "#444455"
+                        font.letterSpacing: 1
+                    }
+                }
             }
-        }
 
-        ColumnLayout {
-            spacing: 2
-            Label {
-                text: card.name
-                font.bold: true
-                font.pixelSize: 15
-                color: card.enabled ? "white" : "#666677"
-            }
-            Label {
-                text: card.type.toUpperCase()
-                font.pixelSize: 10
-                font.bold: true
-                color: "#555566"
-                font.letterSpacing: 1
-            }
-        }
+            // Actions
+            RowLayout {
+                spacing: 12
+                
+                Button {
+                    id: cfgBtn
+                    text: "Configure"
+                    visible: ["tgdb", "rawg", "steamgriddb", "screenscraper", "igdb"].includes(card.providerId)
+                    Layout.preferredHeight: 32
+                    
+                    onClicked: card.configureClicked()
+                    
+                    background: Rectangle {
+                        color: cfgBtn.hovered ? "#303440" : "#252b3d"
+                        radius: 6
+                        border.color: cfgBtn.hovered ? "#4da6ff" : "transparent"
+                        border.width: 1
+                    }
+                    
+                    contentItem: Label {
+                        text: bridge ? bridge.translate("set_btn_configure") : "Configure"
+                        color: cfgBtn.hovered ? "white" : "#4da6ff"
+                        font.pixelSize: 11
+                        font.bold: true
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                        leftPadding: 12
+                        rightPadding: 12
+                    }
+                }
 
-        Item { Layout.fillWidth: true }
+                Switch {
+                    id: control
+                    checked: card.enabled
+                    onToggled: {
+                        if (bridge) bridge.toggleProvider(card.providerId, checked)
+                    }
+                    
+                    indicator: Rectangle {
+                        implicitWidth: 40
+                        implicitHeight: 22
+                        radius: 11
+                        color: control.checked ? Qt.alpha("#4da6ff", 0.2) : "#1a1c24"
+                        border.color: control.checked ? "#4da6ff" : "#353b4d"
+                        border.width: 1
 
-        Button {
-            text: bridge.translate("set_btn_configure")
-            visible: ["tgdb", "rawg", "steamgriddb", "screenscraper"].includes(card.providerId)
-            height: 32
-            onClicked: console.log("Configure provider: " + card.providerId)
-            
-            background: Rectangle {
-                color: "#252b3d"
-                radius: 6
-                border.color: "#353b4d"
-                visible: parent.hovered
-            }
-            contentItem: Text {
-                text: parent.text
-                color: "#4da6ff"
-                font.bold: true
-                font.pixelSize: 11
-                horizontalAlignment: Text.AlignHCenter
-                verticalAlignment: Text.AlignVCenter
-            }
-        }
-
-        Switch {
-            id: control
-            checked: card.enabled
-            onToggled: bridge.toggleProvider(card.providerId, checked)
-            
-            indicator: Rectangle {
-                implicitWidth: 36
-                implicitHeight: 20
-                x: control.leftPadding
-                y: parent.height / 2 - height / 2
-                radius: 10
-                color: control.checked ? "#4da6ff" : "#252830"
-
-                Rectangle {
-                    x: control.checked ? parent.width - width - 4 : 4
-                    y: 4
-                    width: 12
-                    height: 12
-                    radius: 6
-                    color: "white"
-                    Behavior on x { NumberAnimation { duration: 150 } }
+                        Rectangle {
+                            x: control.checked ? parent.width - width - 4 : 4
+                            y: 4
+                            width: 14
+                            height: 14
+                            radius: 7
+                            color: control.checked ? "#4da6ff" : "#555566"
+                            
+                            Behavior on x { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
+                            Behavior on color { ColorAnimation { duration: 200 } }
+                        }
+                    }
                 }
             }
         }
-    }
 
-    MouseArea {
-        id: mouseArea
-        anchors.fill: parent
-        hoverEnabled: true
+        // Separator
+        Rectangle {
+            Layout.fillWidth: true
+            height: 1
+            color: "#252830"
+            opacity: 0.3
+        }
     }
 }

@@ -174,6 +174,21 @@ class EmuladorManager:
     def desinstalar_emulador(self, repo_github: str):
         return self.installer.desinstalar_emulador(repo_github)
 
+    async def instalar_manual(self, emu_info: dict, file_path: str):
+        """Versión simplificada para el bridge que retorna (success, msg)"""
+        success = False
+        last_msg = "Error desconocido"
+        try:
+            async for step in self.installer.instalar_emulador_local(emu_info["github"], file_path):
+                if "ERROR:" in step:
+                    return False, step.replace("ERROR:", "")
+                if "¡Instalación manual exitosa!" in step:
+                    success = True
+                last_msg = step.split("|")[-1] if "|" in step else step
+            return success, last_msg
+        except Exception as e:
+            return False, str(e)
+
     # Delegated launcher methods
     async def lanzar_juego(self, repo_github: str, ruta_rom: str, juego_obj=None):
         return await self.launcher.lanzar_juego(repo_github, ruta_rom, juego_obj)

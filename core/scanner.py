@@ -61,15 +61,33 @@ async def escanear_roms(ruta_base: str, emu_id: str = None) -> List[Juego]:
     # Filtrar: ¿Escaneamos todo o solo una consola específica?
     emus_procesar = [e for e in AVAILABLE_EMULATORS if e["id"] == emu_id] if emu_id else AVAILABLE_EMULATORS
 
+    # Listar subcarpetas reales para búsqueda flexible
+    try:
+        subfolders = [f for f in os.listdir(ruta_base) if os.path.isdir(os.path.join(ruta_base, f))]
+    except Exception as e:
+        print(f"[SCANNER] Error listando ruta_base: {e}")
+        return juegos_finales
+
     for emu in emus_procesar:
-        folder_name = emu["folder"]
-        console_path = os.path.join(ruta_base, folder_name)
+        target_folder = emu["folder"].lower()
+        target_id = emu["id"].lower()
+        target_console = emu["console"].lower()
         
-        if os.path.exists(console_path) and os.path.isdir(console_path):
-            print(f"[SCANNER] Escaneando: {folder_name}...")
-            extensions = emu.get("extensions", [])
+        # Buscar carpetas que coincidan con folder, id o nombre de consola
+        matched_folders = []
+        for f in subfolders:
+            f_low = f.lower()
+            if f_low == target_folder or f_low == target_id or target_console in f_low or f_low in target_console:
+                matched_folders.append(f)
+        
+        # Eliminar duplicados si varias coinciden (aunque es raro)
+        matched_folders = list(set(matched_folders))
+        
+        for folder in matched_folders:
+            console_path = os.path.join(ruta_base, folder)
+            print(f"[SCANNER] Procesando carpeta: {folder} para emulador {emu['id']}")
             
-            # Recorrido recursivo de archivos en la carpeta de la consola
+            extensions = emu.get("extensions", [])
             for root, dirs, files in os.walk(console_path):
                 for file in files:
                     ext = os.path.splitext(file)[1].lower()
@@ -84,7 +102,6 @@ async def escanear_roms(ruta_base: str, emu_id: str = None) -> List[Juego]:
                                 extension=ext
                             )
                         )
-                # Pausa técnica para dejar que el hilo de la UI respire
                 await asyncio.sleep(0.01)
     
     # Unir resultados nuevos con los antiguos (si los hay)

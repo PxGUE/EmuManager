@@ -3,7 +3,7 @@ bridge.py — Capa de comunicación entre Python y QML.
 Expone la lógica de EmuladorManager y el Traductor a la interfaz declarativa.
 """
 
-from PySide6.QtCore import QObject, Slot, Property, Signal
+from PySide6.QtCore import QObject, Slot, Property, Signal, QUrl
 from core.i18n import TRANSLATIONS
 import core.scanner as scanner
 from core.constants import AVAILABLE_EMULATORS
@@ -22,10 +22,17 @@ class AppBridge(QObject):
         self.emu_manager = emu_manager
         self.translator = translator
         self._current_lang = emu_manager.language
+        self._consoles_cache = None
         
         # Conectar señales del manager al bridge si existen, 
         # o inyectar callbacks en las funciones de descarga
         self._setup_manager_links()
+        
+        # Invalidar cache cuando las stats cambian
+        self.statsUpdated.connect(self._clear_consoles_cache)
+
+    def _clear_consoles_cache(self):
+        self._consoles_cache = None
 
     @Property(str, notify=languageChanged)
     def currentLanguage(self):
@@ -232,7 +239,8 @@ class AppBridge(QObject):
                     "console": j.get("consola", ""),
                     "playtime": time_str,
                     "color": color,
-                    "seconds": s
+                    "seconds": s,
+                    "cover": QUrl.fromLocalFile(obtener_ruta_caratula(j.get("ruta", ""))).toString() if os.path.exists(obtener_ruta_caratula(j.get("ruta", ""))) else ""
                 })
         
         juegos_con_tiempo.sort(key=lambda x: x["seconds"], reverse=True)
@@ -303,22 +311,53 @@ class AppBridge(QObject):
             from PySide6.QtCore import QUrl
             QDesktopServices.openUrl(QUrl.fromLocalFile(self.romsPath))
 
-    @Slot()
-    def scanGames(self):
+    @Slot(bool, bool, bool)
+    def scanGames(self, dl_artwork=True, dl_backgrounds=True, dl_metadata=True):
         import asyncio
+        import traceback
         from core.scanner import escanear_roms, asdict
         async def do_scan():
-            # 1. Escanear archivos (ahora devuelve lista de Juego objects)
-            juegos_obj = await escanear_roms(self.emu_manager.roms_path)
-            library_dicts = [asdict(j) for j in juegos_obj]
-            self.statsUpdated.emit()
-            
-            # 2. Descargar metadatos/arte (Scraping básico)
-            from core.metadata import descargar_metadata_biblioteca
-            emu_map = {e["id"]: e for e in AVAILABLE_EMULATORS}
-            await descargar_metadata_biblioteca(library_dicts, emu_map)
-            
-            self.statsUpdated.emit()
+            try:
+                print(f"[BRIDGE] Iniciando proceso de escaneo (Arte={dl_artwork}, Fondos={dl_backgrounds}, Meta={dl_metadata})")
+                
+                # 1. Escanear archivos
+                juegos_obj = await escanear_roms(self.emu_manager.roms_path)
+                library_dicts = [asdict(j) for j in juegos_obj]
+                self.statsUpdated.emit()
+                
+                # 2. Fondos
+                if dl_backgrounds:
+                    print("[BRIDGE] Iniciando descarga de fondos de consolas...")
+                    from core.artwork import descargar_fondos_consolas
+                    stats_bg = await descargar_fondos_consolas()
+                    print(f"[BRIDGE] Fondos completados: {stats_bg}")
+                    self.statsUpdated.emit()
+
+                # 3. Artwork
+                if dl_artwork:
+                    print("[BRIDGE] Iniciando descarga de carátulas (Artwork)...")
+                    from core.artwork import descargar_caratulas_biblioteca
+                    # Pass the full emulator object to access all tags (libretro_platform, screenscraper_id, etc)
+                    emu_map = {e["id"]: e for e in AVAILABLE_EMULATORS}
+                    stats_art = await descargar_caratulas_biblioteca(library_dicts, emu_map)
+                    print(f"[BRIDGE] Artwork completado: {stats_art}")
+                    self.statsUpdated.emit()
+
+                # 4. Metadatos
+                if dl_metadata:
+                    print("[BRIDGE] Iniciando descarga de metadatos...")
+                    from core.metadata import descargar_metadata_biblioteca
+                    emu_map = {e["id"]: e for e in AVAILABLE_EMULATORS}
+                    stats_meta = await descargar_metadata_biblioteca(library_dicts, emu_map)
+                    print(f"[BRIDGE] Metadatos completados: {stats_meta}")
+                    self.statsUpdated.emit()
+                
+                print("[BRIDGE] Proceso de sincronización finalizado con éxito.")
+                self.statsUpdated.emit()
+                
+            except Exception as e:
+                print(f"[BRIDGE] ERROR EN ESCANEO COMPLETO: {e}")
+                traceback.print_exc()
             
         asyncio.create_task(do_scan())
 
@@ -352,6 +391,11 @@ class AppBridge(QObject):
         with open(path, "w", encoding="utf-8") as f:
             json.dump(clean_data, f, indent=2)
 
+    @Slot(str, str, result=str)
+    def getSecret(self, provider_id, key):
+        import core.security as security
+        return security.get_secret(provider_id, key) or ""
+
     @Slot(str, str, str)
     def saveSecret(self, provider_id, key, value):
         import core.security as security
@@ -362,45 +406,93 @@ class AppBridge(QObject):
     def clearSecrets(self, provider_id):
         import core.security as security
         security.clear_all_secrets(provider_id)
+        # Notificar al sistema que los stats/config han cambiado para refrescar la UI
         self.statsUpdated.emit()
+        # Forzar refresco de la propiedad scraperProviders
+        self.languageChanged.emit(self._current_lang) 
 
     # --- BIBLIOTECA (LIBRARY) ---
     @Property(list, notify=statsUpdated)
     def scannedConsoles(self):
-        biblioteca = scanner.cargar_biblioteca_cache()
-        console_ids = set(j.get("id_emu") for j in biblioteca)
+        if self._consoles_cache is not None:
+            return self._consoles_cache
+            
+        print("[BRIDGE] scannedConsoles: Regenerating cache...")
+        lib = scanner.cargar_biblioteca_cache()
+        if not lib:
+            self._consoles_cache = []
+            return []
+            
         result = []
+        # Agrupar juegos por plataforma para contar rápido
+        from collections import defaultdict
+        game_counts = defaultdict(int)
+        game_playtimes = defaultdict(float)
+        for juego in lib:
+            pid = juego.get("id_emu")
+            if pid:
+                game_counts[pid] += 1
+                game_playtimes[pid] += float(juego.get("playtime_seconds", 0))
+
         for emu in AVAILABLE_EMULATORS:
-            is_installed = self.emu_manager.esta_instalado(emu["github"])
-            if emu["id"] in console_ids or is_installed:
-                count = sum(1 for j in biblioteca if j.get("id_emu") == emu["id"])
-                total_s = sum(self.emu_manager.get_playtime(j.get("ruta", ""))[0] for j in biblioteca if j.get("id_emu") == emu["id"])
+            count = game_counts.get(emu["id"], 0)
+            is_installed = self.emu_manager.esta_instalado(emu.get("github", "")) # Fallback safe
+            
+            if count > 0 or is_installed:
+                total_s = game_playtimes.get(emu["id"], 0)
+                
+                from core.artwork import obtener_ruta_fondo_consola
+                bg_raw = obtener_ruta_fondo_consola(emu)
+                bg_url = QUrl.fromLocalFile(bg_raw).toString() if os.path.exists(bg_raw) else ""
+                
                 result.append({
                     "id": emu["id"],
                     "name": emu["console"],      # Title: Console Name
                     "emu_name": emu["name"],      # Subtitle: Emulator Name
                     "count": count,
-                    "playtime": total_s,
-                    "color": emu.get("color", "#4da6ff")
+                    "playtime": f"{int(total_s // 3600)}h {int((total_s % 3600) // 60)}m",
+                    "color": emu.get("color", "#4da6ff"),
+                    "background": bg_url
                 })
+        
+        # Sort by count (filled consoles first)
+        result.sort(key=lambda x: x["count"], reverse=True)
+        self._consoles_cache = result
+        print(f"[BRIDGE] scannedConsoles: {len(result)} consoles found (installed or with games)")
         return result
 
     @Slot(str, result=list)
     def getGamesForConsole(self, console_id):
         biblioteca = scanner.cargar_biblioteca_cache()
+        from core.metadata import obtener_metadata_local
+        
         games = []
         for j in biblioteca:
             if j.get("id_emu") == console_id:
-                s, h, m = self.emu_manager.get_playtime(j.get("ruta", ""))
-                cover_path = obtener_ruta_caratula(j.get("ruta", ""))
+                ruta = j.get("ruta", "")
+                s, h, m = self.emu_manager.get_playtime(ruta)
+                cover_raw = obtener_ruta_caratula(ruta)
+                cover_url = QUrl.fromLocalFile(cover_raw).toString() if os.path.exists(cover_raw) else ""
+                
+                # Obtener metadatos locales (Scraped)
+                meta = obtener_metadata_local(ruta)
+                
                 games.append({
                     "name": j["nombre"],
-                    "path": j["ruta"],
+                    "title": meta.get("title") or j["nombre"],
+                    "path": ruta,
                     "console": j.get("consola", ""),
                     "playtime": f"{h}h {m}m" if h > 0 else f"{m}m",
-                    "cover": cover_path if os.path.exists(cover_path) else "",
+                    "cover": cover_url,
                     "id_emu": console_id,
-                    "isFavorite": scanner.es_favorito(j.get("ruta", ""))
+                    "isFavorite": scanner.es_favorito(ruta),
+                    
+                    # Campos de Metadata Extras para el panel de info
+                    "description": meta.get("description", ""),
+                    "developer": meta.get("developer") or meta.get("publisher", "Desconocido"),
+                    "year": meta.get("year", "N/A"),
+                    "rating": float(meta.get("rating", 0)),
+                    "genre": meta.get("genre", "General")
                 })
         return games
 
@@ -409,10 +501,12 @@ class AppBridge(QObject):
         biblioteca = scanner.cargar_biblioteca_cache()
         game = next((j for j in biblioteca if j["ruta"] == game_path), None)
         if game:
-            async def do_launch():
-                await self.emu_manager.lanzar_juego(game)
-            import asyncio
-            asyncio.create_task(do_launch())
+            emu_info = next((e for e in AVAILABLE_EMULATORS if e["id"] == emu_id), None)
+            if emu_info:
+                async def do_launch():
+                    await self.emu_manager.lanzar_juego(emu_info["github"], game_path, game)
+                import asyncio
+                asyncio.create_task(do_launch())
 
     @Slot(str, result=bool)
     def toggleFavorite(self, game_path):

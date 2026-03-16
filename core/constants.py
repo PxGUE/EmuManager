@@ -31,6 +31,7 @@ AVAILABLE_EMULATORS = [
         "fallback_win": "https://dl.dolphin-emu.org/builds/80/86/dolphin-master-2603-14-x64.7z",
         "extensions": [".iso", ".wbfs", ".gcm", ".rvz"],
         "libretro_platform": "Nintendo - GameCube",
+        "screenscraper_id": "13",
         "color": "#6350E1" # Purple
     },
     {
@@ -45,6 +46,7 @@ AVAILABLE_EMULATORS = [
         "fallback_url": None,
         "extensions": [".iso", ".bin", ".chd", ".gz"],
         "libretro_platform": "Sony - PlayStation 2",
+        "screenscraper_id": "58",
         "color": "#003087" # Sony Blue
     },
     {
@@ -61,6 +63,7 @@ AVAILABLE_EMULATORS = [
         "fallback_linux": "https://github.com/RPCS3/rpcs3-binaries-linux/releases/download/continuous/rpcs3-v0.0.30-15900-linux-x86_64.AppImage",
         "extensions": [".ps3", ".pkg", ".iso"],
         "libretro_platform": "Sony - PlayStation 3",
+        "screenscraper_id": "59",
         "color": "#1a1a1a" # Black
     },
     {
@@ -75,6 +78,7 @@ AVAILABLE_EMULATORS = [
         "fallback_url": None,
         "extensions": [".iso", ".cso", ".pbp"],
         "libretro_platform": "Sony - PlayStation Portable",
+        "screenscraper_id": "61",
         "color": "#21409A" # PSP Blue
     },
     {
@@ -89,6 +93,7 @@ AVAILABLE_EMULATORS = [
         "fallback_win": "https://github.com/stenzek/duckstation/releases/latest/download/duckstation-windows-x64-release.zip",
         "extensions": [".bin", ".cue", ".chd", ".pbp", ".m3u"],
         "libretro_platform": "Sony - PlayStation",
+        "screenscraper_id": "57",
         "color": "#E60012" # PS1 Acccent (Reddish or Light Gray) - Let's use Nintendo Red for Nintendo later
     },
     {
@@ -103,6 +108,7 @@ AVAILABLE_EMULATORS = [
         "fallback_url": None,
         "extensions": [".iso", ".xbe"],
         "libretro_platform": "Microsoft - Xbox",
+        "screenscraper_id": "11",
         "color": "#107C10" # Xbox Green
     },
     {
@@ -117,6 +123,7 @@ AVAILABLE_EMULATORS = [
         "fallback_url": None,
         "extensions": [".gba", ".gbp", ".zip"],
         "libretro_platform": "Nintendo - Game Boy Advance",
+        "screenscraper_id": "24",
         "color": "#8b1d90" # Purple GBA
     },
     {
@@ -131,6 +138,7 @@ AVAILABLE_EMULATORS = [
         "fallback_url": None,
         "extensions": [".z64", ".n64", ".v64"],
         "libretro_platform": "Nintendo - Nintendo 64",
+        "screenscraper_id": "14",
         "color": "#e60012" # N64 Red
     },
     {
@@ -145,6 +153,7 @@ AVAILABLE_EMULATORS = [
         "fallback_url": None,
         "extensions": [".nes", ".sfc", ".smc", ".zip"],
         "libretro_platform": "Nintendo - Nintendo Entertainment System",
+        "screenscraper_id": "3",
         "color": "#e22216" # NES Red
     },
     {
@@ -159,6 +168,7 @@ AVAILABLE_EMULATORS = [
         "fallback_url": None,
         "extensions": [".sfc", ".smc", ".zip"],
         "libretro_platform": "Nintendo - Super Nintendo Entertainment System",
+        "screenscraper_id": "4",
         "color": "#4b0082" # SNES Purple
     },
     {
@@ -173,6 +183,7 @@ AVAILABLE_EMULATORS = [
         "fallback_url": None,
         "extensions": [".3ds", ".cia", ".app"],
         "libretro_platform": "Nintendo - Nintendo 3DS",
+        "screenscraper_id": "17",
         "color": "#00AEEF" # Blue 3DS
     },
     {
@@ -187,6 +198,7 @@ AVAILABLE_EMULATORS = [
         "fallback_win": "https://git.eden-emu.dev/eden-emu/eden/releases",
         "extensions": [".nsp", ".xci"],
         "libretro_platform": "Nintendo - Switch",
+        "screenscraper_id": "137",
         "color": "#00d2ff" 
     },
     {
@@ -201,6 +213,7 @@ AVAILABLE_EMULATORS = [
         "fallback_win": "https://ryujinx.app/download",
         "extensions": [".nsp", ".xci"],
         "libretro_platform": "Nintendo - Switch",
+        "screenscraper_id": "137",
         "color": "#e60012" # Switch Red
     },
     {
@@ -214,6 +227,7 @@ AVAILABLE_EMULATORS = [
         "manual_url": "https://cemu.info/",
         "extensions": [".wud", ".wux", ".rpx"],
         "libretro_platform": "Nintendo - Wii U",
+        "screenscraper_id": "18",
         "color": "#0096d2"
     },
     {

@@ -292,6 +292,22 @@ Item {
         focus: true
         closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
         
+        property bool apiKeyVisible: false
+        property bool passVisible: false
+
+        onOpened: {
+            configPopup.apiKeyVisible = false
+            configPopup.passVisible = false
+            if (selectedProvider && bridge) {
+                if (selectedProvider.id === "screenscraper") {
+                    userField.text = bridge.getSecret(selectedProvider.id, "user")
+                    passField.text = bridge.getSecret(selectedProvider.id, "password")
+                } else {
+                    apiKeyField.text = bridge.getSecret(selectedProvider.id, "api_key")
+                }
+            }
+        }
+        
         background: Rectangle {
             color: "#1a1c24"
             radius: 20
@@ -326,9 +342,24 @@ Item {
                         id: apiKeyField
                         Layout.fillWidth: true
                         placeholderText: "Introducir API Key..."
-                        echoMode: TextInput.PasswordEchoOnEdit
+                        echoMode: configPopup.apiKeyVisible ? TextInput.Normal : TextInput.Password
                         color: "white"
+                        rightPadding: 40
                         background: Rectangle { color: "#0f111a"; radius: 8; border.color: parent.activeFocus ? "#4da6ff" : "#252830" }
+
+                        Label {
+                            anchors.right: parent.right
+                            anchors.rightMargin: 12
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: configPopup.apiKeyVisible ? "🙈" : "👁️"
+                            font.pixelSize: 14
+                            opacity: 0.7
+                            MouseArea {
+                                anchors.fill: parent
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: configPopup.apiKeyVisible = !configPopup.apiKeyVisible
+                            }
+                        }
                     }
                 }
 
@@ -357,9 +388,24 @@ Item {
                         TextField {
                             id: passField
                             Layout.fillWidth: true
-                            echoMode: TextInput.Password
+                            echoMode: configPopup.passVisible ? TextInput.Normal : TextInput.Password
                             color: "white"
+                            rightPadding: 40
                             background: Rectangle { color: "#0f111a"; radius: 8; border.color: parent.activeFocus ? "#4da6ff" : "#252830" }
+
+                            Label {
+                                anchors.right: parent.right
+                                anchors.rightMargin: 12
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: configPopup.passVisible ? "🙈" : "👁️"
+                                font.pixelSize: 14
+                                opacity: 0.7
+                                MouseArea {
+                                    anchors.fill: parent
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: configPopup.passVisible = !configPopup.passVisible
+                                }
+                            }
                         }
                     }
                 }

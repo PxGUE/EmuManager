@@ -11,6 +11,7 @@ from typing import Optional, Callable, List, Dict
 from .normalization import normalize_title
 from .scrapers.artwork.libretro import LibretroScraper
 from .scrapers.artwork.steamgriddb import SteamGridDBScraper
+from .scrapers.metadata.screenscraper import ScreenScraperScraper
 import core.metadata as metadata
 
 # --- Hub de Carátulas ---
@@ -25,9 +26,29 @@ class ArtworkHub:
         
         sgdb_cfg = next((c for c in configs if c["id"] == "steamgriddb"), None)
         sgdb_key = sgdb_cfg.get("api_key") if sgdb_cfg and sgdb_cfg.get("enabled") else None
+        
+        if sgdb_cfg and sgdb_cfg.get("enabled"):
+            if not sgdb_key:
+                print(f"[ARTWORK] SGDB: No hay API Key configurada. Consultando siguiente...")
+            else:
+                print(f"[ARTWORK] SGDB: Iniciando proveedor con API Key.")
+        
         self.sgdb = SteamGridDBScraper(sgdb_key) if sgdb_key else None
 
-    async def download_for_game(self, platform: str, game_name: str, rom_path: str) -> bool:
+        # ScreenScraper (The Ultimate Resource)
+        ss_cfg = next((c for c in configs if c["id"] == "screenscraper"), None)
+        ss_user = ss_cfg.get("user") if ss_cfg and ss_cfg.get("enabled") else None
+        ss_pass = ss_cfg.get("password") if ss_cfg and ss_cfg.get("enabled") else None
+        
+        if ss_cfg and ss_cfg.get("enabled"):
+            if not ss_user or not ss_pass:
+                print(f"[ARTWORK] ScreenScraper: Activado pero sin credenciales.")
+            else:
+                print(f"[ARTWORK] ScreenScraper: Iniciando con el usuario '{ss_user}'.")
+        
+        self.ss = ScreenScraperScraper(ss_user, ss_pass) if (ss_user and ss_pass) else None
+
+    async def download_for_game(self, platform: str, game_name: str, rom_path: str, **kwargs) -> bool:
         """
         Coordinates downloading artwork from multiple providers.
         """
@@ -37,16 +58,21 @@ class ArtworkHub:
         if self.libretro:
             res = await self.libretro.fetch(self.session, game_name, platform=platform)
             if res and res.get("boxart_url"):
+                print(f"[ARTWORK] Libretro: Encontrado '{game_name}' en {platform}. Descargando...")
                 ok = await _descargar_archivo(self.session, res["boxart_url"], caratula_path)
                 if ok:
                     return True
+            else:
+                print(f"[ARTWORK] Libretro: No se encontró arte para '{game_name}' en {platform}.")
         
         # 2. Try SteamGridDB (Boxart, Hero, Logo)
         if self.sgdb:
             # Try by ROM name first, then game name
             clean_name = os.path.splitext(os.path.basename(rom_path))[0]
+            print(f"[ARTWORK] SteamGridDB: Buscando game_id para '{clean_name}'...")
             res = await self.sgdb.fetch(self.session, clean_name)
             if not res:
+                print(f"[ARTWORK] SteamGridDB: No se encontró por nombre de archivo, probando con '{game_name}'...")
                 res = await self.sgdb.fetch(self.session, game_name)
             
             if res:
@@ -66,8 +92,36 @@ class ArtworkHub:
                     if not os.path.exists(logo_path):
                         await _descargar_archivo(self.session, res["logo_url"], logo_path)
                 
+                print(f"[ARTWORK] SteamGridDB: Recursos descargados con éxito.")
                 return os.path.exists(caratula_path)
-        
+            else:
+                print(f"[ARTWORK] SteamGridDB: No se encontró información para '{game_name}'.")
+
+        # 3. Try ScreenScraper (Full Metadata/Artwork specialist)
+        if self.ss:
+            ss_id = kwargs.get("ss_platform_id")
+            print(f"[ARTWORK] ScreenScraper: Buscando '{game_name}' (Sistema {ss_id or 'Auto'})...")
+            res = await self.ss.fetch(self.session, game_name, ss_platform_id=ss_id)
+            if res:
+                # 3.1 Boxart
+                if res.get("boxart_url") and not os.path.exists(caratula_path):
+                    await _descargar_archivo(self.session, res["boxart_url"], caratula_path)
+                
+                # 3.2 Background
+                if res.get("background_url"):
+                    bg_path = obtener_ruta_background(rom_path)
+                    if not os.path.exists(bg_path):
+                        await _descargar_archivo(self.session, res["background_url"], bg_path)
+                
+                # 3.3 Logo
+                if res.get("logo_url"):
+                    logo_path = obtener_ruta_logo(rom_path)
+                    if not os.path.exists(logo_path):
+                        await _descargar_archivo(self.session, res["logo_url"], logo_path)
+                
+                print(f"[ARTWORK] ScreenScraper: ¡Todo descargado!")
+                return os.path.exists(caratula_path)
+
         return os.path.exists(caratula_path)
 
 
@@ -204,12 +258,17 @@ async def descargar_caratulas_biblioteca(juegos: list, emu_map: dict, **kwargs) 
                 emu_id = juego.get("id_emu", "")
                 ruta = juego.get("ruta", "")
                 nombre = juego.get("nombre", "")
-                plat = get_platform_for_rom(emu_id, ruta, emu_map.get(emu_id))
+                
+                # Resolve platform info
+                emu_info = emu_map.get(emu_id, {})
+                libretro_p = emu_info.get("libretro_platform", emu_info.get("console", ""))
+                plat = get_platform_for_rom(emu_id, ruta, libretro_p)
+                ss_id = emu_info.get("screenscraper_id")
                 
                 if not plat:
                     stats["skip"] += 1
                 else:
-                    ok = await hub.download_for_game(plat, nombre, ruta)
+                    ok = await hub.download_for_game(plat, nombre, ruta, ss_platform_id=ss_id)
                     if ok: stats["ok"] += 1
                     else: stats["fail"] += 1
                 
@@ -256,10 +315,14 @@ async def descargar_fondos_consolas(**kwargs) -> dict:
         for i, (cid, url) in enumerate(FONDOS_MAP.items()):
             dest_path = os.path.join(dest_dir, f"{cid}_bg.jpg")
             
-            # Forzamos descarga para corregir los fondos erróneos (como el carro y la ensalada)
+            # Forzamos descarga para corregir los fondos erróneos
             ok = await _descargar_archivo(session, url, dest_path)
-            if ok: stats["ok"] += 1
-            else: stats["fail"] += 1
+            if ok: 
+                print(f"[ARTWORK] Fondo: Descargado {cid}")
+                stats["ok"] += 1
+            else: 
+                print(f"[ARTWORK] Fondo: Error al descargar {cid}")
+                stats["fail"] += 1
             
             if on_progress:
                 on_progress(i + 1, total, f"Fondo: {cid}")

@@ -7,6 +7,7 @@ from typing import Optional, Dict, Any, List
 from .scrapers.metadata.wikipedia import WikipediaScraper
 from .scrapers.metadata.rawg import RAWGScraper
 from .scrapers.metadata.tgdb import TGDBScraper
+from .scrapers.metadata.screenscraper import ScreenScraperScraper
 from .security import get_secret
 
 # --- Motor de Metadatos (Hub) ---
@@ -42,7 +43,22 @@ async def descargar_metadata_biblioteca(juegos: list, emu_map: dict, on_progress
     # RAWG
     rawg_cfg = next((c for c in configs if c["id"] == "rawg"), None)
     rawg_api_key = rawg_cfg["api_key"] if rawg_cfg and rawg_cfg.get("enabled") else None
+    if rawg_cfg and rawg_cfg.get("enabled") and not rawg_api_key:
+        print("[METADATA] RAWG: Activado pero sin API Key configurada. Consultando siguiente...")
     rawg = RAWGScraper(rawg_api_key) if rawg_api_key else None
+
+    # ScreenScraper
+    ss_cfg = next((c for c in configs if c["id"] == "screenscraper"), None)
+    ss_user = ss_cfg.get("user") if ss_cfg and ss_cfg.get("enabled") else None
+    ss_pass = ss_cfg.get("password") if ss_cfg and ss_cfg.get("enabled") else None
+    
+    if ss_cfg and ss_cfg.get("enabled"):
+        if not ss_user or not ss_pass:
+             print("[METADATA] ScreenScraper: Activado pero sin credenciales (usuario/pass).")
+        else:
+             print(f"[METADATA] ScreenScraper: Configurado con el usuario '{ss_user}'.")
+    
+    screenscraper = ScreenScraperScraper(ss_user, ss_pass) if (ss_user and ss_pass) else None
 
     headers = {
         "User-Agent": "EmuManager/1.0 (https://github.com/chrispc/EmuManager; admin@example.com)"
@@ -62,14 +78,27 @@ async def descargar_metadata_biblioteca(juegos: list, emu_map: dict, on_progress
                     res = None
                     if wiki:
                         res = await wiki.fetch(session, nombre)
+                        if res: print(f"[METADATA] Wikipedia: ¡Encontrado! '{nombre}'")
                     
                     if not res and rawg:
+                        print(f"[METADATA] RAWG: Buscando '{nombre}'...")
                         res = await rawg.fetch(session, nombre)
+                        if res: print(f"[METADATA] RAWG: ¡Encontrado! '{nombre}'")
+
+                    if not res and screenscraper:
+                        emu_id = juego.get("id_emu", "")
+                        emu_info = emu_map.get(emu_id, {})
+                        ss_id = emu_info.get("screenscraper_id")
+                        
+                        print(f"[METADATA] ScreenScraper: Buscando '{nombre}' (Sistema {ss_id or 'Auto'})...")
+                        res = await screenscraper.fetch(session, nombre, ss_platform_id=ss_id)
+                        if res: print(f"[METADATA] ScreenScraper: ¡Encontrado! '{nombre}'")
 
                     if res:
                         cache[ruta] = res
                         stats["ok"] += 1
                     else:
+                        print(f"[METADATA] Error: No se encontró info para '{nombre}' en ninguna fuente activa.")
                         cache[ruta] = cache.get(ruta, {})
                         stats["fail"] += 1
                 

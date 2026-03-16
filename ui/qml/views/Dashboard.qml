@@ -14,7 +14,7 @@ Item {
     // --- FONDO ATMOSFÉRICO ---
     Rectangle {
         anchors.fill: parent
-        color: "#0a0b12"
+        color: "#161923"
         z: -2
         
         // Glow ambiental animado

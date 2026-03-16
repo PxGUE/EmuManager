@@ -96,17 +96,26 @@ class ScraperEngine:
                 if not require_significant or ScraperEngine._check_significant_words(variant, matches[0]):
                     return candidate_map[matches[0]]
             
-        # Tier 3: Exhaustive Scan with Significant Word Validation
+        # Tier 3: Exhaustive Scan with Significant Word Validation and Subset Logic
         for norm_c in norm_candidates:
-            ratio = difflib.SequenceMatcher(None, variant, norm_c).ratio()
+            # 3.1 Subset Match (High Priority)
+            # If our search query is fully contained within the candidate words (or vice versa)
+            v_words = set(variant.split())
+            c_words = set(norm_c.split())
             
-            # If ratio is promising, verify it's not a False Positive (like Pokemon X vs Pokemon Y)
+            # If all our variant words are in the candidate, it's a very strong match
+            if v_words and v_words.issubset(c_words):
+                ratio = 0.95
+            else:
+                ratio = difflib.SequenceMatcher(None, variant, norm_c).ratio()
+            
             if ratio > highest_ratio and ratio >= min_ratio:
+                # Still check significant words to avoid things like 'Pokemon Ruby' matching 'Pokemon Red'
                 if not require_significant or ScraperEngine._check_significant_words(variant, norm_c):
                     highest_ratio = ratio
                     best_overall_match = candidate_map[norm_c]
         
-        if best_overall_match:
+        if best_overall_match and highest_ratio >= min_ratio:
             return best_overall_match
 
         # Tier 4: Greedy Fallback (No spaces, no symbols) - For metadata/hacks matching base series

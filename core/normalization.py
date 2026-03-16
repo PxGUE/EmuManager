@@ -1,6 +1,13 @@
 import re
 import unicodedata
 
+# Common tags that appear at the end or within titles that can interfere with matching base games/official entries.
+NOISY_TAGS = {
+    'esp', 'spa', 'eng', 'usa', 'eur', 'jpn', 'jap', 'ita', 'fra', 'ger',
+    'beta', 'demo', 'v0', 'v1', 'v2', 'v3', 'v4', 'v5', 'alpha', 'hack', 
+    'translation', 'traducido', 'vers', 'rev', 'fixed', 'patched'
+}
+
 def normalize_title(title: str) -> str:
     """
     Normalizes a game title for consistent fuzzy matching.
@@ -61,7 +68,15 @@ def get_search_variations(title: str) -> list[str]:
     
     variations = [norm]
     
-    # Handle "Title, The" pattern
+    # 2. Variant without noisy tags (useful for hacks/translations)
+    words = norm.split()
+    cleaned_words = [w for w in words if w not in NOISY_TAGS]
+    if len(cleaned_words) != len(words):
+        cleaned_norm = " ".join(cleaned_words)
+        if cleaned_norm:
+            variations.append(cleaned_norm)
+
+    # 3. Handle "Title, The" pattern
     if ", the" in title.lower():
         # "Legend of Zelda, The" -> "The Legend of Zelda"
         parts = re.split(r',\s*the', title, flags=re.IGNORECASE)

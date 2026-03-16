@@ -10,6 +10,9 @@ Item {
     property string searchText: ""
 
     property bool scrapersExpanded: false
+    property bool downloadArtwork: true
+    property bool downloadBackgrounds: true
+    property bool downloadMetadata: true
 
     ColumnLayout {
         anchors.fill: parent
@@ -172,7 +175,7 @@ Item {
             Rectangle {
                 id: scrapContent
                 Layout.fillWidth: true
-                Layout.preferredHeight: scrapersExpanded ? 80 : 0
+                Layout.preferredHeight: scrapersExpanded ? scrapLayout.implicitHeight + 50 : 0
                 clip: true
                 color: "#13111d"
                 border.color: "#2a2838"
@@ -181,51 +184,137 @@ Item {
                 bottomRightRadius: 15
                 
                 Behavior on Layout.preferredHeight {
-                    NumberAnimation { duration: 300; easing.type: Easing.OutCubic }
+                    NumberAnimation { duration: 400; easing.type: Easing.OutCubic }
                 }
 
-                RowLayout {
-                    anchors.fill: parent
-                    anchors.margins: 20
-                    spacing: 20
-                    visible: scrapContent.height > 10
+                ColumnLayout {
+                    id: scrapLayout
+                    anchors.top: parent.top
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.margins: 25
+                    spacing: 25
+                    visible: scrapContent.height > 20
 
-                    ColumnLayout {
-                        spacing: 2
+                    RowLayout {
                         Layout.fillWidth: true
-                        Label {
-                            text: (bridge && bridge.currentLanguage) ? bridge.translate("dl_scrap_sub") : "Obtén carátulas y fondos para tus juegos."
-                            font.pixelSize: 11
-                            color: "#888899"
-                            wrapMode: Text.WordWrap
+                        spacing: 20
+                        
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            spacing: 4
+                            Label {
+                                text: (bridge && bridge.currentLanguage) ? bridge.translate("dl_scrap_dlg_q").toUpperCase() : "CONFIGURAR DESCARGA"
+                                font.pixelSize: 12; font.bold: true; color: "#7c6ff7"; font.letterSpacing: 1.5
+                            }
+                            Label {
+                                text: (bridge && bridge.currentLanguage) ? bridge.translate("dl_scrap_sub") : "Obtén carátulas y fondos para tus juegos."
+                                font.pixelSize: 13; color: "#888899"
+                            }
+                        }
+
+                        Button {
+                            id: scrapeBtn
+                            Layout.preferredWidth: 180
+                            Layout.preferredHeight: 44
+                            enabled: bridge && bridge.dashboardStats && bridge.dashboardStats.installed > 0
+                            onClicked: bridge.scanGames(downloadArtwork, downloadBackgrounds, downloadMetadata)
+                            
+                            background: Rectangle {
+                                gradient: Gradient {
+                                    orientation: Gradient.Horizontal
+                                    GradientStop { position: 0.0; color: "#4da6ff" }
+                                    GradientStop { position: 1.0; color: "#7c6ff7" }
+                                }
+                                radius: 12
+                                opacity: !scrapeBtn.enabled ? 0.3 : (scrapeBtn.hovered ? 1.0 : 0.9)
+                                
+                                // Brillo exterior premium
+                                Rectangle {
+                                    anchors.fill: parent; radius: 12
+                                    color: "transparent"; border.color: "white"; border.width: 1
+                                    opacity: scrapeBtn.hovered ? 0.3 : 0
+                                    Behavior on opacity { NumberAnimation { duration: 200 } }
+                                }
+                            }
+                            
+                            contentItem: RowLayout {
+                                spacing: 10
+                                Label { text: "⚡"; font.pixelSize: 16 }
+                                Label {
+                                    text: (bridge && bridge.currentLanguage) ? bridge.translate("set_btn_download") : "DESCARGAR"
+                                    color: "white"; font.bold: true; font.pixelSize: 12; font.letterSpacing: 1
+                                }
+                            }
                         }
                     }
 
-                    Button {
-                        id: scrapeBtn
-                        Layout.preferredWidth: 140
-                        Layout.preferredHeight: 36
-                        enabled: bridge && bridge.dashboardStats && bridge.dashboardStats.installed > 0
-                        onClicked: bridge.scanGames()
-                        
-                        background: Rectangle {
-                            gradient: Gradient {
-                                orientation: Gradient.Horizontal
-                                GradientStop { position: 0.0; color: "#4da6ff" }
-                                GradientStop { position: 1.0; color: "#7c6ff7" }
+                    Rectangle { Layout.fillWidth: true; height: 1; color: "#252835"; opacity: 0.5 }
+
+                    // LISTA DE OPCIONES CREATIVA
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 12
+
+                        // Reusable delegate-like items for the list
+                        // Artwork Item
+                        Rectangle {
+                            Layout.fillWidth: true; height: 50; radius: 12; color: downloadArtwork ? "#1a1e2e" : "#0f111a"
+                            border.color: downloadArtwork ? "#4da6ff" : "#252835"; border.width: 1
+                            Behavior on color { ColorAnimation { duration: 200 } }
+                            
+                            RowLayout {
+                                anchors.fill: parent; anchors.margins: 15; spacing: 15
+                                Label { text: "🖼️"; font.pixelSize: 18 }
+                                Label { 
+                                    text: (bridge && bridge.currentLanguage) ? bridge.translate("dl_scrap_opt_artwork") : "Artwork"
+                                    color: "white"; font.pixelSize: 13; font.weight: Font.Medium; Layout.fillWidth: true 
+                                }
+                                Switch {
+                                    checked: downloadArtwork
+                                    onToggled: downloadArtwork = checked
+                                }
                             }
-                            radius: 10
-                            opacity: !scrapeBtn.enabled ? 0.3 : (scrapeBtn.hovered ? 1.0 : 0.9)
                         }
-                        
-                        contentItem: Label {
-                            text: (bridge && bridge.currentLanguage) ? bridge.translate("set_btn_download") : "DESCARGAR"
-                            color: scrapeBtn.enabled ? "white" : "#888899"
-                            font.bold: true
-                            font.pixelSize: 11
-                            font.letterSpacing: 1
-                            horizontalAlignment: Text.AlignHCenter
-                            verticalAlignment: Text.AlignVCenter
+
+                        // Backgrounds Item
+                        Rectangle {
+                            Layout.fillWidth: true; height: 50; radius: 12; color: downloadBackgrounds ? "#1a1e2e" : "#0f111a"
+                            border.color: downloadBackgrounds ? "#4da6ff" : "#252835"; border.width: 1
+                            Behavior on color { ColorAnimation { duration: 200 } }
+                            
+                            RowLayout {
+                                anchors.fill: parent; anchors.margins: 15; spacing: 15
+                                Label { text: "🌄"; font.pixelSize: 18 }
+                                Label { 
+                                    text: (bridge && bridge.currentLanguage) ? bridge.translate("dl_scrap_opt_backgrounds") : "Backgrounds"
+                                    color: "white"; font.pixelSize: 13; font.weight: Font.Medium; Layout.fillWidth: true 
+                                }
+                                Switch {
+                                    checked: downloadBackgrounds
+                                    onToggled: downloadBackgrounds = checked
+                                }
+                            }
+                        }
+
+                        // Metadata Item
+                        Rectangle {
+                            Layout.fillWidth: true; height: 50; radius: 12; color: downloadMetadata ? "#1a1e2e" : "#0f111a"
+                            border.color: downloadMetadata ? "#4da6ff" : "#252835"; border.width: 1
+                            Behavior on color { ColorAnimation { duration: 200 } }
+                            
+                            RowLayout {
+                                anchors.fill: parent; anchors.margins: 15; spacing: 15
+                                Label { text: "📋"; font.pixelSize: 18 }
+                                Label { 
+                                    text: (bridge && bridge.currentLanguage) ? bridge.translate("dl_scrap_opt_metadata") : "Metadata"
+                                    color: "white"; font.pixelSize: 13; font.weight: Font.Medium; Layout.fillWidth: true 
+                                }
+                                Switch {
+                                    checked: downloadMetadata
+                                    onToggled: downloadMetadata = checked
+                                }
+                            }
                         }
                     }
                 }

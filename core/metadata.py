@@ -143,10 +143,14 @@ def get_providers_config() -> List[Dict]:
     
     # Cargar secretos de forma segura para cada proveedor
     for d in default:
+        is_conf = True
         for field in ["api_key", "user", "password"]:
             if field in d:
                 val = get_secret(d["id"], field)
                 if val:
                     d[field] = val
+                else:
+                    is_conf = False
+        d["is_configured"] = is_conf
 
     return default

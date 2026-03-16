@@ -145,20 +145,109 @@ ApplicationWindow {
             }
         }
 
-        // --- CONTENIDO PRINCIPAL ---
-        StackLayout {
-            id: mainStack
+        // --- CONTENIDO PRINCIPAL (Con Animaciones Premium) ---
+        Item {
+            id: mainContentArea
             Layout.fillWidth: true
             Layout.fillHeight: parent
-            currentIndex: sidebarList.currentIndex
+            clip: true // Importante para que el slide no se salga
+            
+            readonly property int activeIndex: sidebarList.currentIndex
 
-            Dashboard { id: dashView }
+            // Definimos un helper para la animación común
+            // Nota: En QML puro dentro de Main, aplicamos la lógica a cada vista
             
-            Library { id: libraryView }
+            Dashboard { 
+                id: dashView
+                anchors.fill: parent
+                visible: opacity > 0
+                opacity: mainContentArea.activeIndex === 0 ? 1 : 0
+                // Efecto de desplazamiento: viene desde un pequeño offset
+                x: mainContentArea.activeIndex === 0 ? 0 : -40
+                
+                Behavior on opacity { NumberAnimation { duration: 450; easing.type: Easing.OutCubic } }
+                Behavior on x { NumberAnimation { duration: 500; easing.type: Easing.OutBack } }
+            }
             
-            Downloads { id: downloadsView }
+            Library { 
+                id: libraryView
+                anchors.fill: parent
+                visible: opacity > 0
+                opacity: mainContentArea.activeIndex === 1 ? 1 : 0
+                x: mainContentArea.activeIndex === 1 ? 0 : -40
+                
+                Behavior on opacity { NumberAnimation { duration: 450; easing.type: Easing.OutCubic } }
+                Behavior on x { NumberAnimation { duration: 500; easing.type: Easing.OutBack } }
+            }
             
-            Settings { id: settingsView }
+            Downloads { 
+                id: downloadsView
+                anchors.fill: parent
+                visible: opacity > 0
+                opacity: mainContentArea.activeIndex === 2 ? 1 : 0
+                x: mainContentArea.activeIndex === 2 ? 0 : -40
+                
+                Behavior on opacity { NumberAnimation { duration: 450; easing.type: Easing.OutCubic } }
+                Behavior on x { NumberAnimation { duration: 500; easing.type: Easing.OutBack } }
+            }
+            
+            Settings { 
+                id: settingsView
+                anchors.fill: parent
+                visible: opacity > 0
+                opacity: mainContentArea.activeIndex === 3 ? 1 : 0
+                x: mainContentArea.activeIndex === 3 ? 0 : -40
+                
+                Behavior on opacity { NumberAnimation { duration: 450; easing.type: Easing.OutCubic } }
+                Behavior on x { NumberAnimation { duration: 500; easing.type: Easing.OutBack } }
+            }
+        }
+    }
+
+    // --- SISTEMA DE DIÁLOGOS GLOBALES ---
+    property var pendingLaunch: null
+
+    function requestLaunch(game_path, emu_id, game_name) {
+        if (!bridge) return;
+        
+        let state = bridge.checkLaunchState(game_path)
+        
+        if (state === 0) {
+            // Caso 0: Nada ejecutándose, lanzar directo
+            bridge.launchGame(game_path, emu_id)
+        } 
+        else if (state === 2) {
+            // Caso 2: Es el mismo juego que ya está abierto
+            globalDialog.title = "JUEGO EN CURSO"
+            globalDialog.message = "¡" + game_name + " ya se está ejecutando! Vuelve a la ventana del emulador para continuar jugando."
+            globalDialog.isInfoOnly = true
+            globalDialog.accentColor = "#4da6ff"
+            globalDialog.open()
+        } 
+        else {
+            // Caso 1: Hay OTRO juego abierto
+            pendingLaunch = { path: game_path, id: emu_id }
+            globalDialog.title = "ADVERTENCIA DE SESIÓN"
+            globalDialog.message = "Actualmente tienes una partida activa en \"" + bridge.activeGameName + "\".\n\n¿Estás seguro de que quieres cerrar la sesión actual para iniciar \"" + game_name + "\"? Se perderá cualquier progreso que no hayas guardado."
+            globalDialog.isInfoOnly = false
+            globalDialog.confirmText = "SÍ, CERRAR Y CAMBIAR"
+            globalDialog.accentColor = "#ff4d4d"
+            globalDialog.open()
+        }
+    }
+
+    CustomDialog {
+        id: globalDialog
+        anchors.centerIn: parent
+        z: 9999
+        onConfirmed: {
+            if (pendingLaunch) {
+                bridge.forceLaunchGame(pendingLaunch.path, pendingLaunch.id)
+                pendingLaunch = null
+            }
+        }
+        onCancelled: {
+            pendingLaunch = null
         }
     }
 }

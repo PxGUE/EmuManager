@@ -14,6 +14,7 @@ class AppBridge(QObject):
     # Señales para notificar cambios a QML
     languageChanged = Signal(str)
     statsUpdated = Signal()
+    configUpdated = Signal()
     downloadProgress = Signal(str, float) # url, progress
     downloadFinished = Signal(str, bool, str) # url, success, message
     
@@ -271,11 +272,11 @@ class AppBridge(QObject):
         self.statsUpdated.emit()
 
     # --- CONFIGURACIÓN (SETTINGS) ---
-    @Property(str, notify=statsUpdated)
+    @Property(str, notify=configUpdated)
     def installPath(self):
         return self.emu_manager.install_path or ""
 
-    @Property(str, notify=statsUpdated)
+    @Property(str, notify=configUpdated)
     def romsPath(self):
         return self.emu_manager.roms_path or ""
 
@@ -286,7 +287,7 @@ class AppBridge(QObject):
         if path:
             self.emu_manager.install_path = path
             self.emu_manager.save_config()
-            self.statsUpdated.emit()
+            self.configUpdated.emit()
 
     @Slot()
     def browseRomsPath(self):
@@ -295,7 +296,7 @@ class AppBridge(QObject):
         if path:
             self.emu_manager.roms_path = path
             self.emu_manager.save_config()
-            self.statsUpdated.emit()
+            self.configUpdated.emit()
 
     @Slot()
     def openInstallFolder(self):
@@ -361,7 +362,7 @@ class AppBridge(QObject):
             
         asyncio.create_task(do_scan())
 
-    @Property(list, notify=statsUpdated)
+    @Property(list, notify=configUpdated)
     def scraperProviders(self):
         from core.metadata import get_providers_config
         return get_providers_config()
@@ -375,7 +376,7 @@ class AppBridge(QObject):
                 p["enabled"] = enabled
                 break
         self._save_scrapers_config(providers)
-        self.statsUpdated.emit()
+        self.configUpdated.emit()
 
     def _save_scrapers_config(self, providers):
         path = os.path.join("data", "scrapers_config.json")
@@ -400,14 +401,14 @@ class AppBridge(QObject):
     def saveSecret(self, provider_id, key, value):
         import core.security as security
         security.save_secret(provider_id, key, value)
-        self.statsUpdated.emit()
+        self.configUpdated.emit()
 
     @Slot(str)
     def clearSecrets(self, provider_id):
         import core.security as security
         security.clear_all_secrets(provider_id)
         # Notificar al sistema que los stats/config han cambiado para refrescar la UI
-        self.statsUpdated.emit()
+        self.configUpdated.emit()
         # Forzar refresco de la propiedad scraperProviders
         self.languageChanged.emit(self._current_lang) 
 
@@ -504,7 +505,9 @@ class AppBridge(QObject):
             emu_info = next((e for e in AVAILABLE_EMULATORS if e["id"] == emu_id), None)
             if emu_info:
                 async def do_launch():
-                    await self.emu_manager.lanzar_juego(emu_info["github"], game_path, game)
+                    success, msg = await self.emu_manager.lanzar_juego(emu_info["github"], game_path, game)
+                    if success:
+                        self.statsUpdated.emit()
                 import asyncio
                 asyncio.create_task(do_launch())
 
@@ -517,6 +520,38 @@ class AppBridge(QObject):
     @Slot(str, result=bool)
     def isFavorite(self, game_path):
         return scanner.es_favorito(game_path)
+
+    # --- CONTROL DE EJECUCIÓN ---
+    @Property(bool, notify=statsUpdated)
+    def isGameRunning(self):
+        return self.emu_manager.is_emulator_running()
+
+    @Property(str, notify=statsUpdated)
+    def activeGameName(self):
+        game = self.emu_manager.launcher.current_game
+        return game.get("nombre", "") if game else ""
+
+    @Slot(str, result=int)
+    def checkLaunchState(self, game_path):
+        """
+        Retorna el estado de ejecución actual:
+        0: No hay nada ejecutándose (Lanzamiento libre).
+        1: Hay un juego DIFERENTE ejecutándose (Requiere advertencia).
+        2: Es el MISMO juego que ya está abierto (Informar).
+        """
+        if not self.emu_manager.is_emulator_running():
+            return 0
+        
+        current = self.emu_manager.launcher.current_game
+        if current and current.get("ruta") == game_path:
+            return 2
+        return 1
+
+    @Slot(str, str)
+    def forceLaunchGame(self, game_path, emu_id):
+        """Cierra lo que esté abierto y lanza el nuevo juego."""
+        self.emu_manager.terminar_proceso_actual()
+        self.launchGame(game_path, emu_id)
 
     # --- METADATOS BÁSICOS ---
     @Property(str, constant=True)

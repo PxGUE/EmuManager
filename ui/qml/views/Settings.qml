@@ -42,207 +42,230 @@ Item {
 
             // --- SECCIÓN: IDIOMA ---
             ColumnLayout {
-                spacing: 16
+                spacing: 12
                 Layout.fillWidth: true
 
                 RowLayout {
                     spacing: 10
-                    Rectangle { width: 4; height: 18; radius: 2; color: "#4da6ff" }
+                    Rectangle { width: 3; height: 16; radius: 1.5; color: "#4da6ff" }
                     Label {
                         text: bridge ? bridge.translate("set_lang_lbl").toUpperCase() : "IDIOMA"
-                        font.pixelSize: 14
-                        font.bold: true
-                        color: "white"
-                        font.letterSpacing: 1
+                        font.pixelSize: 13; font.bold: true; color: "white"; font.letterSpacing: 1
                     }
                 }
 
-                ComboBox {
-                    id: langCombo
-                    model: ["Español", "English"]
-                    currentIndex: (bridge && bridge.currentLanguage === "es") ? 0 : 1
-                    onActivated: {
-                        if (bridge) bridge.changeLanguage(currentIndex === 0 ? "es" : "en")
-                    }
-                    Layout.preferredWidth: 220
-                    Layout.leftMargin: 14
+                Rectangle {
+                    Layout.fillWidth: true
+                    height: 72
+                    radius: 20
+                    color: "#0dffffff"
+                    border.color: "#1affffff"; border.width: 1
 
-                    delegate: ItemDelegate {
-                        width: langCombo.width
-                        padding: 12
-                        
-                        contentItem: RowLayout {
-                            spacing: 12
-                            Label {
-                                text: index === 0 ? "🇪🇸" : "🇺🇸"
-                                font.pixelSize: 16
-                            }
-                            Label {
-                                text: modelData
-                                color: highlighted ? "white" : "#888899"
-                                font.bold: highlighted
-                                font.pixelSize: 14
-                                Layout.fillWidth: true
-                            }
-                            Label {
-                                text: "✓"
-                                color: "#4da6ff"
-                                font.bold: true
-                                visible: langCombo.currentIndex === index
-                            }
-                        }
-                        
-                        background: Rectangle {
-                            color: highlighted ? "#252b3d" : "transparent"
-                            radius: 8
-                        }
-                    }
+                    RowLayout {
+                        anchors.fill: parent
+                        anchors.leftMargin: 20
+                        anchors.rightMargin: 20
+                        spacing: 20
 
-                    indicator: Label {
-                        x: langCombo.width - width - 15
-                        y: (langCombo.height - height) / 2
-                        text: "⌄"
-                        font.pixelSize: 18
-                        color: "#4da6ff"
-                        rotation: langCombo.opened ? 180 : 0
-                        Behavior on rotation { NumberAnimation { duration: 200 } }
-                    }
-                    leftPadding: 16
-                    rightPadding: 40
-
-                    contentItem: RowLayout {
-                        spacing: 12
-                        
-                        Label {
-                            text: "🌐" // Globe icon
-                            font.pixelSize: 16
-                        }
-                        
-                        Label {
-                            text: langCombo.displayText
-                            font.pixelSize: 14
-                            font.bold: true
-                            color: "white"
-                            verticalAlignment: Text.AlignVCenter
-                        }
-                    }
-
-                    background: Rectangle {
-                        implicitWidth: 220
-                        implicitHeight: 45
-                        radius: 12
-                        color: "#1a1c24"
-                        border.color: langCombo.activeFocus || langCombo.opened ? "#4da6ff" : "#252830"
-                        border.width: 1
-                        
+                        // Icono de Idioma
                         Rectangle {
-                            anchors.fill: parent
-                            radius: 12
-                            visible: langCombo.hovered
-                            color: "#ffffff"
-                            opacity: 0.03
-                        }
-                    }
-
-                    popup: Popup {
-                        y: langCombo.height + 5
-                        width: langCombo.width
-                        implicitHeight: contentItem.implicitHeight + 20
-                        padding: 10
-
-                        contentItem: ListView {
-                            clip: true
-                            implicitHeight: contentHeight
-                            model: langCombo.popup.visible ? langCombo.delegateModel : null
-                            currentIndex: langCombo.highlightedIndex
-                            ScrollIndicator.vertical: ScrollIndicator { }
+                            width: 32; height: 32; radius: 8
+                            color: "#1affffff"
+                            Text {
+                                anchors.centerIn: parent
+                                text: "🌐"
+                                font.pixelSize: 14; opacity: 0.8
+                            }
                         }
 
-                        background: Rectangle {
-                            color: "#16181f"
-                            radius: 12
-                            border.color: "#303440"
-                            border.width: 1
-                        }
-                    }
-                }
-            }
-
-            // --- SECCIÓN: RUTAS DE EMULADORES ---
-            ColumnLayout {
-                spacing: 16
-                Layout.fillWidth: true
-
-                RowLayout {
-                    spacing: 10
-                    Rectangle { width: 4; height: 18; radius: 2; color: "#4da6ff" }
-                    Label {
-                        text: bridge ? bridge.translate("set_paths_section").toUpperCase() : "RUTAS DE EMULADORES"
-                        font.pixelSize: 14
-                        font.bold: true
-                        color: "white"
-                        font.letterSpacing: 1
-                    }
-                }
-
-                ColumnLayout {
-                    spacing: 12
-                    Layout.fillWidth: true
-
-                    PathSetting {
-                        title: (bridge && bridge.currentLanguage) ? bridge.translate("set_emus_title") : "Ruta de Aplicaciones"
-                        subtitle: (bridge && bridge.currentLanguage) ? bridge.translate("set_emus_sub") : "Donde se instalan los ejecutables"
-                        path: bridge ? bridge.installPath : ""
-                        onBrowse: bridge.browseInstallPath()
-                    }
-
-                    PathSetting {
-                        title: (bridge && bridge.currentLanguage) ? bridge.translate("set_roms_title") : "Ruta de Juegos (ROMs)"
-                        subtitle: (bridge && bridge.currentLanguage) ? bridge.translate("set_roms_sub") : "Donde guardas tus bibliotecas"
-                        path: bridge ? bridge.romsPath : ""
-                        onBrowse: bridge.browseRomsPath()
-                    }
-                }
-            }
-
-            // --- SECCIÓN: CONFIGURACIÓN DE DATOS ---
-            ColumnLayout {
-                spacing: 16
-                Layout.fillWidth: true
-
-                RowLayout {
-                    spacing: 10
-                    Rectangle { width: 4; height: 18; radius: 2; color: "#4da6ff" }
-                    Label {
-                        text: bridge ? bridge.translate("set_data_section").toUpperCase() : "CONFIGURACIÓN DE LOS DATOS"
-                        font.pixelSize: 14
-                        font.bold: true
-                        color: "white"
-                        font.letterSpacing: 1
-                    }
-                }
-                
-                Label {
-                    text: bridge ? bridge.translate("set_scrapers_sub") : "Fuentes de información y arte"
-                    font.pixelSize: 12
-                    color: "#888899"
-                    Layout.leftMargin: 14
-                }
-
-                ColumnLayout {
-                    Layout.fillWidth: true
-                    spacing: 0
-                    Repeater {
-                        model: bridge ? bridge.scraperProviders : []
-                        delegate: ProviderCard {
+                        ColumnLayout {
+                            spacing: 0
                             Layout.fillWidth: true
-                            providerId: modelData.id
-                            name: modelData.name
-                            type: modelData.type
-                            enabled: modelData.enabled
-                            onConfigureClicked: {
-                                selectedProvider = modelData
-                                configPopup.open()
+                            Label {
+                                text: "Idioma de la interfaz"
+                                font.pixelSize: 14; font.weight: Font.Medium; color: "white"
+                            }
+                            Label {
+                                text: "Cambia el lenguaje de los menús y descripciones"
+                                font.pixelSize: 10; color: "#666677"
+                            }
+                        }
+
+                        ComboBox {
+                            id: langCombo
+                            model: ["Español", "English"]
+                            currentIndex: (bridge && bridge.currentLanguage === "es") ? 0 : 1
+                            onActivated: { if (bridge) bridge.changeLanguage(currentIndex === 0 ? "es" : "en") }
+                            Layout.preferredWidth: 180
+                            Layout.preferredHeight: 38
+                            
+                            // Texto del botón principal
+                            contentItem: Label {
+                                text: langCombo.displayText
+                                color: "white"
+                                font.pixelSize: 13; font.weight: Font.Medium
+                                verticalAlignment: Text.AlignVCenter
+                                leftPadding: 16
+                                rightPadding: 36
+                            }
+
+                            // Diseño de cada opción en la lista
+                            delegate: ItemDelegate {
+                                width: langCombo.width
+                                contentItem: Label {
+                                    text: modelData
+                                    color: highlighted ? "white" : "#9999aa"
+                                    font.pixelSize: 13; font.weight: highlighted ? Font.Medium : Font.Normal
+                                    verticalAlignment: Text.AlignVCenter
+                                    leftPadding: 16
+                                }
+                                background: Rectangle {
+                                    color: highlighted ? "#2a2d3e" : "transparent"
+                                    radius: 8; anchors.fill: parent; anchors.margins: 2
+                                }
+                                highlighted: langCombo.highlightedIndex === index
+                            }
+
+                            // Estilo del menú desplegable (Popup)
+                            popup: Popup {
+                                y: langCombo.height + 5
+                                width: langCombo.width
+                                padding: 2
+                                contentItem: ListView {
+                                    clip: true
+                                    implicitHeight: contentHeight
+                                    model: langCombo.delegateModel
+                                    currentIndex: langCombo.highlightedIndex
+                                }
+                                background: Rectangle {
+                                    color: "#1a1c24"; radius: 12
+                                    border.color: "#33ffffff"; border.width: 1
+                                }
+                            }
+
+                            // Flecha personalizada
+                            indicator: Canvas {
+                                id: canvas
+                                x: langCombo.width - width - 12
+                                y: (langCombo.height - height) / 2
+                                width: 12; height: 8
+                                onPaint: {
+                                    var ctx = getContext("2d");
+                                    ctx.reset();
+                                    ctx.moveTo(0, 0);
+                                    ctx.lineTo(width, 0);
+                                    ctx.lineTo(width / 2, height);
+                                    ctx.closePath();
+                                    ctx.fillStyle = langCombo.hovered ? "#4da6ff" : "#666677";
+                                    ctx.fill();
+                                }
+                                Connections {
+                                    target: langCombo
+                                    function onHoveredChanged() { canvas.requestPaint(); }
+                                }
+                            }
+
+                            background: Rectangle { 
+                                radius: 10; color: "#1a1c24"
+                                border.color: langCombo.hovered ? "#4da6ff" : "#33ffffff"
+                                border.width: 1 
+                                Behavior on border.color { ColorAnimation { duration: 150 } }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // --- SECCIÓN: RUTAS ---
+            ColumnLayout {
+                spacing: 12
+                Layout.fillWidth: true
+
+                RowLayout {
+                    spacing: 10
+                    Rectangle { width: 3; height: 16; radius: 1.5; color: "#4da6ff" }
+                    Label {
+                        text: bridge ? bridge.translate("set_paths_section").toUpperCase() : "DIRECTORIOS"
+                        font.pixelSize: 13; font.bold: true; color: "white"; font.letterSpacing: 1
+                    }
+                }
+
+                Rectangle {
+                    Layout.fillWidth: true
+                    height: pathsCol.implicitHeight
+                    radius: 20
+                    color: "#0dffffff"
+                    border.color: "#1affffff"; border.width: 1
+
+                    ColumnLayout {
+                        id: pathsCol
+                        width: parent.width
+                        spacing: 0
+
+                        PathSetting {
+                            title: "Ruta de Aplicaciones"
+                            subtitle: "Instalación de emuladores"
+                            path: bridge ? bridge.installPath : ""
+                            onBrowse: bridge.browseInstallPath()
+                        }
+                        
+                        Rectangle { Layout.fillWidth: true; Layout.leftMargin: 20; Layout.rightMargin: 20; height: 1; color: "#0fffffff" }
+
+                        PathSetting {
+                            title: "Ruta de ROMs"
+                            subtitle: "Ubicación de los juegos"
+                            path: bridge ? bridge.romsPath : ""
+                            onBrowse: bridge.browseRomsPath()
+                        }
+                    }
+                }
+            }
+
+            // --- SECCIÓN: DATOS ---
+            ColumnLayout {
+                spacing: 12
+                Layout.fillWidth: true
+
+                RowLayout {
+                    spacing: 10
+                    Rectangle { width: 3; height: 16; radius: 1.5; color: "#4da6ff" }
+                    Label {
+                        text: bridge ? bridge.translate("set_data_section").toUpperCase() : "FUENTES DE DATOS"
+                        font.pixelSize: 13; font.bold: true; color: "white"; font.letterSpacing: 1
+                    }
+                }
+
+                Rectangle {
+                    Layout.fillWidth: true
+                    height: providersCol.implicitHeight
+                    radius: 20
+                    color: "#0dffffff"
+                    border.color: "#1affffff"; border.width: 1
+
+                    ColumnLayout {
+                        id: providersCol
+                        width: parent.width
+                        spacing: 0
+                        Repeater {
+                            model: bridge ? bridge.scraperProviders : []
+                            delegate: ColumnLayout {
+                                spacing: 0
+                                Layout.fillWidth: true
+                                ProviderCard {
+                                    providerId: modelData.id
+                                    name: modelData.name
+                                    typeDisplay: modelData.type
+                                    isActive: modelData.enabled
+                                    isConfigured: modelData.is_configured
+                                    onConfigureClicked: {
+                                        selectedProvider = modelData
+                                        configPopup.open()
+                                    }
+                                }
+                                Rectangle {
+                                    visible: index < (bridge.scraperProviders.length - 1)
+                                    Layout.fillWidth: true; Layout.leftMargin: 20; Layout.rightMargin: 20; height: 1; color: "#0fffffff"
+                                }
                             }
                         }
                     }

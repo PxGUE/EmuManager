@@ -257,9 +257,10 @@ Item {
                         Layout.leftMargin: 5
                     }
                     Rectangle {
-                        Layout.fillWidth: true; Layout.preferredHeight: 380; radius: 28
+                        Layout.fillWidth: true; Layout.preferredHeight: actContent.implicitHeight + 30; radius: 28
                         color: "#141621"; border.color: "#252835"; border.width: 1
                         ColumnLayout {
+                            id: actContent
                             anchors.fill: parent; anchors.margins: 15; spacing: 0
                             Repeater {
                                 model: bridge ? bridge.recentActivity : []
@@ -284,7 +285,13 @@ Item {
                                         Item { Layout.fillWidth: true }
                                         Label { text: modelData.playtime; color: modelData.color; font.pixelSize: 13; font.weight: Font.DemiBold }
                                     }
-                                    MouseArea { id: mouseAreaAct; anchors.fill: parent; hoverEnabled: true }
+                                    MouseArea { 
+                                        id: mouseAreaAct; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                                        onClicked: {
+                                            if (window && window.requestLaunch)
+                                                window.requestLaunch(modelData.path, modelData.id_emu, modelData.name)
+                                        }
+                                    }
                                 }
                             }
                             Label {

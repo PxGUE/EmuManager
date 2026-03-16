@@ -4,95 +4,129 @@ import QtQuick.Controls
 
 Item {
     id: cardRoot
+    
+    // Propiedades (Renombradas para evitar colisión con built-in 'enabled')
     property string providerId: ""
     property string name: ""
-    property string type: "" // metadata, artworks, hybrid
-    property bool enabled: false
+    property string typeDisplay: ""
+    property bool isActive: true
+    property bool isConfigured: true
     
     signal configureClicked()
 
-    Layout.preferredHeight: 100
+    implicitHeight: 64
     Layout.fillWidth: true
-    
-    MouseArea {
-        id: mouseArea
+
+    readonly property var needsConfig: ["tgdb", "rawg", "steamgriddb", "screenscraper"]
+    property bool hasAConfig: needsConfig.includes(providerId)
+
+    // Fondo con HoverHandler (No bloquea clics)
+    Rectangle {
         anchors.fill: parent
-        hoverEnabled: true
+        anchors.margins: 2
+        radius: 12
+        color: hoverTracker.hovered ? "#0cffffff" : "transparent"
+        Behavior on color { ColorAnimation { duration: 150 } }
+        HoverHandler { id: hoverTracker }
+    }
 
-        Rectangle {
-            id: bg
-            anchors.fill: parent
-            radius: 20
-            color: mouseArea.containsMouse ? "#1c1f2e" : "#141621"
-            border.color: mouseArea.containsMouse ? "#4da6ff" : "#252835"
-            border.width: 1
-            Behavior on color { ColorAnimation { duration: 250 } }
-            Behavior on border.color { ColorAnimation { duration: 250 } }
+    RowLayout {
+        anchors.fill: parent
+        anchors.leftMargin: 20
+        anchors.rightMargin: 20
+        spacing: 0 // Usamos espaciado manual o Layout.fillWidth
 
-            // Glow de fondo dinámico Premium
+        // 🟢 Columna 1: Status LED (Ancho Fijo para Alineación)
+        Item {
+            Layout.preferredWidth: 40
+            Layout.fillHeight: true
             Rectangle {
                 anchors.centerIn: parent
-                width: parent.width * 1.1; height: parent.height * 1.3
-                radius: 40
-                opacity: mouseArea.containsMouse ? 0.25 : 0.0
-                gradient: Gradient {
-                    orientation: Gradient.Horizontal
-                    GradientStop { position: 0.0; color: "transparent" }
-                    GradientStop { position: 0.5; color: "#4da6ff" }
-                    GradientStop { position: 1.0; color: "transparent" }
+                width: 10; height: 10; radius: 5
+                
+                // Lógica de colores Solicitada:
+                // 🟡 Amarrillo: No configurado
+                // 🟢 Verde: Configurado y Activo
+                // 🔴 Rojo: Configurado y Apagado
+                color: !isConfigured ? "#f1c40f" : (isActive ? "#2ecc71" : "#e74c3c")
+                
+                Rectangle {
+                    anchors.centerIn: parent
+                    width: parent.width + 6; height: parent.height + 6; radius: 8
+                    color: parent.color; opacity: 0.2
                 }
-                Behavior on opacity { NumberAnimation { duration: 400 } }
+                Behavior on color { ColorAnimation { duration: 300 } }
             }
         }
 
+        // 🟢 Columna 2: Info (Flexible)
+        ColumnLayout {
+            spacing: 0
+            Layout.fillWidth: true
+            Label { 
+                text: name
+                font.pixelSize: 15; font.weight: Font.Medium; color: "white" 
+                opacity: isActive ? 1.0 : 0.6
+                Behavior on opacity { NumberAnimation { duration: 200 } }
+            }
+            Label {
+                text: typeDisplay.toUpperCase()
+                font.pixelSize: 9; color: "#444455"; font.letterSpacing: 1
+            }
+        }
+
+        // 🟢 Columna 3: Acciones (Ancho Fijo para Alineación Vertical Perfecta)
         RowLayout {
-            anchors.fill: parent
-            anchors.margins: 20
-            spacing: 20
+            Layout.preferredWidth: 100
+            Layout.alignment: Qt.AlignRight
+            spacing: 12
 
-            Rectangle {
-                width: 50; height: 50; radius: 15
-                color: Qt.alpha("#4da6ff", 0.1)
-                Label {
-                    anchors.centerIn: parent
-                    text: type === "metadata" ? "📝" : (type === "artworks" ? "🖼️" : "🧩")
-                    font.pixelSize: 22
+            // Botón Gear
+            Item {
+                width: 32; height: 32
+                visible: hasAConfig
+                Rectangle {
+                    anchors.fill: parent; radius: 16
+                    color: gearMouse.containsMouse ? "#20ffffff" : "transparent"
+                    Text {
+                        anchors.centerIn: parent
+                        text: "⚙️"; font.pixelSize: 14; opacity: gearMouse.containsMouse ? 1.0 : 0.6
+                    }
                 }
-            }
-
-            ColumnLayout {
-                spacing: 2
-                Label { text: name; font.pixelSize: 16; font.bold: true; color: "white" }
-                Label { 
-                    text: type.toUpperCase()
-                    font.pixelSize: 10; font.bold: true; color: "#6e7282"; font.letterSpacing: 1.5
-                }
-            }
-
-            Item { Layout.fillWidth: true }
-
-            RowLayout {
-                spacing: 12
-                
-                Button {
-                    text: "⚙️"
+                MouseArea {
+                    id: gearMouse
+                    anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                     onClicked: cardRoot.configureClicked()
-                    visible: providerId !== "local"
-                    background: Rectangle { 
-                        implicitWidth: 40; implicitHeight: 40; radius: 10
-                        color: parent.hovered ? "#2a2d3e" : "transparent"
-                        border.color: parent.hovered ? "#4da6ff" : "transparent"
-                    }
-                    contentItem: Label { text: parent.text; font.pixelSize: 18; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                }
+            }
+
+            // Espaciador si no hay gear
+            Item { width: 32; height: 32; visible: !hasAConfig }
+
+            // INTERRUPTOR CUSTOM (Mecánica Robusta)
+            Rectangle {
+                id: toggleBase
+                width: 38; height: 21; radius: 10.5
+                color: isActive ? "#4da6ff" : "#2a2d3e"
+                
+                Rectangle {
+                    id: handle
+                    x: isActive ? parent.width - width - 2 : 2
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: 17; height: 17; radius: 8.5
+                    color: "white"
+                    Behavior on x { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
                 }
 
-                Switch {
-                    id: providerSwitch
-                    checked: enabled
-                    onToggled: {
-                        if (bridge) bridge.toggleProvider(providerId, checked)
+                MouseArea {
+                    anchors.fill: parent
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: {
+                        if (bridge) bridge.toggleProvider(providerId, !isActive)
                     }
                 }
+                
+                Behavior on color { ColorAnimation { duration: 200 } }
             }
         }
     }

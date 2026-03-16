@@ -10,103 +10,78 @@ Item {
     signal browse()
 
     Layout.fillWidth: true
-    height: 100
+    implicitHeight: 64
 
-    ColumnLayout {
+    // Fondo con efecto hover
+    Rectangle {
         anchors.fill: parent
-        spacing: 12
+        anchors.margins: 2
+        radius: 12
+        color: hoverTracker.hovered ? "#0cffffff" : "transparent"
+        Behavior on color { ColorAnimation { duration: 150 } }
+        HoverHandler { id: hoverTracker }
+    }
 
-        RowLayout {
-            Layout.fillWidth: true
-            spacing: 15
+    RowLayout {
+        anchors.fill: parent
+        anchors.leftMargin: 20
+        anchors.rightMargin: 20
+        spacing: 20
 
-            ColumnLayout {
-                spacing: 2
-                Layout.fillWidth: true
-                Label {
-                    text: title
-                    font.pixelSize: 16
-                    font.bold: true
-                    color: "white"
-                }
-                Label {
-                    text: subtitle
-                    font.pixelSize: 12
-                    color: "#888899"
-                    wrapMode: Text.WordWrap
-                    Layout.fillWidth: true
-                    opacity: 0.8
-                }
-            }
-
-            Button {
-                id: browseBtn
-                text: bridge ? bridge.translate("set_btn_select") : "Select"
-                onClicked: browse()
-                Layout.preferredHeight: 36
-                Layout.preferredWidth: 110
-                
-                background: Rectangle {
-                    color: browseBtn.pressed ? "#1a1c24" : (browseBtn.hovered ? "#303440" : "#252b3d")
-                    radius: 8
-                    border.color: browseBtn.hovered ? "#4da6ff" : "transparent"
-                    border.width: 1
-                    Behavior on color { ColorAnimation { duration: 150 } }
-                }
-                contentItem: Label {
-                    text: browseBtn.text
-                    color: browseBtn.hovered ? "white" : "#4da6ff"
-                    font.bold: true
-                    font.pixelSize: 12
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
-                }
+        // Icono de Carpeta Minimalista
+        Rectangle {
+            Layout.preferredWidth: 32; Layout.preferredHeight: 32; radius: 8
+            color: "#1affffff"
+            Text {
+                anchors.centerIn: parent
+                text: "📂"
+                font.pixelSize: 14; opacity: 0.8
             }
         }
 
-        // Path Display Container
-        Rectangle {
+        ColumnLayout {
+            spacing: 0
             Layout.fillWidth: true
-            Layout.preferredHeight: 40
-            radius: 10
-            color: "#16181f"
-            border.color: "#252830"
-            border.width: 1
+            Label {
+                text: title
+                font.pixelSize: 14; font.weight: Font.Medium; color: "white"
+            }
+            Label {
+                text: path || (bridge ? bridge.translate("dash_missing") : "Not configured")
+                font.pixelSize: 10; color: path ? "#666677" : "#ff4d4d"
+                elide: Text.ElideMiddle; Layout.fillWidth: true
+                font.family: "JetBrains Mono, Monospace"
+                opacity: 0.8
+            }
+        }
+
+        Button {
+            id: browseBtn
+            text: bridge ? bridge.translate("set_btn_select") : "SELECT"
+            onClicked: browse()
+            Layout.preferredHeight: 30
             
-            RowLayout {
+            // Para el cursor de mano en botones, usualmente se hace via MouseArea
+            MouseArea {
                 anchors.fill: parent
-                anchors.leftMargin: 15
-                anchors.rightMargin: 15
-                spacing: 10
-                
-                Label {
-                    text: "PATH"
-                    font.pixelSize: 9
-                    font.bold: true
-                    color: "#4da6ff"
-                    opacity: 0.6
-                    font.letterSpacing: 1
-                }
-
-                Rectangle { width: 1; height: 14; color: "#252830" }
-
-                Label {
-                    id: pathLabel
-                    Layout.fillWidth: true
-                    text: path || (bridge ? bridge.translate("dash_missing") : "Not configured")
-                    color: path ? "#c0c0c0" : "#ff4d4d"
-                    font.pixelSize: 11
-                    font.family: "JetBrains Mono, Fira Code, Monospace"
-                    verticalAlignment: Text.AlignVCenter
-                    elide: Text.ElideMiddle
-                }
-                
-                Label {
-                    text: path ? "✓" : "!"
-                    color: path ? "#4dc6a6" : "#ff4d4d"
-                    font.bold: true
-                    font.pixelSize: 14
-                }
+                cursorShape: Qt.PointingHandCursor
+                propagateComposedEvents: true
+                onPressed: (mouse) => { mouse.accepted = false; }
+            }
+            
+            background: Rectangle {
+                color: browseBtn.pressed ? "#4da6ff" : (browseBtn.hovered ? "#33ffffff" : "#1affffff")
+                radius: 6
+                border.color: browseBtn.hovered ? "#4dffffff" : "transparent"
+                border.width: 1
+                Behavior on color { ColorAnimation { duration: 150 } }
+            }
+            contentItem: Label {
+                text: browseBtn.text
+                color: browseBtn.pressed ? "black" : "white"
+                font.pixelSize: 11; font.weight: Font.Medium
+                horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
+                leftPadding: 16; rightPadding: 16
             }
         }
     }

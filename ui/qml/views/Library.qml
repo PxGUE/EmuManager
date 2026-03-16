@@ -4,7 +4,7 @@ import QtQuick.Controls
 import "../components"
 
 Item {
-    id: mainLibraryView
+    id: mainLibraryContainer
     
     state: "carousel" // carousel or grid
     
@@ -24,8 +24,8 @@ Item {
     Connections {
         target: bridge
         function onStatsUpdated() {
-            if (mainLibraryView.state === "grid" && mainLibraryView.currentConsoleId !== "") {
-                mainLibraryView.currentGames = bridge.getGamesForConsole(mainLibraryView.currentConsoleId)
+            if (mainLibraryContainer.state === "grid" && mainLibraryContainer.currentConsoleId !== "") {
+                mainLibraryContainer.currentGames = bridge.getGamesForConsole(mainLibraryContainer.currentConsoleId)
             }
         }
     }
@@ -39,7 +39,7 @@ Item {
     SequentialAnimation {
         id: bgFadeAnim
         NumberAnimation { target: immersiveBg; property: "opacity"; to: 0; duration: 250 }
-        PropertyAction { target: immersiveBg; property: "source"; value: mainLibraryView.currentBackground }
+        PropertyAction { target: immersiveBg; property: "source"; value: mainLibraryContainer.currentBackground }
         NumberAnimation { target: immersiveBg; property: "opacity"; to: 0.4; duration: 600; easing.type: Easing.OutQuad }
     }
     
@@ -88,7 +88,7 @@ Item {
         // Overlay Grid
         Rectangle {
             anchors.fill: parent
-            visible: mainLibraryView.state === "grid"
+            visible: mainLibraryContainer.state === "grid"
             color: "#ee000000"
         }
     }
@@ -133,8 +133,8 @@ Item {
         z: 10
         anchors.fill: parent
         anchors.topMargin: 40
-        visible: !mainLibraryView.isEmpty
-        opacity: mainLibraryView.state === "carousel" ? 1 : 0
+        visible: !mainLibraryContainer.isEmpty
+        opacity: mainLibraryContainer.state === "carousel" ? 1 : 0
         model: (bridge && bridge.scannedConsoles) ? bridge.scannedConsoles : []
         pathItemCount: 5
         preferredHighlightBegin: 0.5
@@ -179,8 +179,8 @@ Item {
 
         delegate: Item {
             id: delegateRoot
-            width: mainLibraryView.cardWidth
-            height: mainLibraryView.cardHeight
+            width: mainLibraryContainer.cardWidth
+            height: mainLibraryContainer.cardHeight
             z: PathView.itemZ || 0
             scale: PathView.itemScale || 1.0
             opacity: PathView.itemOpacity || 0.0
@@ -343,12 +343,12 @@ Item {
                     onClicked: {
                         dispersionAnim.restart()
                         if (index === carousel.currentIndex) {
-                            mainLibraryView.currentConsoleId = modelData.id
-                            mainLibraryView.currentConsoleName = modelData.name
-                            mainLibraryView.currentGames = bridge.getGamesForConsole(modelData.id)
-                            mainLibraryView.state = "grid"
+                            mainLibraryContainer.currentConsoleId = modelData.id
+                            mainLibraryContainer.currentConsoleName = modelData.name
+                            mainLibraryContainer.currentGames = bridge.getGamesForConsole(modelData.id)
+                            mainLibraryContainer.state = "grid"
                             // Disparamos la señal individual para las tarjetas de roms
-                            mainLibraryView.gridEntranceTriggered()
+                            mainLibraryContainer.gridEntranceTriggered()
                         } else {
                             carousel.currentIndex = index
                         }
@@ -382,7 +382,7 @@ Item {
                     id: btnBackGrid
                     Layout.preferredWidth: 48
                     Layout.preferredHeight: 48
-                    onClicked: mainLibraryView.state = "carousel"
+                    onClicked: mainLibraryContainer.state = "carousel"
                     background: Rectangle {
                         radius: 24
                         color: btnBackGrid.hovered ? "#33ffffff" : "#11ffffff"
@@ -395,13 +395,13 @@ Item {
                 ColumnLayout {
                     spacing: 0
                     Label {
-                        text: mainLibraryView.currentConsoleName
+                        text: mainLibraryContainer.currentConsoleName
                         font.pixelSize: 26
                         font.bold: true
                         color: "white"
                     }
                     Label {
-                        text: (bridge && bridge.currentLanguage ? bridge.translateWithArg("lib_games_count", mainLibraryView.currentGames.length).toUpperCase() : (mainLibraryView.currentGames.length + " JUEGOS DISPONIBLES"))
+                        text: (bridge && bridge.currentLanguage ? bridge.translateWithArg("lib_games_count", mainLibraryContainer.currentGames.length).toUpperCase() : (mainLibraryContainer.currentGames.length + " JUEGOS DISPONIBLES"))
                         font.pixelSize: 10
                         font.bold: true
                         color: currentAccentColor
@@ -447,7 +447,7 @@ Item {
                 Layout.fillHeight: true
                 cellWidth: 240
                 cellHeight: 380
-                model: mainLibraryView.currentGames
+                model: mainLibraryContainer.currentGames
                 property var currentItemData: null
                 clip: true
                 boundsBehavior: Flickable.StopAtBounds
@@ -460,157 +460,163 @@ Item {
                     id: gameCardRoot
                     width: 240
                     height: 380
-                    property bool isHovered: cardMouseArea.containsMouse
                     
+                    // PROPIEDAD MAESTRA: El único estado de verdad
+                    property bool isHovered: masterArea.containsMouse || 
+                                             (typeof infoBtnMouse !== "undefined" && infoBtnMouse.containsMouse) || 
+                                             (typeof favBtnMouse !== "undefined" && favBtnMouse.containsMouse)
 
                     // --- ANIMACIÓN DE ENTRADA ---
                     SequentialAnimation {
                         id: staggeredEntry
                         running: false
-                        PauseAnimation { duration: Math.min(index * 30, 400) }
+                        PauseAnimation { duration: Math.min(index * 20, 300) }
                         ParallelAnimation {
                             NumberAnimation { target: cardBody; property: "opacity"; to: 1.0; duration: 500; easing.type: Easing.OutCubic }
                             NumberAnimation { target: cardBody; property: "scale"; to: 1.0; duration: 600; easing.type: Easing.OutBack }
-                            NumberAnimation { target: cardBody; property: "anchors.verticalCenterOffset"; to: 0; duration: 600; easing.type: Easing.OutBack }
                         }
                     }
 
                     Connections {
-                        target: mainLibraryView
+                        target: mainLibraryContainer
                         function onGridEntranceTriggered() {
                             cardBody.opacity = 0
                             cardBody.scale = 0.8
-                            cardBody.anchors.verticalCenterOffset = 50
                             staggeredEntry.restart()
                         }
                     }
-                    
-                    Rectangle {
-                        id: cardBody
+
+                    // 1. ÁREA DE INTERACCIÓN MAESTRA (Base estática para clics y hover general)
+                    MouseArea {
+                        id: masterArea
                         anchors.fill: parent
-                        anchors.margins: 15
-                        radius: 32
-                        color: "#1a1c26"
-                        clip: true
-                        scale: isHovered ? 1.05 : 1.0
-                        z: isHovered ? 10 : 1
-                        Behavior on scale { NumberAnimation { duration: 400; easing.type: Easing.OutBack } }
-
-                        // Borde Glow
-                        Rectangle {
-                            anchors.fill: parent; radius: 32; color: "transparent"
-                            border.color: currentAccentColor
-                            border.width: isHovered ? 3 : 1
-                            opacity: isHovered ? 1.0 : 0.2
-                            Behavior on border.width { NumberAnimation { duration: 200 } }
-                            Behavior on opacity { NumberAnimation { duration: 300 } }
+                        hoverEnabled: true
+                        cursorShape: containsMouse ? Qt.PointingHandCursor : Qt.ArrowCursor
+                        onEntered: { gamesGrid.currentItemData = modelData }
+                        onClicked: {
+                            if (window && window.requestLaunch) 
+                                window.requestLaunch(modelData.path, modelData.id_emu, modelData.name)
                         }
 
-                        Image {
-                            id: coverImg
+                        // 2. CUERPO VISUAL (Solo estética, reacciona al estado isHovered)
+                        Rectangle {
+                            id: cardBody
                             anchors.fill: parent
-                            source: modelData.cover || ""
-                            fillMode: Image.PreserveAspectCrop
-                            opacity: modelData.cover ? (isHovered ? 1.0 : 0.8) : 0.1
-                            scale: isHovered ? 1.1 : 1.0
-                            Behavior on scale { NumberAnimation { duration: 1000; easing.type: Easing.OutCubic } }
-                        }
+                            anchors.margins: 12
+                            radius: 28
+                            color: "#1a1c26"
+                            clip: true
+                            scale: isHovered ? 1.05 : 1.0
+                            z: isHovered ? 10 : 1
+                            Behavior on scale { NumberAnimation { duration: 350; easing.type: Easing.OutBack } }
 
-                        // Overlay de Información (Barra Inferior)
-                        Rectangle {
-                            id: infoOverlay
-                            anchors.bottom: parent.bottom
-                            width: parent.width
-                            height: isHovered ? 100 : 60
-                            gradient: Gradient {
-                                GradientStop { position: 0.0; color: "transparent" }
-                                GradientStop { position: 0.5; color: Qt.rgba(7/255, 8/255, 12/255, 0.9) }
-                                GradientStop { position: 1.0; color: "#07080c" }
+                            // Borde Glow
+                            Rectangle {
+                                anchors.fill: parent; radius: 28; color: "transparent"
+                                border.color: currentAccentColor
+                                border.width: isHovered ? 3 : 1
+                                opacity: isHovered ? 1.0 : 0.2
+                                Behavior on border.width { NumberAnimation { duration: 200 } }
                             }
-                            Behavior on height { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
 
-                            RowLayout {
+                            Image {
+                                id: coverImg
                                 anchors.fill: parent
-                                anchors.margins: 15
-                                spacing: 10
-                                
+                                source: modelData.cover || ""
+                                fillMode: Image.PreserveAspectCrop
+                                opacity: modelData.cover ? (isHovered ? 1.0 : 0.8) : 0.1
+                                scale: isHovered ? 1.1 : 1.0
+                                Behavior on scale { NumberAnimation { duration: 1200; easing.type: Easing.OutCubic } }
+                            }
+
+                            // Overlay de Información
+                            Rectangle {
+                                id: infoOverlay
+                                anchors.bottom: parent.bottom
+                                width: parent.width
+                                height: isHovered ? 100 : 70
+                                gradient: Gradient {
+                                    GradientStop { position: 0.0; color: "transparent" }
+                                    GradientStop { position: 0.4; color: Qt.rgba(10/255, 12/255, 20/255, 0.9) }
+                                    GradientStop { position: 1.0; color: "#0a0c14" }
+                                }
+                                Behavior on height { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
+
                                 ColumnLayout {
-                                    Layout.fillWidth: true
-                                    spacing: 2
+                                    anchors.fill: parent
+                                    anchors.margins: 16
+                                    spacing: 4
                                     Label {
+                                        Layout.fillWidth: true
                                         text: modelData.name
-                                        color: "white"; font.pixelSize: 13; font.bold: true
-                                        Layout.fillWidth: true; elide: Text.ElideRight; maximumLineCount: 2
+                                        color: "white"; font.pixelSize: 14; font.bold: true
+                                        elide: Text.ElideRight; maximumLineCount: 2
                                         wrapMode: Text.WordWrap
                                     }
                                     Label { 
                                         text: "🕒 " + modelData.playtime
-                                        color: "#b0ffffff"; font.pixelSize: 10
+                                        color: "#b0ffffff"; font.pixelSize: 11
                                         visible: isHovered 
                                     }
-                                }
-
-                                // Botón INFO
-                                Item {
-                                    width: 32; height: 32
-                                    visible: isHovered
-                                    Label {
-                                        anchors.centerIn: parent
-                                        text: "ⓘ"
-                                        font.pixelSize: 22; color: infoMouse.containsMouse ? "white" : "#ccffffff"
-                                        scale: infoMouse.containsMouse ? 1.2 : 1.0
-                                        Behavior on scale { NumberAnimation { duration: 200 } }
-                                    }
-                                    MouseArea {
-                                        id: infoMouse
-                                        anchors.fill: parent; hoverEnabled: true
-                                        onClicked: (mouse) => {
-                                            mouse.accepted = true // Detiene el lanzamiento del juego
-                                            mainLibraryView.selectedGame = modelData
-                                            infoPanel.open()
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
-                        // Botón Favorito (Esquina Superior)
-                        Rectangle {
-                            anchors.top: parent.top; anchors.right: parent.right; anchors.margins: 12
-                            width: 36; height: 36; radius: 18
-                            color: "#dd07080c"; border.color: currentAccentColor; border.width: modelData.isFavorite ? 1 : 0
-                            visible: isHovered || modelData.isFavorite
-                            
-                            Label {
-                                anchors.centerIn: parent
-                                text: modelData.isFavorite ? "❤️" : "🤍"
-                                font.pixelSize: 16
-                                scale: favMouse.pressed ? 0.8 : 1.0
-                            }
-
-                            MouseArea {
-                                id: favMouse
-                                anchors.fill: parent; hoverEnabled: true
-                                onClicked: (mouse) => {
-                                    mouse.accepted = true // Detiene el lanzamiento del juego
-                                    modelData.isFavorite = bridge.toggleFavorite(modelData.path)
-                                    mainLibraryView.currentGames = bridge.getGamesForConsole(mainLibraryView.currentConsoleId)
                                 }
                             }
                         }
                     }
 
-                    // --- CAPA DE INTERACCIÓN MAESTRA (SIEMPRE ENCIMA) ---
-                    MouseArea {
-                        id: cardMouseArea
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        propagateComposedEvents: true
-                        cursorShape: Qt.PointingHandCursor
-                        onEntered: { gamesGrid.currentItemData = modelData }
-                        onClicked: (mouse) => {
-                            if (!mouse.accepted) {
-                                if (bridge) bridge.launchGame(modelData.path, modelData.id_emu)
+                    // 3. BARRA DE ACCIÓN (Info + Favoritos) - Independiente para evitar z-conflicts
+                    Row {
+                        id: actionBar
+                        anchors.top: parent.top; anchors.right: parent.right
+                        anchors.topMargin: 22; anchors.rightMargin: 22
+                        spacing: 8
+                        z: 20
+                        visible: isHovered || modelData.isFavorite
+
+                        // Botón INFO
+                        Rectangle {
+                            width: 38; height: 38; radius: 19
+                            color: infoBtnMouse.containsMouse ? currentAccentColor : "#e00a0c14"
+                            border.color: currentAccentColor; border.width: 1
+                            visible: isHovered
+                            
+                            Label {
+                                anchors.centerIn: parent
+                                text: "ⓘ"
+                                font.pixelSize: 20; color: infoBtnMouse.containsMouse ? "black" : "white"
+                            }
+                            
+                            MouseArea {
+                                id: infoBtnMouse
+                                anchors.fill: parent; hoverEnabled: true
+                                onClicked: (mouse) => {
+                                    mouse.accepted = true
+                                    mainLibraryContainer.selectedGame = modelData
+                                    infoPanel.open()
+                                }
+                            }
+                        }
+
+                        // Botón FAVORITO
+                        Rectangle {
+                            width: 38; height: 38; radius: 19
+                            color: favBtnMouse.containsMouse ? "#ff4d4d" : (modelData.isFavorite ? "#33ff4d4d" : "#e00a0c14")
+                            border.color: modelData.isFavorite ? "#ff4d4d" : currentAccentColor
+                            border.width: 1
+                            
+                            Label {
+                                anchors.centerIn: parent
+                                text: modelData.isFavorite ? "❤️" : "🤍"
+                                font.pixelSize: 18
+                            }
+                            
+                            MouseArea {
+                                id: favBtnMouse
+                                anchors.fill: parent; hoverEnabled: true
+                                onClicked: (mouse) => {
+                                    mouse.accepted = true
+                                    modelData.isFavorite = bridge.toggleFavorite(modelData.path)
+                                    mainLibraryContainer.currentGames = bridge.getGamesForConsole(mainLibraryContainer.currentConsoleId)
+                                }
                             }
                         }
                     }
@@ -715,11 +721,31 @@ Item {
                     font.letterSpacing: 2
                 }
                 Item { Layout.fillWidth: true }
-                Button {
-                    text: "✕"
-                    onClicked: infoPanel.close()
-                    flat: true
-                    contentItem: Label { text: "✕"; color: "white"; font.pixelSize: 20 }
+                
+                // Botón Cerrar - Premium Circular
+                Rectangle {
+                    id: closeCircle
+                    width: 36; height: 36; radius: 18
+                    color: closeArea.containsMouse ? "#ccff4d4d" : "#22ffffff"
+                    border.color: closeArea.containsMouse ? "#ff4d4d" : "#44ffffff"
+                    border.width: 1
+                    
+                    Label {
+                        anchors.centerIn: parent
+                        text: "✕"; color: "white"; font.pixelSize: 16; font.bold: true
+                    }
+                    
+                    MouseArea {
+                        id: closeArea
+                        anchors.fill: parent; hoverEnabled: true
+                        onClicked: infoPanel.close()
+                    }
+                    
+                    Behavior on color { ColorAnimation { duration: 250 } }
+                    Behavior on border.color { ColorAnimation { duration: 250 } }
+                    
+                    scale: closeArea.pressed ? 0.85 : (closeArea.containsMouse ? 1.1 : 1.0)
+                    Behavior on scale { NumberAnimation { duration: 150; easing.type: Easing.OutBack } }
                 }
             }
 
@@ -741,75 +767,123 @@ Item {
                 }
             }
 
-            ColumnLayout {
-                Layout.fillWidth: true; spacing: 5
-                Label {
-                    text: selectedGame ? selectedGame.title : ""
-                    font.pixelSize: 32; font.weight: Font.Black; color: "white"
-                    wrapMode: Text.WordWrap; Layout.fillWidth: true
-                    font.letterSpacing: -0.5
-                }
-                RowLayout {
-                    spacing: 15
+            RowLayout {
+                Layout.fillWidth: true; spacing: 20
+                
+                ColumnLayout {
+                    Layout.fillWidth: true; spacing: 5
                     Label {
-                        text: selectedGame ? (selectedGame.developer + " • " + selectedGame.year) : ""
-                        font.pixelSize: 15; color: "#aa88ccff" // Fixed hex
+                        text: selectedGame ? selectedGame.title : ""
+                        font.pixelSize: 32; font.weight: Font.Black; color: "white"
+                        wrapMode: Text.WordWrap; Layout.fillWidth: true
+                        font.letterSpacing: -0.5
                     }
-                    Rectangle {
-                        visible: selectedGame && selectedGame.genre != ""
-                        height: 24; width: genreLabel.width + 20; radius: 12
-                        color: "#22ffffff"
+                    RowLayout {
+                        spacing: 15
                         Label {
-                            id: genreLabel
-                            anchors.centerIn: parent; text: selectedGame ? selectedGame.genre : ""
-                            font.pixelSize: 11; font.bold: true; color: currentAccentColor
+                            text: selectedGame ? (selectedGame.developer + " • " + selectedGame.year) : ""
+                            font.pixelSize: 15; color: "#aa88ccff"
+                        }
+                        Rectangle {
+                            visible: selectedGame && selectedGame.genre != ""
+                            height: 24; width: genreLabel.width + 20; radius: 12
+                            color: "#22ffffff"
+                            Label {
+                                id: genreLabel
+                                anchors.centerIn: parent; text: selectedGame ? selectedGame.genre : ""
+                                font.pixelSize: 11; font.bold: true; color: currentAccentColor
+                            }
                         }
                     }
                 }
+
+                // Botón Favorito Sutil (Estilo Tarjeta)
+                Rectangle {
+                    width: 48; height: 48; radius: 24
+                    color: favInfoMouse.containsMouse ? (selectedGame && selectedGame.isFavorite ? "#33ff4d4d" : "#22ffffff") : "transparent"
+                    border.color: selectedGame && selectedGame.isFavorite ? "#ff4d4d" : "#33ffffff"
+                    border.width: 1
+                    Layout.alignment: Qt.AlignTop
+                    
+                    Label {
+                        anchors.centerIn: parent
+                        text: selectedGame && selectedGame.isFavorite ? "❤️" : "🤍"
+                        font.pixelSize: 22
+                    }
+                    
+                    MouseArea {
+                        id: favInfoMouse
+                        anchors.fill: parent; hoverEnabled: true
+                        onClicked: {
+                            if (selectedGame) {
+                                // Cambiamos el estado en el backend
+                                let newState = bridge.toggleFavorite(selectedGame.path)
+                                selectedGame.isFavorite = newState
+                                
+                                // Forzamos el refresco de los bindings notificando el cambio de selectedGame
+                                let temp = selectedGame
+                                selectedGame = null
+                                selectedGame = temp
+                                
+                                // Refrescamos también el grid principal
+                                mainLibraryContainer.currentGames = bridge.getGamesForConsole(mainLibraryContainer.currentConsoleId)
+                            }
+                        }
+                    }
+                    
+                    Behavior on color { ColorAnimation { duration: 200 } }
+                    scale: favInfoMouse.pressed ? 0.9 : (favInfoMouse.containsMouse ? 1.05 : 1.0)
+                    Behavior on scale { NumberAnimation { duration: 150; easing.type: Easing.OutBack } }
+                }
             }
 
-            // Rating Stars
-            RowLayout {
-                spacing: 8
-                Repeater {
-                    model: 5
-                    Label {
-                        text: "★"
-                        font.pixelSize: 22
-                        color: (selectedGame && index < (selectedGame.rating / 2)) ? "#ffcc00" : "#22ffffff"
-                    }
-                }
-                Label { 
-                    text: selectedGame ? (selectedGame.rating.toFixed(1) + "/10") : ""
-                    font.pixelSize: 14; color: "#66ffffff"; Layout.leftMargin: 10
-                }
-            }
 
             // Descripción
             ScrollView {
+                id: descScroll
                 Layout.fillWidth: true; Layout.fillHeight: true
                 clip: true
+                ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
+                
                 Label {
-                    width: 420 // Fixed width for scrollable content
+                    width: descScroll.availableWidth
                     text: selectedGame ? (selectedGame.description || "No hay descripción disponible para este título.") : ""
                     font.pixelSize: 14; color: "#b0ffffff"; wrapMode: Text.WordWrap
                     lineHeight: 1.4
+                    bottomPadding: 20
                 }
             }
 
             Button {
+                id: launchMainBtn
                 Layout.fillWidth: true; Layout.preferredHeight: 50
-                text: "LANZAR JUEGO"
                 onClicked: {
-                    if (bridge && selectedGame) {
-                        bridge.launchGame(selectedGame.path, selectedGame.id_emu)
+                    if (window && window.requestLaunch && selectedGame) {
+                        window.requestLaunch(selectedGame.path, selectedGame.id_emu, selectedGame.title)
                         infoPanel.close()
                     }
                 }
+                
                 background: Rectangle {
-                    radius: 25; color: currentAccentColor
+                    radius: 25
+                    color: launchMainBtn.hovered ? Qt.lighter(currentAccentColor, 1.2) : currentAccentColor
+                    
+                    // Efecto de brillo/sombra interna
+                    Rectangle {
+                        anchors.fill: parent; radius: 25; color: "transparent"
+                        border.color: "#33ffffff"; border.width: 1
+                    }
+                    
+                    Behavior on color { ColorAnimation { duration: 200 } }
                 }
-                contentItem: Label { text: "LANZAR JUEGO"; color: "black"; font.bold: true; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                
+                contentItem: Label {
+                    text: "LANZAR JUEGO"
+                    color: "black"; font.bold: true; font.pixelSize: 14
+                    horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
+                    scale: launchMainBtn.pressed ? 0.95 : 1.0
+                    Behavior on scale { NumberAnimation { duration: 100 } }
+                }
             }
         }
     }

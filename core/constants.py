@@ -17,7 +17,7 @@ AVAILABLE_EMULATORS = [
         "fallback_linux": "https://buildbot.libretro.com/stable/1.17.0/linux/x86_64/RetroArch.7z",
         "extensions": [".bin", ".cue", ".rom", ".zip"],
         "libretro_platform": None,
-        "color": "#9b9b9b" # Gray
+        "color": "#00f2ff" # Neon Cyan (RetroArch)
     },
     {
         "id": "dolphin",
@@ -32,7 +32,7 @@ AVAILABLE_EMULATORS = [
         "extensions": [".iso", ".wbfs", ".gcm", ".rvz"],
         "libretro_platform": "Nintendo - GameCube",
         "screenscraper_id": "13",
-        "color": "#6350E1" # Purple
+        "color": "#7050ff" # Power Purple (GameCube)
     },
     {
         "id": "pcsx2",
@@ -47,7 +47,7 @@ AVAILABLE_EMULATORS = [
         "extensions": [".iso", ".bin", ".chd", ".gz"],
         "libretro_platform": "Sony - PlayStation 2",
         "screenscraper_id": "58",
-        "color": "#003087" # Sony Blue
+        "color": "#0055ff" # Electric Sony Blue (PS2)
     },
     {
         "id": "rpcs3",
@@ -64,7 +64,7 @@ AVAILABLE_EMULATORS = [
         "extensions": [".ps3", ".pkg", ".iso"],
         "libretro_platform": "Sony - PlayStation 3",
         "screenscraper_id": "59",
-        "color": "#1a1a1a" # Black
+        "color": "#ff004c" # Crimson Neon (PS3)
     },
     {
         "id": "ppsspp",
@@ -79,7 +79,7 @@ AVAILABLE_EMULATORS = [
         "extensions": [".iso", ".cso", ".pbp"],
         "libretro_platform": "Sony - PlayStation Portable",
         "screenscraper_id": "61",
-        "color": "#21409A" # PSP Blue
+        "color": "#2196F3" # Bright PSP Blue
     },
     {
         "id": "duckstation",
@@ -94,7 +94,7 @@ AVAILABLE_EMULATORS = [
         "extensions": [".bin", ".cue", ".chd", ".pbp", ".m3u"],
         "libretro_platform": "Sony - PlayStation",
         "screenscraper_id": "57",
-        "color": "#E60012" # PS1 Acccent (Reddish or Light Gray) - Let's use Nintendo Red for Nintendo later
+        "color": "#ff9500" # Electric Gold/Orange (PS1)
     },
     {
         "id": "xemu",
@@ -109,7 +109,7 @@ AVAILABLE_EMULATORS = [
         "extensions": [".iso", ".xbe"],
         "libretro_platform": "Microsoft - Xbox",
         "screenscraper_id": "11",
-        "color": "#107C10" # Xbox Green
+        "color": "#39ff14" # Neon Xbox Green
     },
     {
         "id": "mgba",
@@ -124,7 +124,7 @@ AVAILABLE_EMULATORS = [
         "extensions": [".gba", ".gbp", ".zip"],
         "libretro_platform": "Nintendo - Game Boy Advance",
         "screenscraper_id": "24",
-        "color": "#8b1d90" # Purple GBA
+        "color": "#bf00ff" # Cosmic Purple (GBA)
     },
     {
         "id": "rmg",
@@ -139,7 +139,7 @@ AVAILABLE_EMULATORS = [
         "extensions": [".z64", ".n64", ".v64"],
         "libretro_platform": "Nintendo - Nintendo 64",
         "screenscraper_id": "14",
-        "color": "#e60012" # N64 Red
+        "color": "#ff3800" # N64 Electric Red
     },
     {
         "id": "mesen",
@@ -154,7 +154,7 @@ AVAILABLE_EMULATORS = [
         "extensions": [".nes", ".sfc", ".smc", ".zip"],
         "libretro_platform": "Nintendo - Nintendo Entertainment System",
         "screenscraper_id": "3",
-        "color": "#e22216" # NES Red
+        "color": "#ff1a4a" # Mesen Vibrant Red
     },
     {
         "id": "snes9x",
@@ -169,7 +169,7 @@ AVAILABLE_EMULATORS = [
         "extensions": [".sfc", ".smc", ".zip"],
         "libretro_platform": "Nintendo - Super Nintendo Entertainment System",
         "screenscraper_id": "4",
-        "color": "#4b0082" # SNES Purple
+        "color": "#a066ff" # Lavender SNES
     },
     {
         "id": "lime3ds",
@@ -184,7 +184,7 @@ AVAILABLE_EMULATORS = [
         "extensions": [".3ds", ".cia", ".app"],
         "libretro_platform": "Nintendo - Nintendo 3DS",
         "screenscraper_id": "17",
-        "color": "#00AEEF" # Blue 3DS
+        "color": "#00c3ff" # Vibrant 3DS Blue
     },
     {
         "id": "eden",
@@ -199,7 +199,7 @@ AVAILABLE_EMULATORS = [
         "extensions": [".nsp", ".xci"],
         "libretro_platform": "Nintendo - Switch",
         "screenscraper_id": "137",
-        "color": "#00d2ff" 
+        "color": "#00ffe1" # Cyan Switch Glow
     },
     {
         "id": "ryubing",
@@ -214,7 +214,7 @@ AVAILABLE_EMULATORS = [
         "extensions": [".nsp", ".xci"],
         "libretro_platform": "Nintendo - Switch",
         "screenscraper_id": "137",
-        "color": "#e60012" # Switch Red
+        "color": "#ff003c" # Neon Switch Red
     },
     {
         "id": "cemu",
@@ -228,7 +228,7 @@ AVAILABLE_EMULATORS = [
         "extensions": [".wud", ".wux", ".rpx"],
         "libretro_platform": "Nintendo - Wii U",
         "screenscraper_id": "18",
-        "color": "#0096d2"
+        "color": "#00a8ff" # Cemu Blue
     },
     {
         "id": "vita3k",
@@ -241,6 +241,6 @@ AVAILABLE_EMULATORS = [
         "manual_url": "https://vita3k.org/",
         "extensions": [".vpk", ".zip", ".pkg"],
         "libretro_platform": "Sony - PlayStation Vita",
-        "color": "#1f1f1f"
+        "color": "#ff00ff" # Vita Pink Magenta
     }
 ]

@@ -572,6 +572,19 @@ class AppBridge(QObject):
         from PySide6.QtCore import QUrl
         return QUrl.fromLocalFile(path).toString()
 
+    # --- AJUSTES DE EMULADOR (TWEAKS) ---
+    @Slot(str, result=list)
+    def getEmulatorTweaks(self, emu_id):
+        """Retorna la lista de ajustes disponibles para un emulador."""
+        return self.emu_manager.tweak_manager.get_tweaks_for_emu(emu_id)
+
+    @Slot(str, str, "QVariant")
+    def saveEmulatorTweak(self, emu_id, tweak_id, value):
+        """Guarda un ajuste específico para un emulador."""
+        self.emu_manager.tweak_manager.save_tweak(emu_id, tweak_id, value)
+        # No es estrictamente necesario emitir statsUpdated a menos que queramos
+        # refrescar algo visual inmediatamente en el dashboard.
+
     @Slot()
     def quit(self):
         from PySide6.QtCore import QCoreApplication

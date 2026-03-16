@@ -210,6 +210,41 @@ Item {
                 border.color: isCurrent ? accentColor : "#2a2d3a"
                 border.width: isCurrent ? 3 : 1
                 
+                // Botón de Ajustes Minimalista (Top-Right)
+                Rectangle {
+                    id: settingsMiniBtn
+                    anchors.top: parent.top; anchors.right: parent.right
+                    anchors.topMargin: 20 * responsiveScale; anchors.rightMargin: 20 * responsiveScale
+                    width: 36 * responsiveScale; height: 36 * responsiveScale; radius: 18
+                    color: settingsBtnArea.containsMouse ? "#22ffffff" : "transparent"
+                    visible: isCurrent
+                    opacity: isCurrent ? 0.6 : 0.0
+                    z: 5
+                    
+                    Label {
+                        anchors.centerIn: parent
+                        text: "⚙️"
+                        font.pixelSize: 16 * responsiveScale
+                        opacity: settingsBtnArea.containsMouse ? 1.0 : 0.8
+                    }
+                    
+                    MouseArea {
+                        id: settingsBtnArea
+                        anchors.fill: parent; hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            tweakPopup.currentEmuId = modelData.id
+                            tweakPopup.currentEmuName = modelData.emu_name
+                            tweakPopup.accentColor = accentColor
+                            tweakPopup.open()
+                        }
+                    }
+                    Behavior on color { ColorAnimation { duration: 150 } }
+                    Behavior on opacity { NumberAnimation { duration: 300 } }
+                    scale: settingsBtnArea.containsMouse ? 1.1 : 1.0
+                    Behavior on scale { NumberAnimation { duration: 200; easing.type: Easing.OutBack } }
+                }
+
                 // Efecto de Aura Pulsante al Clic (Dispersión)
                 Rectangle {
                     id: clickRipple
@@ -332,24 +367,32 @@ Item {
                             text: (bridge && bridge.currentLanguage) ? bridge.translate("lib_btn_explore").toUpperCase() : "EXPLORAR"
                             font.bold: true; color: isCurrent ? "black" : "white"; font.pixelSize: 12 * responsiveScale
                         }
+                        MouseArea {
+                            anchors.fill: parent
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                dispersionAnim.restart()
+                                if (index === carousel.currentIndex) {
+                                    mainLibraryContainer.currentConsoleId = modelData.id
+                                    mainLibraryContainer.currentConsoleName = modelData.name
+                                    mainLibraryContainer.currentGames = bridge.getGamesForConsole(modelData.id)
+                                    mainLibraryContainer.state = "grid"
+                                    mainLibraryContainer.gridEntranceTriggered()
+                                } else {
+                                    carousel.currentIndex = index
+                                }
+                            }
+                        }
                     }
                 }
 
+                // Eliminamos el MouseArea general para que no interfiera con los botones internos
+                // Si el usuario hace clic fuera de los botones pero en la tarjeta, solo hace scroll.
                 MouseArea {
                     anchors.fill: parent
-                    hoverEnabled: true; cursorShape: Qt.PointingHandCursor
-                    onEntered: delegateRoot.isHovered = true
-                    onExited: delegateRoot.isHovered = false
+                    z: -1
                     onClicked: {
-                        dispersionAnim.restart()
-                        if (index === carousel.currentIndex) {
-                            mainLibraryContainer.currentConsoleId = modelData.id
-                            mainLibraryContainer.currentConsoleName = modelData.name
-                            mainLibraryContainer.currentGames = bridge.getGamesForConsole(modelData.id)
-                            mainLibraryContainer.state = "grid"
-                            // Disparamos la señal individual para las tarjetas de roms
-                            mainLibraryContainer.gridEntranceTriggered()
-                        } else {
+                        if (index !== carousel.currentIndex) {
                             carousel.currentIndex = index
                         }
                     }
@@ -832,11 +875,9 @@ Item {
                     }
                     
                     Behavior on color { ColorAnimation { duration: 200 } }
-                    scale: favInfoMouse.pressed ? 0.9 : (favInfoMouse.containsMouse ? 1.05 : 1.0)
-                    Behavior on scale { NumberAnimation { duration: 150; easing.type: Easing.OutBack } }
+                Behavior on scale { NumberAnimation { duration: 150; easing.type: Easing.OutBack } }
                 }
             }
-
 
             // Descripción
             ScrollView {
@@ -885,6 +926,279 @@ Item {
                     Behavior on scale { NumberAnimation { duration: 100 } }
                 }
             }
+        }
+    }
+
+    // --- POPUP DE AJUSTES DEL EMULADOR (TWEAKS) ---
+    Popup {
+        id: tweakPopup
+        anchors.centerIn: parent
+        width: 520
+        height: Math.min(680, parent.height * 0.85)
+        modal: true
+        focus: true
+        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+
+        property string currentEmuId: ""
+        property string currentEmuName: ""
+        property color accentColor: "#4da6ff"
+
+        background: Rectangle {
+            color: "#161923"
+            radius: 30
+            border.color: "#33ffffff"
+            border.width: 1
+            
+            // Efecto de brillo de fondo
+            Rectangle {
+                anchors.fill: parent; anchors.margins: 1; radius: 29
+                color: "transparent"
+                border.color: Qt.alpha(tweakPopup.accentColor, 0.1)
+                border.width: 1
+            }
+        }
+
+        contentItem: ColumnLayout {
+            id: tweakContent
+            anchors.fill: parent
+            anchors.margins: 30
+            spacing: 25
+
+            RowLayout {
+                spacing: 15
+                Rectangle {
+                    width: 40; height: 40; radius: 20
+                    color: Qt.alpha(tweakPopup.accentColor, 0.2)
+                    Label { anchors.centerIn: parent; text: "⚙️"; font.pixelSize: 18 }
+                }
+                ColumnLayout {
+                    spacing: 0
+                    Label {
+                        text: tweakPopup.currentEmuName.toUpperCase()
+                        color: "white"; font.pixelSize: 18; font.weight: Font.Black
+                        font.letterSpacing: 1
+                    }
+                    Label {
+                        text: (bridge && bridge.currentLanguage) ? bridge.translate("lib_emu_settings") : "AJUSTES DE SESIÓN"
+                        color: tweakPopup.accentColor; font.pixelSize: 10; font.bold: true; font.letterSpacing: 2
+                    }
+                }
+                Item { Layout.fillWidth: true }
+                Button {
+                    text: "✕"
+                    onClicked: tweakPopup.close()
+                    flat: true
+                    contentItem: Label { text: parent.text; color: "#66ffffff"; font.pixelSize: 20 }
+                    background: null
+                }
+            }
+
+            Rectangle { Layout.fillWidth: true; height: 1; color: "#1affffff" }
+
+            ListView {
+                id: tweakListView
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                clip: true
+                spacing: 12
+                model: (tweakPopup.visible && bridge) ? bridge.getEmulatorTweaks(tweakPopup.currentEmuId) : []
+                
+                ScrollBar.vertical: ScrollBar {
+                    id: scrollBar
+                    policy: tweakListView.contentHeight > tweakListView.height ? ScrollBar.AlwaysOn : ScrollBar.AlwaysOff
+                }
+
+                delegate: Rectangle {
+                    id: tweakItem
+                    width: tweakListView.width - (scrollBar.visible ? 15 : 0)
+                    // Altura dinámica: 0 si está oculto por depende_de
+                    height: shouldShow ? 90 : 0
+                    radius: 18
+                    color: "#1a202c"
+                    border.color: "#2d3748"; border.width: 1
+                    visible: height > 0
+                    clip: true
+                    
+                    Behavior on height { NumberAnimation { duration: 250; easing.type: Easing.OutQuart } }
+
+                    property bool shouldShow: {
+                        if (modelData.depends_on === undefined) return true;
+                        if (modelData.depends_on.fullscreen !== undefined) {
+                            // Buscar el valor actual de fullscreen en el modelo (un poco ineficiente pero funcional para pocos items)
+                            var fsValue = true;
+                            for (var i=0; i < tweakListView.count; i++) {
+                                var item = tweakListView.model[i];
+                                if (item.id === "fullscreen") { fsValue = item.value; break; }
+                            }
+                            return modelData.depends_on.fullscreen === fsValue;
+                        }
+                        return true;
+                    }
+
+                    RowLayout {
+                        anchors.fill: parent
+                        anchors.leftMargin: 25; anchors.rightMargin: 25
+                        spacing: 20
+
+                        ColumnLayout {
+                            spacing: 4
+                            Layout.fillWidth: true
+                            Label {
+                                text: (bridge && modelData.label.indexOf("lib_") === 0) ? bridge.translate(modelData.label) : modelData.label
+                                font.pixelSize: 16; color: "white"; font.weight: Font.DemiBold
+                                elide: Text.ElideRight; Layout.fillWidth: true
+                            }
+                            Label {
+                                text: (bridge && bridge.currentLanguage) ? (modelData.type === "bool" ? bridge.translate("lib_tweak_on_start") : bridge.translate("lib_tweak_config")) : "Ajuste"
+                                font.pixelSize: 11; color: "#718096"; font.bold: true; font.letterSpacing: 1.0
+                            }
+                        }
+                        
+                        // Control para Booleanos (Switch)
+                        Switch {
+                            visible: modelData.type === "bool"
+                            checked: modelData.value
+                            onToggled: {
+                                if (bridge) {
+                                    bridge.saveEmulatorTweak(tweakPopup.currentEmuId, modelData.id, checked)
+                                    // Forzar refresco del modelo para disparar visibility de otros items
+                                    tweakListView.model = bridge.getEmulatorTweaks(tweakPopup.currentEmuId)
+                                }
+                            }
+                            
+                            indicator: Rectangle {
+                                implicitWidth: 46; implicitHeight: 24
+                                radius: 12
+                                color: parent.checked ? Qt.alpha(tweakPopup.accentColor, 0.2) : "#2d3748"
+                                border.color: parent.checked ? tweakPopup.accentColor : "#4a5568"
+                                border.width: 1
+
+                                Rectangle {
+                                    x: parent.parent.checked ? parent.width - width - 3 : 3
+                                    y: 3; width: 18; height: 18; radius: 9
+                                    color: parent.parent.checked ? tweakPopup.accentColor : "#718096"
+                                    Behavior on x { NumberAnimation { duration: 150; easing.type: Easing.OutQuad } }
+                                }
+                            }
+                        }
+
+                        // Control para Listas (ComboBox Estilo Premium)
+                        ComboBox {
+                            id: tweakCombo
+                            visible: modelData.type === "list"
+                            model: modelData.type === "list" ? modelData.options : []
+                            currentIndex: modelData.type === "list" && modelData.options ? modelData.options.indexOf(modelData.value) : -1
+                            Layout.preferredWidth: 160
+                            Layout.preferredHeight: 38
+                            
+                            onActivated: {
+                                if (bridge) {
+                                    bridge.saveEmulatorTweak(tweakPopup.currentEmuId, modelData.id, modelData.options[currentIndex]);
+                                    // Refrescar para dependencias
+                                    tweakListView.model = bridge.getEmulatorTweaks(tweakPopup.currentEmuId);
+                                }
+                            }
+
+                            contentItem: Label {
+                                text: tweakCombo.displayText
+                                color: "white"; font.pixelSize: 13; font.weight: Font.Medium
+                                verticalAlignment: Text.AlignVCenter; leftPadding: 16; rightPadding: 36
+                            }
+
+                            delegate: ItemDelegate {
+                                width: tweakCombo.width
+                                contentItem: Label {
+                                    text: modelData
+                                    color: highlighted ? "white" : "#9999aa"
+                                    font.pixelSize: 13; font.weight: highlighted ? Font.Medium : Font.Normal
+                                    verticalAlignment: Text.AlignVCenter; leftPadding: 16
+                                }
+                                background: Rectangle {
+                                    color: highlighted ? "#2d3748" : "transparent"
+                                    radius: 8; anchors.fill: parent; anchors.margins: 2
+                                }
+                                highlighted: tweakCombo.highlightedIndex === index
+                            }
+
+                            popup: Popup {
+                                y: tweakCombo.height + 5; width: tweakCombo.width; padding: 2
+                                contentItem: ListView {
+                                    clip: true; implicitHeight: Math.min(contentHeight, 200)
+                                    model: tweakCombo.delegateModel; currentIndex: tweakCombo.highlightedIndex
+                                }
+                                background: Rectangle {
+                                    color: "#1a1c24"; radius: 12
+                                    border.color: "#33ffffff"; border.width: 1
+                                }
+                            }
+
+                            background: Rectangle {
+                                color: "#2d3748"; radius: 10
+                                border.color: tweakCombo.hovered ? tweakPopup.accentColor : "#4a5568"
+                                border.width: 1
+                                Behavior on border.color { ColorAnimation { duration: 150 } }
+                            }
+
+                            indicator: Canvas {
+                                id: comboCanvas
+                                x: tweakCombo.width - width - 15; y: (tweakCombo.height - height) / 2
+                                width: 10; height: 6
+                                onPaint: {
+                                    var ctx = getContext("2d"); ctx.reset();
+                                    ctx.moveTo(0, 0); ctx.lineTo(width, 0); ctx.lineTo(width / 2, height);
+                                    ctx.closePath(); ctx.fillStyle = tweakCombo.hovered ? tweakPopup.accentColor : "#718096";
+                                    ctx.fill();
+                                }
+                                Connections {
+                                    target: tweakCombo
+                                    function onHoveredChanged() { comboCanvas.requestPaint(); }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                footer: Item {
+                    width: tweakListView.width; height: 10
+                    visible: tweakListView.count > 0
+                }
+
+                Label {
+                    anchors.centerIn: parent
+                    visible: tweakListView.count === 0
+                    text: (bridge && bridge.currentLanguage) ? bridge.translate("lib_no_tweaks") : "No hay ajustes adicionales."
+                    font.pixelSize: 13; color: "#44ffffff"; font.italic: true
+                }
+            }
+            
+            Button {
+                id: closeTweakBtn
+                Layout.fillWidth: true; Layout.preferredHeight: 50
+                text: (bridge && bridge.currentLanguage) ? bridge.translate("lib_tweak_done") : "LISTO"
+                onClicked: tweakPopup.close()
+                hoverEnabled: true
+
+                background: Rectangle {
+                    radius: 25
+                    color: closeTweakBtn.pressed ? "#1a202c" : (closeTweakBtn.hovered ? "#2d3748" : "#2a2f45")
+                    border.color: closeTweakBtn.hovered ? "#4a5568" : "transparent"; border.width: 1
+                    Behavior on color { ColorAnimation { duration: 150 } }
+                }
+                contentItem: Label {
+                    text: parent.text; color: "white"; font.bold: true; font.pixelSize: 12
+                    horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
+                    font.letterSpacing: 1
+                }
+            }
+        }
+
+        enter: Transition {
+            NumberAnimation { property: "opacity"; from: 0; to: 1; duration: 200 }
+            NumberAnimation { property: "scale"; from: 0.9; to: 1; duration: 300; easing.type: Easing.OutBack }
+        }
+        exit: Transition {
+            NumberAnimation { property: "opacity"; to: 0; duration: 150 }
+            NumberAnimation { property: "scale"; to: 0.9; duration: 150; easing.type: Easing.InBack }
         }
     }
 }

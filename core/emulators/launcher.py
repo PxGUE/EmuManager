@@ -2,6 +2,7 @@ import platform
 import subprocess
 import os
 import time
+from core.constants import AVAILABLE_EMULATORS
 
 class Launcher:
     def __init__(self, manager):
@@ -84,10 +85,24 @@ class Launcher:
 
             print(f"[DEBUG LAUNCH] Lanzando: {executable} con {'ROM' if ruta_rom else 'Interfaz'}")
             
-            # Lanzamiento no bloqueante según OS
+            # 1. Base executable
             args = [executable]
-            if ruta_rom:
+            
+            # 2. Add Tweaks (Flags) BEFORE the ROM path
+            emu_id = next((e["id"] for e in AVAILABLE_EMULATORS if e["github"] == repo_github), "default")
+            
+            # Load user settings to debug
+            user_settings = self.manager.tweak_manager.user_prefs.get(emu_id, {})
+            print(f"[DEBUG TWEAKS] User settings for {emu_id}: {user_settings}")
+            
+            # Pass the current args (with executable) so handler knows the context
+            args = self.manager.tweak_manager.apply_tweaks(emu_id, args, ruta_rom)
+            
+            # 3. Add ROM path at the end (standard for most CLIs)
+            if ruta_rom and ruta_rom not in args:
                 args.append(ruta_rom)
+
+            print(f"[DEBUG TWEAKS] Argumentos finales: {args}")
 
             # Usar el directorio del ejecutable como CWD es crucial en Linux para encontrar librerías locales
             cwd = os.path.dirname(executable)
@@ -110,20 +125,25 @@ class Launcher:
         executable = None
         archive_exts = (".zip", ".7z", ".rar", ".tar", ".gz", ".xz")
         
-        # 1. Intentar encontrar un .exe o .appimage
-        for f in files:
-            low_f = f.lower()
-            if low_f.endswith((".appimage", ".exe")) and not any(x in low_f for x in ["installer", "setup", "unins"]):
-                return f
+        # 1. Priorizar versiones "Premium" (Qt, GUI) sobre SDL o No-GUI
+        # Buscamos ejecutables que NO tengan sdl, nogui, console en el nombre primero
+        execs = [f for f in files if f.lower().endswith((".appimage", ".exe")) and not any(x in f.lower() for x in ["installer", "setup", "unins"])]
         
-        # 2. Si no hay exe, intentar linux binario (sin extension)
+        if execs:
+            # Intentar encontrar uno que sea "puro" (ej: mgba.exe vs mgba-sdl.exe)
+            puros = [f for f in execs if not any(x in os.path.basename(f).lower() for x in ["-sdl", "sdl", "console", "nogui"])]
+            if puros:
+                return puros[0]
+            return execs[0]
+        
+        # 2. Si no hay exe, intentar linux binario
         if platform.system() == "Linux":
             for f in files:
                 name = os.path.basename(f).lower()
                 if "." not in name and not any(x in name for x in archive_exts):
                     return f
 
-        # 3. Fallback: evitar archivar
+        # 3. Fallback
         for f in files:
             if not f.lower().endswith(archive_exts):
                 return f

@@ -4,6 +4,7 @@ import time
 from core.constants import AVAILABLE_EMULATORS
 from .installer import Installer
 from .launcher import Launcher
+from .tweaks.manager import TweakManager
 
 class EmuladorManager:
     def __init__(self):
@@ -25,6 +26,7 @@ class EmuladorManager:
         self.playtimes = self._load_playtime()
 
         self.installer = Installer(self)
+        self.tweak_manager = TweakManager(self.data_dir)
         self.launcher = Launcher(self)
 
         self._sync_with_disk()

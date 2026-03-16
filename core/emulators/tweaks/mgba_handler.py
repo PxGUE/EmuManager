@@ -41,8 +41,6 @@ class MGBAHandler(BaseTweakHandler):
         ]
 
     def apply_tweaks(self, args: List[str], game_path: str, user_settings: Dict[str, Any]) -> List[str]:
-        print(f"[DEBUG MGBA] Aplicando ajustes: {user_settings}")
-        
         # 1. Pantalla Completa
         if user_settings.get("fullscreen", True):
             if "-f" not in args: args.append("-f")

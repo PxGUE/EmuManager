@@ -4,7 +4,7 @@ import QtQuick.Controls
 import "../components"
 
 Item {
-    id: mainLibraryContainer
+    id: root
     
     state: "carousel" // carousel or grid
     
@@ -19,13 +19,11 @@ Item {
 
     signal gridEntranceTriggered()
 
-    Component.onCompleted: console.log("[QML] Library view loaded successfully")
-    
     Connections {
         target: bridge
         function onStatsUpdated() {
-            if (mainLibraryContainer.state === "grid" && mainLibraryContainer.currentConsoleId !== "") {
-                mainLibraryContainer.currentGames = bridge.getGamesForConsole(mainLibraryContainer.currentConsoleId)
+            if (root.state === "grid" && root.currentConsoleId !== "") {
+                root.currentGames = bridge.getGamesForConsole(root.currentConsoleId)
             }
         }
     }
@@ -39,7 +37,7 @@ Item {
     SequentialAnimation {
         id: bgFadeAnim
         NumberAnimation { target: immersiveBg; property: "opacity"; to: 0; duration: 250 }
-        PropertyAction { target: immersiveBg; property: "source"; value: mainLibraryContainer.currentBackground }
+        PropertyAction { target: immersiveBg; property: "source"; value: root.currentBackground }
         NumberAnimation { target: immersiveBg; property: "opacity"; to: 0.4; duration: 600; easing.type: Easing.OutQuad }
     }
     
@@ -88,7 +86,7 @@ Item {
         // Overlay Grid
         Rectangle {
             anchors.fill: parent
-            visible: mainLibraryContainer.state === "grid"
+            visible: root.state === "grid"
             color: "#ee000000"
         }
     }
@@ -133,8 +131,8 @@ Item {
         z: 10
         anchors.fill: parent
         anchors.topMargin: 40
-        visible: !mainLibraryContainer.isEmpty
-        opacity: mainLibraryContainer.state === "carousel" ? 1 : 0
+        visible: !root.isEmpty
+        opacity: root.state === "carousel" ? 1 : 0
         model: (bridge && bridge.scannedConsoles) ? bridge.scannedConsoles : []
         pathItemCount: 5
         preferredHighlightBegin: 0.5
@@ -179,8 +177,8 @@ Item {
 
         delegate: Item {
             id: delegateRoot
-            width: mainLibraryContainer.cardWidth
-            height: mainLibraryContainer.cardHeight
+            width: root.cardWidth
+            height: root.cardHeight
             z: PathView.itemZ || 0
             scale: PathView.itemScale || 1.0
             opacity: PathView.itemOpacity || 0.0
@@ -373,11 +371,11 @@ Item {
                             onClicked: {
                                 dispersionAnim.restart()
                                 if (index === carousel.currentIndex) {
-                                    mainLibraryContainer.currentConsoleId = modelData.id
-                                    mainLibraryContainer.currentConsoleName = modelData.name
-                                    mainLibraryContainer.currentGames = bridge.getGamesForConsole(modelData.id)
-                                    mainLibraryContainer.state = "grid"
-                                    mainLibraryContainer.gridEntranceTriggered()
+                                    root.currentConsoleId = modelData.id
+                                    root.currentConsoleName = modelData.name
+                                    root.currentGames = bridge.getGamesForConsole(modelData.id)
+                                    root.state = "grid"
+                                    root.gridEntranceTriggered()
                                 } else {
                                     carousel.currentIndex = index
                                 }
@@ -425,7 +423,7 @@ Item {
                     id: btnBackGrid
                     Layout.preferredWidth: 48
                     Layout.preferredHeight: 48
-                    onClicked: mainLibraryContainer.state = "carousel"
+                    onClicked: root.state = "carousel"
                     background: Rectangle {
                         radius: 24
                         color: btnBackGrid.hovered ? "#33ffffff" : "#11ffffff"
@@ -438,13 +436,13 @@ Item {
                 ColumnLayout {
                     spacing: 0
                     Label {
-                        text: mainLibraryContainer.currentConsoleName
+                        text: root.currentConsoleName
                         font.pixelSize: 26
                         font.bold: true
                         color: "white"
                     }
                     Label {
-                        text: (bridge && bridge.currentLanguage ? bridge.translateWithArg("lib_games_count", mainLibraryContainer.currentGames.length).toUpperCase() : (mainLibraryContainer.currentGames.length + " JUEGOS DISPONIBLES"))
+                        text: (bridge && bridge.currentLanguage ? bridge.translateWithArg("lib_games_count", root.currentGames.length).toUpperCase() : (root.currentGames.length + " JUEGOS DISPONIBLES"))
                         font.pixelSize: 10
                         font.bold: true
                         color: currentAccentColor
@@ -490,7 +488,7 @@ Item {
                 Layout.fillHeight: true
                 cellWidth: 240
                 cellHeight: 380
-                model: mainLibraryContainer.currentGames
+                model: root.currentGames
                 property var currentItemData: null
                 clip: true
                 boundsBehavior: Flickable.StopAtBounds
@@ -521,7 +519,7 @@ Item {
                     }
 
                     Connections {
-                        target: mainLibraryContainer
+                        target: root
                         function onGridEntranceTriggered() {
                             cardBody.opacity = 0
                             cardBody.scale = 0.8
@@ -633,7 +631,7 @@ Item {
                                 anchors.fill: parent; hoverEnabled: true
                                 onClicked: (mouse) => {
                                     mouse.accepted = true
-                                    mainLibraryContainer.selectedGame = modelData
+                                    root.selectedGame = modelData
                                     infoPanel.open()
                                 }
                             }
@@ -658,7 +656,7 @@ Item {
                                 onClicked: (mouse) => {
                                     mouse.accepted = true
                                     modelData.isFavorite = bridge.toggleFavorite(modelData.path)
-                                    mainLibraryContainer.currentGames = bridge.getGamesForConsole(mainLibraryContainer.currentConsoleId)
+                                    root.currentGames = bridge.getGamesForConsole(root.currentConsoleId)
                                 }
                             }
                         }
@@ -869,7 +867,7 @@ Item {
                                 selectedGame = temp
                                 
                                 // Refrescamos también el grid principal
-                                mainLibraryContainer.currentGames = bridge.getGamesForConsole(mainLibraryContainer.currentConsoleId)
+                                root.currentGames = bridge.getGamesForConsole(root.currentConsoleId)
                             }
                         }
                     }

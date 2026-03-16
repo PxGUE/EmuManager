@@ -64,7 +64,6 @@ class Launcher:
 
     async def lanzar_juego(self, repo_github: str, ruta_rom: str, juego_obj=None):
         """Lanza un juego usando el emulador correspondiente."""
-        print(f"[DEBUG v2] lanzar_juego llamado para: {juego_obj.get('nombre') if juego_obj else 'Solo emulador'}")
         
         if repo_github not in self.manager.installed_emus:
             return False, "El emulador no está instalado."
@@ -82,8 +81,6 @@ class Launcher:
 
             if not executable:
                 return False, "No se encontró el ejecutable. ¿Se extrajo correctamente?"
-
-            print(f"[DEBUG LAUNCH] Lanzando: {executable} con {'ROM' if ruta_rom else 'Interfaz'}")
             
             # 1. Base executable
             args = [executable]
@@ -91,18 +88,12 @@ class Launcher:
             # 2. Add Tweaks (Flags) BEFORE the ROM path
             emu_id = next((e["id"] for e in AVAILABLE_EMULATORS if e["github"] == repo_github), "default")
             
-            # Load user settings to debug
-            user_settings = self.manager.tweak_manager.user_prefs.get(emu_id, {})
-            print(f"[DEBUG TWEAKS] User settings for {emu_id}: {user_settings}")
-            
             # Pass the current args (with executable) so handler knows the context
             args = self.manager.tweak_manager.apply_tweaks(emu_id, args, ruta_rom)
             
             # 3. Add ROM path at the end (standard for most CLIs)
             if ruta_rom and ruta_rom not in args:
                 args.append(ruta_rom)
-
-            print(f"[DEBUG TWEAKS] Argumentos finales: {args}")
 
             # Usar el directorio del ejecutable como CWD es crucial en Linux para encontrar librerías locales
             cwd = os.path.dirname(executable)

@@ -7,33 +7,33 @@ Item {
     id: settingsRoot
 
     property var selectedProvider: null
+    
+    function tr(key, ...args) {
+        if (!bridge) return key
+        var _ = bridge.currentLanguage
+        if (args.length > 0) return bridge.translateWithArgs(key, args)
+        return bridge.translate(key)
+    }
 
     ScrollView {
         anchors.fill: parent
         contentWidth: availableWidth
+        contentHeight: settingsCol.implicitHeight + 100
         clip: true
         ScrollBar.vertical.policy: ScrollBar.AsNeeded
 
         ColumnLayout {
-            width: parent.width - 120 // Increasing margins to 60px each side
+            id: settingsCol
+            width: parent.width - 120
             anchors.horizontalCenter: parent.horizontalCenter
-            anchors.top: parent.top
-            anchors.bottom: parent.bottom
-            anchors.topMargin: 40
-            anchors.bottomMargin: 60
+            y: 40
             spacing: 40
 
             // --- HEADER ---
             ColumnLayout {
                 spacing: 4
                 Label {
-                    text: (bridge && bridge.currentLanguage) ? bridge.translate("set_title") : "Settings"
-                    font.pixelSize: 32
-                    font.bold: true
-                    color: "white"
-                }
-                Label {
-                    text: (bridge && bridge.currentLanguage) ? bridge.translate("nav_settings") : "Personalize your experience"
+                    text: tr("nav_settings")
                     font.pixelSize: 14
                     color: "#888899"
                     opacity: 0.8
@@ -49,7 +49,7 @@ Item {
                     spacing: 10
                     Rectangle { width: 3; height: 16; radius: 1.5; color: "#4da6ff" }
                     Label {
-                        text: bridge ? bridge.translate("set_lang_lbl").toUpperCase() : "IDIOMA"
+                        text: tr("set_lang_lbl").toUpperCase()
                         font.pixelSize: 13; font.bold: true; color: "white"; font.letterSpacing: 1
                     }
                 }
@@ -82,11 +82,11 @@ Item {
                             spacing: 0
                             Layout.fillWidth: true
                             Label {
-                                text: "Idioma de la interfaz"
+                                text: tr("set_lang_title")
                                 font.pixelSize: 14; font.weight: Font.Medium; color: "white"
                             }
                             Label {
-                                text: "Cambia el lenguaje de los menús y descripciones"
+                                text: tr("set_lang_sub")
                                 font.pixelSize: 10; color: "#666677"
                             }
                         }
@@ -185,7 +185,7 @@ Item {
                     spacing: 10
                     Rectangle { width: 3; height: 16; radius: 1.5; color: "#4da6ff" }
                     Label {
-                        text: bridge ? bridge.translate("set_paths_section").toUpperCase() : "DIRECTORIOS"
+                        text: tr("set_paths_section").toUpperCase()
                         font.pixelSize: 13; font.bold: true; color: "white"; font.letterSpacing: 1
                     }
                 }
@@ -203,8 +203,8 @@ Item {
                         spacing: 0
 
                         PathSetting {
-                            title: "Ruta de Aplicaciones"
-                            subtitle: "Instalación de emuladores"
+                            title: tr("set_path_apps_title")
+                            subtitle: tr("set_path_apps_sub")
                             path: bridge ? bridge.installPath : ""
                             onBrowse: bridge.browseInstallPath()
                         }
@@ -212,8 +212,8 @@ Item {
                         Rectangle { Layout.fillWidth: true; Layout.leftMargin: 20; Layout.rightMargin: 20; height: 1; color: "#0fffffff" }
 
                         PathSetting {
-                            title: "Ruta de ROMs"
-                            subtitle: "Ubicación de los juegos"
+                            title: tr("set_path_roms_title")
+                            subtitle: tr("set_path_roms_sub")
                             path: bridge ? bridge.romsPath : ""
                             onBrowse: bridge.browseRomsPath()
                         }
@@ -230,7 +230,7 @@ Item {
                     spacing: 10
                     Rectangle { width: 3; height: 16; radius: 1.5; color: "#4da6ff" }
                     Label {
-                        text: bridge ? bridge.translate("set_data_section").toUpperCase() : "FUENTES DE DATOS"
+                        text: tr("set_data_section").toUpperCase()
                         font.pixelSize: 13; font.bold: true; color: "white"; font.letterSpacing: 1
                     }
                 }
@@ -273,11 +273,9 @@ Item {
             }
 
             // --- ABOUT BUTTON ---
-            Item { Layout.preferredHeight: 20 }
-            
             Button {
                 id: aboutBtn
-                text: (bridge && bridge.currentLanguage) ? bridge.translate("set_btn_about") : "About EmuManager"
+                text: tr("set_btn_about")
                 Layout.alignment: Qt.AlignHCenter
                 Layout.preferredWidth: 280
                 Layout.preferredHeight: 44
@@ -298,8 +296,6 @@ Item {
                     verticalAlignment: Text.AlignVCenter
                 }
             }
-            
-            Item { Layout.preferredHeight: 40 }
         }
     }
 
@@ -345,7 +341,7 @@ Item {
             spacing: 20
 
             Label {
-                text: (selectedProvider && bridge) ? bridge.translateWithArg("set_dlg_config_title", selectedProvider.name) : ""
+                text: tr("set_dlg_config_title", (selectedProvider ? selectedProvider.name : ""))
                 font.pixelSize: 20
                 font.bold: true
                 color: "white"
@@ -360,11 +356,11 @@ Item {
                     visible: selectedProvider && ["tgdb", "rawg", "steamgriddb"].includes(selectedProvider.id)
                     Layout.fillWidth: true
                     spacing: 6
-                    Label { text: bridge ? bridge.translate("set_lbl_api_key") : "API Key"; color: "#888899"; font.pixelSize: 12 }
+                    Label { text: tr("set_lbl_api_key"); color: "#888899"; font.pixelSize: 12 }
                     TextField {
                         id: apiKeyField
                         Layout.fillWidth: true
-                        placeholderText: "Introducir API Key..."
+                        placeholderText: tr("set_api_placeholder")
                         echoMode: configPopup.apiKeyVisible ? TextInput.Normal : TextInput.Password
                         color: "white"
                         rightPadding: 40
@@ -395,7 +391,7 @@ Item {
                     ColumnLayout {
                         spacing: 6
                         Layout.fillWidth: true
-                        Label { text: bridge ? bridge.translate("set_lbl_user") : "User"; color: "#888899"; font.pixelSize: 12 }
+                        Label { text: tr("set_lbl_user"); color: "#888899"; font.pixelSize: 12 }
                         TextField {
                             id: userField
                             Layout.fillWidth: true
@@ -407,7 +403,7 @@ Item {
                     ColumnLayout {
                         spacing: 6
                         Layout.fillWidth: true
-                        Label { text: bridge ? bridge.translate("set_lbl_pass") : "Password"; color: "#888899"; font.pixelSize: 12 }
+                        Label { text: tr("set_lbl_pass"); color: "#888899"; font.pixelSize: 12 }
                         TextField {
                             id: passField
                             Layout.fillWidth: true
@@ -439,7 +435,7 @@ Item {
                 Layout.topMargin: 10
                 
                 Button {
-                    text: bridge ? bridge.translate("set_btn_clear") : "Clear"
+                    text: tr("set_btn_clear")
                     Layout.fillWidth: true
                     onClicked: {
                         if (bridge) bridge.clearSecrets(selectedProvider.id)
@@ -453,7 +449,7 @@ Item {
                 }
 
                 Button {
-                    text: bridge ? bridge.translate("set_btn_save") : "Save"
+                    text: tr("set_btn_save")
                     Layout.fillWidth: true
                     onClicked: {
                         if (bridge) {
@@ -549,7 +545,7 @@ Item {
                 spacing: 6
                 Layout.alignment: Qt.AlignHCenter
                 Label {
-                    text: "EmuManager"
+                    text: bridge ? bridge.appName : "EmuManager"
                     font.pixelSize: 32
                     font.weight: Font.Black
                     font.letterSpacing: -0.5
@@ -562,7 +558,7 @@ Item {
                     width: 40; height: 2; radius: 1; color: "#4da6ff"
                 }
                 Label {
-                    text: (bridge && bridge.currentLanguage) ? bridge.translateWithArg("app_version", bridge.appVersion).toUpperCase() : "V1.0"
+                    text: tr("app_version", (bridge ? bridge.appVersion : "1.0")).toUpperCase()
                     font.pixelSize: 10
                     font.bold: true
                     font.letterSpacing: 2
@@ -577,7 +573,7 @@ Item {
 
             // 3. Descripción principal
             Label {
-                text: (bridge && bridge.currentLanguage) ? bridge.translate("set_about_desc") : "A premium retro gaming experience managed with elegance."
+                text: tr("set_about_desc")
                 wrapMode: Text.WordWrap
                 color: "#9da3b4"
                 font.pixelSize: 14
@@ -608,14 +604,15 @@ Item {
                         anchors.margins: 12
                         spacing: 4
                         Label {
-                            text: bridge ? bridge.translate("set_about_license_title").toUpperCase() : "LICENSE"
+                            text: tr("set_about_license_title").toUpperCase()
                             font.pixelSize: 10; font.bold: true; color: "#4da6ff"
                             Layout.alignment: Qt.AlignHCenter
                             horizontalAlignment: Text.AlignHCenter
                         }
                         Label {
-                            text: bridge ? bridge.translate("set_about_license") : "Open Source under GNU GPL v3"
+                            text: tr("set_about_license")
                             font.pixelSize: 11; color: "#c0c0c0"; wrapMode: Text.WordWrap
+                            textFormat: Text.RichText
                             horizontalAlignment: Text.AlignHCenter; Layout.fillWidth: true
                             lineHeight: 1.2
                         }
@@ -636,14 +633,15 @@ Item {
                         anchors.margins: 12
                         spacing: 4
                         Label {
-                            text: bridge ? bridge.translate("set_about_privacy_title").toUpperCase() : "PRIVACY"
+                            text: tr("set_about_privacy_title").toUpperCase()
                             font.pixelSize: 10; font.bold: true; color: "#4da6ff"
                             Layout.alignment: Qt.AlignHCenter
                             horizontalAlignment: Text.AlignHCenter
                         }
                         Label {
-                            text: bridge ? bridge.translate("set_about_privacy_desc") : "Your data stays on your machine."
+                            text: tr("set_about_privacy_desc")
                             font.pixelSize: 11; color: "#c0c0c0"; wrapMode: Text.WordWrap
+                            textFormat: Text.RichText
                             horizontalAlignment: Text.AlignHCenter; Layout.fillWidth: true
                             lineHeight: 1.2
                         }
@@ -661,7 +659,7 @@ Item {
                 Layout.bottomMargin: 10
                 
                 Label {
-                    text: bridge ? bridge.translate("set_about_copy") : "© 2024 ChrisPC"
+                    text: tr("set_about_copy")
                     font.pixelSize: 10
                     color: "#444455"
                     Layout.alignment: Qt.AlignHCenter
@@ -670,7 +668,7 @@ Item {
                 
                 Button {
                     id: closeAboutBtn
-                    text: (bridge && bridge.currentLanguage) ? bridge.translate("set_btn_close").toUpperCase() : "CLOSE"
+                    text: tr("set_btn_close").toUpperCase()
                     Layout.preferredWidth: 160
                     Layout.preferredHeight: 46
                     Layout.alignment: Qt.AlignHCenter

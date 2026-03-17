@@ -11,6 +11,13 @@ Item {
     property color accentColor: "#4da6ff"
     property bool isInstalled: false
     
+    function tr(key, ...args) {
+        if (!bridge) return key
+        var _ = bridge.currentLanguage
+        if (args.length > 0) return bridge.translateWithArgs(key, args)
+        return bridge.translate(key)
+    }
+
     property var emulatorsList: {
         try { return JSON.parse(emulatorsJson) } 
         catch(e) { return [] }
@@ -87,7 +94,7 @@ Item {
             // 2. INSTRUCCIONES
             Label {
                 Layout.fillWidth: true; Layout.leftMargin: 45; Layout.rightMargin: 45; Layout.bottomMargin: 30
-                text: "¡Descarga tu emulador y selecciona el archivo descargado, EmuManager se encargará de instalarlo por ti!\n(Nota: recomendamos que sea la versión portable)"
+                text: tr("dl_manual_step1_info")
                 font.pixelSize: 14; color: "#9999aa"; wrapMode: Text.WordWrap; lineHeight: 1.6
                 horizontalAlignment: Text.AlignHCenter
             }
@@ -124,7 +131,7 @@ Item {
                     contentItem: RowLayout {
                         anchors.centerIn: parent; spacing: 12
                         Label { text: "📂"; font.pixelSize: 22 }
-                        Label { text: "CARGAR MANUALMENTE"; color: "black"; font.bold: true; font.pixelSize: 13; font.letterSpacing: 1 }
+                        Label { text: tr("dl_btn_manual").toUpperCase(); color: "black"; font.bold: true; font.pixelSize: 13; font.letterSpacing: 1 }
                     }
                 }
             }
@@ -133,13 +140,13 @@ Item {
 
     FileDialog { 
         id: manualFileDialog
-        title: "Seleccionar Archivo del Emulador"
-        onAccepted: { 
+        title: tr("dl_manual_dlg_title")
+        onAccepted: {
             if (!currentEmu) return
             isDownloading = true
-            statusText = "Preparando instalación..."
+            statusText = tr("dl_manual_prep")
             bridge.manualInstall(currentEmu.github, selectedFile.toString().replace("file://", "")) 
-        } 
+        }
     }
 
     HoverHandler { id: cardHover }
@@ -226,7 +233,7 @@ Item {
                 ColumnLayout {
                     anchors.fill: parent; visible: isDownloading; spacing: 8
                     Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 6; color: "#1a1c24"; radius: 3; Rectangle { width: parent.width * downloadProgress; height: parent.height; radius: 3; color: accentColor } }
-                    Label { text: "PROCESSING " + Math.round(downloadProgress * 100) + "%"; font.pixelSize: 10; font.bold: true; color: accentColor; Layout.alignment: Qt.AlignHCenter }
+                    Label { text: tr("dl_installing").toUpperCase() + " " + Math.round(downloadProgress * 100) + "%"; font.pixelSize: 10; font.bold: true; color: accentColor; Layout.alignment: Qt.AlignHCenter }
                 }
                 Label { anchors.fill: parent; visible: statusText !== "" && !isDownloading; text: statusText; font.pixelSize: 11; font.bold: true; color: "white"; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter; wrapMode: Text.WordWrap }
             }
@@ -244,7 +251,7 @@ Item {
                     id: btnAction; Layout.fillWidth: true; Layout.preferredHeight: 56
                     onClicked: { if (!currentEmu) return; if (currentEmu.isInstalled) bridge.uninstallEmulator(currentEmu.github); else { isDownloading = true; statusText = ""; bridge.installEmulator(currentEmu.github) } }
                     background: Rectangle { radius: 16; color: currentEmu && currentEmu.isInstalled ? "transparent" : (btnAction.pressed ? Qt.darker(accentColor) : accentColor); border.color: currentEmu && currentEmu.isInstalled ? (btnAction.hovered ? "#ff4d4d" : "#303440") : "transparent"; border.width: 1 }
-                    contentItem: Label { text: currentEmu && currentEmu.isInstalled ? "REMOVE" : "INSTALL"; color: currentEmu && currentEmu.isInstalled ? (btnAction.hovered ? "#ff4d4d" : "#888899") : "#000000"; font.bold: true; font.pixelSize: 13; font.letterSpacing: 1; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                    contentItem: Label { text: currentEmu && currentEmu.isInstalled ? tr("dl_btn_uninstall").toUpperCase() : tr("dl_btn_install").toUpperCase(); color: currentEmu && currentEmu.isInstalled ? (btnAction.hovered ? "#ff4d4d" : "#888899") : "#000000"; font.bold: true; font.pixelSize: 13; font.letterSpacing: 1; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                 }
                 Button {
                     id: btnConfig; Layout.preferredWidth: 56; Layout.preferredHeight: 56

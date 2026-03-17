@@ -34,7 +34,7 @@ Item {
         anchors.fill: parent
         anchors.leftMargin: 20
         anchors.rightMargin: 20
-        spacing: 0 // Usamos espaciado manual o Layout.fillWidth
+        spacing: 12
 
         // 🟢 Columna 1: Status LED (Ancho Fijo para Alineación)
         Item {
@@ -61,17 +61,23 @@ Item {
 
         // 🟢 Columna 2: Info (Flexible)
         ColumnLayout {
-            spacing: 0
+            spacing: 2
             Layout.fillWidth: true
+            Layout.alignment: Qt.AlignVCenter
+            
             Label { 
                 text: name
-                font.pixelSize: 15; font.weight: Font.Medium; color: "white" 
+                font.pixelSize: 14; font.weight: Font.Medium; color: "white" 
+                horizontalAlignment: Text.AlignLeft
+                Layout.fillWidth: true
                 opacity: isActive ? 1.0 : 0.6
                 Behavior on opacity { NumberAnimation { duration: 200 } }
             }
             Label {
                 text: typeDisplay.toUpperCase()
-                font.pixelSize: 9; color: "#444455"; font.letterSpacing: 1
+                font.pixelSize: 9; color: "#666677"; font.letterSpacing: 1.5
+                horizontalAlignment: Text.AlignLeft
+                Layout.fillWidth: true
             }
         }
 

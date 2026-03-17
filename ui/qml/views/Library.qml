@@ -17,11 +17,20 @@ Item {
     property var selectedGame: null // Para el panel de información
     property bool isEmpty: bridge ? (bridge.scannedConsoles.length === 0) : true
 
+    function tr(key, ...args) {
+        if (!bridge) return key
+        var _ = bridge.currentLanguage
+        if (args.length > 0) return bridge.translateWithArgs(key, args)
+        return bridge.translate(key)
+    }
+
     signal gridEntranceTriggered()
 
     Connections {
         target: bridge
         function onStatsUpdated() {
+            root.isEmpty = (bridge.scannedConsoles.length === 0)
+            carousel.model = bridge.scannedConsoles
             if (root.state === "grid" && root.currentConsoleId !== "") {
                 root.currentGames = bridge.getGamesForConsole(root.currentConsoleId)
             }
@@ -112,11 +121,11 @@ Item {
             ColumnLayout {
                 spacing: 8
                 Layout.alignment: Qt.AlignHCenter
-                Label { text: (bridge && bridge.currentLanguage) ? bridge.translate("lib_empty_title").toUpperCase() : "BIBLIOTECA VACÍA"; font.pixelSize: 26; font.bold: true; color: "white"; Layout.alignment: Qt.AlignHCenter }
-                Label { text: (bridge && bridge.currentLanguage) ? bridge.translate("lib_empty_sub") : "Escanea tus carpetas de juegos de cada consola desde los ajustes para ver tus títulos aquí."; font.pixelSize: 14; color: "#666677"; horizontalAlignment: Text.AlignHCenter; Layout.preferredWidth: 340; wrapMode: Text.WordWrap; Layout.alignment: Qt.AlignHCenter }
+                Label { text: tr("lib_empty_title").toUpperCase(); font.pixelSize: 26; font.bold: true; color: "white"; Layout.alignment: Qt.AlignHCenter }
+                Label { text: tr("lib_empty_sub"); font.pixelSize: 14; color: "#666677"; horizontalAlignment: Text.AlignHCenter; Layout.preferredWidth: 340; wrapMode: Text.WordWrap; Layout.alignment: Qt.AlignHCenter }
             }
             Button {
-                text: (bridge && bridge.currentLanguage) ? bridge.translate("lib_scan_now") : "ESCANEAR AHORA"
+                text: tr("lib_scan_now")
                 Layout.alignment: Qt.AlignHCenter
                 onClicked: bridge.scanGames()
                 background: Rectangle { radius: 20; color: "#4da6ff" }
@@ -344,7 +353,7 @@ Item {
 
                         // Contador de Títulos
                         Label {
-                            text: (bridge && bridge.currentLanguage ? bridge.translateWithArg("lib_games_count", modelData.count) : (modelData.count + " TÍTULOS")).toUpperCase()
+                            text: tr("lib_games_count", modelData.count).toUpperCase()
                             font.pixelSize: 11 * responsiveScale; font.bold: true; color: "#888899"
                             Layout.fillWidth: true; horizontalAlignment: Text.AlignHCenter
                             opacity: isCurrent ? 0.8 : 0.3
@@ -362,7 +371,7 @@ Item {
                         border.width: isCurrent ? 1 : 0
                         Label {
                             anchors.centerIn: parent
-                            text: (bridge && bridge.currentLanguage) ? bridge.translate("lib_btn_explore").toUpperCase() : "EXPLORAR"
+                            text: tr("lib_btn_explore").toUpperCase()
                             font.bold: true; color: isCurrent ? "black" : "white"; font.pixelSize: 12 * responsiveScale
                         }
                         MouseArea {
@@ -442,7 +451,7 @@ Item {
                         color: "white"
                     }
                     Label {
-                        text: (bridge && bridge.currentLanguage ? bridge.translateWithArg("lib_games_count", root.currentGames.length).toUpperCase() : (root.currentGames.length + " JUEGOS DISPONIBLES"))
+                        text: tr("lib_games_count", root.currentGames.length).toUpperCase()
                         font.pixelSize: 10
                         font.bold: true
                         color: currentAccentColor
@@ -471,7 +480,7 @@ Item {
                             font.pixelSize: 14
                             verticalAlignment: TextInput.AlignVCenter
                             Label {
-                                text: (bridge && bridge.currentLanguage) ? bridge.translate("lib_search") : "Buscar título..."
+                                text: tr("lib_search")
                                 color: "#66ffffff"
                                 visible: searchInput.text === ""
                                 anchors.fill: parent
@@ -757,7 +766,7 @@ Item {
             RowLayout {
                 Layout.fillWidth: true
                 Label {
-                    text: "INFORMACIÓN"
+                    text: tr("lib_game_details")
                     font.pixelSize: 12; font.bold: true; color: currentAccentColor
                     font.letterSpacing: 2
                 }
@@ -814,10 +823,14 @@ Item {
                 ColumnLayout {
                     Layout.fillWidth: true; spacing: 5
                     Label {
-                        text: selectedGame ? selectedGame.title : ""
+                        text: (selectedGame ? selectedGame.name : "")
                         font.pixelSize: 32; font.weight: Font.Black; color: "white"
                         wrapMode: Text.WordWrap; Layout.fillWidth: true
                         font.letterSpacing: -0.5
+                    }
+                    Label {
+                        text: tr("lib_playtime", (selectedGame ? selectedGame.playtime : "0h"))
+                        color: "#888899"; font.pixelSize: 13; font.weight: Font.Medium
                     }
                     RowLayout {
                         spacing: 15
@@ -917,7 +930,7 @@ Item {
                 }
                 
                 contentItem: Label {
-                    text: "LANZAR JUEGO"
+                    text: tr("lib_play_btn")
                     color: "black"; font.bold: true; font.pixelSize: 14
                     horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
                     scale: launchMainBtn.pressed ? 0.95 : 1.0
@@ -977,7 +990,7 @@ Item {
                         font.letterSpacing: 1
                     }
                     Label {
-                        text: (bridge && bridge.currentLanguage) ? bridge.translate("lib_emu_settings") : "AJUSTES DE SESIÓN"
+                        text: tr("lib_emu_settings").toUpperCase()
                         color: tweakPopup.accentColor; font.pixelSize: 10; font.bold: true; font.letterSpacing: 2
                     }
                 }
@@ -1164,7 +1177,7 @@ Item {
                 Label {
                     anchors.centerIn: parent
                     visible: tweakListView.count === 0
-                    text: (bridge && bridge.currentLanguage) ? bridge.translate("lib_no_tweaks") : "No hay ajustes adicionales."
+                    text: tr("lib_no_tweaks")
                     font.pixelSize: 13; color: "#44ffffff"; font.italic: true
                 }
             }
@@ -1172,7 +1185,7 @@ Item {
             Button {
                 id: closeTweakBtn
                 Layout.fillWidth: true; Layout.preferredHeight: 50
-                text: (bridge && bridge.currentLanguage) ? bridge.translate("lib_tweak_done") : "LISTO"
+                text: tr("lib_tweak_done").toUpperCase()
                 onClicked: tweakPopup.close()
                 hoverEnabled: true
 

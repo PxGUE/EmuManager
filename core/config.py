@@ -4,7 +4,7 @@ Centralized storage for versioning and other app-wide constants.
 """
 
 APP_NAME = "EmuManager"
-APP_VERSION = "0.1.12- alpha"
+APP_VERSION = "0.1.12-alpha"
 APP_AUTHOR = "Christian A. Ordoñez"
 APP_DESCRIPTION = "A premium manager for console emulators and ROMs."
 

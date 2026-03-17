@@ -5,10 +5,17 @@ import QtQuick.Layouts
 Popup {
     id: dialogRoot
     
-    property string title: "ADVERTENCIA"
+    function tr(key, ...args) {
+        if (!bridge) return key
+        var _ = bridge.currentLanguage
+        if (args.length > 0) return bridge.translateWithArgs(key, args)
+        return bridge.translate(key)
+    }
+
+    property string title: tr("dlg_warn_title")
     property string message: ""
-    property string confirmText: "SÍ, CONTINUAR"
-    property string cancelText: "CANCELAR"
+    property string confirmText: tr("lib_yes_change")
+    property string cancelText: tr("dl_btn_cancel")
     property bool isInfoOnly: false
     property color accentColor: "#4da6ff"
 
@@ -113,7 +120,7 @@ Popup {
                 id: confirmBtn
                 Layout.fillWidth: true
                 Layout.preferredHeight: 44
-                text: isInfoOnly ? "ACEPTAR" : dialogRoot.confirmText
+                text: isInfoOnly ? tr("dlg_btn_ok") : dialogRoot.confirmText
                 hoverEnabled: true
                 onClicked: {
                     dialogRoot.close()

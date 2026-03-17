@@ -181,15 +181,21 @@ class EmuladorManager:
 
     def esta_instalado(self, repo_github: str) -> bool:
         if repo_github not in self.installed_emus:
+            # print(f"[DEBUG] {repo_github} no está en installed_emus")
             return False
         
         # Validación real en disco
         info = self.installed_emus[repo_github]
         files = info.get("files", [])
-        if not files: return False
+        if not files: 
+            print(f"[DEBUG] {repo_github} no tiene archivos registrados")
+            return False
         
         # Verificar si el archivo principal existe
-        return os.path.exists(files[0])
+        exists = os.path.exists(files[0])
+        if not exists:
+            print(f"[DEBUG] {repo_github} archivo no encontrado: {files[0]}")
+        return exists
 
     # Delegated installer methods
     async def get_valid_emulators(self):

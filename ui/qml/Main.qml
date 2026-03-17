@@ -9,14 +9,14 @@ ApplicationWindow {
     width: 1100
     height: 720
     visible: true
-    title: ((bridge ? bridge.currentLanguage : ""), (bridge ? bridge.appName : "EmuManager") + " " + (bridge ? bridge.appVersion : ""))
+    title: (bridge ? (bridge.currentLanguage, bridge.appName + " " + bridge.appVersion) : "EmuManager")
     color: "#0f111a"
 
     // Helper para traducciones reactivas
-    function tr(key, arg) {
+    function tr(key, ...args) {
         if (!bridge) return key
-        var _ = bridge.currentLanguage // Fuerza dependencia
-        if (arg !== undefined) return bridge.translateWithArg(key, String(arg))
+        var _ = bridge.currentLanguage // Forza dependencia Reactiva
+        if (args.length > 0) return bridge.translateWithArgs(key, args)
         return bridge.translate(key)
     }
 
@@ -218,8 +218,8 @@ ApplicationWindow {
         } 
         else if (state === 2) {
             // Caso 2: Es el mismo juego que ya está abierto
-            globalDialog.title = "JUEGO EN CURSO"
-            globalDialog.message = "¡" + game_name + " ya se está ejecutando! Vuelve a la ventana del emulador para continuar jugando."
+            globalDialog.title = tr("dlg_session_title")
+            globalDialog.message = tr("dlg_session_playing", game_name)
             globalDialog.isInfoOnly = true
             globalDialog.accentColor = "#4da6ff"
             globalDialog.open()
@@ -227,10 +227,10 @@ ApplicationWindow {
         else {
             // Caso 1: Hay OTRO juego abierto
             pendingLaunch = { path: game_path, id: emu_id }
-            globalDialog.title = "ADVERTENCIA DE SESIÓN"
-            globalDialog.message = "Actualmente tienes una partida activa en \"" + bridge.activeGameName + "\".\n\n¿Estás seguro de que quieres cerrar la sesión actual para iniciar \"" + game_name + "\"? Se perderá cualquier progreso que no hayas guardado."
+            globalDialog.title = tr("dlg_warn_title")
+            globalDialog.message = tr("dlg_warn_msg", bridge.activeGameName, game_name)
             globalDialog.isInfoOnly = false
-            globalDialog.confirmText = "SÍ, CERRAR Y CAMBIAR"
+            globalDialog.confirmText = tr("dlg_btn_change")
             globalDialog.accentColor = "#ff4d4d"
             globalDialog.open()
         }

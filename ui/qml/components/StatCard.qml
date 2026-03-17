@@ -5,7 +5,8 @@ import QtQuick.Controls
 Item {
     id: cardRoot
     property string icon: "🎯"
-    property int value: 0
+    property var value: 0
+    property string textValue: ""
     property string label: "Stat"
     property color accentColor: "#4da6ff"
 
@@ -41,8 +42,8 @@ Item {
 
     // Reiniciar si el valor cambia mientras es visible
     onValueChanged: {
-        if (visible) counterAnim.restart()
-        else displayValue = value
+        if (visible && typeof value === "number") counterAnim.restart()
+        else if (typeof value === "number") displayValue = value
     }
 
     Rectangle {
@@ -89,7 +90,7 @@ Item {
                 Layout.alignment: Qt.AlignVCenter
 
                 Label {
-                    text: cardRoot.displayValue
+                    text: textValue !== "" ? textValue : cardRoot.displayValue
                     font.pixelSize: 28
                     font.weight: Font.Black
                     color: "white"

@@ -13,6 +13,16 @@ Item {
     property bool downloadArtwork: true
     property bool downloadBackgrounds: true
     property bool downloadMetadata: true
+    
+    property real scanProgress: 0.0
+    property string scanStatusText: ""
+
+    function tr(key, ...args) {
+        if (!bridge) return key
+        var _ = bridge.currentLanguage
+        if (args.length > 0) return bridge.translateWithArgs(key, args)
+        return bridge.translate(key)
+    }
 
     ColumnLayout {
         anchors.fill: parent
@@ -25,13 +35,13 @@ Item {
             ColumnLayout {
                 spacing: 4
                 Label {
-                    text: (bridge && bridge.currentLanguage) ? bridge.translate("nav_downloads") : "Downloads"
+                    text: tr("nav_downloads")
                     font.pixelSize: 32
                     font.bold: true
                     color: "white"
                 }
                 Label {
-                    text: (bridge && bridge.currentLanguage) ? bridge.translate("dl_list_sub") : ""
+                    text: tr("dl_list_sub")
                     font.pixelSize: 14
                     color: "#888899"
                 }
@@ -48,7 +58,7 @@ Item {
                 width: 4; height: 24; radius: 2; color: "#4da6ff" 
             }
             Label {
-                text: (bridge && bridge.currentLanguage ? bridge.translate("dl_main_title") : "EMULATORS")
+                text: tr("dl_main_title")
                 font.pixelSize: 18
                 font.bold: true
                 color: "white"
@@ -83,6 +93,10 @@ Item {
         Connections {
             target: bridge
             function onStatsUpdated() { localEmuModel.refresh() }
+            function onScanProgress(prog, status) {
+                downloadsRoot.scanProgress = prog
+                downloadsRoot.scanStatusText = status
+            }
         }
 
         // GRID
@@ -154,7 +168,7 @@ Item {
                     }
 
                     Label {
-                        text: (bridge && bridge.currentLanguage ? bridge.translate("dl_scrap_title").toUpperCase() : "METADATA & ARTWORK")
+                        text: tr("dl_scrap_title").toUpperCase()
                         font.pixelSize: 14
                         font.bold: true
                         color: "white"
@@ -204,11 +218,11 @@ Item {
                             Layout.fillWidth: true
                             spacing: 4
                             Label {
-                                text: (bridge && bridge.currentLanguage) ? bridge.translate("dl_scrap_dlg_q").toUpperCase() : "CONFIGURAR DESCARGA"
+                                text: tr("dl_scrap_dlg_q").toUpperCase()
                                 font.pixelSize: 12; font.bold: true; color: "#7c6ff7"; font.letterSpacing: 1.5
                             }
                             Label {
-                                text: (bridge && bridge.currentLanguage) ? bridge.translate("dl_scrap_sub") : "Obtén carátulas y fondos para tus juegos."
+                                text: tr("dl_scrap_sub")
                                 font.pixelSize: 13; color: "#888899"
                             }
                         }
@@ -242,7 +256,7 @@ Item {
                                 spacing: 10
                                 Label { text: "⚡"; font.pixelSize: 16 }
                                 Label {
-                                    text: (bridge && bridge.currentLanguage) ? bridge.translate("set_btn_download") : "DESCARGAR"
+                                    text: tr("set_btn_download")
                                     color: "white"; font.bold: true; font.pixelSize: 12; font.letterSpacing: 1
                                 }
                             }
@@ -267,7 +281,7 @@ Item {
                                 anchors.fill: parent; anchors.margins: 15; spacing: 15
                                 Label { text: "🖼️"; font.pixelSize: 18 }
                                 Label { 
-                                    text: (bridge && bridge.currentLanguage) ? bridge.translate("dl_scrap_opt_artwork") : "Artwork"
+                                    text: tr("dl_scrap_opt_artwork")
                                     color: "white"; font.pixelSize: 13; font.weight: Font.Medium; Layout.fillWidth: true 
                                 }
                                 Switch {
@@ -287,7 +301,7 @@ Item {
                                 anchors.fill: parent; anchors.margins: 15; spacing: 15
                                 Label { text: "🌄"; font.pixelSize: 18 }
                                 Label { 
-                                    text: (bridge && bridge.currentLanguage) ? bridge.translate("dl_scrap_opt_backgrounds") : "Backgrounds"
+                                    text: tr("dl_scrap_opt_backgrounds")
                                     color: "white"; font.pixelSize: 13; font.weight: Font.Medium; Layout.fillWidth: true 
                                 }
                                 Switch {
@@ -307,12 +321,73 @@ Item {
                                 anchors.fill: parent; anchors.margins: 15; spacing: 15
                                 Label { text: "📋"; font.pixelSize: 18 }
                                 Label { 
-                                    text: (bridge && bridge.currentLanguage) ? bridge.translate("dl_scrap_opt_metadata") : "Metadata"
+                                    text: tr("dl_scrap_opt_metadata")
                                     color: "white"; font.pixelSize: 13; font.weight: Font.Medium; Layout.fillWidth: true 
                                 }
                                 Switch {
                                     checked: downloadMetadata
                                     onToggled: downloadMetadata = checked
+                                }
+                            }
+                        }
+                    }
+
+                    // SCAN PROGRESS (NUEVO)
+                    ColumnLayout {
+                        Layout.fillWidth: true
+                        spacing: 10
+                        visible: scanProgress > 0 || scanStatusText !== ""
+                        
+                        RowLayout {
+                            Layout.fillWidth: true
+                            Label {
+                                text: scanStatusText
+                                color: "#888899"
+                                font.pixelSize: 12
+                                Layout.fillWidth: true
+                                elide: Text.ElideRight
+                            }
+                            Label {
+                                text: Math.round(scanProgress * 100) + "%"
+                                color: "#4da6ff"
+                                font.pixelSize: 12
+                                font.bold: true
+                            }
+                        }
+
+                        ProgressBar {
+                            id: scanBar
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 8
+                            value: scanProgress
+                            
+                            background: Rectangle {
+                                implicitWidth: 200
+                                implicitHeight: 8
+                                color: "#1a1e2e"
+                                radius: 4
+                            }
+
+                            contentItem: Item {
+                                implicitWidth: 200
+                                implicitHeight: 8
+
+                                Rectangle {
+                                    width: scanBar.visualPosition * parent.width
+                                    height: parent.height
+                                    radius: 4
+                                    gradient: Gradient {
+                                        orientation: Gradient.Horizontal
+                                        GradientStop { position: 0.0; color: "#4da6ff" }
+                                        GradientStop { position: 1.0; color: "#7c6ff7" }
+                                    }
+                                    
+                                    // Glow effect
+                                    layer.enabled: true
+                                    layer.effect: ShaderEffect {
+                                        // Simple glow can be added here if needed, 
+                                        // but for now a nice gradient is premium enough
+                                    }
                                 }
                             }
                         }

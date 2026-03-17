@@ -8,6 +8,13 @@ Item {
     property string subtitle: ""
     property string path: ""
     signal browse()
+    
+    function tr(key, ...args) {
+        if (!bridge) return key
+        var _ = bridge.currentLanguage
+        if (args.length > 0) return bridge.translateWithArgs(key, args)
+        return bridge.translate(key)
+    }
 
     Layout.fillWidth: true
     implicitHeight: 64
@@ -40,15 +47,21 @@ Item {
         }
 
         ColumnLayout {
-            spacing: 0
+            spacing: 2
             Layout.fillWidth: true
             Label {
                 text: title
-                font.pixelSize: 14; font.weight: Font.Medium; color: "white"
+                font.pixelSize: 13; font.weight: Font.DemiBold; color: "white"
             }
             Label {
-                text: path || (bridge ? bridge.translate("dash_missing") : "Not configured")
-                font.pixelSize: 10; color: path ? "#666677" : "#ff4d4d"
+                text: subtitle
+                font.pixelSize: 10; color: "#6e7282"; Layout.fillWidth: true
+                visible: subtitle !== ""
+            }
+            Item { Layout.preferredHeight: 4 }
+            Label {
+                text: pathSettingRoot.path ? pathSettingRoot.path : tr("dash_missing")
+                font.pixelSize: 10; color: path ? "#4da6ff" : "#ff4d4d"
                 elide: Text.ElideMiddle; Layout.fillWidth: true
                 font.family: "JetBrains Mono, Monospace"
                 opacity: 0.8
@@ -57,7 +70,7 @@ Item {
 
         Button {
             id: browseBtn
-            text: bridge ? bridge.translate("set_btn_select") : "SELECT"
+            text: tr("set_btn_select")
             onClicked: browse()
             Layout.preferredHeight: 30
             

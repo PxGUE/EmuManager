@@ -9,6 +9,13 @@ RowLayout {
     property bool exists: false
 
     spacing: 15
+    
+    function tr(key, ...args) {
+        if (!bridge) return key
+        var _ = bridge.currentLanguage
+        if (args.length > 0) return bridge.translateWithArgs(key, args)
+        return bridge.translate(key)
+    }
 
     Rectangle {
         width: 42; height: 42; radius: 12
@@ -31,7 +38,7 @@ RowLayout {
             font.pixelSize: 10; font.bold: true; color: "#6e7282"; font.letterSpacing: 1.5
         }
         Label {
-            text: root.path ? root.path.split(/[\\/]/).pop() : (bridge ? bridge.translate("dash_missing") : "Missing")
+            text: root.path ? root.path.split(/[\\/]/).pop() : tr("dash_missing")
             font.pixelSize: 15; font.weight: Font.DemiBold; color: "#ffffff"
             Layout.maximumWidth: 300; elide: Text.ElideRight
         }

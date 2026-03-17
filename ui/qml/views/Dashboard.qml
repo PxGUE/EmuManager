@@ -8,6 +8,13 @@ Item {
     
     property bool isEmpty: bridge ? (bridge.dashboardStats.installed === 0 && bridge.dashboardStats.totalRoms === 0) : true
     property color currentAccentColor: "#4da6ff"
+    
+    function tr(key, ...args) {
+        if (!bridge) return key
+        var _ = bridge.currentLanguage
+        if (args.length > 0) return bridge.translateWithArgs(key, args)
+        return bridge.translate(key)
+    }
 
     Component.onCompleted: if (bridge) bridge.refreshDashboard()
 
@@ -168,7 +175,7 @@ Item {
                             border.color: Qt.alpha(currentAccentColor, 0.3)
                             Label {
                                 x: 12; anchors.verticalCenter: parent.verticalCenter
-                                text: (bridge && bridge.currentLanguage) ? bridge.translate("dash_greeting").toUpperCase() : "BIENVENIDO"
+                                text: tr("dash_greeting").toUpperCase()
                                 font.pixelSize: 11; font.bold: true; color: currentAccentColor; font.letterSpacing: 2
                             }
                         }
@@ -180,7 +187,7 @@ Item {
                         }
                         
                         Label {
-                            text: (bridge && bridge.currentLanguage ? bridge.translateWithArg("dash_tagline", "") : "Tu centro de emulación retro") + " • v" + (bridge ? bridge.appVersion : "1.0")
+                            text: tr("dash_tagline", (bridge ? bridge.appVersion : "1.0"))
                             font.pixelSize: 18; color: "#9494a5"; font.weight: Font.Light
                         }
                     }
@@ -222,23 +229,24 @@ Item {
                 spacing: 15
                 
                 StatCard {
-                    icon: "🚀"; label: (bridge && bridge.currentLanguage) ? bridge.translate("dash_stat_installed") : "INSTALADOS"; accentColor: "#4da6ff"
+                    icon: "🚀"; label: tr("dash_stat_installed"); accentColor: "#4da6ff"
                     value: (bridge && bridge.dashboardStats) ? bridge.dashboardStats.installed : 0
                     Layout.fillWidth: true
                 }
                 StatCard {
-                    icon: "🎮"; label: (bridge && bridge.currentLanguage) ? bridge.translate("dash_stat_roms") : "NÚMERO DE ROMS"; accentColor: "#7c6ff7"
+                    icon: "🎮"; label: tr("dash_stat_roms"); accentColor: "#7c6ff7"
                     value: (bridge && bridge.dashboardStats) ? bridge.dashboardStats.totalRoms : 0
                     Layout.fillWidth: true
                 }
                 StatCard {
-                    icon: "🕹️"; label: (bridge && bridge.currentLanguage) ? bridge.translate("dash_stat_consoles") : "CONSOLAS"; accentColor: "#4dc6a6"
+                    icon: "🕹️"; label: tr("dash_stat_consoles"); accentColor: "#4dc6a6"
                     value: (bridge && bridge.dashboardStats) ? bridge.dashboardStats.totalConsoles : 0
                     Layout.fillWidth: true
                 }
                 StatCard {
-                    icon: "⏳"; label: (bridge && bridge.currentLanguage) ? bridge.translate("dash_stat_hours") : "TIEMPO JUGADO"; accentColor: "#f0a040"
+                    icon: "⏳"; label: tr("dash_stat_hours"); accentColor: "#f0a040"
                     value: (bridge && bridge.dashboardStats) ? bridge.dashboardStats.totalHours : 0
+                    textValue: (bridge && bridge.dashboardStats) ? bridge.dashboardStats.totalTimeDisplay : "0h"
                     Layout.fillWidth: true
                 }
             }
@@ -252,7 +260,7 @@ Item {
                 ColumnLayout {
                     Layout.fillWidth: true; Layout.preferredWidth: 4; spacing: 15; Layout.alignment: Qt.AlignTop
                     Label {
-                        text: (bridge && bridge.currentLanguage ? bridge.translate("dash_recent_title") : "ACTIVIDAD RECIENTE").toUpperCase()
+                        text: tr("dash_recent_title").toUpperCase()
                         font.pixelSize: 12; font.bold: true; color: "#6e7282"; font.letterSpacing: 2
                         Layout.leftMargin: 5
                     }
@@ -267,23 +275,70 @@ Item {
                                 delegate: Item {
                                     Layout.fillWidth: true; height: 72
                                     Rectangle {
-                                        anchors.fill: parent; anchors.margins: 4; radius: 20
-                                        color: "#1c1f2e"; visible: mouseAreaAct.containsMouse
+                                        anchors.fill: parent; anchors.margins: 2; radius: 14
+                                        color: Qt.alpha(modelData.color, 0.08)
+                                        visible: mouseAreaAct.containsMouse
+                                        border.color: Qt.alpha(modelData.color, 0.15)
+                                        border.width: 1
                                     }
                                     RowLayout {
                                         anchors.fill: parent; anchors.leftMargin: 15; anchors.rightMargin: 15; spacing: 15
+                                        // Mini Carátula
                                         Rectangle {
-                                            width: 44; height: 44; radius: 12; color: Qt.alpha(modelData.color, 0.1)
-                                            border.color: Qt.alpha(modelData.color, 0.2); border.width: 1
-                                            Label { anchors.centerIn: parent; text: "🎮"; font.pixelSize: 20 }
+                                            width: 42; height: 54; radius: 6; color: "#1a1c2b"
+                                            clip: true
+                                            border.color: mouseAreaAct.containsMouse ? modelData.color : "#252835"
+                                            border.width: 1
+                                            
+                                            Image {
+                                                anchors.fill: parent
+                                                source: modelData.cover
+                                                fillMode: Image.PreserveAspectCrop
+                                                opacity: mouseAreaAct.containsMouse ? 1.0 : 0.8
+                                                visible: modelData.cover !== ""
+                                                Behavior on opacity { NumberAnimation { duration: 200 } }
+                                            }
+                                            
+                                            Rectangle {
+                                                anchors.fill: parent; color: modelData.color; opacity: 0.1
+                                                visible: modelData.cover === ""
+                                            }
+                                            Label { 
+                                                anchors.centerIn: parent
+                                                text: "🎮"; font.pixelSize: 18
+                                                visible: modelData.cover === "" || modelData.cover.status !== Image.Ready
+                                            }
                                         }
+
                                         ColumnLayout {
-                                            spacing: 2
-                                            Label { text: modelData.name; color: "#ffffff"; font.pixelSize: 15; font.weight: Font.Bold; elide: Text.ElideRight; Layout.fillWidth: true }
-                                            Label { text: modelData.console.toUpperCase(); color: "#6e7282"; font.pixelSize: 10; font.bold: true; font.letterSpacing: 1 }
+                                            spacing: 0
+                                            Layout.fillWidth: true
+                                            Label { 
+                                                text: modelData.name; color: mouseAreaAct.containsMouse ? "#ffffff" : "#e0e0e0"
+                                                font.pixelSize: 15; font.weight: Font.Bold; elide: Text.ElideRight; Layout.fillWidth: true 
+                                                Behavior on color { ColorAnimation { duration: 200 } }
+                                            }
+                                            Label { 
+                                                text: modelData.console.toUpperCase(); color: "#6e7282"; font.pixelSize: 9
+                                                font.bold: true; font.letterSpacing: 1.5 
+                                            }
                                         }
-                                        Item { Layout.fillWidth: true }
-                                        Label { text: modelData.playtime; color: modelData.color; font.pixelSize: 13; font.weight: Font.DemiBold }
+
+                                        RowLayout {
+                                            spacing: 8
+                                            visible: mouseAreaAct.containsMouse
+                                            Label { text: "▶"; color: modelData.color; font.pixelSize: 12 }
+                                            Label { 
+                                                text: tr("lib_play").toUpperCase()
+                                                color: modelData.color; font.pixelSize: 11; font.bold: true; font.letterSpacing: 1
+                                            }
+                                        }
+
+                                        Label { 
+                                            text: modelData.playtime; color: mouseAreaAct.containsMouse ? modelData.color : "#6e7282"
+                                            font.pixelSize: 13; font.weight: Font.DemiBold
+                                            visible: !mouseAreaAct.containsMouse
+                                        }
                                     }
                                     MouseArea { 
                                         id: mouseAreaAct; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
@@ -296,7 +351,7 @@ Item {
                             }
                             Label {
                                 visible: bridge ? bridge.recentActivity.length === 0 : true
-                                text: (bridge && bridge.currentLanguage) ? bridge.translate("dash_empty_recent") : "Sin actividad reciente"
+                                text: tr("dash_empty_recent")
                                 color: "#4a4d63"; font.pixelSize: 16; Layout.alignment: Qt.AlignCenter; Layout.topMargin: 100
                             }
                         }
@@ -311,7 +366,7 @@ Item {
                     ColumnLayout {
                         spacing: 12; Layout.fillWidth: true
                         Label {
-                            text: (bridge && bridge.currentLanguage ? bridge.translate("dash_status_title_panel") : "ESTADO DEL SISTEMA").toUpperCase()
+                            text: tr("dash_status_title_panel").toUpperCase()
                             font.pixelSize: 11; font.bold: true; color: "#6e7282"; font.letterSpacing: 2; Layout.leftMargin: 5
                         }
                         Rectangle {
@@ -320,12 +375,12 @@ Item {
                             ColumnLayout {
                                 id: pathCol; anchors.left: parent.left; anchors.right: parent.right; anchors.top: parent.top; anchors.margins: 20; spacing: 18
                                 StatusRow {
-                                    title: (bridge && bridge.currentLanguage) ? bridge.translate("dash_status_path_emus") : "Ruta Emuladores"
+                                    title: tr("dash_status_path_emus")
                                     path: (bridge && bridge.systemStatus) ? bridge.systemStatus.emusPath : ""
                                     exists: (bridge && bridge.systemStatus) ? bridge.systemStatus.emusPathExists : false
                                 }
                                 StatusRow {
-                                    title: (bridge && bridge.currentLanguage) ? bridge.translate("dash_status_path_roms") : "Ruta ROMs"
+                                    title: tr("dash_status_path_roms")
                                     path: (bridge && bridge.systemStatus) ? bridge.systemStatus.romsPath : ""
                                     exists: (bridge && bridge.systemStatus) ? bridge.systemStatus.romsPathExists : false
                                 }
@@ -336,7 +391,7 @@ Item {
                     ColumnLayout {
                         spacing: 12; Layout.fillWidth: true
                         Label {
-                            text: (bridge && bridge.currentLanguage ? bridge.translate("dash_available_systems") : "SISTEMAS DISPONIBLES")
+                            text: tr("dash_available_systems").toUpperCase()
                             font.pixelSize: 11; font.bold: true; color: "#6e7282"; font.letterSpacing: 2; Layout.leftMargin: 5
                         }
                         Rectangle {
@@ -361,7 +416,7 @@ Item {
                                 }
                                 Label {
                                     visible: !bridge || bridge.systemStatus.installedEmus.length === 0
-                                    text: (bridge && bridge.currentLanguage) ? bridge.translate("dash_no_systems") : "Ningún sistema listo"; color: "#4a4d63"; font.pixelSize: 13; Layout.alignment: Qt.AlignCenter; Layout.topMargin: 5
+                                    text: tr("dash_no_systems")
                                 }
                             }
                         }

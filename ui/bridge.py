@@ -17,23 +17,18 @@ class AppBridge(QObject):
     configUpdated = Signal()
     downloadProgress = Signal(str, float) # url, progress
     downloadFinished = Signal(str, bool, str) # url, success, message
+    scanProgress = Signal(float, str) # progress 0.0-1.0, current task/game name
     
     def __init__(self, emu_manager, translator):
         super().__init__()
         self.emu_manager = emu_manager
         self.translator = translator
         self._current_lang = emu_manager.language
-        self._consoles_cache = None
         
         # Conectar señales del manager al bridge si existen, 
         # o inyectar callbacks en las funciones de descarga
         self._setup_manager_links()
         
-        # Invalidar cache cuando las stats cambian
-        self.statsUpdated.connect(self._clear_consoles_cache)
-
-    def _clear_consoles_cache(self):
-        self._consoles_cache = None
 
     @Property(str, notify=languageChanged)
     def currentLanguage(self):
@@ -55,7 +50,12 @@ class AppBridge(QObject):
     @Slot(str, str, result=str)
     def translateWithArg(self, key, arg):
         """Traduce una clave con un argumento (ej: versión)."""
-        return self.translator.t(key, arg)
+        return self.translator.t(key, str(arg))
+
+    @Slot(str, list, result=str)
+    def translateWithArgs(self, key, args):
+        """Traduce una clave con múltiples argumentos."""
+        return self.translator.t(key, *[str(a) for a in args])
 
     @Property(list, notify=statsUpdated)
     def allEmulators(self):
@@ -188,7 +188,7 @@ class AppBridge(QObject):
         async def do_manual():
             emu = next((e for e in AVAILABLE_EMULATORS if e["github"] == github_url), None)
             if not emu:
-                self.downloadFinished.emit(github_url, False, "Emu not found")
+                self.downloadFinished.emit(github_url, False, self.translator.t("dl_err_emu_not_found"))
                 return
                 
             success, msg = await self.emu_manager.instalar_manual(emu, file_path)
@@ -214,12 +214,22 @@ class AppBridge(QObject):
         installed = sum(1 for emu in AVAILABLE_EMULATORS if self.emu_manager.esta_instalado(emu["github"]))
         total_seconds = sum(self.emu_manager.get_playtime(j.get("ruta", ""))[0] for j in biblioteca)
         total_hours = int(total_seconds // 3600)
+        total_mins = int((total_seconds % 3600) // 60)
         
+        # Formatear tiempo total localizado
+        if total_hours > 0:
+            time_display = self.translator.t("dash_hours_suffix", total_hours, total_mins)
+        elif total_mins > 0:
+            time_display = self.translator.t("dash_mins_suffix", total_mins)
+        else:
+            time_display = "0h"
+
         return {
             "installed": installed,
             "totalRoms": len(biblioteca),
             "totalConsoles": len(set(j.get("id_emu") for j in biblioteca)),
-            "totalHours": total_hours
+            "totalHours": total_hours,
+            "totalTimeDisplay": time_display
         }
 
     @Property(list, notify=statsUpdated)
@@ -231,9 +241,9 @@ class AppBridge(QObject):
             if s > 0:
                 emu = next((e for e in AVAILABLE_EMULATORS if e["id"] == j.get("id_emu")), {})
                 color = emu.get("color", "#4da6ff")
-                if h > 0: time_str = f"{h}h {m}m"
-                elif m > 0: time_str = f"{m}m"
-                else: time_str = "< 1m"
+                if h > 0: time_str = self.translator.t("dash_hours_suffix", h, m)
+                elif m > 0: time_str = self.translator.t("dash_mins_suffix", m)
+                else: time_str = self.translator.t("dash_less_min")
                 
                 juegos_con_tiempo.append({
                     "name": j["nombre"],
@@ -241,11 +251,13 @@ class AppBridge(QObject):
                     "playtime": time_str,
                     "color": color,
                     "seconds": s,
+                    "path": j.get("ruta", ""),
+                    "id_emu": j.get("id_emu", ""),
                     "cover": QUrl.fromLocalFile(obtener_ruta_caratula(j.get("ruta", ""))).toString() if os.path.exists(obtener_ruta_caratula(j.get("ruta", ""))) else ""
                 })
         
         juegos_con_tiempo.sort(key=lambda x: x["seconds"], reverse=True)
-        return juegos_con_tiempo[:7]
+        return juegos_con_tiempo[:10]
 
     @Property(dict, notify=statsUpdated)
     def systemStatus(self):
@@ -317,9 +329,11 @@ class AppBridge(QObject):
         import asyncio
         import traceback
         from core.scanner import escanear_roms, asdict
+        
         async def do_scan():
             try:
                 print(f"[BRIDGE] Iniciando proceso de escaneo (Arte={dl_artwork}, Fondos={dl_backgrounds}, Meta={dl_metadata})")
+                self.scanProgress.emit(0.0, self.translator.t("dl_scrap_scanning"))
                 
                 # 1. Escanear archivos
                 juegos_obj = await escanear_roms(self.emu_manager.roms_path)
@@ -328,36 +342,56 @@ class AppBridge(QObject):
                 
                 # 2. Fondos
                 if dl_backgrounds:
-                    print("[BRIDGE] Iniciando descarga de fondos de consolas...")
+                    self.scanProgress.emit(0.1, self.translator.t("lib_status_artwork"))
                     from core.artwork import descargar_fondos_consolas
-                    stats_bg = await descargar_fondos_consolas()
+                    def on_bg_progress(curr, total, name):
+                        # 10% to 20% range for backgrounds
+                        prog = 0.1 + (curr / total) * 0.1
+                        self.scanProgress.emit(prog, self.translator.t("dl_status_bg", name))
+
+                    stats_bg = await descargar_fondos_consolas(on_progress=on_bg_progress)
                     print(f"[BRIDGE] Fondos completados: {stats_bg}")
                     self.statsUpdated.emit()
 
                 # 3. Artwork
                 if dl_artwork:
-                    print("[BRIDGE] Iniciando descarga de carátulas (Artwork)...")
+                    self.scanProgress.emit(0.2, self.translator.t("lib_status_artwork"))
                     from core.artwork import descargar_caratulas_biblioteca
-                    # Pass the full emulator object to access all tags (libretro_platform, screenscraper_id, etc)
+                    def on_art_progress(curr, total, name):
+                        # 20% to 60% range for artwork
+                        prog = 0.2 + (curr / total) * 0.4
+                        self.scanProgress.emit(prog, self.translator.t("dl_status_art", name))
+                    
                     emu_map = {e["id"]: e for e in AVAILABLE_EMULATORS}
-                    stats_art = await descargar_caratulas_biblioteca(library_dicts, emu_map)
+                    stats_art = await descargar_caratulas_biblioteca(library_dicts, emu_map, on_progress=on_art_progress)
                     print(f"[BRIDGE] Artwork completado: {stats_art}")
                     self.statsUpdated.emit()
 
                 # 4. Metadatos
                 if dl_metadata:
-                    print("[BRIDGE] Iniciando descarga de metadatos...")
+                    self.scanProgress.emit(0.6, self.translator.t("lib_status_processing"))
                     from core.metadata import descargar_metadata_biblioteca
+                    def on_meta_progress(curr, total, name):
+                        # 60% to 100% range for metadata
+                        prog = 0.6 + (curr / total) * 0.4
+                        self.scanProgress.emit(prog, self.translator.t("dl_status_meta", name))
+
                     emu_map = {e["id"]: e for e in AVAILABLE_EMULATORS}
-                    stats_meta = await descargar_metadata_biblioteca(library_dicts, emu_map)
+                    stats_meta = await descargar_metadata_biblioteca(library_dicts, emu_map, on_progress=on_meta_progress)
                     print(f"[BRIDGE] Metadatos completados: {stats_meta}")
                     self.statsUpdated.emit()
                 
                 print("[BRIDGE] Proceso de sincronización finalizado con éxito.")
+                self.scanProgress.emit(1.0, self.translator.t("lib_status_complete"))
                 self.statsUpdated.emit()
+                
+                # Reset progress after a short delay
+                await asyncio.sleep(3)
+                self.scanProgress.emit(0.0, "")
                 
             except Exception as e:
                 print(f"[BRIDGE] ERROR EN ESCANEO COMPLETO: {e}")
+                self.scanProgress.emit(0.0, f"Error: {str(e)}")
                 traceback.print_exc()
             
         asyncio.create_task(do_scan())
@@ -415,14 +449,11 @@ class AppBridge(QObject):
     # --- BIBLIOTECA (LIBRARY) ---
     @Property(list, notify=statsUpdated)
     def scannedConsoles(self):
-        if self._consoles_cache is not None:
-            return self._consoles_cache
-            
-        print("[BRIDGE] scannedConsoles: Regenerating cache...")
+        print("[BRIDGE] scannedConsoles: Checking installed systems...")
         lib = scanner.cargar_biblioteca_cache()
         if not lib:
-            self._consoles_cache = []
-            return []
+            # Si no hay juegos escaneados, aún podemos mostrar sistemas instalados vacíos
+            print("[BRIDGE] scannedConsoles: Library cache empty, checking for installed emus only.")
             
         result = []
         # Agrupar juegos por plataforma para contar rápido
@@ -439,7 +470,7 @@ class AppBridge(QObject):
             count = game_counts.get(emu["id"], 0)
             is_installed = self.emu_manager.esta_instalado(emu.get("github", "")) # Fallback safe
             
-            if count > 0 or is_installed:
+            if is_installed:
                 total_s = game_playtimes.get(emu["id"], 0)
                 
                 from core.artwork import obtener_ruta_fondo_consola
@@ -458,8 +489,8 @@ class AppBridge(QObject):
         
         # Sort by count (filled consoles first)
         result.sort(key=lambda x: x["count"], reverse=True)
-        self._consoles_cache = result
-        print(f"[BRIDGE] scannedConsoles: {len(result)} consoles found (installed or with games)")
+        found_names = [r["name"] for r in result]
+        print(f"[BRIDGE] scannedConsoles: {len(result)} consoles found: {found_names}")
         return result
 
     @Slot(str, result=list)

@@ -124,13 +124,7 @@ Item {
                 Label { text: tr("lib_empty_title").toUpperCase(); font.pixelSize: 26; font.bold: true; color: "white"; Layout.alignment: Qt.AlignHCenter }
                 Label { text: tr("lib_empty_sub"); font.pixelSize: 14; color: "#666677"; horizontalAlignment: Text.AlignHCenter; Layout.preferredWidth: 340; wrapMode: Text.WordWrap; Layout.alignment: Qt.AlignHCenter }
             }
-            Button {
-                text: tr("lib_scan_now")
-                Layout.alignment: Qt.AlignHCenter
-                onClicked: bridge.scanGames()
-                background: Rectangle { radius: 20; color: "#4da6ff" }
-                contentItem: Label { text: parent.text; color: "white"; font.bold: true; padding: 15; font.pixelSize: 12 }
-            }
+
         }
     }
 
@@ -460,6 +454,36 @@ Item {
                 }
 
                 Item { Layout.fillWidth: true }
+
+                // Refresh Button
+                Button {
+                    id: btnRefresh
+                    Layout.preferredWidth: 44
+                    Layout.preferredHeight: 44
+                    onClicked: bridge.scanGames(false, false, false, root.currentConsoleId)
+                    background: Rectangle {
+                        radius: 22
+                        color: btnRefresh.hovered ? "#22ffffff" : "#12ffffff"
+                        border.color: "#1affffff"
+                        border.width: 1
+                    }
+                    contentItem: Label {
+                        text: "↻"
+                        font.pixelSize: 22
+                        color: "white"
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                        opacity: btnRefresh.hovered ? 1.0 : 0.6
+                        Behavior on opacity { NumberAnimation { duration: 200 } }
+                    }
+                    
+                    ToolTip.visible: hovered
+                    ToolTip.text: tr("lib_refresh")
+                    ToolTip.delay: 500
+                    
+                    Behavior on scale { NumberAnimation { duration: 100 } }
+                    scale: pressed ? 0.9 : 1.0
+                }
 
                 // Search Bar
                 Rectangle {

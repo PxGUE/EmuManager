@@ -107,6 +107,9 @@ async def escanear_roms(ruta_base: str, emu_id: str = None) -> List[Juego]:
     # Unir resultados nuevos con los antiguos (si los hay)
     juegos_finales.extend(juegos_escaneados)
     
+    # Ordenar alfanuméricamente por nombre antes de guardar
+    juegos_finales.sort(key=lambda x: x.nombre.lower())
+    
     # Guardar en JSON (Persistencia)
     try:
         os.makedirs(data_dir, exist_ok=True)

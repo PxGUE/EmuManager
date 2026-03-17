@@ -324,19 +324,23 @@ class AppBridge(QObject):
             from PySide6.QtCore import QUrl
             QDesktopServices.openUrl(QUrl.fromLocalFile(self.romsPath))
 
-    @Slot(bool, bool, bool)
-    def scanGames(self, dl_artwork=True, dl_backgrounds=True, dl_metadata=True):
+    @Slot(bool, bool, bool, str)
+    def scanGames(self, dl_artwork=True, dl_backgrounds=True, dl_metadata=True, emu_id=None):
         import asyncio
         import traceback
         from core.scanner import escanear_roms, asdict
         
         async def do_scan():
             try:
-                print(f"[BRIDGE] Iniciando proceso de escaneo (Arte={dl_artwork}, Fondos={dl_backgrounds}, Meta={dl_metadata})")
+                msg = f"[BRIDGE] Iniciando proceso de escaneo (Arte={dl_artwork}, Fondos={dl_backgrounds}, Meta={dl_metadata}"
+                if emu_id: msg += f", Emulador={emu_id}"
+                msg += ")"
+                print(msg)
+                
                 self.scanProgress.emit(0.0, self.translator.t("dl_scrap_scanning"))
                 
                 # 1. Escanear archivos
-                juegos_obj = await escanear_roms(self.emu_manager.roms_path)
+                juegos_obj = await escanear_roms(self.emu_manager.roms_path, emu_id=emu_id)
                 library_dicts = [asdict(j) for j in juegos_obj]
                 self.statsUpdated.emit()
                 
@@ -526,6 +530,10 @@ class AppBridge(QObject):
                     "rating": float(meta.get("rating", 0)),
                     "genre": meta.get("genre", "General")
                 })
+        
+        # Ordenar alfanuméricamente por nombre
+        games.sort(key=lambda x: x["name"].lower())
+        
         return games
 
     @Slot(str, str)

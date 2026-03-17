@@ -232,7 +232,7 @@ Item {
                             Layout.preferredWidth: 180
                             Layout.preferredHeight: 44
                             enabled: bridge && bridge.dashboardStats && bridge.dashboardStats.installed > 0
-                            onClicked: bridge.scanGames(downloadArtwork, downloadBackgrounds, downloadMetadata)
+                            onClicked: bridge.scanGames(downloadArtwork, downloadBackgrounds, downloadMetadata, "")
                             
                             background: Rectangle {
                                 gradient: Gradient {

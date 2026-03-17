@@ -1,80 +1,66 @@
 # EmuManager
 
-![Versión](https://img.shields.io/badge/version-0.1.5--alpha-blue.svg)
+![Versión](https://img.shields.io/badge/version-0.1.12--alpha-blue.svg)
 ![Licencia](https://img.shields.io/badge/license-GNU%20GPLv3-green.svg)
 ![Python](https://img.shields.io/badge/python-3.9%2B-yellow.svg)
 
+EmuManager es un gestor integral de videojuegos retro diseñado para ofrecer una experiencia premium en entornos de escritorio. Construido con **PySide6 (Qt)** y **QML**, combina una interfaz moderna y declarativa con la potencia de **Asyncio** para una gestión fluida y eficiente de emuladores y ROMs.
 
-EmuManager es un gestor integral de juegos retro con una interfaz moderna y sumamente intuitiva, construida con **PySide6** (Qt) y **QML** para una experiencia visual declarativa y fluida, integrada con **Asyncio**. Te permite descargar, organizar y ejecutar tus emuladores y ROMs clásicas desde un solo lugar, de una forma visualmente atractiva y fácil de usar en entornos de escritorio.
+## 🚀 Características Principales
 
-## Características Principales
+- **Interfaz "Glassmorphic" Premium**: Un diseño visualmente impactante con efectos de cristal, animaciones fluidas y una navegación intuitiva.
+- **Scraper Hub Avanzado**: Sistema de búsqueda inteligente que integra múltiples fuentes (**RAWG, TheGamesDB, SteamGridDB**) para obtener metadatos y arte oficial de alta calidad mediante algoritmos de *fuzzy matching*.
+- **Gestión Automatizada de Emuladores**: Descarga, instalación y configuración automática de una amplia variedad de emuladores (RetroArch, Dolphin, PCSX2, DuckStation, Ryubing, Eden, Vita3K, y más).
+- **Biblioteca Dinámica**: Escaneo inteligente de ROMs organizado por consolas, con seguimiento de tiempo de juego y estadísticas en tiempo real.
+- **Motor Multi-idioma**: Soporte completo para Español e Inglés con cambio dinámico de interfaz sin necesidad de reiniciar.
+- **Seguridad y Persistencia**: Integración con **Keyring** y **SecretStorage** para el manejo seguro de claves de API y configuraciones críticas.
+- **Soporte de Archivos Modernos**: Compatibilidad nativa con formatos comprimidos como `.7z` y `.zstd` para optimizar el almacenamiento.
 
-- **Interfaz Declarativa Premium**: Construida con QML para una experiencia visual moderna, fluida y con animaciones de alta calidad.
-- **Gestión Centralizada**: Configura y administra tus emuladores favoritos (mGBA, Dolphin, PCSX2, DuckStation, SNES9x, PPSSPP, entre otros).
-- **Descarga Directa**: Descarga e instala emuladores directamente desde la aplicación con seguimiento de progreso real.
-- **Escáner Inteligente**: Encuentra automáticamente tus ROMs y las organiza por consola.
-- **Artwork Scraper**: Sistema de búsqueda multicanal (Scraper Hub) para encontrar carátulas automáticamente.
-- **Carrusel de Consolas**: Navegación animada entre consolas estadisticas de juego.
-- **Búsqueda en Tiempo Real**: Barra de búsqueda integrada para filtrar juegos al instante.
-- **Seguimiento de Tiempo**: Registra automáticamente cuánto tiempo has dedicado a cada juego.
-- **Multi-idioma**: Soporte para Español e Inglés con cambio dinámico.
+## 🛠️ Requisitos e Instalación
 
-## Requisitos y Configuración
-
-1. Clonar el repositorio:
+1. **Clonar el repositorio:**
    ```bash
    git clone https://github.com/PxGUE/EmuManager.git
    cd EmuManager
    ```
 
-2. Instalar las dependencias:
+2. **Instalar las dependencias:**
    ```bash
    pip install -r requirements.txt
    ```
 
-3. Ejecutar la aplicación:
+3. **Ejecutar la aplicación:**
    ```bash
    python main.py
    ```
 
-*Nota: Requiere Python 3.9 o superior.*
+*Nota: Se recomienda el uso de un entorno virtual (venv).*
 
-## Dependencias
+## 📦 Dependencias Core
 
-| Paquete | Versión mínima | Uso |
+| Paquete | Versión | Propósito |
 |---|---|---|
-| PySide6 | 6.8.0 | Interfaz gráfica (QML) |
-| qasync | 0.28.0 | Integración asyncio + Qt |
-| aiohttp | 3.11.0 | Descargas HTTP asíncronas |
-| beautifulsoup4 | 4.13.0 | Scraping de artwork |
-| psutil | 6.1.0 | Gestión de procesos de emuladores |
+| **PySide6** | ≥ 6.8.0 | Framework de interfaz gráfica (Qt/QML). |
+| **qasync** | ≥ 0.28.0 | Puente entre el event loop de Qt y Asyncio. |
+| **aiohttp** | ≥ 3.11.0 | Comunicaciones de red y descargas asíncronas. |
+| **beautifulsoup4** | ≥ 4.13.0 | Procesamiento de metadatos y scraping web. |
+| **psutil** | ≥ 7.0.0 | Monitoreo y control de procesos de emuladores. |
+| **py7zr** | ≥ 1.0.0 | Manejo de archivos comprimidos 7z. |
+| **keyring** | ≥ 25.7.0 | Almacenamiento seguro de credenciales. |
 
-## Instrucciones de Uso (Guía Paso a Paso)
+## 📖 Guía de Uso Rápido
 
-Para que EmuManager funcione correctamente, sigue estos pasos:
-
-### 1. Configuración Inicial (Primer Inicio)
-Al abrir la aplicación por primera vez, ve a la pestaña de **Configuración** y define las rutas:
-- **Ruta de Emuladores**: Carpeta donde se descargarán los ejecutables.
-- **Ruta de ROMs/Juegos**: Carpeta principal de tu colección de juegos.
-
-### 2. Organización de tus Juegos
-Coloca tus ROMs en las carpetas que el programa creará automáticamente (GBA, SNES, PS1, etc.) para que el escáner pueda identificarlas correctamente.
-
-### 3. Instalación de Emuladores
-En la pestaña de **Descargas**, selecciona el emulador deseado y pulsa **Instalar**. El sistema se encarga del resto.
-
-### 4. Escaneo de la Biblioteca
-En la pestaña de **Biblioteca**, entra en la consola deseada y pulsa **REFRESCAR**. El programa buscará los juegos y descargará su arte oficial automáticamente.
-
-### 5. ¡A Jugar!
-Haz clic en cualquier tarjeta de juego para lanzarlo instantáneamente con su emulador.
+1. **Configuración Inicial**: Al iniciar, dirígete a la pestaña de **Configuración** para definir tus rutas de emuladores y ROMs. EmuManager creará la estructura de carpetas necesaria.
+2. **Instalación de Emuladores**: En la sección de **Descargas**, elige tus consolas favoritas y pulsa "Instalar". El sistema descargará y preparará los ejecutables automáticamente.
+3. **Poblar la Biblioteca**: Coloca tus juegos en las carpetas correspondientes y pulsa **REFRESCAR** en la biblioteca. El Scraper Hub se encargará de buscar el arte y la información de cada título.
+4. **¡A Jugar!**: Haz clic en cualquier juego para lanzarlo instantáneamente. El programa registrará automáticamente tu tiempo de sesión.
 
 ---
 
-## Autor
+## 👨‍💻 Autor
 - **Christian A. Ordoñez** - *Desarrollador Principal*
-- Correo: cris.ordonezal@gmail.com
+- **GitHub**: [@PxGUE](https://github.com/PxGUE)
+- **Email**: [cris.ordonezal@gmail.com](mailto:cris.ordonezal@gmail.com)
 
-## Licencia
+## ⚖️ Licencia
 Este proyecto está bajo la [Licencia GNU GPLv3](https://www.gnu.org/licenses/gpl-3.0.html).

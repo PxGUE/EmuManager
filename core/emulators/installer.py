@@ -10,6 +10,12 @@ import platform
 from core.constants import AVAILABLE_EMULATORS
 
 class Installer:
+    """
+    Gestiona la descarga, extracción e instalación de emuladores desde GitHub o local.
+    
+    Implementa lógica inteligente para detectar el mejor 'asset' según el sistema
+    operativo y la arquitectura del procesador.
+    """
     def __init__(self, manager):
         self.manager = manager
         self.headers = {"User-Agent": "EmuManager-App"}
@@ -33,7 +39,7 @@ class Installer:
                         if line.startswith("ID="):
                             return line.split("=")[1].strip().strip('"').lower()
         except Exception as e:
-            print(f"[DEBUG] Error detectando distro: {e}")
+            print(f"[INSTALLER] Error detectando distro: {e}")
         return "generic"
 
     def _fetch_release_data(self, repo_github: str):
@@ -51,7 +57,7 @@ class Installer:
                 self.manager._save_cache()
                 return data
         except Exception as e:
-            print(f"[DEBUG] Error al buscar releases de {repo_github}: {e}")
+            print(f"[INSTALLER] Error al buscar releases de {repo_github}: {e}")
         
         return None
 
@@ -73,7 +79,7 @@ class Installer:
             valid_emus = [emu for emu, is_valid in zip(AVAILABLE_EMULATORS, results) if is_valid]
             return valid_emus if valid_emus else AVAILABLE_EMULATORS
         except Exception as e:
-            print(f"Error en get_valid_emulators: {e}")
+            print(f"[INSTALLER] Error en get_valid_emulators: {e}")
             return AVAILABLE_EMULATORS
 
     def _get_best_asset(self, assets):
@@ -280,7 +286,7 @@ class Installer:
                             with py7zr.SevenZipFile(target_file, mode='r') as archive:
                                 archive.extractall(path=full_install_path)
                         except Exception as e:
-                            print(f"[DEBUG] Fallo 7z: {e}")
+                            print(f"[INSTALLER] Fallo 7z: {e}")
                             return False
 
                 for root, dirs, files in os.walk(full_install_path):
@@ -303,10 +309,17 @@ class Installer:
             yield "ERROR:Falla en la configuración local."
             return
         
+        # Determinar la versión instalada
+        version_str = "latest"
+        if isinstance(releases_data, list) and len(releases_data) > 0:
+            version_str = releases_data[0].get("tag_name", "latest")
+        elif isinstance(releases_data, dict):
+            version_str = releases_data.get("tag_name", "latest")
+
         self.manager.installed_emus[repo_github] = {
             "installed_at": time.strftime("%Y-%m-%d %H:%M:%S"),
             "files": installed_files,
-            "version": releases_data[0]["tag_name"] if isinstance(releases_data, list) and releases_data else "latest"
+            "version": version_str
         }
         self.manager._save_installed()
         self.manager.crear_carpetas_roms(repo_github)
@@ -389,7 +402,7 @@ class Installer:
                             with py7zr.SevenZipFile(target_file, mode='r') as archive:
                                 archive.extractall(path=full_install_path)
                         except Exception as e:
-                            print(f"[DEBUG] Fallo 7z local: {e}")
+                            print(f"[INSTALLER] Fallo 7z local: {e}")
                             return False
 
                 for root, dirs, files in os.walk(full_install_path):

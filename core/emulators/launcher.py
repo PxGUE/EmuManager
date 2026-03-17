@@ -5,6 +5,12 @@ import time
 from core.constants import AVAILABLE_EMULATORS
 
 class Launcher:
+    """
+    Gestiona la ejecución y el monitoreo de procesos de emuladores.
+    
+    Se encarga de encontrar el ejecutable correcto, aplicar argumentos (tweaks)
+    y rastrear el tiempo de juego.
+    """
     def __init__(self, manager):
         self.manager = manager
         self.current_process = None
@@ -48,12 +54,12 @@ class Launcher:
                     except:
                         pass
                 
-                # print(f"[DEBUG] Proceso {self.current_process.pid} y sus hijos terminados.")
+                # Limpiar referencias
 
                 self.current_process = None
                 return True
             except Exception as e:
-                print(f"[DEBUG] Error al terminar proceso con psutil: {e}")
+                print(f"[LAUNCHER] Error al terminar proceso con psutil: {e}")
                 # Fallback al método estándar si psutil falla
                 try:
                     self.current_process.terminate()
@@ -110,7 +116,7 @@ class Launcher:
             self.current_game_start = time.time()
             return True, "¡Abierto correctamente!"
         except Exception as e:
-            print(f"[ERROR LAUNCH] {e}")
+            print(f"[LAUNCHER] Error al lanzar: {e}")
 
             return False, f"Error al lanzar: {e}"
 

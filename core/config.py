@@ -1,13 +1,82 @@
 """
-config.py — Application Configuration and Metadata
-Centralized storage for versioning and other app-wide constants.
+config.py — Configuración global y metadatos del sistema
 """
 
-APP_NAME = "EmuManager"
-APP_VERSION = "0.1.12-alpha"
-APP_AUTHOR = "Christian A. Ordoñez"
-APP_DESCRIPTION = "A premium manager for console emulators and ROMs."
+import os
+import json
+import sys
 
-# URLs
-GITHUB_REPO = "https://github.com/christian/EmuManager"  # Standardize for the future
-SUPPORT_EMAIL = "support@emumanager.local"
+# Metadatos de la Aplicación
+APP_NAME = "EmuManager"
+APP_VERSION = "0.1.13-alpha"
+PORTABLE_MODE = True
+REPO_URL = "https://github.com/PxGUE/EmuManager"
+
+# Rutas del Proyecto
+if getattr(sys, 'frozen', False):
+    # Si es un ejecutable (.exe o binario)
+    BASE_DIR = os.path.dirname(sys.executable)
+else:
+    # Si corre como script de Python
+    BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+DATA_DIR = os.path.join(BASE_DIR, "data")
+MEDIA_DIR = os.path.join(BASE_DIR, "media")
+
+# Archivos de Datos
+SETTINGS_FILE = os.path.join(DATA_DIR, "config.json")
+EMULATORS_FILE = os.path.join(BASE_DIR, "resources", "emulators.json")
+METADATA_FILE = os.path.join(DATA_DIR, "metadata.json")
+FAVORITES_FILE = os.path.join(DATA_DIR, "favorites.json")
+
+def get_resource_path(relative_path):
+    """Obtiene la ruta absoluta a un recurso."""
+    return os.path.join(BASE_DIR, relative_path)
+
+def normalize_path(path):
+    """
+    Si la ruta está dentro del BASE_DIR, la convierte en relativa.
+    Esto permite la portabilidad si se mueve la carpeta del proyecto.
+    """
+    if not path: return ""
+    abs_path = os.path.abspath(path)
+    if abs_path.startswith(BASE_DIR):
+        return os.path.relpath(abs_path, BASE_DIR)
+    return abs_path
+
+def resolve_path(path):
+    """
+    Si la ruta es relativa, la resuelve respecto al BASE_DIR.
+    Si es absoluta, la devuelve tal cual.
+    """
+    if not path: return ""
+    if os.path.isabs(path):
+        return path
+    return os.path.abspath(os.path.join(BASE_DIR, path))
+
+def load_settings():
+    if os.path.exists(SETTINGS_FILE):
+        try:
+            with open(SETTINGS_FILE, "r", encoding="utf-8") as f:
+                settings = json.load(f)
+                # Resolver rutas al cargar
+                if "install_path" in settings:
+                    settings["install_path"] = resolve_path(settings["install_path"])
+                if "roms_path" in settings:
+                    settings["roms_path"] = resolve_path(settings["roms_path"])
+                return settings
+        except:
+            pass
+    return {}
+
+def save_settings(settings):
+    os.makedirs(DATA_DIR, exist_ok=True)
+    # Normalizar rutas antes de guardar
+    settings_to_save = settings.copy()
+    if "install_path" in settings_to_save:
+        settings_to_save["install_path"] = normalize_path(settings_to_save["install_path"])
+    if "roms_path" in settings_to_save:
+        settings_to_save["roms_path"] = normalize_path(settings_to_save["roms_path"])
+        
+    with open(SETTINGS_FILE, "w", encoding="utf-8") as f:
+        json.dump(settings_to_save, f, indent=4)

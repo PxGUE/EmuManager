@@ -1,6 +1,6 @@
 # EmuManager
 
-![Versión](https://img.shields.io/badge/version-0.1.12--alpha-blue.svg)
+![Versión](https://img.shields.io/badge/version-0.1.13--alpha-blue.svg)
 ![Licencia](https://img.shields.io/badge/license-GNU%20GPLv3-green.svg)
 ![Python](https://img.shields.io/badge/python-3.9%2B-yellow.svg)
 
@@ -10,10 +10,11 @@ EmuManager es un gestor integral de videojuegos retro diseñado para ofrecer una
 
 - **Interfaz "Glassmorphic" Premium**: Un diseño visualmente impactante con efectos de cristal, animaciones fluidas y una navegación intuitiva.
 - **Scraper Hub Avanzado**: Sistema de búsqueda inteligente que integra múltiples fuentes (**RAWG, TheGamesDB, SteamGridDB**) para obtener metadatos y arte oficial de alta calidad mediante algoritmos de *fuzzy matching*.
-- **Gestión Automatizada de Emuladores**: Descarga, instalación y configuración automática de una amplia variedad de emuladores (RetroArch, Dolphin, PCSX2, DuckStation, Ryubing, Eden, Vita3K, y más).
+- **Gestión Automatizada Multiplataforma**: Descarga e instalación inteligente de emuladores para **Windows** y **Linux**, detectando automáticamente la mejor versión y arquitectura (x64/ARM64).
+- **Arquitectura de Recursos Protegidos**: Base de datos de emuladores alojada en el núcleo del sistema, separada de la carpeta de datos del usuario para mayor resiliencia.
 - **Biblioteca Dinámica**: Escaneo inteligente de ROMs organizado por consolas, con seguimiento de tiempo de juego y estadísticas en tiempo real.
-- **Motor Multi-idioma**: Soporte completo para Español e Inglés con cambio dinámico de interfaz sin necesidad de reiniciar.
 - **Seguridad y Persistencia**: Integración con **Keyring** y **SecretStorage** para el manejo seguro de claves de API y configuraciones críticas.
+- **Motor Multi-idioma**: Soporte completo para Español e Inglés con cambio dinámico de interfaz sin necesidad de reiniciar.
 - **Soporte de Archivos Modernos**: Compatibilidad nativa con formatos comprimidos como `.7z` y `.zstd` para optimizar el almacenamiento.
 
 ## 🛠️ Requisitos e Instalación

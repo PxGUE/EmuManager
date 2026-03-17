@@ -128,7 +128,7 @@ Item {
                     anchors.fill: parent
                     cursorShape: Qt.PointingHandCursor
                     onClicked: {
-                        if (bridge) bridge.toggleProvider(providerId, !isActive)
+                        if (bridge) bridge.set.toggleProvider(providerId, !isActive)
                     }
                 }
                 

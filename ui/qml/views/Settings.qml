@@ -205,8 +205,8 @@ Item {
                         PathSetting {
                             title: tr("set_path_apps_title")
                             subtitle: tr("set_path_apps_sub")
-                            path: bridge ? bridge.installPath : ""
-                            onBrowse: bridge.browseInstallPath()
+                            path: bridge ? bridge.set.installPath : ""
+                            onBrowse: bridge.set.browseInstallPath()
                         }
                         
                         Rectangle { Layout.fillWidth: true; Layout.leftMargin: 20; Layout.rightMargin: 20; height: 1; color: "#0fffffff" }
@@ -214,8 +214,8 @@ Item {
                         PathSetting {
                             title: tr("set_path_roms_title")
                             subtitle: tr("set_path_roms_sub")
-                            path: bridge ? bridge.romsPath : ""
-                            onBrowse: bridge.browseRomsPath()
+                            path: bridge ? bridge.set.romsPath : ""
+                            onBrowse: bridge.set.browseRomsPath()
                         }
                     }
                 }
@@ -247,7 +247,7 @@ Item {
                         width: parent.width
                         spacing: 0
                         Repeater {
-                            model: bridge ? bridge.scraperProviders : []
+                            model: bridge ? bridge.set.scraperProviders : []
                             delegate: ColumnLayout {
                                 spacing: 0
                                 Layout.fillWidth: true
@@ -263,7 +263,7 @@ Item {
                                     }
                                 }
                                 Rectangle {
-                                    visible: index < (bridge.scraperProviders.length - 1)
+                                    visible: index < (bridge.set.scraperProviders.length - 1)
                                     Layout.fillWidth: true; Layout.leftMargin: 20; Layout.rightMargin: 20; height: 1; color: "#0fffffff"
                                 }
                             }
@@ -319,10 +319,10 @@ Item {
             configPopup.passVisible = false
             if (selectedProvider && bridge) {
                 if (selectedProvider.id === "screenscraper") {
-                    userField.text = bridge.getSecret(selectedProvider.id, "user")
-                    passField.text = bridge.getSecret(selectedProvider.id, "password")
+                    userField.text = bridge.set.getSecret(selectedProvider.id, "user")
+                    passField.text = bridge.set.getSecret(selectedProvider.id, "password")
                 } else {
-                    apiKeyField.text = bridge.getSecret(selectedProvider.id, "api_key")
+                    apiKeyField.text = bridge.set.getSecret(selectedProvider.id, "api_key")
                 }
             }
         }
@@ -438,7 +438,7 @@ Item {
                     text: tr("set_btn_clear")
                     Layout.fillWidth: true
                     onClicked: {
-                        if (bridge) bridge.clearSecrets(selectedProvider.id)
+                        if (bridge) bridge.set.clearSecrets(selectedProvider.id)
                         apiKeyField.text = ""
                         userField.text = ""
                         passField.text = ""
@@ -454,10 +454,10 @@ Item {
                     onClicked: {
                         if (bridge) {
                             if (selectedProvider.id === "screenscraper") {
-                                bridge.saveSecret(selectedProvider.id, "user", userField.text)
-                                bridge.saveSecret(selectedProvider.id, "password", passField.text)
+                                bridge.set.saveSecret(selectedProvider.id, "user", userField.text)
+                                bridge.set.saveSecret(selectedProvider.id, "password", passField.text)
                             } else {
-                                bridge.saveSecret(selectedProvider.id, "api_key", apiKeyField.text)
+                                bridge.set.saveSecret(selectedProvider.id, "api_key", apiKeyField.text)
                             }
                         }
                         configPopup.close()

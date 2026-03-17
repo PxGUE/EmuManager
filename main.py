@@ -36,6 +36,7 @@ async def monitor_playtime(emu_manager):
         await asyncio.sleep(5)
 
 def main():
+    print("[MAIN] Función main iniciada")
     # 0. Configurar estilo
     QQuickStyle.setStyle("Fusion")
     
@@ -47,14 +48,19 @@ def main():
     if os.path.exists(icon_path):
         app.setWindowIcon(QIcon(icon_path))
     
-    # 2. Inicializar lógica central
+    # 2. Integrar Asyncio con el loop de Qt (PRIMERO)
+    # Esto permite que los objetos creados después usen asyncio.create_task
+    event_loop = QEventLoop(app)
+    asyncio.set_event_loop(event_loop)
+    
+    # 3. Inicializar lógica central
     emu_manager = EmuladorManager()
     translator = Translator(emu_manager.language)
     
-    # 3. Crear el puente Python-QML
+    # 4. Crear el puente Python-QML
     bridge = AppBridge(emu_manager, translator)
     
-    # 4. Configurar motor QML
+    # 5. Configurar motor QML
     engine = QQmlApplicationEngine()
     engine.rootContext().setContextProperty("bridge", bridge)
     
@@ -65,13 +71,11 @@ def main():
     if not engine.rootObjects():
         sys.exit(-1)
         
-    # 5. Integrar Asyncio con el loop de Qt
-    event_loop = QEventLoop(app)
-    asyncio.set_event_loop(event_loop)
-    
     # Tareas en segundo plano
     event_loop.create_task(monitor_playtime(emu_manager))
+    event_loop.create_task(bridge._initialize_async())
     
+    print(f"[MAIN] Iniciando Loop de Eventos con {bridge.appName} v{bridge.appVersion}")
     with event_loop:
         event_loop.run_forever()
 

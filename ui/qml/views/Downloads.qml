@@ -15,6 +15,8 @@ Item {
     
     property real scanProgress: 0.0
     property string scanStatusText: ""
+    property bool isCheckingUpdates: false
+    property var updateResults: ({})
 
     function tr(key, ...args) {
         if (!bridge) return key
@@ -46,9 +48,85 @@ Item {
                 }
             }
             Item { Layout.fillWidth: true }
+
+            Button {
+                id: btnCheckUpdates
+                Layout.preferredHeight: 44
+                padding: 15
+                enabled: !isCheckingUpdates
+                onClicked: {
+                    isCheckingUpdates = true
+                    bridge.maint.checkUpdates()
+                }
+                
+                background: Rectangle {
+                    color: btnCheckUpdates.pressed ? "#161922" : (btnCheckUpdates.hovered ? "#1c1e2a" : "#13151d")
+                    radius: 12
+                    border.color: isCheckingUpdates ? "#ffaa00" : (btnCheckUpdates.hovered ? "#4da6ff" : "#252836")
+                    border.width: 1
+                    scale: btnCheckUpdates.pressed ? 0.98 : 1.0
+                    Behavior on scale { NumberAnimation { duration: 100 } }
+                    Behavior on border.color { ColorAnimation { duration: 200 } }
+                }
+
+                contentItem: RowLayout {
+                    spacing: 10
+                    Label { 
+                        text: "🔄"
+                        font.pixelSize: 16
+                        RotationAnimation on rotation {
+                            from: 0; to: 360; duration: 1000; loops: Animation.Infinite; running: isCheckingUpdates
+                        }
+                    }
+                    Label { 
+                        text: isCheckingUpdates ? tr("maint_checking_updates").toUpperCase() : tr("maint_check_btn").toUpperCase()
+                        color: isCheckingUpdates ? "#ffaa00" : "white"
+                        font.pixelSize: 12; font.bold: true; font.letterSpacing: 0.5
+                    }
+                }
+            }
         }
         
-        // SECTION TITLE: EMULATORS
+        // STATUS BAR FOR UPDATES (REDISEÑADA)
+        ColumnLayout {
+            Layout.fillWidth: true
+            Layout.topMargin: -10
+            Layout.bottomMargin: 10
+            visible: isCheckingUpdates
+            spacing: 6
+            
+            Label {
+                text: tr("maint_checking_updates").toUpperCase()
+                font.pixelSize: 10
+                font.bold: true
+                color: "#ffaa00"
+                font.letterSpacing: 1.2
+                Layout.alignment: Qt.AlignHCenter
+            }
+
+            Rectangle {
+                id: progressContainer
+                Layout.fillWidth: true
+                height: 2
+                color: "#1a1626"
+                clip: true 
+                
+                Rectangle {
+                    id: indicator
+                    width: parent.width * 0.3
+                    height: parent.height
+                    color: "#ffaa00"
+                    
+                    NumberAnimation on x { 
+                        from: -indicator.width 
+                        to: progressContainer.width 
+                        duration: 1200 
+                        loops: Animation.Infinite 
+                        running: isCheckingUpdates 
+                    }
+                }
+            }
+        }
         RowLayout {
             Layout.fillWidth: true
             Layout.topMargin: 10
@@ -74,8 +152,8 @@ Item {
                 if (count === 0) {
                     for (var i = 0; i < data.length; i++) {
                         var row = data[i]
-                        // Convertimos la lista de emuladores a string para que ListModel la acepte
                         row.emulatorsJson = JSON.stringify(row.emulators)
+                        delete row.emulators // ¡SOLUCIÓN!
                         append(row)
                     }
                 } else {
@@ -95,6 +173,25 @@ Item {
             function onScanProgress(prog, status) {
                 downloadsRoot.scanProgress = prog
                 downloadsRoot.scanStatusText = status
+            }
+            function onDownloadFinished(emu_id, success, msg) {
+                if (success) {
+                    var temp = downloadsRoot.updateResults
+                    if (temp[emu_id]) {
+                        delete temp[emu_id]
+                        downloadsRoot.updateResults = Object.assign({}, temp)
+                    }
+                }
+            }
+        }
+
+        Connections {
+            target: bridge ? bridge.maint : null
+            function onUpdatesDiscoveryFinished(results) {
+                isCheckingUpdates = false
+                var count = Object.keys(results).filter(k => results[k].update_available).length
+                console.log("[UI] Descubrimiento de actualizaciones finalizado. Encontradas:", count)
+                downloadsRoot.updateResults = results
             }
         }
 
@@ -130,8 +227,9 @@ Item {
                     
                     name: model.name
                     accentColor: model.accentColor
-                    emulatorsJson: model.emulatorsJson // Pasamos el string JSON
+                    emulatorsJson: model.emulatorsJson 
                     isInstalled: model.isInstalled
+                    updateResults: downloadsRoot.updateResults
                 }
             }
         }
@@ -230,8 +328,8 @@ Item {
                             id: scrapeBtn
                             Layout.preferredWidth: 180
                             Layout.preferredHeight: 44
-                            enabled: bridge && bridge.dashboardStats && bridge.dashboardStats.installed > 0
-                            onClicked: bridge.scanGames(downloadArtwork, downloadMetadata, "")
+                            enabled: bridge && bridge.lib.dashboardStats && bridge.lib.dashboardStats.installed > 0
+                            onClicked: bridge.lib.scanGames(downloadArtwork, downloadMetadata, "")
                             
                             background: Rectangle {
                                 gradient: Gradient {

@@ -29,6 +29,13 @@ Item {
     property real downloadProgress: 0
     property bool isDownloading: false
     property string statusText: ""
+    
+    // Diccionario global de actualizaciones detectadas
+    property var updateResults: ({})
+    
+    // Obtenemos info específica para el emulador seleccionado actualmente
+    property var updateInfo: (currentEmu && updateResults) ? updateResults[currentEmu.id] || null : null
+    property bool isUpdateAvailable: updateInfo && updateInfo.update_available && isInstalled
 
     width: 300
     height: 480
@@ -106,7 +113,7 @@ Item {
                 Button {
                     id: btnWeb
                     Layout.preferredWidth: 64; Layout.preferredHeight: 64
-                    onClicked: { bridge.openManualUrl(currentEmu.github); configPopup.close() }
+                    onClicked: { bridge.emu.openManualUrl(currentEmu.github); configPopup.close() }
                     background: Rectangle { 
                         color: btnWeb.hovered ? "#1c1e2a" : "transparent"; radius: 20; border.color: btnWeb.hovered ? accentColor : "#25283a"; border.width: 2
                     }
@@ -145,7 +152,7 @@ Item {
             if (!currentEmu) return
             isDownloading = true
             statusText = tr("dl_manual_prep")
-            bridge.manualInstall(currentEmu.github, selectedFile.toString().replace("file://", "")) 
+            bridge.emu.manualInstall(currentEmu.github, selectedFile.toString().replace("file://", "")) 
         }
     }
 
@@ -185,6 +192,19 @@ Item {
                     anchors.centerIn: parent; width: 100; height: 100; radius: 50; color: "#13151d"
                     border.color: cardHover.hovered ? accentColor : "#252836"; border.width: 2
                     Label { anchors.centerIn: parent; text: name !== "" ? name.charAt(0).toUpperCase() : "?"; font.pixelSize: 44; font.bold: true; color: accentColor }
+                    
+                    // Indicador de Actualización
+                    Rectangle {
+                        anchors.top: parent.top; anchors.right: parent.right; width: 24; height: 24; radius: 12
+                        color: "#ffaa00"; border.color: "#0a0b10"; border.width: 2
+                        visible: updateInfo && updateInfo.update_available
+                        
+                        HoverHandler { id: updateHover }
+                        
+                        Label { anchors.centerIn: parent; text: "↑"; color: "black"; font.bold: true; font.pixelSize: 14 }
+                        ToolTip.visible: updateHover.hovered; ToolTip.text: updateInfo ? tr("maint_update_available", updateInfo.latest_version) : ""
+                    }
+
                     Rectangle {
                         anchors.bottom: parent.bottom; anchors.right: parent.right; width: 28; height: 28; radius: 14
                         color: isInstalled ? "#00ff88" : "#2a2d3a"; border.color: "#0a0b10"; border.width: 3
@@ -243,15 +263,34 @@ Item {
                 Layout.fillWidth: true; Layout.preferredHeight: 56; spacing: 12
                 Button {
                     id: btnFolder; Layout.preferredWidth: 56; Layout.preferredHeight: 56
-                    onClicked: bridge.openEmulatorFolder(currentEmu.github); enabled: currentEmu && currentEmu.isInstalled
+                    onClicked: bridge.emu.openEmulatorFolder(currentEmu.github); enabled: currentEmu && currentEmu.isInstalled
                     background: Rectangle { radius: 16; color: btnFolder.pressed ? accentColor : (btnFolder.hovered ? "#252836" : "#161922"); border.color: btnFolder.hovered ? accentColor : "#252836"; border.width: 1; opacity: enabled ? 1.0 : 0.2 }
                     contentItem: Label { text: "📂"; font.pixelSize: 18; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                 }
+
                 Button {
                     id: btnAction; Layout.fillWidth: true; Layout.preferredHeight: 56
-                    onClicked: { if (!currentEmu) return; if (currentEmu.isInstalled) bridge.uninstallEmulator(currentEmu.github); else { isDownloading = true; statusText = ""; bridge.installEmulator(currentEmu.github) } }
-                    background: Rectangle { radius: 16; color: currentEmu && currentEmu.isInstalled ? "transparent" : (btnAction.pressed ? Qt.darker(accentColor) : accentColor); border.color: currentEmu && currentEmu.isInstalled ? (btnAction.hovered ? "#ff4d4d" : "#303440") : "transparent"; border.width: 1 }
-                    contentItem: Label { text: currentEmu && currentEmu.isInstalled ? tr("dl_btn_uninstall").toUpperCase() : tr("dl_btn_install").toUpperCase(); color: currentEmu && currentEmu.isInstalled ? (btnAction.hovered ? "#ff4d4d" : "#888899") : "#000000"; font.bold: true; font.pixelSize: 13; font.letterSpacing: 1; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                    onClicked: { 
+                        if (!currentEmu) return; 
+                        if (isUpdateAvailable || !isInstalled) {
+                            isDownloading = true; 
+                            statusText = ""; 
+                            bridge.emu.installEmulator(currentEmu.github) 
+                        } else { 
+                            bridge.emu.uninstallEmulator(currentEmu.github);
+                        }
+                    }
+                    background: Rectangle { 
+                        radius: 16; 
+                        color: isUpdateAvailable ? (btnAction.pressed ? "#cc8800" : "#ffaa00") : (isInstalled ? "transparent" : (btnAction.pressed ? Qt.darker(accentColor) : accentColor)); 
+                        border.color: isUpdateAvailable ? "transparent" : (isInstalled ? (btnAction.hovered ? "#ff4d4d" : "#303440") : "transparent"); 
+                        border.width: 1 
+                    }
+                    contentItem: Label { 
+                        text: isUpdateAvailable ? tr("dl_btn_update").toUpperCase() : (isInstalled ? tr("dl_btn_uninstall").toUpperCase() : tr("dl_btn_install").toUpperCase()); 
+                        color: isUpdateAvailable ? "black" : (isInstalled ? (btnAction.hovered ? "#ff4d4d" : "#888899") : "#000000"); 
+                        font.bold: true; font.pixelSize: 13; font.letterSpacing: 1; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter 
+                    }
                 }
                 Button {
                     id: btnConfig; Layout.preferredWidth: 56; Layout.preferredHeight: 56
@@ -265,7 +304,7 @@ Item {
 
     Connections {
         target: bridge
-        function onDownloadProgress(url, p) { if (currentEmu && url === currentEmu.github) { downloadProgress = p; isDownloading = true; statusText = "" } }
-        function onDownloadFinished(url, success, msg) { if (currentEmu && url === currentEmu.github) { isDownloading = false; downloadProgress = 0; statusText = msg; statusTimer.start() } }
+        function onDownloadProgress(id, p) { if (currentEmu && id === currentEmu.id) { downloadProgress = p; isDownloading = true; statusText = "" } }
+        function onDownloadFinished(id, success, msg) { if (currentEmu && id === currentEmu.id) { isDownloading = false; downloadProgress = 0; statusText = msg; statusTimer.start() } }
     }
 }

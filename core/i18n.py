@@ -1,3 +1,10 @@
+"""
+i18n.py — Sistema de Internacionalización (Traducciones).
+
+Gestiona los textos de la interfaz en múltiples idiomas (español e inglés)
+y proporciona el motor de traducción dinámico para toda la aplicación.
+"""
+
 TRANSLATIONS = {
     "es": {
         # Navigation
@@ -12,7 +19,7 @@ TRANSLATIONS = {
         "dash_greeting": "BIENVENIDO",
         "dash_tagline": "Tu centro de emulación retro • v{0}",
         "dash_stat_installed": "EMULADORES INSTALADOS",
-        "dash_stat_roms": "JUEGOS TOTALES",
+        "dash_stat_roms": "JUEGOS DE TODAS LAS CONSOLAS",
         "dash_stat_consoles": "CONSOLAS CON JUEGOS",
         "dash_stat_hours": "TIEMPO TOTAL JUGADO",
         "dash_recent_title": "ACTIVIDAD RECIENTE",
@@ -87,6 +94,7 @@ TRANSLATIONS = {
         "dl_main_title": "EMULADORES",
         "dl_btn_install": "Instalar",
         "dl_btn_uninstall": "Desinstalar",
+        "dl_btn_update": "Actualizar",
         "dl_installing": "Instalando...",
         "dl_installed_ok": "¡Instalado!",
         "dl_uninstall_title": "Desinstalar {0}",
@@ -245,8 +253,18 @@ TRANSLATIONS = {
         "dlg_btn_change": "SÍ, CERRAR Y CAMBIAR",
         "dlg_btn_ok": "ACEPTAR",
 
+        # Maintenance & Utilities
+        "maint_update_available": "Actualización disponible: {0}",
+        "maint_no_updates": "Emulador actualizado",
+        "maint_checking_updates": "Verificando...",
+        "maint_check_btn": "BUSCAR ACTUALIZACIONES",
+
         # General
         "loading_text": "Cargando...",
+        "loading_config": "Verificando configuración...",
+        "loading_emus": "Sincronizando emuladores...",
+        "loading_library": "Preparando biblioteca...",
+        "loading_ready": "¡Listo!",
     },
     "en": {
         # Navigation
@@ -261,7 +279,7 @@ TRANSLATIONS = {
         "dash_greeting": "WELCOME",
         "dash_tagline": "Your retro emulation hub • v{0}",
         "dash_stat_installed": "INSTALLED EMULATORS",
-        "dash_stat_roms": "TOTAL GAMES",
+        "dash_stat_roms": "GAMES FROM ALL CONSOLES",
         "dash_stat_consoles": "CONSOLES WITH GAMES",
         "dash_stat_hours": "TOTAL PLAY TIME",
         "dash_recent_title": "RECENT ACTIVITY",
@@ -336,6 +354,7 @@ TRANSLATIONS = {
         "dl_main_title": "EMULATORS",
         "dl_btn_install": "Install",
         "dl_btn_uninstall": "Uninstall",
+        "dl_btn_update": "Update",
         "dl_installing": "Installing...",
         "dl_installed_ok": "Installed!",
         "dl_uninstall_title": "Uninstall {0}",
@@ -494,8 +513,18 @@ TRANSLATIONS = {
         "dlg_btn_change": "YES, CLOSE AND CHANGE",
         "dlg_btn_ok": "OK",
 
+        # Maintenance & Utilities
+        "maint_update_available": "Update available: {0}",
+        "maint_no_updates": "Emulator up to date",
+        "maint_checking_updates": "Checking...",
+        "maint_check_btn": "CHECK FOR UPDATES",
+
         # General
         "loading_text": "Loading...",
+        "loading_config": "Checking configuration...",
+        "loading_emus": "Syncing emulators...",
+        "loading_library": "Preparing library...",
+        "loading_ready": "Ready!",
     }
 }
 

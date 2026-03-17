@@ -9,8 +9,26 @@ ApplicationWindow {
     width: 1100
     height: 720
     visible: true
-    title: (bridge ? (bridge.currentLanguage, bridge.appName + " " + bridge.appVersion) : "EmuManager")
+    title: bridge ? (bridge.appName + " " + bridge.appVersion) : "EmuManager"
+    
+    // Sincronizar fullscreen mediante señal
+    Connections {
+        target: bridge
+        function onIsReadyChanged() {
+            if (bridge.isReady) {
+                // Forzar refresco si fuera necesario
+            }
+        }
+        function onBridgeStateChanged() {
+            window.visibility = bridge.isFullScreen ? Window.FullScreen : Window.Windowed
+        }
+    }
     color: "#0f111a"
+
+    Shortcut {
+        sequence: "F11"
+        onActivated: if (bridge) bridge.toggleFullScreen()
+    }
 
     // Helper para traducciones reactivas
     function tr(key, ...args) {
@@ -210,11 +228,11 @@ ApplicationWindow {
     function requestLaunch(game_path, emu_id, game_name) {
         if (!bridge) return;
         
-        let state = bridge.checkLaunchState(game_path)
+        let state = bridge.lib.checkLaunchState(game_path)
         
         if (state === 0) {
             // Caso 0: Nada ejecutándose, lanzar directo
-            bridge.launchGame(game_path, emu_id)
+            bridge.lib.launchGame(game_path, emu_id)
         } 
         else if (state === 2) {
             // Caso 2: Es el mismo juego que ya está abierto
@@ -242,12 +260,137 @@ ApplicationWindow {
         z: 9999
         onConfirmed: {
             if (pendingLaunch) {
-                bridge.forceLaunchGame(pendingLaunch.path, pendingLaunch.id)
+                bridge.lib.forceLaunchGame(pendingLaunch.path, pendingLaunch.id)
                 pendingLaunch = null
             }
         }
         onCancelled: {
             pendingLaunch = null
+        }
+    }
+
+    Rectangle {
+        id: splashScreen
+        anchors.fill: parent
+        z: 10000 // Por encima de todo
+        color: "#0f111a"
+        
+        property real currentProgress: 0
+        property bool isFinished: false
+        
+        visible: opacity > 0
+        opacity: isFinished ? 0 : 1
+        
+        Behavior on opacity { 
+            NumberAnimation { duration: 600; easing.type: Easing.InOutQuad } 
+        }
+
+        // 1. Animación de carga inicial (hasta el 90%)
+        NumberAnimation on currentProgress {
+            id: loadingAnim
+            from: 0; to: 0.85; duration: 5000; easing.type: Easing.OutCubic
+            running: bridge ? !bridge.isReady : true
+        }
+
+        // 2. Detectar cuando el bridge está listo para terminar la barra
+        Connections {
+            target: bridge
+            function onIsReadyChanged() {
+                if (bridge && bridge.isReady) {
+                    loadingAnim.stop()
+                    finishAnim.start()
+                }
+            }
+        }
+
+        // 3. Animación de cierre (de donde esté al 100%)
+        NumberAnimation on currentProgress {
+            id: finishAnim
+            to: 1.0; duration: 400; easing.type: Easing.OutQuad
+            running: false
+            onFinished: splashScreen.isFinished = true
+        }
+
+        ColumnLayout {
+            anchors.centerIn: parent
+            spacing: 40
+            
+            // Logo Oficial Animado
+            Item {
+                Layout.alignment: Qt.AlignHCenter
+                width: 160; height: 160
+                
+                // Glow ambiental
+                Rectangle {
+                    anchors.centerIn: parent
+                    width: 180; height: 180; radius: 90
+                    color: "#4da6ff"
+                    opacity: 0.15
+                    z: -1
+                    SequentialAnimation on scale {
+                        loops: Animation.Infinite
+                        NumberAnimation { from: 1.0; to: 1.2; duration: 2000; easing.type: Easing.InOutSine }
+                        NumberAnimation { from: 1.2; to: 1.0; duration: 2000; easing.type: Easing.InOutSine }
+                    }
+                }
+
+                Rectangle {
+                    anchors.centerIn: parent
+                    width: 130; height: 130; radius: 42
+                    color: "#161922"
+                    border.color: "#4da6ff"
+                    border.width: 1
+                    
+                    Image { 
+                        anchors.fill: parent
+                        anchors.margins: 25
+                        source: bridge ? bridge.logoPath : ""
+                        fillMode: Image.PreserveAspectFit
+                        smooth: true
+                    }
+                    
+                    SequentialAnimation on scale {
+                        loops: Animation.Infinite
+                        NumberAnimation { from: 1.0; to: 1.05; duration: 1500; easing.type: Easing.InOutSine }
+                        NumberAnimation { from: 1.05; to: 1.0; duration: 1500; easing.type: Easing.InOutSine }
+                    }
+                }
+            }
+
+            ColumnLayout {
+                spacing: 0
+                Layout.alignment: Qt.AlignHCenter
+                Label {
+                    text: bridge ? bridge.appName : "EmuManager"
+                    font.pixelSize: 72
+                    font.weight: Font.Black
+                    color: "white"
+                    font.letterSpacing: -2
+                    Layout.alignment: Qt.AlignHCenter
+                }
+                Label {
+                    text: bridge ? bridge.loadingMessage.toUpperCase() : ""
+                    font.pixelSize: 10
+                    font.bold: true
+                    color: "#4da6ff"
+                    font.letterSpacing: 2
+                    opacity: 0.8
+                    Layout.alignment: Qt.AlignHCenter
+                    Layout.topMargin: 10
+                }
+            }
+
+            // Barra de Carga Minimalista (Sincronizada)
+            Rectangle {
+                Layout.preferredWidth: 300; Layout.preferredHeight: 2
+                color: "#1a1c24"; radius: 1
+                Layout.alignment: Qt.AlignHCenter
+                Rectangle {
+                    id: progressFill
+                    height: parent.height; color: "#4da6ff"; radius: 1
+                    width: parent.width * splashScreen.currentProgress
+                }
+            }
         }
     }
 }

@@ -6,7 +6,7 @@ import "../components"
 Item {
     id: dashboardRoot
     
-    property bool isEmpty: bridge ? (bridge.dashboardStats.installed === 0 && bridge.dashboardStats.totalRoms === 0) : true
+    property bool isEmpty: bridge ? (bridge.lib.dashboardStats.installed === 0 && bridge.lib.dashboardStats.totalRoms === 0) : true
     property color currentAccentColor: "#4da6ff"
     
     function tr(key, ...args) {
@@ -230,23 +230,23 @@ Item {
                 
                 StatCard {
                     icon: "🚀"; label: tr("dash_stat_installed"); accentColor: "#4da6ff"
-                    value: (bridge && bridge.dashboardStats) ? bridge.dashboardStats.installed : 0
+                    value: (bridge && bridge.lib.dashboardStats) ? bridge.lib.dashboardStats.installed : 0
                     Layout.fillWidth: true
                 }
                 StatCard {
                     icon: "🎮"; label: tr("dash_stat_roms"); accentColor: "#7c6ff7"
-                    value: (bridge && bridge.dashboardStats) ? bridge.dashboardStats.totalRoms : 0
+                    value: (bridge && bridge.lib.dashboardStats) ? bridge.lib.dashboardStats.totalRoms : 0
                     Layout.fillWidth: true
                 }
                 StatCard {
                     icon: "🕹️"; label: tr("dash_stat_consoles"); accentColor: "#4dc6a6"
-                    value: (bridge && bridge.dashboardStats) ? bridge.dashboardStats.totalConsoles : 0
+                    value: (bridge && bridge.lib.dashboardStats) ? bridge.lib.dashboardStats.totalConsoles : 0
                     Layout.fillWidth: true
                 }
                 StatCard {
                     icon: "⏳"; label: tr("dash_stat_hours"); accentColor: "#f0a040"
-                    value: (bridge && bridge.dashboardStats) ? bridge.dashboardStats.totalHours : 0
-                    textValue: (bridge && bridge.dashboardStats) ? bridge.dashboardStats.totalTimeDisplay : "0h"
+                    value: (bridge && bridge.lib.dashboardStats) ? bridge.lib.dashboardStats.totalHours : 0
+                    textValue: (bridge && bridge.lib.dashboardStats) ? bridge.lib.dashboardStats.totalTimeDisplay : "0h"
                     Layout.fillWidth: true
                 }
             }
@@ -271,7 +271,7 @@ Item {
                             id: actContent
                             anchors.fill: parent; anchors.margins: 15; spacing: 0
                             Repeater {
-                                model: bridge ? bridge.recentActivity : []
+                                model: bridge ? bridge.lib.recentActivity : []
                                 delegate: Item {
                                     Layout.fillWidth: true; height: 72
                                     Rectangle {
@@ -350,7 +350,7 @@ Item {
                                 }
                             }
                             Label {
-                                visible: bridge ? bridge.recentActivity.length === 0 : true
+                                visible: bridge ? bridge.lib.recentActivity.length === 0 : true
                                 text: tr("dash_empty_recent")
                                 color: "#4a4d63"; font.pixelSize: 16; Layout.alignment: Qt.AlignCenter; Layout.topMargin: 100
                             }

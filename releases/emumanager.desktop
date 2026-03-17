@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=EmuManager
+Exec=EmuManager
+Icon=icon
+Categories=Game;Emulator;
+Comment=Gestor premium de emuladores y videojuegos retro.
+Terminal=false

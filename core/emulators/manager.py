@@ -2,11 +2,18 @@ import os
 import json
 import time
 from core.constants import AVAILABLE_EMULATORS
+from core.config import resolve_path, normalize_path
 from .installer import Installer
 from .launcher import Launcher
 from .tweaks.manager import TweakManager
 
 class EmuladorManager:
+    """
+    Coordinador central para la gestión de emuladores, ROMs y tiempo de juego.
+    
+    Esta clase orquestra el instalador, el lanzador y el gestor de 'tweaks'.
+    Mantiene el estado de qué emuladores están instalados y el registro de configuración.
+    """
     def __init__(self):
         os.makedirs("data", exist_ok=True)
         
@@ -29,13 +36,20 @@ class EmuladorManager:
         self.tweak_manager = TweakManager(self.data_dir)
         self.launcher = Launcher(self)
 
-        self._sync_with_disk()
+        # No sincronizamos en el constructor para no bloquear el arranque de la UI
+        # self._sync_with_disk()
 
     def _load_config(self):
         if os.path.exists(self.config_file):
             try:
                 with open(self.config_file, "r") as f:
-                    return json.load(f)
+                    data = json.load(f)
+                    # Resolver rutas al cargar
+                    if "install_path" in data:
+                        data["install_path"] = resolve_path(data["install_path"])
+                    if "roms_path" in data:
+                        data["roms_path"] = resolve_path(data["roms_path"])
+                    return data
             except: return {}
         return {}
 
@@ -43,17 +57,34 @@ class EmuladorManager:
         if os.path.exists(self.installed_file):
             try:
                 with open(self.installed_file, "r") as f:
-                    return json.load(f)
+                    data = json.load(f)
+                    # Resolver rutas en emuladores instalados
+                    for repo, info in data.items():
+                        if "path" in info:
+                            info["path"] = resolve_path(info["path"])
+                        if "files" in info:
+                            info["files"] = [resolve_path(f) for f in info["files"]]
+                    return data
             except: return {}
         return {}
 
     def _save_installed(self):
         try:
             os.makedirs(self.data_dir, exist_ok=True)
+            # Normalizar rutas antes de guardar
+            save_data = {}
+            for repo, info in self.installed_emus.items():
+                copy_info = info.copy()
+                if "path" in copy_info:
+                    copy_info["path"] = normalize_path(copy_info["path"])
+                if "files" in copy_info:
+                    copy_info["files"] = [normalize_path(f) for f in copy_info["files"]]
+                save_data[repo] = copy_info
+
             with open(self.installed_file, "w") as f:
-                json.dump(self.installed_emus, f, indent=4)
+                json.dump(save_data, f, indent=4)
         except Exception as e:
-            print(f"[DEBUG] Error al guardar {self.installed_file}: {e}")
+            print(f"[EMU_MGR] Error al guardar {self.installed_file}: {e}")
 
     def _load_cache(self):
         if os.path.exists(self.cache_file):
@@ -86,6 +117,16 @@ class EmuladorManager:
         except: pass
 
     def _sync_with_disk(self, force=False):
+        """Versión interna síncrona."""
+        self._sync_logic(force)
+
+    async def sync_with_disk_async(self, force=False):
+        """Versión asíncrona que no bloquea el event loop de Qt."""
+        import asyncio
+        await asyncio.to_thread(self._sync_logic, force)
+
+    def _sync_logic(self, force=False):
+        """Lógica real de sincronización (separada para ser llamada síncrona o asíncronamente)."""
         if not self.install_path or not os.path.exists(self.install_path):
             return
         
@@ -116,7 +157,8 @@ class EmuladorManager:
                                     self.installed_emus[repo] = {
                                         "path": os.path.abspath(console_path),
                                         "files": [os.path.abspath(os.path.join(console_path, f))],
-                                        "install_date": "Auto-detectado en " + console_folder
+                                        "install_date": "Auto-detectado en " + console_folder,
+                                        "version": "detected"
                                     }
                                     updated = True
             if updated:
@@ -141,12 +183,19 @@ class EmuladorManager:
         }
         
         try:
+            # Normalizar rutas antes de guardar
+            save_data = config.copy()
+            if "install_path" in save_data:
+                save_data["install_path"] = normalize_path(save_data["install_path"])
+            if "roms_path" in save_data:
+                save_data["roms_path"] = normalize_path(save_data["roms_path"])
+
             with open(self.config_file, "w") as f:
-                json.dump(config, f, indent=4)
+                json.dump(save_data, f, indent=4)
             if path_changed:
                 self._sync_with_disk(force=True)
         except Exception as e:
-            print(f"[DEBUG] Error al guardar configuración: {e}")
+            print(f"[EMU_MGR] Error al guardar configuración: {e}")
 
     def crear_carpetas_roms(self, repo_github=None):
         if not self.roms_path or not os.path.exists(self.roms_path): return
@@ -181,20 +230,19 @@ class EmuladorManager:
 
     def esta_instalado(self, repo_github: str) -> bool:
         if repo_github not in self.installed_emus:
-            # print(f"[DEBUG] {repo_github} no está en installed_emus")
             return False
         
         # Validación real en disco
         info = self.installed_emus[repo_github]
         files = info.get("files", [])
         if not files: 
-            print(f"[DEBUG] {repo_github} no tiene archivos registrados")
+            print(f"[EMU_MGR] {repo_github} no tiene archivos registrados")
             return False
         
         # Verificar si el archivo principal existe
         exists = os.path.exists(files[0])
         if not exists:
-            print(f"[DEBUG] {repo_github} archivo no encontrado: {files[0]}")
+            print(f"[EMU_MGR] {repo_github} archivo no encontrado: {files[0]}")
         return exists
 
     # Delegated installer methods

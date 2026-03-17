@@ -3,244 +3,31 @@ constants.py — Diccionarios y configuraciones fijas del sistema
 Aquí se definen los emuladores soportados y sus metadatos de Libretro.
 """
 
-AVAILABLE_EMULATORS = [
-    {
-        "id": "retroarch",
-        "name": "RetroArch",
-        "console": "Multi-system",
-        "console_id": "multi",
-        "description": "El frontend más potente para emulación. Permite ejecutar múltiples núcleos (consolas) desde una sola interfaz.",
-        "folder": "Multi",
-        "github": "libretro/RetroArch",
-        "manual_url": "https://www.retroarch.com/index.php?page=platforms",
-        "fallback_win": "https://buildbot.libretro.com/stable/1.17.0/windows/x86_64/RetroArch.7z",
-        "fallback_linux": "https://buildbot.libretro.com/stable/1.17.0/linux/x86_64/RetroArch.7z",
-        "extensions": [".bin", ".cue", ".rom", ".zip"],
-        "libretro_platform": None,
-        "color": "#00f2ff" # Neon Cyan (RetroArch)
-    },
-    {
-        "id": "dolphin",
-        "name": "Dolphin Emulator",
-        "console": "GameCube / Wii",
-        "console_id": "gc-wii",
-        "description": "Emulador de GameCube y Wii de alto rendimiento. Soporta gráficos en HD y juego en red.",
-        "folder": "GameCube-Wii",
-        "github": "dolphin-emu/dolphin",
-        "manual_url": "https://dolphin-emu.org/download/",
-        "fallback_win": "https://dl.dolphin-emu.org/builds/80/86/dolphin-master-2603-14-x64.7z",
-        "extensions": [".iso", ".wbfs", ".gcm", ".rvz"],
-        "libretro_platform": "Nintendo - GameCube",
-        "screenscraper_id": "13",
-        "color": "#7050ff" # Power Purple (GameCube)
-    },
-    {
-        "id": "pcsx2",
-        "name": "PCSX2",
-        "console": "PlayStation 2",
-        "console_id": "ps2",
-        "description": "El emulador estándar de PlayStation 2. Compatible con la inmensa mayoría del catálogo de PS2.",
-        "folder": "PS2",
-        "github": "PCSX2/pcsx2",
-        "manual_url": "https://pcsx2.net/downloads/",
-        "fallback_url": None,
-        "extensions": [".iso", ".bin", ".chd", ".gz"],
-        "libretro_platform": "Sony - PlayStation 2",
-        "screenscraper_id": "58",
-        "color": "#0055ff" # Electric Sony Blue (PS2)
-    },
-    {
-        "id": "rpcs3",
-        "name": "RPCS3",
-        "console": "PlayStation 3",
-        "console_id": "ps3",
-        "description": "Emulador y debugger experimental de PlayStation 3 en lenguaje C++ para Windows, Linux y BSD.",
-        "folder": "PS3",
-        "github": "RPCS3/rpcs3",
-        "github_win": "RPCS3/rpcs3-binaries-win",
-        "github_linux": "RPCS3/rpcs3-binaries-linux",
-        "manual_url": "https://rpcs3.net/download",
-        "fallback_linux": "https://github.com/RPCS3/rpcs3-binaries-linux/releases/download/continuous/rpcs3-v0.0.30-15900-linux-x86_64.AppImage",
-        "extensions": [".ps3", ".pkg", ".iso"],
-        "libretro_platform": "Sony - PlayStation 3",
-        "screenscraper_id": "59",
-        "color": "#ff004c" # Crimson Neon (PS3)
-    },
-    {
-        "id": "ppsspp",
-        "name": "PPSSPP",
-        "console": "PlayStation Portable",
-        "console_id": "psp",
-        "description": "Emulador de PSP rápido y portátil. Permite jugar en HD y soporta texturas personalizadas.",
-        "folder": "PSP",
-        "github": "hrydgard/ppsspp",
-        "manual_url": "https://www.ppsspp.org/downloads/",
-        "fallback_url": None,
-        "extensions": [".iso", ".cso", ".pbp"],
-        "libretro_platform": "Sony - PlayStation Portable",
-        "screenscraper_id": "61",
-        "color": "#2196F3" # Bright PSP Blue
-    },
-    {
-        "id": "duckstation",
-        "name": "DuckStation",
-        "console": "PlayStation 1",
-        "console_id": "ps1",
-        "description": "Enfocado en la jugabilidad, velocidad y mantenibilidad a largo plazo de la primera PlayStation.",
-        "folder": "PS1",
-        "github": "stenzek/duckstation",
-        "manual_url": "https://www.duckstation.org/",
-        "fallback_win": "https://github.com/stenzek/duckstation/releases/latest/download/duckstation-windows-x64-release.zip",
-        "extensions": [".bin", ".cue", ".chd", ".pbp", ".m3u"],
-        "libretro_platform": "Sony - PlayStation",
-        "screenscraper_id": "57",
-        "color": "#ff9500" # Electric Gold/Orange (PS1)
-    },
-    {
-        "id": "xemu",
-        "name": "xemu",
-        "console": "Original Xbox",
-        "console_id": "xbox",
-        "description": "Emulador de baja latencia y alta precisión de la Xbox original.",
-        "folder": "Xbox",
-        "github": "xemu-project/xemu",
-        "manual_url": "https://xemu.app/docs/download/",
-        "fallback_url": None,
-        "extensions": [".iso", ".xbe"],
-        "libretro_platform": "Microsoft - Xbox",
-        "screenscraper_id": "11",
-        "color": "#39ff14" # Neon Xbox Green
-    },
-    {
-        "id": "mgba",
-        "name": "mGBA",
-        "console": "Game Boy Advance",
-        "console_id": "gba",
-        "description": "Emulador de GBA rápido y preciso. También soporta Game Boy y Game Boy Color.",
-        "folder": "GBA",
-        "github": "mgba-emu/mgba",
-        "manual_url": "https://mgba.io/downloads/",
-        "fallback_url": None,
-        "extensions": [".gba", ".gbp", ".zip"],
-        "libretro_platform": "Nintendo - Game Boy Advance",
-        "screenscraper_id": "24",
-        "color": "#bf00ff" # Cosmic Purple (GBA)
-    },
-    {
-        "id": "rmg",
-        "name": "RMG (Rosalie's Mupen GUI)",
-        "console": "Nintendo 64",
-        "console_id": "n64",
-        "description": "Interfaz moderna para Mupen64Plus centrada en la facilidad de uso y alta compatibilidad.",
-        "folder": "N64",
-        "github": "Rosalie241/RMG",
-        "manual_url": "https://github.com/Rosalie241/RMG/releases",
-        "fallback_url": None,
-        "extensions": [".z64", ".n64", ".v64"],
-        "libretro_platform": "Nintendo - Nintendo 64",
-        "screenscraper_id": "14",
-        "color": "#ff3800" # N64 Electric Red
-    },
-    {
-        "id": "mesen",
-        "name": "Mesen",
-        "console": "NES / SNES",
-        "console_id": "snes",
-        "description": "Multi-emulador altamente preciso para NES, Game Boy, SNES, Master System y más.",
-        "folder": "NES-SNES",
-        "github": "SourMesen/Mesen2",
-        "manual_url": "https://www.mesen.ca/",
-        "fallback_url": None,
-        "extensions": [".nes", ".sfc", ".smc", ".zip"],
-        "libretro_platform": "Nintendo - Nintendo Entertainment System",
-        "screenscraper_id": "3",
-        "color": "#ff1a4a" # Mesen Vibrant Red
-    },
-    {
-        "id": "snes9x",
-        "name": "Snes9x",
-        "console": "SNES",
-        "console_id": "snes",
-        "description": "Emulador de Super Nintendo clásico, ligero y altamente compatible.",
-        "folder": "SNES",
-        "github": "snes9xgit/snes9x",
-        "manual_url": "https://www.snes9x.com/",
-        "fallback_url": None,
-        "extensions": [".sfc", ".smc", ".zip"],
-        "libretro_platform": "Nintendo - Super Nintendo Entertainment System",
-        "screenscraper_id": "4",
-        "color": "#a066ff" # Lavender SNES
-    },
-    {
-        "id": "lime3ds",
-        "name": "Lime3DS",
-        "console": "Nintendo 3DS",
-        "console_id": "3ds",
-        "description": "Sucesor espiritual de Citra, optimizado para emular la Nintendo 3DS en hardware moderno.",
-        "folder": "3DS",
-        "github": "Lime3DS/Lime3DS",
-        "manual_url": "https://lime3ds.github.io/",
-        "fallback_url": None,
-        "extensions": [".3ds", ".cia", ".app"],
-        "libretro_platform": "Nintendo - Nintendo 3DS",
-        "screenscraper_id": "17",
-        "color": "#00c3ff" # Vibrant 3DS Blue
-    },
-    {
-        "id": "eden",
-        "name": "Eden Emulator",
-        "console": "Nintendo Switch",
-        "console_id": "switch",
-        "description": "Sucesor potente basado en Yuzu. Eden es actualmente uno de los emuladores de Switch más activos y con mejor rendimiento.",
-        "folder": "Switch-Eden",
-        "github": "eden-emulator/eden",
-        "manual_url": "https://git.eden-emu.dev/eden-emu/eden/releases",
-        "fallback_win": "https://git.eden-emu.dev/eden-emu/eden/releases",
-        "extensions": [".nsp", ".xci"],
-        "libretro_platform": "Nintendo - Switch",
-        "screenscraper_id": "137",
-        "color": "#00ffe1" # Cyan Switch Glow
-    },
-    {
-        "id": "ryubing",
-        "name": "Ryubing (Ryujinx Fork)",
-        "console": "Nintendo Switch",
-        "console_id": "switch",
-        "description": "Fork moderno de Ryujinx enfocado en mejoras de calidad de vida y compatibilidad para la emulación de Switch.",
-        "folder": "Switch-Ryubing",
-        "github": "Ryubing/Ryujinx",
-        "manual_url": "https://ryujinx.app/download",
-        "fallback_win": "https://ryujinx.app/download",
-        "extensions": [".nsp", ".xci"],
-        "libretro_platform": "Nintendo - Switch",
-        "screenscraper_id": "137",
-        "color": "#ff003c" # Neon Switch Red
-    },
-    {
-        "id": "cemu",
-        "name": "Cemu",
-        "console": "Wii U",
-        "console_id": "wiiu",
-        "description": "El emulador definitivo de Wii U. Permite jugar a Breath of the Wild y otros títulos a 4K y 60fps.",
-        "folder": "WiiU",
-        "github": "cemu-project/Cemu",
-        "manual_url": "https://cemu.info/",
-        "extensions": [".wud", ".wux", ".rpx"],
-        "libretro_platform": "Nintendo - Wii U",
-        "screenscraper_id": "18",
-        "color": "#00a8ff" # Cemu Blue
-    },
-    {
-        "id": "vita3k",
-        "name": "Vita3K",
-        "console": "PS Vita",
-        "console_id": "psvita",
-        "description": "El primer emulador funcional de PlayStation Vita en el mundo.",
-        "folder": "PSVita",
-        "github": "Vita3K/Vita3K",
-        "manual_url": "https://vita3k.org/",
-        "extensions": [".vpk", ".zip", ".pkg"],
-        "libretro_platform": "Sony - PlayStation Vita",
-        "color": "#ff00ff" # Vita Pink Magenta
-    }
-]
+import os
+import json
+
+def cargar_emuladores_config():
+    """Carga la lista de emuladores desde el archivo JSON dinámico."""
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    
+    # 1. Intentar en la nueva ubicación de recursos (protegida de limpiezas del usuario)
+    ruta_resources = os.path.join(base_dir, "resources", "emulators.json")
+    # 2. Intentar en la antigua ubicación (retrocompatibilidad)
+    ruta_data = os.path.join(base_dir, "data", "emulators.json")
+    
+    for ruta_json in [ruta_resources, ruta_data]:
+        if os.path.exists(ruta_json):
+            try:
+                with open(ruta_json, "r", encoding="utf-8") as f:
+                    return json.load(f)
+            except Exception as e:
+                print(f"[CONSTANTS] Error cargando {ruta_json}: {e}")
+    
+    print("[CONSTANTS] CRÍTICO: No se encontró emulators.json en ninguna ubicación.")
+    return []
+
+# La lista principal ahora es dinámica
+AVAILABLE_EMULATORS = cargar_emuladores_config()
+
+# Otras constantes fijas del sistema podrían ir aquí en el futuro
+# Ejemplo: APP_THEME_COLOR = "#7c6ff7"

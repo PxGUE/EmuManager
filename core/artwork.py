@@ -1,195 +1,175 @@
 """
-artwork.py — Artwork Hub V3 (Modular Provider Based)
+artwork.py — Hub de Arte y Carátulas.
+
+Este módulo gestiona la descarga y localización de recursos visuales:
+1. Carátulas (Boxarts).
+2. Fondos (Fanart/Backdrops).
+3. Logos de juegos y consolas.
+Coordina múltiples proveedores (Libretro, SteamGridDB, ScreenScraper).
 """
 
 import asyncio
 import aiohttp
 import os
 import urllib.parse
-from typing import Optional, Callable, List, Dict
+from typing import Optional, Callable, List, Dict, Any
 
 from .normalization import normalize_title
 from .scrapers.artwork.libretro import LibretroScraper
 from .scrapers.artwork.steamgriddb import SteamGridDBScraper
 from .scrapers.metadata.screenscraper import ScreenScraperScraper
-import core.metadata as metadata
-
-# --- Hub de Carátulas ---
+from . import metadata
+from . import config
 
 class ArtworkHub:
+    """
+    Coordina la descarga de arte desde múltiples proveedores.
+    """
     def __init__(self, session: aiohttp.ClientSession, configs: List[Dict]):
+        """
+        Inicializa los scrapers de arte según la configuración.
+
+        Args:
+            session (aiohttp.ClientSession): Sesión HTTP compartida.
+            configs (List[Dict]): Configuración de proveedores (desde metadata.get_providers_config).
+        """
         self.session = session
         
-        # Initialize Providers based on enabled status
+        # 1. Libretro (CDN Gratuito de carátulas)
         libretro_cfg = next((c for c in configs if c["id"] == "libretro"), {"enabled": True})
         self.libretro = LibretroScraper() if libretro_cfg.get("enabled") else None
         
+        # 2. SteamGridDB (Excelente para fondos y logos)
         sgdb_cfg = next((c for c in configs if c["id"] == "steamgriddb"), None)
         sgdb_key = sgdb_cfg.get("api_key") if sgdb_cfg and sgdb_cfg.get("enabled") else None
-        
-        if sgdb_cfg and sgdb_cfg.get("enabled"):
-            if not sgdb_key:
-                print(f"[ARTWORK] SGDB: No hay API Key configurada. Consultando siguiente...")
-            else:
-                print(f"[ARTWORK] SGDB: Iniciando proveedor con API Key.")
-        
         self.sgdb = SteamGridDBScraper(sgdb_key) if sgdb_key else None
 
-        # ScreenScraper (The Ultimate Resource)
+        # 3. ScreenScraper (El más completo, requiere cuenta)
         ss_cfg = next((c for c in configs if c["id"] == "screenscraper"), None)
         ss_user = ss_cfg.get("user") if ss_cfg and ss_cfg.get("enabled") else None
         ss_pass = ss_cfg.get("password") if ss_cfg and ss_cfg.get("enabled") else None
-        
-        if ss_cfg and ss_cfg.get("enabled"):
-            if not ss_user or not ss_pass:
-                print(f"[ARTWORK] ScreenScraper: Activado pero sin credenciales.")
-            else:
-                print(f"[ARTWORK] ScreenScraper: Iniciando con el usuario '{ss_user}'.")
-        
         self.ss = ScreenScraperScraper(ss_user, ss_pass) if (ss_user and ss_pass) else None
 
     async def download_for_game(self, platform: str, game_name: str, rom_path: str, **kwargs) -> bool:
         """
-        Coordinates downloading artwork from multiple providers.
+        Busca y descarga todo el arte disponible para un juego.
+
+        Args:
+            platform (str): Nombre de la plataforma para Libretro/SS.
+            game_name (str): Nombre limpio del juego.
+            rom_path (str): Ruta absoluta del archivo ROM.
+            **kwargs: Parámetros extra como ss_platform_id.
+
+        Returns:
+            bool: True si al menos la carátula principal fue descargada con éxito.
         """
         caratula_path = obtener_ruta_caratula(rom_path)
         
-        # 1. Try Libretro (Primary for Boxarts)
+        # --- 1. Intento con Libretro (Rápido y fiable para Boxarts) ---
         if self.libretro:
             res = await self.libretro.fetch(self.session, game_name, platform=platform)
             if res and res.get("boxart_url"):
-                # print(f"[ARTWORK] Libretro: Encontrado '{game_name}' en {platform}. Descargando...")
-
                 ok = await _descargar_archivo(self.session, res["boxart_url"], caratula_path)
                 if ok:
                     return True
 
-        
-        # 2. Try SteamGridDB (Boxart, Hero, Logo)
+        # --- 2. Intento con SteamGridDB (Fondos y Logos Premium) ---
         if self.sgdb:
-            # Try by ROM name first, then game name
+            # Primero intentamos por nombre de archivo (más preciso), luego por nombre limpio
             clean_name = os.path.splitext(os.path.basename(rom_path))[0]
-
             res = await self.sgdb.fetch(self.session, clean_name)
             if not res:
-
                 res = await self.sgdb.fetch(self.session, game_name)
             
             if res:
-                # Download Boxart if not already fetched
+                # Descargar Carátula
                 if res.get("boxart_url") and not os.path.exists(caratula_path):
                     await _descargar_archivo(self.session, res["boxart_url"], caratula_path)
                 
-                # Download Background (Hero)
+                # Descargar Fondo (Hero)
                 if res.get("background_url"):
                     bg_path = obtener_ruta_background(rom_path)
                     if not os.path.exists(bg_path):
                         await _descargar_archivo(self.session, res["background_url"], bg_path)
                 
-                # Download Logo
+                # Descargar Logo
                 if res.get("logo_url"):
                     logo_path = obtener_ruta_logo(rom_path)
                     if not os.path.exists(logo_path):
                         await _descargar_archivo(self.session, res["logo_url"], logo_path)
                 
-
                 return os.path.exists(caratula_path)
 
-
-        # 3. Try ScreenScraper (Full Metadata/Artwork specialist)
+        # --- 3. Intento con ScreenScraper (El último recurso) ---
         if self.ss:
             ss_id = kwargs.get("ss_platform_id")
-
             res = await self.ss.fetch(self.session, game_name, ss_platform_id=ss_id)
             if res:
-                # 3.1 Boxart
                 if res.get("boxart_url") and not os.path.exists(caratula_path):
                     await _descargar_archivo(self.session, res["boxart_url"], caratula_path)
                 
-                # 3.2 Background
                 if res.get("background_url"):
                     bg_path = obtener_ruta_background(rom_path)
                     if not os.path.exists(bg_path):
                         await _descargar_archivo(self.session, res["background_url"], bg_path)
                 
-                # 3.3 Logo
                 if res.get("logo_url"):
                     logo_path = obtener_ruta_logo(rom_path)
                     if not os.path.exists(logo_path):
                         await _descargar_archivo(self.session, res["logo_url"], logo_path)
                 
-
                 return os.path.exists(caratula_path)
 
         return os.path.exists(caratula_path)
 
 
-# Directorios y Utilerías de Rutas (Se mantienen del original para compatibilidad)
-import sys
-
-def get_base_path():
-    if hasattr(sys, '_MEIPASS'):
-        return sys._MEIPASS
-    return os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
-PROJECT_ROOT_DIR = get_base_path()
-SYSTEM_MEDIA_DIR = os.path.join(PROJECT_ROOT_DIR, "media")
-USER_MEDIA_PATH = "media"
-
-def set_base_media_path(new_path: str):
-    global USER_MEDIA_PATH
-    USER_MEDIA_PATH = new_path
-
-def get_consoles_bg_dir():
-    return os.path.join(PROJECT_ROOT_DIR, "fondos_consolas")
-
-def get_system_consoles_dir():
-    return os.path.join(SYSTEM_MEDIA_DIR, "consolas")
-
+# ── UTILIDADES DE RUTAS ──────────────────────────────────────────────
 
 def obtener_ruta_caratula(ruta_rom: str) -> str:
+    """Retorna la ruta donde debe guardarse/leerse la carátula de un juego."""
     rom_dir = os.path.dirname(ruta_rom)
     game_name = os.path.splitext(os.path.basename(ruta_rom))[0]
     return os.path.join(rom_dir, "media", f"{game_name}.png")
 
 def obtener_ruta_background(ruta_rom: str) -> str:
+    """Retorna la ruta para el fondo (fanart) de un juego."""
     rom_dir = os.path.dirname(ruta_rom)
     game_name = os.path.splitext(os.path.basename(ruta_rom))[0]
     return os.path.join(rom_dir, "media", f"{game_name}_bg.jpg")
 
 def obtener_ruta_logo(ruta_rom: str) -> str:
+    """Retorna la ruta para el logo (marquee) de un juego."""
     rom_dir = os.path.dirname(ruta_rom)
     game_name = os.path.splitext(os.path.basename(ruta_rom))[0]
     return os.path.join(rom_dir, "media", f"{game_name}_logo.png")
 
 def tiene_caratula(ruta_rom: str) -> bool:
+    """Verifica si existe el archivo de carátula para un juego."""
     return os.path.exists(obtener_ruta_caratula(ruta_rom))
 
 def obtener_ruta_logo_consola(id_emu: str) -> str:
     """
-    Localiza el logo SVG (preferido) o PNG de una consola.
+    Localiza el logo SVG o PNG de una consola en la carpeta de recursos del sistema.
     """
-    base_path = os.path.join(get_system_consoles_dir(), id_emu)
-    
-    # Prioridad: SVG > PNG
+    base_path = os.path.join(config.MEDIA_DIR, "consolas", id_emu)
     for ext in (".svg", ".png"):
         full_path = os.path.abspath(base_path + ext)
         if os.path.exists(full_path):
             return full_path
-            
     return os.path.abspath(base_path + ".png")
 
-def obtener_ruta_fondo_consola(emu) -> str:
-    """Obtiene la ruta del fondo de la consola (<console_id>.jpg) desde la carpeta local."""
-    if not emu: return ""
-    
-    # ID base para el fondo (usamos console_id para compartir fondos entre variantes)
-    bg_id = emu if isinstance(emu, str) else emu.get("console_id", emu.get("id"))
-    
-    # Ruta optimizada y simplificada: fondos_consolas/id.jpg
-    return os.path.abspath(os.path.join(get_consoles_bg_dir(), f"{bg_id}.jpg"))
+def obtener_ruta_fondo_consola(id_o_emu: Any) -> str:
+    """
+    Obtiene la ruta del fondo decorativo local para una consola.
+    """
+    bg_id = id_o_emu if isinstance(id_o_emu, str) else id_o_emu.get("console_id", id_o_emu.get("id"))
+    bg_dir = os.path.join(config.BASE_DIR, "fondos_consolas")
+    return os.path.abspath(os.path.join(bg_dir, f"{bg_id}.jpg"))
 
 async def _descargar_archivo(session: aiohttp.ClientSession, url: str, ruta_destino: str, retries: int = 1) -> bool:
+    """
+    Función interna para descargar un binario y guardarlo en disco.
+    """
     headers = {"User-Agent": "Mozilla/5.0"}
     for attempt in range(retries + 1):
         try:
@@ -200,10 +180,11 @@ async def _descargar_archivo(session: aiohttp.ClientSession, url: str, ruta_dest
                         f.write(await resp.read())
                     return True
         except:
-            if attempt < retries: await asyncio.sleep(1)
+            if attempt < retries:
+                await asyncio.sleep(1)
     return False
 
-# Mapeos de Consolas y Fondos (Se mantienen)
+# Mapeos de Consolas para scrapers externos
 EXTENSION_PLATFORM_MAP = {
     ".nes": "Nintendo - Nintendo Entertainment System",
     ".sfc": "Nintendo - Super Nintendo Entertainment System",
@@ -225,10 +206,7 @@ EXTENSION_PLATFORM_MAP = {
 
 def get_platform_for_rom(emu_id: str, ruta_rom: str, default_platform: Optional[str]) -> Optional[str]:
     """
-    Obtiene la plataforma para una ROM basada en su extensión y el emulador
-    Si el emulador es mesen o retroarch, se usa el mapeo de extensiones
-    Si no, se usa el mapeo de extensiones
-    Si no se encuentra la extensión, se usa el valor por defecto
+    Resuelve el nombre de plataforma exacto requerido por Libretro basándose en la extensión.
     """
     ext = os.path.splitext(ruta_rom)[1].lower()
     if emu_id in ("mesen", "retroarch"):
@@ -236,6 +214,17 @@ def get_platform_for_rom(emu_id: str, ruta_rom: str, default_platform: Optional[
     return default_platform
 
 async def descargar_caratulas_biblioteca(juegos: list, emu_map: dict, **kwargs) -> dict:
+    """
+    Descarga masiva de arte para la biblioteca del usuario.
+
+    Args:
+        juegos (list): Lista de diccionarios de juegos.
+        emu_map (dict): Mapa de configuración de emuladores.
+        **kwargs: on_progress callback.
+
+    Returns:
+        dict: Estadísticas (ok, skip, fail).
+    """
     stats = {"ok": 0, "skip": 0, "fail": 0}
     configs = metadata.get_providers_config()
     on_progress = kwargs.get("on_progress")
@@ -251,7 +240,7 @@ async def descargar_caratulas_biblioteca(juegos: list, emu_map: dict, **kwargs) 
                 ruta = juego.get("ruta", "")
                 nombre = juego.get("nombre", "")
                 
-                # Resolve platform info
+                # Resolver plataforma técnica
                 emu_info = emu_map.get(emu_id, {})
                 libretro_p = emu_info.get("libretro_platform", emu_info.get("console", ""))
                 plat = get_platform_for_rom(emu_id, ruta, libretro_p)
@@ -264,9 +253,8 @@ async def descargar_caratulas_biblioteca(juegos: list, emu_map: dict, **kwargs) 
                     if ok: stats["ok"] += 1
                     else: stats["fail"] += 1
                 
-                if on_progress: on_progress(idx + 1, total, nombre)
+                if on_progress:
+                    on_progress(idx + 1, total, nombre)
 
         await asyncio.gather(*[_worker(i, j) for i, j in enumerate(juegos)])
     return stats
-
-# Función de descarga de fondos eliminada - Se usan fondos locales

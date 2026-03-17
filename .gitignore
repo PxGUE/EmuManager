@@ -23,6 +23,7 @@ env/
 # --- Datos de usuario (NO subir al repo) ---
 data/
 *.json
+!resources/*.json
 
 # --- Logs ---
 *.log
@@ -48,8 +49,17 @@ desktop.ini
 *.bak
 *.orig
 
-# --- Releases (Binarios) ---
-releases/
+# --- Releases (Binarios e ignores específicos) ---
+# Mantenemos los scripts pero ignoramos los resultados pesados de compilación
+# releases/
+*.exe
+*.bin
+*.AppImage
+*.dist
+*.build
+AppDir/
+
+# --- Scripts internos ---
 
 # --- Scripts internos ---
 tools/

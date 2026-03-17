@@ -3,20 +3,48 @@ import QtQuick.Layouts
 import QtQuick.Controls
 import "../components"
 
+/**
+ * Library.qml — Vista principal de la biblioteca de juegos.
+ * 
+ * Presenta dos modos principales:
+ * 1. "carousel": Selección de consolas de forma inmersiva y 3D.
+ * 2. "grid": Exploración de juegos de una consola seleccionada con filtros y búsqueda.
+ * 
+ * Gestiona el filtrado dinámico de juegos, el estado de carga y la visualización de
+ * detalles del juego en un panel lateral expansible.
+ */
 Item {
     id: root
     
-    state: "carousel" // carousel or grid
+    state: "carousel" // Estados posibles: "carousel" o "grid"
     
+    // Propiedades de estado de la consola seleccionada
     property string currentConsoleId: ""
     property string currentConsoleName: ""
     property string currentEmuName: ""
     property var currentGames: []
+    
+    // Propiedades de búsqueda y filtrado
+    property string searchText: searchInput.text
+    property bool onlyFavorites: false
+    
+    /**
+     * Motor de filtrado reactivo.
+     * Se actualiza automáticamente cuando cambia searchText o onlyFavorites.
+     */
+    property var filteredGames: {
+        if (!currentGames) return []
+        return currentGames.filter(game => {
+            let matchSearch = root.searchText === "" || (game.title || game.name).toLowerCase().includes(root.searchText.toLowerCase())
+            let matchFav = !root.onlyFavorites || game.isFavorite
+            return matchSearch && matchFav
+        })
+    }
     property string currentBackground: (carousel.currentItem) ? carousel.currentItem.backgroundSource : ""
     property color currentAccentColor: (carousel.currentItem) ? carousel.currentItem.accentColor : "#4da6ff"
     
     property var selectedGame: null // Para el panel de información
-    property bool isEmpty: bridge ? (bridge.scannedConsoles.length === 0) : true
+    property bool isEmpty: bridge ? (bridge.lib.scannedConsoles.length === 0) : true
 
     function tr(key, ...args) {
         if (!bridge) return key
@@ -30,10 +58,10 @@ Item {
     Connections {
         target: bridge
         function onStatsUpdated() {
-            root.isEmpty = (bridge.scannedConsoles.length === 0)
-            carousel.model = bridge.scannedConsoles
+            root.isEmpty = (bridge.lib.scannedConsoles.length === 0)
+            carousel.model = bridge.lib.scannedConsoles
             if (root.state === "grid" && root.currentConsoleId !== "") {
-                root.currentGames = bridge.getGamesForConsole(root.currentConsoleId)
+                root.currentGames = bridge.lib.getGamesForConsole(root.currentConsoleId)
             }
         }
     }
@@ -144,7 +172,7 @@ Item {
         anchors.topMargin: 40
         visible: !root.isEmpty
         opacity: root.state === "carousel" ? 1 : 0
-        model: (bridge && bridge.scannedConsoles) ? bridge.scannedConsoles : []
+        model: (bridge && bridge.lib.scannedConsoles) ? bridge.lib.scannedConsoles : []
         pathItemCount: 5
         preferredHighlightBegin: 0.5
         preferredHighlightEnd: 0.5
@@ -351,7 +379,7 @@ Item {
                                     root.currentConsoleId = modelData.id
                                     root.currentConsoleName = modelData.name
                                     root.currentEmuName = modelData.emu_name
-                                    root.currentGames = bridge.getGamesForConsole(modelData.id)
+                                    root.currentGames = bridge.lib.getGamesForConsole(modelData.id)
                                     root.state = "grid"
                                     root.gridEntranceTriggered()
                                 } else {
@@ -420,7 +448,7 @@ Item {
                         color: "white"
                     }
                     Label {
-                        text: tr("lib_games_count", root.currentGames.length).toUpperCase()
+                        text: tr("lib_games_count", root.filteredGames.length).toUpperCase()
                         font.pixelSize: 10
                         font.bold: true
                         color: currentAccentColor
@@ -430,12 +458,36 @@ Item {
 
                 Item { Layout.fillWidth: true }
 
+                RowLayout {
+                    spacing: 12
+                    
+                    // Botón Favoritos Toggle
+                    Button {
+                        id: btnFavFilter
+                        Layout.preferredWidth: 44
+                        Layout.preferredHeight: 44
+                        onClicked: root.onlyFavorites = !root.onlyFavorites
+                        background: Rectangle {
+                            radius: 22
+                            color: btnFavFilter.hovered ? "#22ffffff" : (root.onlyFavorites ? "#33ffff00" : "#12ffffff")
+                            border.color: root.onlyFavorites ? "#ffff00" : "transparent"
+                            border.width: 1
+                        }
+                        contentItem: Label {
+                            text: "⭐"
+                            opacity: root.onlyFavorites ? 1.0 : 0.4
+                            horizontalAlignment: Text.AlignHCenter
+                            verticalAlignment: Text.AlignVCenter
+                            font.pixelSize: 18
+                        }
+                    }
+
                 // Refresh Button
                 Button {
                     id: btnRefresh
                     Layout.preferredWidth: 44
                     Layout.preferredHeight: 44
-                    onClicked: bridge.scanGames(false, false, false, root.currentConsoleId)
+                    onClicked: bridge.lib.scanGames(false, false, root.currentConsoleId)
                     background: Rectangle {
                         radius: 22
                         color: btnRefresh.hovered ? "#22ffffff" : "#12ffffff"
@@ -524,14 +576,15 @@ Item {
                     }
                 }
             }
+        }
 
-            GridView {
+        GridView {
                 id: gamesGrid
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 cellWidth: root.gridCellWidth
                 cellHeight: 380
-                model: root.currentGames
+                model: root.filteredGames
                 property var currentItemData: null
                 clip: true
                 boundsBehavior: Flickable.StopAtBounds
@@ -698,8 +751,8 @@ Item {
                                 anchors.fill: parent; hoverEnabled: true
                                 onClicked: (mouse) => {
                                     mouse.accepted = true
-                                    modelData.isFavorite = bridge.toggleFavorite(modelData.path)
-                                    root.currentGames = bridge.getGamesForConsole(root.currentConsoleId)
+                                    modelData.isFavorite = bridge.lib.toggleFavorite(modelData.path)
+                                    root.currentGames = bridge.lib.getGamesForConsole(root.currentConsoleId)
                                 }
                             }
                         }
@@ -940,37 +993,60 @@ Item {
                 }
             }
 
-            Button {
-                id: launchMainBtn
-                Layout.fillWidth: true; Layout.preferredHeight: 50
-                onClicked: {
-                    if (window && window.requestLaunch && selectedGame) {
-                        window.requestLaunch(selectedGame.path, selectedGame.id_emu, selectedGame.title)
-                        infoPanel.close()
+                RowLayout {
+                    Layout.fillWidth: true; spacing: 15
+
+                    Button {
+                        id: btnEditMeta
+                        Layout.preferredWidth: 120; Layout.preferredHeight: 50
+                        onClicked: {
+                            metaEditor.gameData = root.selectedGame
+                            metaEditor.open()
+                        }
+                        background: Rectangle {
+                            radius: 25
+                            color: btnEditMeta.hovered ? "#22ffffff" : "#12ffffff"
+                            border.color: "#33ffffff"; border.width: 1
+                        }
+                        contentItem: RowLayout {
+                            anchors.centerIn: parent; spacing: 8
+                            Label { text: "📝"; font.pixelSize: 16 }
+                            Label { text: "EDITAR"; color: "white"; font.bold: true; font.pixelSize: 12 }
+                        }
+                    }
+
+                    Button {
+                        id: launchMainBtn
+                        Layout.fillWidth: true; Layout.preferredHeight: 50
+                        onClicked: {
+                            if (window && window.requestLaunch && selectedGame) {
+                                window.requestLaunch(selectedGame.path, selectedGame.id_emu, selectedGame.title)
+                                infoPanel.close()
+                            }
+                        }
+                        
+                        background: Rectangle {
+                            radius: 25
+                            color: launchMainBtn.hovered ? Qt.lighter(currentAccentColor, 1.2) : currentAccentColor
+                            
+                            // Efecto de brillo/sombra interna
+                            Rectangle {
+                                anchors.fill: parent; radius: 25; color: "transparent"
+                                border.color: "#33ffffff"; border.width: 1
+                            }
+                            
+                            Behavior on color { ColorAnimation { duration: 200 } }
+                        }
+                        
+                        contentItem: Label {
+                            text: tr("lib_play_btn")
+                            color: "black"; font.bold: true; font.pixelSize: 14
+                            horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
+                            scale: launchMainBtn.pressed ? 0.95 : 1.0
+                            Behavior on scale { NumberAnimation { duration: 100 } }
+                        }
                     }
                 }
-                
-                background: Rectangle {
-                    radius: 25
-                    color: launchMainBtn.hovered ? Qt.lighter(currentAccentColor, 1.2) : currentAccentColor
-                    
-                    // Efecto de brillo/sombra interna
-                    Rectangle {
-                        anchors.fill: parent; radius: 25; color: "transparent"
-                        border.color: "#33ffffff"; border.width: 1
-                    }
-                    
-                    Behavior on color { ColorAnimation { duration: 200 } }
-                }
-                
-                contentItem: Label {
-                    text: tr("lib_play_btn")
-                    color: "black"; font.bold: true; font.pixelSize: 14
-                    horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
-                    scale: launchMainBtn.pressed ? 0.95 : 1.0
-                    Behavior on scale { NumberAnimation { duration: 100 } }
-                }
-            }
         }
     }
 
@@ -1046,7 +1122,7 @@ Item {
                 Layout.fillHeight: true
                 clip: true
                 spacing: 12
-                model: (tweakPopup.visible && bridge) ? bridge.getEmulatorTweaks(tweakPopup.currentEmuId) : []
+                model: (tweakPopup.visible && bridge) ? bridge.emu.getEmulatorTweaks(tweakPopup.currentEmuId) : []
                 
                 ScrollBar.vertical: ScrollBar {
                     id: scrollBar
@@ -1105,9 +1181,9 @@ Item {
                             checked: modelData.value
                             onToggled: {
                                 if (bridge) {
-                                    bridge.saveEmulatorTweak(tweakPopup.currentEmuId, modelData.id, checked)
+                                    bridge.emu.saveEmulatorTweak(tweakPopup.currentEmuId, modelData.id, checked)
                                     // Forzar refresco del modelo para disparar visibility de otros items
-                                    tweakListView.model = bridge.getEmulatorTweaks(tweakPopup.currentEmuId)
+                                    tweakListView.model = bridge.emu.getEmulatorTweaks(tweakPopup.currentEmuId)
                                 }
                             }
                             
@@ -1138,9 +1214,9 @@ Item {
                             
                             onActivated: {
                                 if (bridge) {
-                                    bridge.saveEmulatorTweak(tweakPopup.currentEmuId, modelData.id, modelData.options[currentIndex]);
+                                    bridge.emu.saveEmulatorTweak(tweakPopup.currentEmuId, modelData.id, modelData.options[currentIndex]);
                                     // Refrescar para dependencias
-                                    tweakListView.model = bridge.getEmulatorTweaks(tweakPopup.currentEmuId);
+                                    tweakListView.model = bridge.emu.getEmulatorTweaks(tweakPopup.currentEmuId);
                                 }
                             }
 
@@ -1244,6 +1320,24 @@ Item {
         exit: Transition {
             NumberAnimation { property: "opacity"; to: 0; duration: 150 }
             NumberAnimation { property: "scale"; to: 0.9; duration: 150; easing.type: Easing.InBack }
+        }
+    }
+
+    // Diálogo de Edición de Metadatos
+    MetadataEditor {
+        id: metaEditor
+        onMetadataSaved: {
+            // Actualizar la lista para reflejar cambios
+            root.currentGames = bridge.lib.getGamesForConsole(root.currentConsoleId)
+            // Actualizar el juego seleccionado si es el mismo
+            if (root.selectedGame) {
+                for (let g of root.currentGames) {
+                    if (g.path === root.selectedGame.path) {
+                        root.selectedGame = g
+                        break
+                    }
+                }
+            }
         }
     }
 }

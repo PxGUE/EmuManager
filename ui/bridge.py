@@ -97,16 +97,16 @@ class AppBridge(QObject):
 
     @Slot(str)
     def installEmulator(self, github_url):
-        print(f"[DEBUG] Slot installEmulator llamado para: {github_url}")
+
         import asyncio
         async def do_install():
-            print(f"[DEBUG] Iniciando tarea do_install para: {github_url}")
+
             success = False
             message = "Error desconocido"
             try:
                 # Iterar sobre el generador asíncrono del instalador
                 async for step in self.emu_manager.instalar_emulador(github_url):
-                    print(f"[DEBUG] Proceso instalación {github_url}: {step}")
+
                     
                     if step.startswith("PROGRESS:"):
                         try:
@@ -133,27 +133,26 @@ class AppBridge(QObject):
                         success = True
                         message = step
                 
-                print(f"[DEBUG] Finalizado do_install {github_url}: {success} - {message}")
-                self.downloadFinished.emit(github_url, success, message)
                 if success:
+                    print(f"[BRIDGE] Instalación finalizada: {github_url}")
                     self.statsUpdated.emit()
             except Exception as e:
-                print(f"[DEBUG] Excepción en do_install {github_url}: {e}")
+                print(f"[ERROR] Fallo en instalación {github_url}: {e}")
                 self.downloadFinished.emit(github_url, False, str(e))
         
         asyncio.create_task(do_install())
 
     @Slot(str)
     def uninstallEmulator(self, github_url):
-        print(f"[DEBUG] Slot uninstallEmulator llamado para: {github_url}")
+
         import asyncio
         async def do_uninstall():
-            print(f"[DEBUG] Iniciando tarea do_uninstall para: {github_url}")
+
             success = False
             message = "Error al desinstalar"
             try:
                 async for step in self.emu_manager.desinstalar_emulador(github_url):
-                    print(f"[DEBUG] Proceso desinstalación {github_url}: {step}")
+
                     low_step = step.lower()
                     if "éxito" in low_step or "desinstalado" in low_step:
                         success = True
@@ -162,11 +161,12 @@ class AppBridge(QObject):
                         success = False
                         message = step
                 
-                print(f"[DEBUG] Finalizado do_uninstall {github_url}: {success} - {message}")
+                if success:
+                    print(f"[BRIDGE] Desinstalación finalizada: {github_url}")
                 self.downloadFinished.emit(github_url, success, message)
                 self.statsUpdated.emit()
             except Exception as e:
-                print(f"[DEBUG] Excepción en do_uninstall {github_url}: {e}")
+                print(f"[ERROR] Fallo en desinstalación {github_url}: {e}")
                 self.downloadFinished.emit(github_url, False, str(e))
 
         asyncio.create_task(do_uninstall())
@@ -324,15 +324,15 @@ class AppBridge(QObject):
             from PySide6.QtCore import QUrl
             QDesktopServices.openUrl(QUrl.fromLocalFile(self.romsPath))
 
-    @Slot(bool, bool, bool, str)
-    def scanGames(self, dl_artwork=True, dl_backgrounds=True, dl_metadata=True, emu_id=None):
+    @Slot(bool, bool, str)
+    def scanGames(self, dl_artwork=True, dl_metadata=True, emu_id=None):
         import asyncio
         import traceback
         from core.scanner import escanear_roms, asdict
         
         async def do_scan():
             try:
-                msg = f"[BRIDGE] Iniciando proceso de escaneo (Arte={dl_artwork}, Fondos={dl_backgrounds}, Meta={dl_metadata}"
+                msg = f"[BRIDGE] Iniciando proceso de escaneo (Arte={dl_artwork}, Meta={dl_metadata}"
                 if emu_id: msg += f", Emulador={emu_id}"
                 msg += ")"
                 print(msg)
@@ -344,26 +344,13 @@ class AppBridge(QObject):
                 library_dicts = [asdict(j) for j in juegos_obj]
                 self.statsUpdated.emit()
                 
-                # 2. Fondos
-                if dl_backgrounds:
-                    self.scanProgress.emit(0.1, self.translator.t("lib_status_artwork"))
-                    from core.artwork import descargar_fondos_consolas
-                    def on_bg_progress(curr, total, name):
-                        # 10% to 20% range for backgrounds
-                        prog = 0.1 + (curr / total) * 0.1
-                        self.scanProgress.emit(prog, self.translator.t("dl_status_bg", name))
-
-                    stats_bg = await descargar_fondos_consolas(on_progress=on_bg_progress)
-                    print(f"[BRIDGE] Fondos completados: {stats_bg}")
-                    self.statsUpdated.emit()
-
-                # 3. Artwork
+                # 2. Artwork
                 if dl_artwork:
-                    self.scanProgress.emit(0.2, self.translator.t("lib_status_artwork"))
+                    self.scanProgress.emit(0.1, self.translator.t("lib_status_artwork"))
                     from core.artwork import descargar_caratulas_biblioteca
                     def on_art_progress(curr, total, name):
-                        # 20% to 60% range for artwork
-                        prog = 0.2 + (curr / total) * 0.4
+                        # 10% to 50% range for artwork
+                        prog = 0.1 + (curr / total) * 0.4
                         self.scanProgress.emit(prog, self.translator.t("dl_status_art", name))
                     
                     emu_map = {e["id"]: e for e in AVAILABLE_EMULATORS}
@@ -371,13 +358,13 @@ class AppBridge(QObject):
                     print(f"[BRIDGE] Artwork completado: {stats_art}")
                     self.statsUpdated.emit()
 
-                # 4. Metadatos
+                # 3. Metadatos
                 if dl_metadata:
-                    self.scanProgress.emit(0.6, self.translator.t("lib_status_processing"))
+                    self.scanProgress.emit(0.5, self.translator.t("lib_status_processing"))
                     from core.metadata import descargar_metadata_biblioteca
                     def on_meta_progress(curr, total, name):
-                        # 60% to 100% range for metadata
-                        prog = 0.6 + (curr / total) * 0.4
+                        # 50% to 100% range for metadata
+                        prog = 0.5 + (curr / total) * 0.5
                         self.scanProgress.emit(prog, self.translator.t("dl_status_meta", name))
 
                     emu_map = {e["id"]: e for e in AVAILABLE_EMULATORS}
@@ -453,11 +440,7 @@ class AppBridge(QObject):
     # --- BIBLIOTECA (LIBRARY) ---
     @Property(list, notify=statsUpdated)
     def scannedConsoles(self):
-        print("[BRIDGE] scannedConsoles: Checking installed systems...")
         lib = scanner.cargar_biblioteca_cache()
-        if not lib:
-            # Si no hay juegos escaneados, aún podemos mostrar sistemas instalados vacíos
-            print("[BRIDGE] scannedConsoles: Library cache empty, checking for installed emus only.")
             
         result = []
         # Agrupar juegos por plataforma para contar rápido
@@ -493,8 +476,6 @@ class AppBridge(QObject):
         
         # Sort by count (filled consoles first)
         result.sort(key=lambda x: x["count"], reverse=True)
-        found_names = [r["name"] for r in result]
-        print(f"[BRIDGE] scannedConsoles: {len(result)} consoles found: {found_names}")
         return result
 
     @Slot(str, result=list)

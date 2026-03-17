@@ -78,27 +78,31 @@ async def descargar_metadata_biblioteca(juegos: list, emu_map: dict, on_progress
                     res = None
                     if wiki:
                         res = await wiki.fetch(session, nombre)
-                        if res: print(f"[METADATA] Wikipedia: ¡Encontrado! '{nombre}'")
+                        # if res: print(f"[METADATA] Wikipedia: ¡Encontrado! '{nombre}'")
+
                     
                     if not res and rawg:
-                        print(f"[METADATA] RAWG: Buscando '{nombre}'...")
+
                         res = await rawg.fetch(session, nombre)
-                        if res: print(f"[METADATA] RAWG: ¡Encontrado! '{nombre}'")
+                        # if res: print(f"[METADATA] RAWG: ¡Encontrado! '{nombre}'")
+
 
                     if not res and screenscraper:
                         emu_id = juego.get("id_emu", "")
                         emu_info = emu_map.get(emu_id, {})
                         ss_id = emu_info.get("screenscraper_id")
                         
-                        print(f"[METADATA] ScreenScraper: Buscando '{nombre}' (Sistema {ss_id or 'Auto'})...")
+
                         res = await screenscraper.fetch(session, nombre, ss_platform_id=ss_id)
-                        if res: print(f"[METADATA] ScreenScraper: ¡Encontrado! '{nombre}'")
+                        # if res: print(f"[METADATA] ScreenScraper: ¡Encontrado! '{nombre}'")
+
 
                     if res:
                         cache[ruta] = res
                         stats["ok"] += 1
                     else:
-                        print(f"[METADATA] Error: No se encontró info para '{nombre}' en ninguna fuente activa.")
+                        # print(f"[METADATA] Error: No se encontró info para '{nombre}' en ninguna fuente activa.")
+
                         cache[ruta] = cache.get(ruta, {})
                         stats["fail"] += 1
                 

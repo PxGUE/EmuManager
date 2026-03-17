@@ -85,7 +85,7 @@ async def escanear_roms(ruta_base: str, emu_id: str = None) -> List[Juego]:
         
         for folder in matched_folders:
             console_path = os.path.join(ruta_base, folder)
-            print(f"[SCANNER] Procesando carpeta: {folder} para emulador {emu['id']}")
+
             
             extensions = emu.get("extensions", [])
             for root, dirs, files in os.walk(console_path):

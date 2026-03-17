@@ -48,7 +48,8 @@ class Launcher:
                     except:
                         pass
                 
-                print(f"[DEBUG] Proceso {self.current_process.pid} y sus hijos terminados.")
+                # print(f"[DEBUG] Proceso {self.current_process.pid} y sus hijos terminados.")
+
                 self.current_process = None
                 return True
             except Exception as e:
@@ -109,7 +110,8 @@ class Launcher:
             self.current_game_start = time.time()
             return True, "¡Abierto correctamente!"
         except Exception as e:
-            print(f"[DEBUG LAUNCH] Error: {e}")
+            print(f"[ERROR LAUNCH] {e}")
+
             return False, f"Error al lanzar: {e}"
 
     def _encontrar_ejecutable(self, files):

@@ -11,7 +11,6 @@ Item {
 
     property bool scrapersExpanded: false
     property bool downloadArtwork: true
-    property bool downloadBackgrounds: true
     property bool downloadMetadata: true
     
     property real scanProgress: 0.0
@@ -232,7 +231,7 @@ Item {
                             Layout.preferredWidth: 180
                             Layout.preferredHeight: 44
                             enabled: bridge && bridge.dashboardStats && bridge.dashboardStats.installed > 0
-                            onClicked: bridge.scanGames(downloadArtwork, downloadBackgrounds, downloadMetadata, "")
+                            onClicked: bridge.scanGames(downloadArtwork, downloadMetadata, "")
                             
                             background: Rectangle {
                                 gradient: Gradient {
@@ -291,25 +290,6 @@ Item {
                             }
                         }
 
-                        // Backgrounds Item
-                        Rectangle {
-                            Layout.fillWidth: true; height: 50; radius: 12; color: downloadBackgrounds ? "#1a1e2e" : "#0f111a"
-                            border.color: downloadBackgrounds ? "#4da6ff" : "#252835"; border.width: 1
-                            Behavior on color { ColorAnimation { duration: 200 } }
-                            
-                            RowLayout {
-                                anchors.fill: parent; anchors.margins: 15; spacing: 15
-                                Label { text: "🌄"; font.pixelSize: 18 }
-                                Label { 
-                                    text: tr("dl_scrap_opt_backgrounds")
-                                    color: "white"; font.pixelSize: 13; font.weight: Font.Medium; Layout.fillWidth: true 
-                                }
-                                Switch {
-                                    checked: downloadBackgrounds
-                                    onToggled: downloadBackgrounds = checked
-                                }
-                            }
-                        }
 
                         // Metadata Item
                         Rectangle {

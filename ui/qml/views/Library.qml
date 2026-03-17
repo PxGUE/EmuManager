@@ -10,6 +10,7 @@ Item {
     
     property string currentConsoleId: ""
     property string currentConsoleName: ""
+    property string currentEmuName: ""
     property var currentGames: []
     property string currentBackground: (carousel.currentItem) ? carousel.currentItem.backgroundSource : ""
     property color currentAccentColor: (carousel.currentItem) ? carousel.currentItem.accentColor : "#4da6ff"
@@ -54,6 +55,13 @@ Item {
     readonly property real responsiveScale: Math.max(1.0, Math.min(width / 1000, height / 650))
     readonly property real cardWidth: 340 * responsiveScale
     readonly property real cardHeight: 480 * responsiveScale
+
+    // --- LÓGICA DE CENTRADO DE GRID ---
+    readonly property real gridCellWidth: 240
+    readonly property real gridHorizontalPadding: {
+        let available = gridContainer.width
+        return Math.max(0, (available - (Math.floor(available / gridCellWidth) * gridCellWidth)) / 2)
+    }
     Rectangle {
         anchors.fill: parent
         color: "#0a0b12"
@@ -211,40 +219,6 @@ Item {
                 border.color: isCurrent ? accentColor : "#2a2d3a"
                 border.width: isCurrent ? 3 : 1
                 
-                // Botón de Ajustes Minimalista (Top-Right)
-                Rectangle {
-                    id: settingsMiniBtn
-                    anchors.top: parent.top; anchors.right: parent.right
-                    anchors.topMargin: 20 * responsiveScale; anchors.rightMargin: 20 * responsiveScale
-                    width: 36 * responsiveScale; height: 36 * responsiveScale; radius: 18
-                    color: settingsBtnArea.containsMouse ? "#22ffffff" : "transparent"
-                    visible: isCurrent
-                    opacity: isCurrent ? 0.6 : 0.0
-                    z: 5
-                    
-                    Label {
-                        anchors.centerIn: parent
-                        text: "⚙️"
-                        font.pixelSize: 16 * responsiveScale
-                        opacity: settingsBtnArea.containsMouse ? 1.0 : 0.8
-                    }
-                    
-                    MouseArea {
-                        id: settingsBtnArea
-                        anchors.fill: parent; hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: {
-                            tweakPopup.currentEmuId = modelData.id
-                            tweakPopup.currentEmuName = modelData.emu_name
-                            tweakPopup.accentColor = accentColor
-                            tweakPopup.open()
-                        }
-                    }
-                    Behavior on color { ColorAnimation { duration: 150 } }
-                    Behavior on opacity { NumberAnimation { duration: 300 } }
-                    scale: settingsBtnArea.containsMouse ? 1.1 : 1.0
-                    Behavior on scale { NumberAnimation { duration: 200; easing.type: Easing.OutBack } }
-                }
 
                 // Efecto de Aura Pulsante al Clic (Dispersión)
                 Rectangle {
@@ -376,6 +350,7 @@ Item {
                                 if (index === carousel.currentIndex) {
                                     root.currentConsoleId = modelData.id
                                     root.currentConsoleName = modelData.name
+                                    root.currentEmuName = modelData.emu_name
                                     root.currentGames = bridge.getGamesForConsole(modelData.id)
                                     root.state = "grid"
                                     root.gridEntranceTriggered()
@@ -405,21 +380,21 @@ Item {
     Item {
         id: gridContainer
         anchors.fill: parent
+        anchors.margins: 40
         opacity: 0
         scale: 1.0
         visible: false
         
         ColumnLayout {
             anchors.fill: parent
-            anchors.margins: 40
             spacing: 30
 
             // Modern Transparent Header
             RowLayout {
                 id: gridHeader
                 Layout.fillWidth: true
-                Layout.leftMargin: (gamesGrid.width - (Math.floor(gamesGrid.width / gamesGrid.cellWidth) * gamesGrid.cellWidth)) / 2
-                Layout.rightMargin: Layout.leftMargin
+                Layout.leftMargin: root.gridHorizontalPadding
+                Layout.rightMargin: root.gridHorizontalPadding
                 spacing: 20
                 
                 Button {
@@ -485,6 +460,41 @@ Item {
                     scale: pressed ? 0.9 : 1.0
                 }
 
+                // Emulator Tweaks Button
+                Button {
+                    id: btnSettings
+                    Layout.preferredWidth: 44
+                    Layout.preferredHeight: 44
+                    onClicked: {
+                        tweakPopup.currentEmuId = root.currentConsoleId
+                        tweakPopup.currentEmuName = root.currentEmuName
+                        tweakPopup.accentColor = root.currentAccentColor
+                        tweakPopup.open()
+                    }
+                    background: Rectangle {
+                        radius: 22
+                        color: btnSettings.hovered ? "#22ffffff" : "#12ffffff"
+                        border.color: "#1affffff"
+                        border.width: 1
+                    }
+                    contentItem: Label {
+                        text: "⚙️"
+                        font.pixelSize: 18
+                        color: "white"
+                        horizontalAlignment: Text.AlignHCenter
+                        verticalAlignment: Text.AlignVCenter
+                        opacity: btnSettings.hovered ? 1.0 : 0.6
+                        Behavior on opacity { NumberAnimation { duration: 200 } }
+                    }
+                    
+                    ToolTip.visible: hovered
+                    ToolTip.text: tr("lib_emu_settings")
+                    ToolTip.delay: 500
+                    
+                    Behavior on scale { NumberAnimation { duration: 100 } }
+                    scale: pressed ? 0.9 : 1.0
+                }
+
                 // Search Bar
                 Rectangle {
                     Layout.preferredWidth: 300
@@ -519,7 +529,7 @@ Item {
                 id: gamesGrid
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                cellWidth: 240
+                cellWidth: root.gridCellWidth
                 cellHeight: 380
                 model: root.currentGames
                 property var currentItemData: null
@@ -527,8 +537,8 @@ Item {
                 boundsBehavior: Flickable.StopAtBounds
                 ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
                 
-                leftMargin: (width - (Math.floor(width / cellWidth) * cellWidth)) / 2
-                rightMargin: leftMargin
+                leftMargin: root.gridHorizontalPadding
+                rightMargin: root.gridHorizontalPadding
 
                 delegate: Item {
                     id: gameCardRoot

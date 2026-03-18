@@ -59,8 +59,9 @@ desktop.ini
 *.dist
 *.build
 AppDir/
-
-# --- Scripts internos ---
+releases/build_output/
+releases/portable/
+installer/
 
 # --- Scripts internos ---
 tools/

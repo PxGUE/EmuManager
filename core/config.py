@@ -13,19 +13,33 @@ PORTABLE_MODE = True
 REPO_URL = "https://github.com/PxGUE/EmuManager"
 
 # Rutas del Proyecto
-if getattr(sys, 'frozen', False):
-    # Si es un ejecutable (.exe o binario)
-    BASE_DIR = os.path.dirname(sys.executable)
+# RESOURCE_DIR: Directorio de recursos internos (QML, recursos por defecto)
+# DATA_DIR: Directorio de datos persistentes (biblioteca, config, artwork descargado)
+
+if getattr(sys, 'frozen', False) or "__compiled__" in globals():
+    # Si es un ejecutable (distribuido)
+    # Ruta de los archivos incluidos en el paquete (bundle)
+    RESOURCE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    # Ruta para datos persistentes (junto al ejecutable si es portable)
+    if os.getenv("APPIMAGE"):
+        # En AppImage, el ejecutable está en el monte, pero queremos los datos
+        # junto al archivo .AppImage real (o en el HOME si se prefiere)
+        # Para modo portable extremo, usamos el directorio del archivo .AppImage
+        DATA_BASE_DIR = os.path.dirname(os.getenv("APPIMAGE"))
+    else:
+        DATA_BASE_DIR = os.path.dirname(sys.executable)
 else:
     # Si corre como script de Python
-    BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    RESOURCE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    DATA_BASE_DIR = RESOURCE_DIR
 
-DATA_DIR = os.path.join(BASE_DIR, "data")
-MEDIA_DIR = os.path.join(BASE_DIR, "media")
+BASE_DIR = RESOURCE_DIR # Retrocompatibilidad
+DATA_DIR = os.path.join(DATA_BASE_DIR, "data")
+MEDIA_DIR = os.path.join(DATA_BASE_DIR, "media")
 
 # Archivos de Datos
 SETTINGS_FILE = os.path.join(DATA_DIR, "config.json")
-EMULATORS_FILE = os.path.join(BASE_DIR, "resources", "emulators.json")
+EMULATORS_FILE = os.path.join(RESOURCE_DIR, "resources", "emulators.json")
 METADATA_FILE = os.path.join(DATA_DIR, "metadata.json")
 FAVORITES_FILE = os.path.join(DATA_DIR, "favorites.json")
 

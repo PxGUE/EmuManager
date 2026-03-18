@@ -11,15 +11,16 @@ def compile():
     # 1. Rutas base
     root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
     main_py = os.path.join(root_dir, "main.py")
-    output_dir = os.path.join(root_dir, "releases")
+    output_dir = os.path.join(root_dir, "releases", "build_output")
     
     # 2. Comando base de Nuitka
     command = [
         sys.executable, "-m", "nuitka",
         "--standalone",
-        "--onefile",
         "--enable-plugin=pyside6",
+        "--include-qt-plugins=qml",
         f"--output-dir={output_dir}",
+        "--output-filename=emumanager",
         "--remove-output", # Limpia la carpeta de build temporal al terminar
         main_py
     ]
@@ -32,7 +33,6 @@ def compile():
     # 3. Incluir directorios de recursos necesarios
     # Nuitka copiará estos directorios dentro del paquete
     resources = [
-        ("ui/styles", "ui/styles"),
         ("ui/qml", "ui/qml"),
         ("media", "media"), # Solo iconos base, el artwork se descarga
         ("resources", "resources"), # Base de datos de emuladores

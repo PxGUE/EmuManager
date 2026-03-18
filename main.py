@@ -12,10 +12,7 @@ from core.emulators.manager import EmuladorManager
 from core.i18n import Translator
 from ui.bridge import AppBridge
 
-def get_resource_path(relative_path):
-    """Obtiene la ruta absoluta a un recurso, compatible con Nuitka."""
-    base_path = os.path.dirname(os.path.abspath(__file__))
-    return os.path.join(base_path, relative_path)
+from core.config import get_resource_path
 
 def qt_message_handler(mode, context, message):
     if "libpng warning: iCCP" in message or "CRC error" in message:

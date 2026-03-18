@@ -55,6 +55,7 @@ desktop.ini
 *.exe
 *.bin
 *.AppImage
+*.desktop
 *.dist
 *.build
 AppDir/

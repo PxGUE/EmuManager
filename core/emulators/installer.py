@@ -42,9 +42,9 @@ class Installer:
             print(f"[INSTALLER] Error detectando distro: {e}")
         return "generic"
 
-    def _fetch_release_data(self, repo_github: str):
+    def _fetch_release_data(self, repo_github: str, bypass_cache: bool = False):
         now = time.time()
-        if repo_github in self.manager.release_cache:
+        if not bypass_cache and repo_github in self.manager.release_cache:
             cache_time, data = self.manager.release_cache[repo_github]
             if now - cache_time < self.cache_duration:
                 return data
@@ -182,10 +182,11 @@ class Installer:
                 target_repo = emu_info["github_linux"]
 
         yield "PROGRESS:0.05|Buscando versiones en GitHub..."
-        releases_data = await asyncio.to_thread(self._fetch_release_data, target_repo)
+        releases_data = await asyncio.to_thread(self._fetch_release_data, target_repo, bypass_cache=True)
         
         download_url = None
         filename = None
+        chosen_release = None
 
         if releases_data and isinstance(releases_data, list):
             for release in releases_data[:3]:
@@ -194,6 +195,7 @@ class Installer:
                     if asset:
                         download_url = asset["browser_download_url"]
                         filename = asset["name"]
+                        chosen_release = release
                         break
         elif releases_data and isinstance(releases_data, dict):
             if "assets" in releases_data:
@@ -201,6 +203,7 @@ class Installer:
                 if asset:
                     download_url = asset["browser_download_url"]
                     filename = asset["name"]
+                    chosen_release = releases_data
 
         if not download_url:
             for emu in AVAILABLE_EMULATORS:
@@ -309,9 +312,11 @@ class Installer:
             yield "ERROR:Falla en la configuración local."
             return
         
-        # Determinar la versión instalada
+        # Determinar la versión instalada exacta
         version_str = "latest"
-        if isinstance(releases_data, list) and len(releases_data) > 0:
+        if chosen_release:
+            version_str = chosen_release.get("tag_name", "latest")
+        elif isinstance(releases_data, list) and len(releases_data) > 0:
             version_str = releases_data[0].get("tag_name", "latest")
         elif isinstance(releases_data, dict):
             version_str = releases_data.get("tag_name", "latest")

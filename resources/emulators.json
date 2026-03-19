@@ -9,7 +9,8 @@
     "github": "RPCS3/rpcs3",
     "github_win": "RPCS3/rpcs3-binaries-win",
     "github_linux": "RPCS3/rpcs3-binaries-linux",
-    "website": "https://rpcs3.net/"
+    "website": "https://rpcs3.net/",
+    "extensions": [".ps3", ".pkg", ".iso"]
   },
   {
     "id": "pcsx2",
@@ -19,7 +20,8 @@
     "color": "#003791",
     "folder": "PS2",
     "github": "PCSX2/pcsx2",
-    "website": "https://pcsx2.net/"
+    "website": "https://pcsx2.net/",
+    "extensions": [".iso", ".chd", ".cso", ".gz", ".bin", ".elf"]
   },
   {
     "id": "duckstation",
@@ -29,7 +31,8 @@
     "color": "#fe0000",
     "folder": "PS1",
     "github": "stenzek/duckstation",
-    "website": "https://www.duckstation.org/"
+    "website": "https://www.duckstation.org/",
+    "extensions": [".bin", ".cue", ".chd", ".iso", ".m3u", ".pbp"]
   },
   {
     "id": "dolphin",
@@ -39,7 +42,8 @@
     "color": "#5179df",
     "folder": "Wii_GC",
     "github": "dolphin-emu/dolphin",
-    "website": "https://dolphin-emu.org/"
+    "website": "https://dolphin-emu.org/",
+    "extensions": [".iso", ".gcm", ".rvz", ".wbfs", ".elf", ".dol", ".wad"]
   },
   {
     "id": "ppsspp",
@@ -49,7 +53,8 @@
     "color": "#2148ad",
     "folder": "PSP",
     "github": "hrydgard/ppsspp",
-    "website": "https://www.ppsspp.org/"
+    "website": "https://www.ppsspp.org/",
+    "extensions": [".iso", ".cso", ".pbp"]
   },
   {
     "id": "xemu",
@@ -59,7 +64,8 @@
     "color": "#107c10",
     "folder": "Xbox",
     "github": "xemu-project/xemu",
-    "website": "https://xemu.app/"
+    "website": "https://xemu.app/",
+    "extensions": [".iso", ".xiso"]
   },
   {
     "id": "cemu",
@@ -69,7 +75,8 @@
     "color": "#00acc1",
     "folder": "WiiU",
     "github": "cemu-project/Cemu",
-    "website": "https://cemu.info/"
+    "website": "https://cemu.info/",
+    "extensions": [".wud", ".wux", ".wua", ".rpx"]
   },
   {
     "id": "lime3ds",
@@ -79,7 +86,8 @@
     "color": "#ce181e",
     "folder": "3DS",
     "github": "Lime3DS/Lime3DS",
-    "website": "https://lime3ds.github.io/"
+    "website": "https://lime3ds.github.io/",
+    "extensions": [".3ds", ".cia", ".cci", ".cxi"]
   },
   {
     "id": "mgba",
@@ -89,7 +97,8 @@
     "color": "#4a148c",
     "folder": "GBA",
     "github": "mgba-emu/mgba",
-    "website": "https://mgba.io/"
+    "website": "https://mgba.io/",
+    "extensions": [".gba", ".gbc", ".gb", ".sgb", ".zip", ".7z"]
   },
   {
     "id": "mesen",
@@ -99,7 +108,8 @@
     "color": "#d32f2f",
     "folder": "Mesen",
     "github": "SourMesen/Mesen2",
-    "website": "https://www.mesen.ca/"
+    "website": "https://www.mesen.ca/",
+    "extensions": [".nes", ".snes", ".gb", ".gbc", ".fds", ".pce"]
   },
   {
     "id": "vita3k",
@@ -109,7 +119,8 @@
     "color": "#0032a0",
     "folder": "Vita",
     "github": "Vita3K/Vita3K",
-    "website": "https://vita3k.org/"
+    "website": "https://vita3k.org/",
+    "extensions": [".zip", ".vpk"]
   },
   {
     "id": "rmg",
@@ -119,7 +130,8 @@
     "color": "#304ffe",
     "folder": "N64",
     "github": "Rosalie241/RMG",
-    "website": "https://github.com/Rosalie241/RMG"
+    "website": "https://github.com/Rosalie241/RMG",
+    "extensions": [".z64", ".n64", ".v64", ".zip"]
   },
   {
     "id": "retroarch",
@@ -129,6 +141,7 @@
     "color": "#5e35b1",
     "folder": "RetroArch",
     "github": "libretro/RetroArch",
-    "website": "https://www.libretro.com/"
+    "website": "https://www.libretro.com/",
+    "extensions": [".iso", ".bin", ".cue"]
   }
 ]

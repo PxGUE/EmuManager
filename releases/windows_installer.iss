@@ -2,7 +2,7 @@
 ; Genera un instalador profesional para Windows
 
 #define MyAppName "EmuManager"
-#define MyAppVersion "0.1.13-alpha"
+#define MyAppVersion "0.1.20-alpha"
 #define MyAppPublisher "PxGUE"
 #define MyAppURL "https://github.com/PxGUE/EmuManager"
 #define MyAppExeName "emumanager.exe"

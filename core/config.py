@@ -8,7 +8,7 @@ import sys
 
 # Metadatos de la Aplicación
 APP_NAME = "EmuManager"
-APP_VERSION = "0.1.13-alpha"
+APP_VERSION = "0.1.20-alpha"
 PORTABLE_MODE = True
 REPO_URL = "https://github.com/PxGUE/EmuManager"
 

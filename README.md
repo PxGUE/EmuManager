@@ -1,6 +1,6 @@
 # EmuManager
 
-![Versión](https://img.shields.io/badge/version-0.1.13--alpha-blue.svg)
+![Versión](https://img.shields.io/badge/version-0.1.20--alpha-blue.svg)
 ![Licencia](https://img.shields.io/badge/license-GNU%20GPLv3-green.svg)
 ![Python](https://img.shields.io/badge/python-3.9%2B-yellow.svg)
 

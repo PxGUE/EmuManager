@@ -9,6 +9,7 @@ import aiohttp
 import json
 import os
 import platform
+import re
 from typing import Dict, Any, List, Optional
 
 async def check_for_update(github_repo: str, current_version: str) -> dict:
@@ -66,8 +67,37 @@ async def check_for_update(github_repo: str, current_version: str) -> dict:
                                 changed = True
                     return v
 
-                v_curr = normalize(current_version)
-                v_late = normalize(latest_tag)
+                v_curr_orig = current_version
+                v_late_orig = latest_tag
+
+                # Función para comparar versiones de forma numérica y alfanumérica
+                def version_is_newer(local, remote):
+                    def split_v(v):
+                        normalized = normalize(v)
+                        # Dividir por puntos, guiones, subrayados
+                        return [int(c) if c.isdigit() else c for c in re.split(r'[-._]', normalized) if c]
+
+                    try:
+                        l_parts = split_v(local)
+                        r_parts = split_v(remote)
+                        
+                        # Comparar parte por parte
+                        for l, r in zip(l_parts, r_parts):
+                            if isinstance(l, int) and isinstance(r, int):
+                                if r > l: return True
+                                if l > r: return False
+                            else: # Comparación alfanumérica
+                                if str(r) > str(l): return True
+                                if str(l) > str(r): return False
+                        
+                        # Si una versión tiene más partes que la otra, la más larga suele ser más específica/nueva
+                        return len(r_parts) > len(l_parts)
+                    except Exception as e:
+                        logger.warning(f"Error comparando versiones '{local}' y '{remote}': {e}. Fallback a desigualdad.")
+                        return remote != local # Fallback a desigualdad si falla el parseo
+
+                v_curr = normalize(v_curr_orig)
+                v_late = normalize(v_late_orig)
                 
                 # Verificación de identidad
                 is_same = (v_late == v_curr)
@@ -77,18 +107,27 @@ async def check_for_update(github_repo: str, current_version: str) -> dict:
                     if v_late in v_curr or v_curr in v_late:
                         is_same = True
 
-                # Caso especial: Palabras clave
-                keywords = ["latest", "manual", "continuous", "preview", "rolling"]
-                if not is_same and (current_version.lower() in keywords or v_curr in keywords):
-                    is_same = True
-
-                update_available = not is_same and v_late != ""
+                # Caso especial: Palabras clave (si el usuario instaló una versión "master/rolling")
+                # Solo forzamos actualización si la versión local es "detected" (no sabemos qué es)
+                # O si la versión remota es un número de versión claro y la local es genérica.
+                force_update = False
+                if not is_same:
+                    if v_curr_orig.lower() in ["detected", "manual"]:
+                        force_update = True
+                    elif v_curr_orig.lower() == "rolling" and v_late_orig.lower() != "rolling":
+                        force_update = True
                 
+                if force_update:
+                    update_available = v_late != ""
+                else:
+                    # Comparación real de jerarquía para el resto de casos (v1.2 vs v1.3, preview vs latest, etc.)
+                    update_available = not is_same and version_is_newer(v_curr_orig, v_late_orig)
+
                 # Log para depuración en consola
                 if update_available:
                     print(f"[UPDATER] Actualización disponible para {github_repo}: Local({current_version}) -> Remoto({latest_tag})")
                 else:
-                    if v_late:
+                    if v_late_orig:
                         print(f"[UPDATER] {github_repo} al día: {latest_tag}")
                 
                 return {

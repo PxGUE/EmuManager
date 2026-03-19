@@ -181,6 +181,7 @@ class LibraryBridge(QObject):
                 })
         
         games.sort(key=lambda x: x["name"].lower())
+        print(f"[BRIDGE] getGamesForConsole({console_id}) -> {len(games)} juegos encontrados.")
         return games
 
     @Slot(str, dict)

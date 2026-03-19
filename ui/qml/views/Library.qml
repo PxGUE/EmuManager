@@ -14,7 +14,7 @@ import "../components"
  * detalles del juego en un panel lateral expansible.
  */
 Item {
-    id: root
+    id: libraryRoot
     
     state: "carousel" // Estados posibles: "carousel" o "grid"
     
@@ -27,6 +27,7 @@ Item {
     // Propiedades de búsqueda y filtrado
     property string searchText: searchInput.text
     property bool onlyFavorites: false
+    property bool needsHardRefresh: false
     
     /**
      * Motor de filtrado reactivo.
@@ -34,9 +35,11 @@ Item {
      */
     property var filteredGames: {
         if (!currentGames) return []
+        let search = (libraryRoot.searchText || "").toLowerCase()
         return currentGames.filter(game => {
-            let matchSearch = root.searchText === "" || (game.title || game.name).toLowerCase().includes(root.searchText.toLowerCase())
-            let matchFav = !root.onlyFavorites || game.isFavorite
+            let titleStr = (game.title || game.name || "").toLowerCase()
+            let matchSearch = search === "" || titleStr.includes(search)
+            let matchFav = !libraryRoot.onlyFavorites || game.isFavorite
             return matchSearch && matchFav
         })
     }
@@ -58,10 +61,19 @@ Item {
     Connections {
         target: bridge
         function onStatsUpdated() {
-            root.isEmpty = (bridge.lib.scannedConsoles.length === 0)
-            carousel.model = bridge.lib.scannedConsoles
-            if (root.state === "grid" && root.currentConsoleId !== "") {
-                root.currentGames = bridge.lib.getGamesForConsole(root.currentConsoleId)
+            // Actualizar datos del carrusel
+            let consoles = bridge.lib.scannedConsoles
+            libraryRoot.isEmpty = (consoles.length === 0)
+            carousel.model = consoles
+            
+            // Solo forzar actualización del modelo si se ha marcado explícitamente (ej: tras un escaneo)
+            // O si no estamos en modo grid todavía (primera carga)
+            if (libraryRoot.state === "grid" && libraryRoot.currentConsoleId !== "") {
+                if (libraryRoot.needsHardRefresh) {
+                    let games = bridge.lib.getGamesForConsole(libraryRoot.currentConsoleId)
+                    libraryRoot.currentGames = games
+                    libraryRoot.needsHardRefresh = false
+                }
             }
         }
     }
@@ -75,7 +87,7 @@ Item {
     SequentialAnimation {
         id: bgFadeAnim
         NumberAnimation { target: immersiveBg; property: "opacity"; to: 0; duration: 250 }
-        PropertyAction { target: immersiveBg; property: "source"; value: root.currentBackground }
+        PropertyAction { target: immersiveBg; property: "source"; value: libraryRoot.currentBackground }
         NumberAnimation { target: immersiveBg; property: "opacity"; to: 0.4; duration: 600; easing.type: Easing.OutQuad }
     }
     
@@ -131,7 +143,7 @@ Item {
         // Overlay Grid
         Rectangle {
             anchors.fill: parent
-            visible: root.state === "grid"
+            visible: libraryRoot.state === "grid"
             color: "#ee000000"
         }
     }
@@ -170,8 +182,8 @@ Item {
         z: 10
         anchors.fill: parent
         anchors.topMargin: 40
-        visible: !root.isEmpty
-        opacity: root.state === "carousel" ? 1 : 0
+        visible: !libraryRoot.isEmpty
+        opacity: libraryRoot.state === "carousel" ? 1 : 0
         model: (bridge && bridge.lib.scannedConsoles) ? bridge.lib.scannedConsoles : []
         pathItemCount: 5
         preferredHighlightBegin: 0.5
@@ -216,8 +228,8 @@ Item {
 
         delegate: Item {
             id: delegateRoot
-            width: root.cardWidth
-            height: root.cardHeight
+            width: libraryRoot.cardWidth
+            height: libraryRoot.cardHeight
             z: PathView.itemZ || 0
             scale: PathView.itemScale || 1.0
             opacity: PathView.itemOpacity || 0.0
@@ -376,12 +388,12 @@ Item {
                             onClicked: {
                                 dispersionAnim.restart()
                                 if (index === carousel.currentIndex) {
-                                    root.currentConsoleId = modelData.id
-                                    root.currentConsoleName = modelData.name
-                                    root.currentEmuName = modelData.emu_name
-                                    root.currentGames = bridge.lib.getGamesForConsole(modelData.id)
-                                    root.state = "grid"
-                                    root.gridEntranceTriggered()
+                                    libraryRoot.currentConsoleId = modelData.id
+                                    libraryRoot.currentConsoleName = modelData.name
+                                    libraryRoot.currentEmuName = modelData.emu_name
+                                    libraryRoot.currentGames = bridge.lib.getGamesForConsole(modelData.id)
+                                    libraryRoot.state = "grid"
+                                    libraryRoot.gridEntranceTriggered()
                                 } else {
                                     carousel.currentIndex = index
                                 }
@@ -421,15 +433,15 @@ Item {
             RowLayout {
                 id: gridHeader
                 Layout.fillWidth: true
-                Layout.leftMargin: root.gridHorizontalPadding
-                Layout.rightMargin: root.gridHorizontalPadding
+                Layout.leftMargin: libraryRoot.gridHorizontalPadding
+                Layout.rightMargin: libraryRoot.gridHorizontalPadding
                 spacing: 20
                 
                 Button {
                     id: btnBackGrid
                     Layout.preferredWidth: 48
                     Layout.preferredHeight: 48
-                    onClicked: root.state = "carousel"
+                    onClicked: libraryRoot.state = "carousel"
                     background: Rectangle {
                         radius: 24
                         color: btnBackGrid.hovered ? "#33ffffff" : "#11ffffff"
@@ -442,13 +454,13 @@ Item {
                 ColumnLayout {
                     spacing: 0
                     Label {
-                        text: root.currentConsoleName
+                        text: libraryRoot.currentConsoleName
                         font.pixelSize: 26
                         font.bold: true
                         color: "white"
                     }
                     Label {
-                        text: tr("lib_games_count", root.filteredGames.length).toUpperCase()
+                        text: tr("lib_games_count", libraryRoot.filteredGames.length).toUpperCase()
                         font.pixelSize: 10
                         font.bold: true
                         color: currentAccentColor
@@ -466,16 +478,16 @@ Item {
                         id: btnFavFilter
                         Layout.preferredWidth: 44
                         Layout.preferredHeight: 44
-                        onClicked: root.onlyFavorites = !root.onlyFavorites
+                        onClicked: libraryRoot.onlyFavorites = !libraryRoot.onlyFavorites
                         background: Rectangle {
                             radius: 22
-                            color: btnFavFilter.hovered ? "#22ffffff" : (root.onlyFavorites ? "#33ffff00" : "#12ffffff")
-                            border.color: root.onlyFavorites ? "#ffff00" : "transparent"
+                            color: btnFavFilter.hovered ? "#22ffffff" : (libraryRoot.onlyFavorites ? "#33ffff00" : "#12ffffff")
+                            border.color: libraryRoot.onlyFavorites ? "#ffff00" : "transparent"
                             border.width: 1
                         }
                         contentItem: Label {
                             text: "⭐"
-                            opacity: root.onlyFavorites ? 1.0 : 0.4
+                            opacity: libraryRoot.onlyFavorites ? 1.0 : 0.4
                             horizontalAlignment: Text.AlignHCenter
                             verticalAlignment: Text.AlignVCenter
                             font.pixelSize: 18
@@ -487,7 +499,11 @@ Item {
                     id: btnRefresh
                     Layout.preferredWidth: 44
                     Layout.preferredHeight: 44
-                    onClicked: bridge.lib.scanGames(false, false, root.currentConsoleId)
+                    onClicked: {
+                        searchInput.text = ""
+                        libraryRoot.needsHardRefresh = true
+                        bridge.lib.scanGames(false, false, libraryRoot.currentConsoleId)
+                    }
                     background: Rectangle {
                         radius: 22
                         color: btnRefresh.hovered ? "#22ffffff" : "#12ffffff"
@@ -502,6 +518,11 @@ Item {
                         verticalAlignment: Text.AlignVCenter
                         opacity: btnRefresh.hovered ? 1.0 : 0.6
                         Behavior on opacity { NumberAnimation { duration: 200 } }
+                        
+                        RotationAnimation on rotation {
+                            running: btnRefresh.pressed
+                            from: 0; to: 360; duration: 500; loops: Animation.Infinite
+                        }
                     }
                     
                     ToolTip.visible: hovered
@@ -518,9 +539,9 @@ Item {
                     Layout.preferredWidth: 44
                     Layout.preferredHeight: 44
                     onClicked: {
-                        tweakPopup.currentEmuId = root.currentConsoleId
-                        tweakPopup.currentEmuName = root.currentEmuName
-                        tweakPopup.accentColor = root.currentAccentColor
+                        tweakPopup.currentEmuId = libraryRoot.currentConsoleId
+                        tweakPopup.currentEmuName = libraryRoot.currentEmuName
+                        tweakPopup.accentColor = libraryRoot.currentAccentColor
                         tweakPopup.open()
                     }
                     background: Rectangle {
@@ -582,26 +603,29 @@ Item {
                 id: gamesGrid
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                cellWidth: root.gridCellWidth
+                cellWidth: libraryRoot.gridCellWidth
                 cellHeight: 380
-                model: root.filteredGames
+                model: libraryRoot.filteredGames
                 property var currentItemData: null
                 clip: true
-                boundsBehavior: Flickable.StopAtBounds
-                ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
                 
-                leftMargin: root.gridHorizontalPadding
-                rightMargin: root.gridHorizontalPadding
+                // --- COMPORTAMIENTO NATIVO (Mejor inercia) ---
+                ScrollBar.vertical: ScrollBar { 
+                    policy: ScrollBar.AsNeeded
+                }
+                
+                leftMargin: libraryRoot.gridHorizontalPadding
+                rightMargin: libraryRoot.gridHorizontalPadding
 
                 delegate: Item {
                     id: gameCardRoot
                     width: 240
                     height: 380
                     
-                    // PROPIEDAD MAESTRA: El único estado de verdad
-                    property bool isHovered: masterArea.containsMouse || 
-                                             (typeof infoBtnMouse !== "undefined" && infoBtnMouse.containsMouse) || 
-                                             (typeof favBtnMouse !== "undefined" && favBtnMouse.containsMouse)
+                    // ESTADO DE SELECCIÓN: Sincronizado con Hover y Botones
+                    property bool isHovered: cardHover.hovered || 
+                                             (typeof infoBtnMouse !== "undefined" && infoBtnMouse.hovered) || 
+                                             (typeof favBtnMouse !== "undefined" && favBtnMouse.hovered)
 
                     // --- ANIMACIÓN DE ENTRADA ---
                     SequentialAnimation {
@@ -615,7 +639,7 @@ Item {
                     }
 
                     Connections {
-                        target: root
+                        target: libraryRoot
                         function onGridEntranceTriggered() {
                             cardBody.opacity = 0
                             cardBody.scale = 0.8
@@ -623,78 +647,78 @@ Item {
                         }
                     }
 
-                    // 1. ÁREA DE INTERACCIÓN MAESTRA (Base estática para clics y hover general)
-                    MouseArea {
-                        id: masterArea
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: containsMouse ? Qt.PointingHandCursor : Qt.ArrowCursor
-                        onEntered: { gamesGrid.currentItemData = modelData }
-                        onClicked: {
+                    // 1. GESTIÓN MODERNA DE EVENTOS (No bloquea el scroll)
+                    HoverHandler {
+                        id: cardHover
+                        onHoveredChanged: if (hovered) gamesGrid.currentItemData = modelData
+                    }
+                    
+                    TapHandler {
+                        onTapped: {
                             if (window && window.requestLaunch) 
                                 window.requestLaunch(modelData.path, modelData.id_emu, modelData.name)
                         }
+                    }
 
-                        // 2. CUERPO VISUAL (Solo estética, reacciona al estado isHovered)
+                    // 2. CUERPO VISUAL
+                    Rectangle {
+                        id: cardBody
+                        anchors.fill: parent
+                        anchors.margins: 12
+                        radius: 28
+                        color: "#1a1c26"
+                        clip: true
+                        scale: isHovered ? 1.05 : 1.0
+                        z: isHovered ? 10 : 1
+                        Behavior on scale { NumberAnimation { duration: 350; easing.type: Easing.OutBack } }
+
+                        // Borde Glow
                         Rectangle {
-                            id: cardBody
+                            anchors.fill: parent; radius: 28; color: "transparent"
+                            border.color: currentAccentColor
+                            border.width: isHovered ? 3 : 1
+                            opacity: isHovered ? 1.0 : 0.2
+                            Behavior on border.width { NumberAnimation { duration: 200 } }
+                        }
+
+                        Image {
+                            id: coverImg
                             anchors.fill: parent
-                            anchors.margins: 12
-                            radius: 28
-                            color: "#1a1c26"
-                            clip: true
-                            scale: isHovered ? 1.05 : 1.0
-                            z: isHovered ? 10 : 1
-                            Behavior on scale { NumberAnimation { duration: 350; easing.type: Easing.OutBack } }
+                            source: modelData.cover || ""
+                            fillMode: Image.PreserveAspectCrop
+                            opacity: modelData.cover ? (isHovered ? 1.0 : 0.8) : 0.1
+                            scale: isHovered ? 1.1 : 1.0
+                            Behavior on scale { NumberAnimation { duration: 1200; easing.type: Easing.OutCubic } }
+                        }
 
-                            // Borde Glow
-                            Rectangle {
-                                anchors.fill: parent; radius: 28; color: "transparent"
-                                border.color: currentAccentColor
-                                border.width: isHovered ? 3 : 1
-                                opacity: isHovered ? 1.0 : 0.2
-                                Behavior on border.width { NumberAnimation { duration: 200 } }
+                        // Overlay de Información
+                        Rectangle {
+                            id: infoOverlay
+                            anchors.bottom: parent.bottom
+                            width: parent.width
+                            height: isHovered ? 100 : 70
+                            gradient: Gradient {
+                                GradientStop { position: 0.0; color: "transparent" }
+                                GradientStop { position: 0.4; color: Qt.rgba(10/255, 12/255, 20/255, 0.9) }
+                                GradientStop { position: 1.0; color: "#0a0c14" }
                             }
+                            Behavior on height { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
 
-                            Image {
-                                id: coverImg
+                            ColumnLayout {
                                 anchors.fill: parent
-                                source: modelData.cover || ""
-                                fillMode: Image.PreserveAspectCrop
-                                opacity: modelData.cover ? (isHovered ? 1.0 : 0.8) : 0.1
-                                scale: isHovered ? 1.1 : 1.0
-                                Behavior on scale { NumberAnimation { duration: 1200; easing.type: Easing.OutCubic } }
-                            }
-
-                            // Overlay de Información
-                            Rectangle {
-                                id: infoOverlay
-                                anchors.bottom: parent.bottom
-                                width: parent.width
-                                height: isHovered ? 100 : 70
-                                gradient: Gradient {
-                                    GradientStop { position: 0.0; color: "transparent" }
-                                    GradientStop { position: 0.4; color: Qt.rgba(10/255, 12/255, 20/255, 0.9) }
-                                    GradientStop { position: 1.0; color: "#0a0c14" }
+                                anchors.margins: 16
+                                spacing: 4
+                                Label {
+                                    Layout.fillWidth: true
+                                    text: modelData.name
+                                    color: "white"; font.pixelSize: 14; font.bold: true
+                                    elide: Text.ElideRight; maximumLineCount: 2
+                                    wrapMode: Text.WordWrap
                                 }
-                                Behavior on height { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
-
-                                ColumnLayout {
-                                    anchors.fill: parent
-                                    anchors.margins: 16
-                                    spacing: 4
-                                    Label {
-                                        Layout.fillWidth: true
-                                        text: modelData.name
-                                        color: "white"; font.pixelSize: 14; font.bold: true
-                                        elide: Text.ElideRight; maximumLineCount: 2
-                                        wrapMode: Text.WordWrap
-                                    }
-                                    Label { 
-                                        text: "🕒 " + modelData.playtime
-                                        color: "#b0ffffff"; font.pixelSize: 11
-                                        visible: isHovered 
-                                    }
+                                Label { 
+                                    text: "🕒 " + modelData.playtime
+                                    color: "#b0ffffff"; font.pixelSize: 11
+                                    visible: isHovered 
                                 }
                             }
                         }
@@ -719,15 +743,14 @@ Item {
                             Label {
                                 anchors.centerIn: parent
                                 text: "ⓘ"
-                                font.pixelSize: 20; color: infoBtnMouse.containsMouse ? "black" : "white"
+                                font.pixelSize: 20; color: infoBtnMouse.hovered ? "black" : "white"
                             }
                             
-                            MouseArea {
-                                id: infoBtnMouse
-                                anchors.fill: parent; hoverEnabled: true
-                                onClicked: (mouse) => {
-                                    mouse.accepted = true
-                                    root.selectedGame = modelData
+                            HoverHandler { id: infoBtnMouse }
+                            
+                            TapHandler {
+                                onTapped: {
+                                    libraryRoot.selectedGame = modelData
                                     infoPanel.open()
                                 }
                             }
@@ -736,7 +759,7 @@ Item {
                         // Botón FAVORITO
                         Rectangle {
                             width: 38; height: 38; radius: 19
-                            color: favBtnMouse.containsMouse ? "#ff4d4d" : (modelData.isFavorite ? "#33ff4d4d" : "#e00a0c14")
+                            color: favBtnMouse.hovered ? "#ff4d4d" : (modelData.isFavorite ? "#33ff4d4d" : "#e00a0c14")
                             border.color: modelData.isFavorite ? "#ff4d4d" : currentAccentColor
                             border.width: 1
                             
@@ -746,13 +769,16 @@ Item {
                                 font.pixelSize: 18
                             }
                             
-                            MouseArea {
-                                id: favBtnMouse
-                                anchors.fill: parent; hoverEnabled: true
-                                onClicked: (mouse) => {
-                                    mouse.accepted = true
-                                    modelData.isFavorite = bridge.lib.toggleFavorite(modelData.path)
-                                    root.currentGames = bridge.lib.getGamesForConsole(root.currentConsoleId)
+                            HoverHandler { id: favBtnMouse }
+                            
+                            TapHandler {
+                                onTapped: {
+                                    let newVal = bridge.lib.toggleFavorite(modelData.path)
+                                    modelData.isFavorite = newVal
+                                    
+                                    if (libraryRoot.onlyFavorites) {
+                                        libraryRoot.needsHardRefresh = true
+                                    }
                                 }
                             }
                         }
@@ -837,13 +863,6 @@ Item {
         function close() { x = parent.width; isOpen = false }
 
         Behavior on x { NumberAnimation { duration: 600; easing.type: Easing.OutQuart } }
-
-        // Blur para fondo
-        Rectangle {
-            anchors.fill: parent; color: "transparent"; z: -1
-            // Aquí iría un FastBlur si estuviéramos usando capas de efectos, 
-            // por ahora usamos la opacidad del color base.
-        }
 
         ColumnLayout {
             anchors.fill: parent
@@ -938,42 +957,76 @@ Item {
                     }
                 }
 
-                // Botón Favorito Sutil (Estilo Tarjeta)
-                Rectangle {
-                    width: 48; height: 48; radius: 24
-                    color: favInfoMouse.containsMouse ? (selectedGame && selectedGame.isFavorite ? "#33ff4d4d" : "#22ffffff") : "transparent"
-                    border.color: selectedGame && selectedGame.isFavorite ? "#ff4d4d" : "#33ffffff"
-                    border.width: 1
+                // Botones de Acción (Editar + Favorito)
+                RowLayout {
+                    spacing: 12
                     Layout.alignment: Qt.AlignTop
                     
-                    Label {
-                        anchors.centerIn: parent
-                        text: selectedGame && selectedGame.isFavorite ? "❤️" : "🤍"
-                        font.pixelSize: 22
-                    }
-                    
-                    MouseArea {
-                        id: favInfoMouse
-                        anchors.fill: parent; hoverEnabled: true
-                        onClicked: {
-                            if (selectedGame) {
-                                // Cambiamos el estado en el backend
-                                let newState = bridge.toggleFavorite(selectedGame.path)
-                                selectedGame.isFavorite = newState
-                                
-                                // Forzamos el refresco de los bindings notificando el cambio de selectedGame
-                                let temp = selectedGame
-                                selectedGame = null
-                                selectedGame = temp
-                                
-                                // Refrescamos también el grid principal
-                                root.currentGames = bridge.getGamesForConsole(root.currentConsoleId)
+                    // Botón Editar Metadatos (Lápiz)
+                    Rectangle {
+                        width: 48; height: 48; radius: 24
+                        color: editInfoMouse.containsMouse ? "#22ffffff" : "transparent"
+                        border.color: "#33ffffff"
+                        border.width: 1
+                        
+                        Label {
+                            anchors.centerIn: parent
+                            text: "✏️"
+                            font.pixelSize: 20
+                        }
+                        
+                        MouseArea {
+                            id: editInfoMouse
+                            anchors.fill: parent; hoverEnabled: true
+                            onClicked: {
+                                metaEditor.gameData = libraryRoot.selectedGame
+                                metaEditor.open()
                             }
                         }
+                        
+                        Behavior on color { ColorAnimation { duration: 200 } }
+                        scale: editInfoMouse.pressed ? 0.85 : (editInfoMouse.containsMouse ? 1.1 : 1.0)
+                        Behavior on scale { NumberAnimation { duration: 150; easing.type: Easing.OutBack } }
                     }
-                    
-                    Behavior on color { ColorAnimation { duration: 200 } }
-                Behavior on scale { NumberAnimation { duration: 150; easing.type: Easing.OutBack } }
+
+                    // Botón Favorito Sutil
+                    Rectangle {
+                        width: 48; height: 48; radius: 24
+                        color: favInfoMouse.containsMouse ? (selectedGame && selectedGame.isFavorite ? "#33ff4d4d" : "#22ffffff") : "transparent"
+                        border.color: selectedGame && selectedGame.isFavorite ? "#ff4d4d" : "#33ffffff"
+                        border.width: 1
+                        
+                        Label {
+                            anchors.centerIn: parent
+                    text: selectedGame && selectedGame.isFavorite ? "❤️" : "🤍"
+                            font.pixelSize: 22
+                        }
+                        
+                        MouseArea {
+                            id: favInfoMouse
+                            anchors.fill: parent; hoverEnabled: true
+                            onClicked: {
+                                if (selectedGame) {
+                                    let newState = bridge.lib.toggleFavorite(selectedGame.path)
+                                    selectedGame.isFavorite = newState
+                                    
+                                    // Si el panel está abierto sobre una tarjeta, actualizamos la propiedad local
+                                    // para que el corazón cambie instantáneamente.
+                                    if (libraryRoot.onlyFavorites) {
+                                        libraryRoot.needsHardRefresh = true
+                                    }
+                                    
+                                    let temp = selectedGame
+                                    selectedGame = null
+                                    selectedGame = temp
+                                }
+                            }
+                        }
+                        
+                        Behavior on color { ColorAnimation { duration: 200 } }
+                        scale: favInfoMouse.pressed ? 0.85 : (favInfoMouse.containsMouse ? 1.1 : 1.0)
+                        Behavior on scale { NumberAnimation { duration: 150; easing.type: Easing.OutBack } }
+                    }
                 }
             }
 
@@ -997,27 +1050,8 @@ Item {
                     Layout.fillWidth: true; spacing: 15
 
                     Button {
-                        id: btnEditMeta
-                        Layout.preferredWidth: 120; Layout.preferredHeight: 50
-                        onClicked: {
-                            metaEditor.gameData = root.selectedGame
-                            metaEditor.open()
-                        }
-                        background: Rectangle {
-                            radius: 25
-                            color: btnEditMeta.hovered ? "#22ffffff" : "#12ffffff"
-                            border.color: "#33ffffff"; border.width: 1
-                        }
-                        contentItem: RowLayout {
-                            anchors.centerIn: parent; spacing: 8
-                            Label { text: "📝"; font.pixelSize: 16 }
-                            Label { text: "EDITAR"; color: "white"; font.bold: true; font.pixelSize: 12 }
-                        }
-                    }
-
-                    Button {
                         id: launchMainBtn
-                        Layout.fillWidth: true; Layout.preferredHeight: 50
+                        Layout.fillWidth: true; Layout.preferredHeight: 52
                         onClicked: {
                             if (window && window.requestLaunch && selectedGame) {
                                 window.requestLaunch(selectedGame.path, selectedGame.id_emu, selectedGame.title)
@@ -1026,12 +1060,11 @@ Item {
                         }
                         
                         background: Rectangle {
-                            radius: 25
+                            radius: 26
                             color: launchMainBtn.hovered ? Qt.lighter(currentAccentColor, 1.2) : currentAccentColor
                             
-                            // Efecto de brillo/sombra interna
                             Rectangle {
-                                anchors.fill: parent; radius: 25; color: "transparent"
+                                anchors.fill: parent; radius: 26; color: "transparent"
                                 border.color: "#33ffffff"; border.width: 1
                             }
                             
@@ -1039,12 +1072,13 @@ Item {
                         }
                         
                         contentItem: Label {
-                            text: tr("lib_play_btn")
-                            color: "black"; font.bold: true; font.pixelSize: 14
+                            text: tr("lib_play_btn").toUpperCase()
+                            color: "black"; font.bold: true; font.pixelSize: 14; font.letterSpacing: 1
                             horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
-                            scale: launchMainBtn.pressed ? 0.95 : 1.0
-                            Behavior on scale { NumberAnimation { duration: 100 } }
                         }
+                        
+                        scale: launchMainBtn.pressed ? 0.95 : (launchMainBtn.hovered ? 1.02 : 1.0)
+                        Behavior on scale { NumberAnimation { duration: 150; easing.type: Easing.OutBack } }
                     }
                 }
         }
@@ -1327,13 +1361,19 @@ Item {
     MetadataEditor {
         id: metaEditor
         onMetadataSaved: {
-            // Actualizar la lista para reflejar cambios
-            root.currentGames = bridge.lib.getGamesForConsole(root.currentConsoleId)
-            // Actualizar el juego seleccionado si es el mismo
-            if (root.selectedGame) {
-                for (let g of root.currentGames) {
-                    if (g.path === root.selectedGame.path) {
-                        root.selectedGame = g
+            // El guardado de metadatos sí requiere un refresco completo
+            libraryRoot.needsHardRefresh = true
+            
+            // Solo nos aseguramos de que selectedGame se mantenga al día si está abierto
+            if (libraryRoot.selectedGame) {
+                // Forzamos que el Connection central trabaje si el backend ya emitió la señal
+                let games = bridge.lib.getGamesForConsole(libraryRoot.currentConsoleId)
+                libraryRoot.currentGames = games
+                libraryRoot.needsHardRefresh = false
+                
+                for (let g of libraryRoot.currentGames) {
+                    if (g.path === libraryRoot.selectedGame.path) {
+                        libraryRoot.selectedGame = g
                         break
                     }
                 }

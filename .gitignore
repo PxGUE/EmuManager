@@ -66,3 +66,6 @@ installer/
 
 # --- Scripts internos ---
 tools/
+
+# --- Secretos de Desarrollador (COMPILACIÓN) ---
+core/_secrets.py

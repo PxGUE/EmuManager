@@ -1,146 +1,129 @@
-"""
-artwork.py — Hub de Arte y Carátulas.
-
-Este módulo gestiona la descarga y localización de recursos visuales:
-1. Carátulas (Boxarts).
-2. Fondos (Fanart/Backdrops).
-3. Logos de juegos y consolas.
-Coordina múltiples proveedores (Libretro, SteamGridDB, ScreenScraper).
-"""
-
+import os
+import json
 import asyncio
 import aiohttp
-import os
-import urllib.parse
-from typing import Optional, Callable, List, Dict, Any
-
-from .normalization import normalize_title
-from .scrapers.artwork.libretro import LibretroScraper
-from .scrapers.artwork.steamgriddb import SteamGridDBScraper
-from .scrapers.metadata.screenscraper import ScreenScraperScraper
+import core.scrapers.metadata.screenscraper as screenscraper
+from core.scrapers.artwork.libretro import LibretroScraper
+from core.scrapers.artwork.steamgriddb import SteamGridDBScraper
 from . import metadata
 from . import config
+from typing import Optional, List, Dict, Any
 
 class ArtworkHub:
     """
-    Coordina la descarga de arte desde múltiples proveedores.
+    Coordinador central de descargas de arte.
     """
     def __init__(self, session: aiohttp.ClientSession, configs: List[Dict]):
-        """
-        Inicializa los scrapers de arte según la configuración.
-
-        Args:
-            session (aiohttp.ClientSession): Sesión HTTP compartida.
-            configs (List[Dict]): Configuración de proveedores (desde metadata.get_providers_config).
-        """
         self.session = session
+        self.configs = configs
         
-        # 1. Libretro (CDN Gratuito de carátulas)
-        libretro_cfg = next((c for c in configs if c["id"] == "libretro"), {"enabled": True})
-        self.libretro = LibretroScraper() if libretro_cfg.get("enabled") else None
-        
-        # 2. SteamGridDB (Excelente para fondos y logos)
-        sgdb_cfg = next((c for c in configs if c["id"] == "steamgriddb"), None)
-        sgdb_key = sgdb_cfg.get("api_key") if sgdb_cfg and sgdb_cfg.get("enabled") else None
-        self.sgdb = SteamGridDBScraper(sgdb_key) if sgdb_key else None
-
-        # 3. ScreenScraper (El más completo, requiere cuenta)
+        # Localizamos los scrapers activados
         ss_cfg = next((c for c in configs if c["id"] == "screenscraper"), None)
-        ss_user = ss_cfg.get("user") if ss_cfg and ss_cfg.get("enabled") else None
-        ss_pass = ss_cfg.get("password") if ss_cfg and ss_cfg.get("enabled") else None
-        self.ss = ScreenScraperScraper(ss_user, ss_pass) if (ss_user and ss_pass) else None
+        lr_cfg = next((c for c in configs if c["id"] == "libretro"), None)
+        sg_cfg = next((c for c in configs if c["id"] == "steamgriddb"), None)
+        
+        # ScreenScraper (Requiere cuenta)
+        self.ss = None
+        if ss_cfg and ss_cfg.get("enabled"):
+            user = ss_cfg.get("user")
+            pw = ss_cfg.get("password")
+            devid = ss_cfg.get("devid")
+            devpass = ss_cfg.get("devpassword")
+            if user and pw:
+                self.ss = screenscraper.ScreenScraperScraper(user, pw, devid, devpass)
 
-        print(f"[ARTWORK_HUB] Scrapers Iniciados: Libretro={'OK' if self.libretro else 'OFF'}, SGDB={'OK' if self.sgdb else 'OFF'}, ScreenScraper={'OK' if self.ss else 'OFF'}")
+        # Libretro (Fuzzy Match vía CDN)
+        self.libretro = LibretroScraper() if lr_cfg and lr_cfg.get("enabled") else None
+
+        # SteamGridDB (Requiere API Key)
+        self.sgdb = None
+        if sg_cfg and sg_cfg.get("enabled"):
+            api_key = sg_cfg.get("api_key")
+            if api_key:
+                self.sgdb = SteamGridDBScraper(api_key)
 
     async def download_for_game(self, platform: str, game_name: str, rom_path: str, **kwargs) -> bool:
         """
-        Busca y descarga todo el arte disponible para un juego.
-
-        Args:
-            platform (str): Nombre de la plataforma para Libretro/SS.
-            game_name (str): Nombre limpio del juego.
-            rom_path (str): Ruta absoluta del archivo ROM.
-            **kwargs: Parámetros extra como ss_platform_id y emu_id.
-
-        Returns:
-            bool: True si al menos la carátula principal fue descargada con éxito.
+        Descarga arte para un juego específico usando los scrapers disponibles.
+        Implementa recursividad de búsqueda para casos difíciles (hacks o subtítulos).
         """
         emu_id = kwargs.get("emu_id", "unknown")
         caratula_path = obtener_ruta_caratula(rom_path, emu_id, "2d")
         caratula_3d_path = obtener_ruta_caratula(rom_path, emu_id, "3d")
         
-        # --- 1. Intento con ScreenScraper (El más completo, requiere cuenta) ---
-        if self.ss:
-            ss_id = kwargs.get("ss_platform_id")
-            rom_file = os.path.basename(rom_path)
-            res = await self.ss.fetch(self.session, game_name, ss_platform_id=ss_id, rom_file=rom_file)
-            if res:
-                print(f"[ARTWORK] ScreenScraper devolvió resultado para {game_name}")
-                # Descargar 2D
-                if res.get("boxart_url") and not os.path.exists(caratula_path):
-                    print(f"[ARTWORK] Descargando 2D: {res['boxart_url']}")
+        # Estrategia de búsqueda por niveles de profundidad
+        search_terms = [game_name]
+        words = game_name.split()
+        if len(words) > 1:
+            search_terms.append(" ".join(words[:-1])) # Quitar última palabra
+            if len(words) > 2:
+                search_terms.append(" ".join(words[:-2])) # Quitar dos últimas
+        
+        # Deduplicar términos manteniendo el orden (priorizar el nombre completo)
+        final_terms = []
+        for term in search_terms:
+            if term and term not in final_terms:
+                final_terms.append(term)
+
+        for attempt_name in final_terms:
+            # --- 1. Intento con ScreenScraper (El más completo) ---
+            if self.ss:
+                ss_id = kwargs.get("ss_platform_id")
+                rom_file = os.path.basename(rom_path)
+                res = await self.ss.fetch(self.session, attempt_name, ss_platform_id=ss_id, rom_file=rom_file)
+                if res:
+                    # Descargar variados (2D, 3D, Background, Logo, Manual)
+                    if res.get("boxart_url") and not os.path.exists(caratula_path):
+                        await _descargar_archivo(self.session, res["boxart_url"], caratula_path)
+                    
+                    if res.get("boxart_3d_url") and not os.path.exists(caratula_3d_path):
+                        await _descargar_archivo(self.session, res["boxart_3d_url"], caratula_3d_path)
+
+                    if res.get("background_url"):
+                        bg_path = obtener_ruta_background(rom_path, emu_id)
+                        if not os.path.exists(bg_path):
+                            await _descargar_archivo(self.session, res["background_url"], bg_path)
+                    
+                    if res.get("logo_url"):
+                        logo_path = obtener_ruta_logo(rom_path, emu_id)
+                        if not os.path.exists(logo_path):
+                            await _descargar_archivo(self.session, res["logo_url"], logo_path)
+                    
+                    if res.get("manual_url"):
+                        manual_path = obtener_ruta_manual(rom_path, emu_id)
+                        if not os.path.exists(manual_path):
+                            await _descargar_archivo(self.session, res["manual_url"], manual_path)
+
+            # --- 2. Intento con Libretro (Boxarts) ---
+            if self.libretro and not os.path.exists(caratula_path):
+                res = await self.libretro.fetch(self.session, attempt_name, platform=platform)
+                if res and res.get("boxart_url"):
                     await _descargar_archivo(self.session, res["boxart_url"], caratula_path)
-                
-                # Descargar 3D
-                if res.get("boxart_3d_url") and not os.path.exists(caratula_3d_path):
-                    print(f"[ARTWORK] Descargando 3D: {res['boxart_3d_url']}")
-                    await _descargar_archivo(self.session, res["boxart_3d_url"], caratula_3d_path)
 
-                if res.get("background_url"):
-                    bg_path = obtener_ruta_background(rom_path, emu_id)
-                    if not os.path.exists(bg_path):
-                        print(f"[ARTWORK] Descargando Fondo: {res['background_url']}")
-                        await _descargar_archivo(self.session, res["background_url"], bg_path)
-                
-                if res.get("logo_url"):
-                    logo_path = obtener_ruta_logo(rom_path, emu_id)
-                    if not os.path.exists(logo_path):
-                        print(f"[ARTWORK] Descargando Logo: {res['logo_url']}")
-                        await _descargar_archivo(self.session, res["logo_url"], logo_path)
-                
-                if os.path.exists(caratula_path) or os.path.exists(caratula_3d_path):
-                    return True
-
-        # --- 2. Intento con Libretro (Rápido y fiable para Boxarts) ---
-        if self.libretro:
-            print(f"[ARTWORK] Intentando fallback con Libretro para {game_name} (Plat: {platform})")
-            res = await self.libretro.fetch(self.session, game_name, platform=platform)
-            if res and res.get("boxart_url"):
-                print(f"[ARTWORK] Libretro devolvió resultado para {game_name}: {res['boxart_url']}")
-                ok = await _descargar_archivo(self.session, res["boxart_url"], caratula_path)
-                if ok:
-                    return True
-
-        # --- 3. Intento con SteamGridDB (Fondos y Logos Premium) ---
-        if self.sgdb:
-            clean_name = os.path.splitext(os.path.basename(rom_path))[0]
-            res = await self.sgdb.fetch(self.session, clean_name)
-            if not res:
-                res = await self.sgdb.fetch(self.session, game_name)
+            # --- 3. Intento con SteamGridDB (Assets Premium) ---
+            if self.sgdb and not os.path.exists(caratula_path):
+                res = await self.sgdb.fetch(self.session, attempt_name)
+                if res:
+                    # Descargar Carátula
+                    if res.get("boxart_url") and not os.path.exists(caratula_path):
+                        await _descargar_archivo(self.session, res["boxart_url"], caratula_path)
+                    
+                    # Descargar Fondo
+                    if res.get("background_url"):
+                        bg_path = obtener_ruta_background(rom_path, emu_id)
+                        if not os.path.exists(bg_path):
+                            await _descargar_archivo(self.session, res["background_url"], bg_path)
+                    
+                    # Descargar Logo
+                    if res.get("logo_url"):
+                        logo_path = obtener_ruta_logo(rom_path, emu_id)
+                        if not os.path.exists(logo_path):
+                            await _descargar_archivo(self.session, res["logo_url"], logo_path)
             
-            if res:
-                print(f"[ARTWORK] SteamGridDB devolvió resultado para {game_name}")
-                # Descargar Carátula
-                if res.get("boxart_url") and not os.path.exists(caratula_path):
-                    print(f"[ARTWORK] Descargando 2D (SGDB): {res['boxart_url']}")
-                    await _descargar_archivo(self.session, res["boxart_url"], caratula_path)
+            # Si tras cualquier scraper ya tenemos carátula, salimos de los intentos de nombre
+            if os.path.exists(caratula_path):
+                return True
                 
-                # Descargar Fondo (Hero)
-                if res.get("background_url"):
-                    bg_path = obtener_ruta_background(rom_path, emu_id)
-                    if not os.path.exists(bg_path):
-                        print(f"[ARTWORK] Descargando Fondo (SGDB): {res['background_url']}")
-                        await _descargar_archivo(self.session, res["background_url"], bg_path)
-                
-                # Descargar Logo
-                if res.get("logo_url"):
-                    logo_path = obtener_ruta_logo(rom_path, emu_id)
-                    if not os.path.exists(logo_path):
-                        print(f"[ARTWORK] Descargando Logo (SGDB): {res['logo_url']}")
-                        await _descargar_archivo(self.session, res["logo_url"], logo_path)
-                
-                return os.path.exists(caratula_path)
-
         return os.path.exists(caratula_path)
 
 
@@ -160,6 +143,11 @@ def obtener_ruta_logo(ruta_rom: str, emu_id: str = "unknown") -> str:
     """Retorna la ruta centralizada para el logo (marquee) de un juego."""
     game_name = os.path.splitext(os.path.basename(ruta_rom))[0]
     return os.path.join(config.MEDIA_DIR, "scraped", emu_id, "logos", f"{game_name}.png")
+
+def obtener_ruta_manual(ruta_rom: str, emu_id: str = "unknown") -> str:
+    """Retorna la ruta centralizada para el manual (pdf o png) de un juego."""
+    game_name = os.path.splitext(os.path.basename(ruta_rom))[0]
+    return os.path.join(config.MEDIA_DIR, "scraped", emu_id, "manuals", f"{game_name}.pdf")
 
 def tiene_caratula(ruta_rom: str, emu_id: str = "unknown") -> bool:
     """Verifica si existe el archivo de carátula para un juego."""
@@ -196,12 +184,8 @@ async def _descargar_archivo(session: aiohttp.ClientSession, url: str, ruta_dest
                     os.makedirs(os.path.dirname(ruta_destino), exist_ok=True)
                     with open(ruta_destino, "wb") as f:
                         f.write(await resp.read())
-                    print(f"[ARTWORK] Descarga exitosa: {os.path.basename(ruta_destino)}")
                     return True
-                else:
-                    print(f"[ARTWORK] Error descargando {url}: Status {resp.status}")
-        except Exception as e:
-            print(f"[ARTWORK] Excepción descargando {url}: {e}")
+        except:
             if attempt < retries:
                 await asyncio.sleep(1)
     return False
@@ -217,12 +201,11 @@ EXTENSION_PLATFORM_MAP = {
     ".n64": "Nintendo - Nintendo 64",
     ".z64": "Nintendo - Nintendo 64",
     ".v64": "Nintendo - Nintendo 64",
-    ".wbfs": "Nintendo - Wii",
-    ".rvz": "Nintendo - GameCube",
-    ".cue": "Sony - PlayStation",
-    ".bin": "Sony - PlayStation",
-    ".chd": "Sony - PlayStation 2",
+    ".gen": "Sega - Mega Drive - Genesis",
     ".md":  "Sega - Mega Drive - Genesis",
+    ".smd": "Sega - Mega Drive - Genesis",
+    ".sms": "Sega - Master System - Mark III",
+    ".gg":  "Sega - Game Gear",
     ".pce": "NEC - PC Engine - TurboGrafx 16",
 }
 
@@ -231,23 +214,15 @@ def get_platform_for_rom(emu_id: str, ruta_rom: str, default_platform: Optional[
     Resuelve el nombre de plataforma exacto requerido por Libretro basándose en la extensión.
     """
     ext = os.path.splitext(ruta_rom)[1].lower()
-    # Priorizar el mapeo por extensión para todos los emuladores si existe
     plat = EXTENSION_PLATFORM_MAP.get(ext)
     return plat if plat else default_platform
 
 async def descargar_caratulas_biblioteca(juegos: list, emu_map: dict, **kwargs) -> dict:
     """
     Descarga masiva de arte para la biblioteca del usuario.
-
-    Args:
-        juegos (list): Lista de diccionarios de juegos.
-        emu_map (dict): Mapa de configuración de emuladores.
-        **kwargs: on_progress callback.
-
-    Returns:
-        dict: Estadísticas (ok, skip, fail).
     """
     stats = {"ok": 0, "skip": 0, "fail": 0}
+    fails_list = []
     configs = metadata.get_providers_config()
     on_progress = kwargs.get("on_progress")
     total = len(juegos)
@@ -272,11 +247,30 @@ async def descargar_caratulas_biblioteca(juegos: list, emu_map: dict, **kwargs) 
                     stats["skip"] += 1
                 else:
                     ok = await hub.download_for_game(plat, nombre, ruta, ss_platform_id=ss_id, emu_id=emu_id)
-                    if ok: stats["ok"] += 1
-                    else: stats["fail"] += 1
+                    if ok: 
+                        stats["ok"] += 1
+                    else: 
+                        stats["fail"] += 1
+                        fails_list.append(nombre)
                 
                 if on_progress:
                     on_progress(idx + 1, total, nombre)
 
         await asyncio.gather(*[_worker(i, j) for i, j in enumerate(juegos)])
+
+    # Reporte Final
+    print("\n" + "="*45)
+    print("🎨 RESUMEN DE ARTE Y CARÁTULAS")
+    print(f"   ✅ Descargados: {stats['ok']}")
+    print(f"   ⏭️ Omitidos:    {stats['skip']}")
+    print(f"   ❌ Fallidos:    {stats['fail']}")
+    
+    if fails_list:
+        print("\n--- 🔍 JUEGOS SIN CARÁTULA ENCONTRADA ---")
+        for f in sorted(fails_list)[:25]:
+            print(f" • {f}")
+        if len(fails_list) > 25:
+            print(f" ... y {len(fails_list)-25} más.")
+    print("="*45 + "\n")
+
     return stats

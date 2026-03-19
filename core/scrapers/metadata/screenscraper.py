@@ -1,5 +1,6 @@
 import aiohttp
 import urllib.parse
+import os
 from typing import Optional, Dict, Any
 from core.scrapers.base import BaseScraper
 from core.scraper_engine import ScraperEngine
@@ -11,17 +12,28 @@ class ScreenScraperScraper(BaseScraper):
     """
     API_BASE = "https://www.screenscraper.fr/api2/jeuInfos.php"
 
-    def __init__(self, user: str, password: str):
+    def __init__(self, user: str, password: str, dev_id: str = None, dev_password: str = None):
         super().__init__("ScreenScraper")
         self.user = user
         self.password = password
-        # Dev credentials for the app
-        self.devid = "recalbox"
-        self.devpassword = "recalbox"
+        
+        # 🛡️ SEGURIDAD (COMPILACIÓN):
+        try:
+            from core import _secrets
+        except (ImportError, ModuleNotFoundError):
+            _secrets = None
+
+        final_dev_id = dev_id or (getattr(_secrets, "SS_DEV_ID", None) if _secrets else None) or os.getenv("SS_DEV_ID", "EMU_MANAGER_DEV")
+        final_dev_pass = dev_password or (getattr(_secrets, "SS_DEV_PASSWORD", None) if _secrets else None) or os.getenv("SS_DEV_PASSWORD", "EMU_MANAGER_PASS")
+
+        self.devid = final_dev_id
+        self.devpassword = final_dev_pass
         self.softname = "EmuManager"
 
     async def fetch(self, session: aiohttp.ClientSession, query: str, **kwargs) -> Optional[Dict[str, Any]]:
-        if not self.user or not self.password:
+        # 🛡️ GUARD: No intentamos nada si faltan credenciales críticas o son los placeholders por defecto
+        if not self.user or not self.password or self.devid in (None, "", "EMU_MANAGER_DEV"):
+            # Omitimos log para no saturar si es lo esperado (sin configuración)
             return None
 
         # ScreenScraper is very platform-sensitive
@@ -89,6 +101,7 @@ class ScreenScraperScraper(BaseScraper):
                 boxart_3d_url = ""
                 background_url = ""
                 logo_url = ""
+                manual_url = ""
                 
                 for m in medias:
                     m_type = m.get("type", "")
@@ -103,6 +116,8 @@ class ScreenScraperScraper(BaseScraper):
                         background_url = m_url
                     elif m_type == "logo" and not logo_url:
                         logo_url = m_url
+                    elif m_type == "manuel" and not manual_url:
+                        manual_url = m_url
 
                 return {
                     "description": desc[:500] if desc else "",
@@ -115,6 +130,7 @@ class ScreenScraperScraper(BaseScraper):
                     "boxart_3d_url": boxart_3d_url,
                     "background_url": background_url,
                     "logo_url": logo_url,
+                    "manual_url": manual_url,
                     "source": self.name
                 }
         except Exception as e:

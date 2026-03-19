@@ -23,7 +23,7 @@ ApplicationWindow {
             window.visibility = bridge.isFullScreen ? Window.FullScreen : Window.Windowed
         }
     }
-    color: "#0f111a"
+    color: "#0d0f17"
 
     Shortcut {
         sequence: "F11"
@@ -41,7 +41,7 @@ ApplicationWindow {
     // Fondo base
     Rectangle {
         anchors.fill: parent
-        color: "#0f111a"
+        color: "#0d0f17"
     }
 
     RowLayout {
@@ -273,7 +273,7 @@ ApplicationWindow {
         id: splashScreen
         anchors.fill: parent
         z: 10000 // Por encima de todo
-        color: "#0f111a"
+        color: "#0d0f17"
         
         property real currentProgress: 0
         property bool isFinished: false

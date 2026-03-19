@@ -2,6 +2,7 @@ import aiohttp
 from typing import Optional, Dict, Any
 from core.scrapers.base import BaseScraper
 from core.scraper_engine import ScraperEngine
+from core.normalization import normalize_title, get_search_variations
 
 class RAWGScraper(BaseScraper):
     """
@@ -17,7 +18,11 @@ class RAWGScraper(BaseScraper):
         if not self.api_key:
             return None
 
-        params = {"search": query, "key": self.api_key, "page_size": 5}
+        # Usar la variación más limpia del título para la búsqueda en RAWG
+        variations = get_search_variations(query)
+        search_query = variations[0] if variations else query
+        
+        params = {"search": search_query, "key": self.api_key, "page_size": 10}
         try:
             async with session.get(self.API_SEARCH, params=params, timeout=10) as resp:
                 if resp.status != 200:

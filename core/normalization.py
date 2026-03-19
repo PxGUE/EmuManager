@@ -10,71 +10,44 @@ NOISY_TAGS = {
 
 def normalize_title(title: str) -> str:
     """
-    Normalizes a game title for consistent fuzzy matching.
-    
-    Processing steps:
-    1. Replace underscores with spaces.
-    2. Remove content in parentheses and brackets (e.g., tags like (USA), [v1.1]).
-    3. Convert to lowercase.
-    4. Normalize Unicode (NFKD) to handle accents and special characters by decomposition.
-    5. Remove non-alphanumeric characters except basic whitespace.
-    6. Expand/Normalize Roman Numerals (simple cases like I, II, III, IV, V).
-    7. Standardize whitespace.
+    Normalización simplificada para maximizar la eficacia de difflib.
     """
     if not title:
         return ""
     
-    # 1. Underscores to spaces
-    t = title.replace("_", " ")
-    
-    # 2. Open brackets/parentheses to spaces (Preserve content details for matching)
-    t = t.replace('(', ' ').replace(')', ' ').replace('[', ' ').replace(']', ' ')
-    
-    # 3. Lowercase
-    t = t.lower()
-    
-    # 4. Unicode normalization (accents)
+    # 1. Bajada a minúsculas y quitar acentos (crítico para difflib)
+    t = title.lower()
     t = unicodedata.normalize('NFKD', t).encode('ascii', 'ignore').decode('ascii')
     
-    t = re.sub(r'\bi\b', '1', t)
-    t = re.sub(r'\bii\b', '2', t)
-    t = re.sub(r'\biii\b', '3', t)
-    t = re.sub(r'\biv\b', '4', t)
-    t = re.sub(r'\bv\b', '5', t)
-    t = re.sub(r'\bvi\b', '6', t)
-    t = re.sub(r'\bvii\b', '7', t)
-    t = re.sub(r'\bviii\b', '8', t)
-    t = re.sub(r'\bix\b', '9', t)
-    t = re.sub(r'\bx\b', '10', t)
-    t = re.sub(r'\bxi\b', '11', t)
-    t = re.sub(r'\bxii\b', '12', t)
+    # 2. Sustituir símbolos por espacios (no borrarlos, solo separarlos)
+    t = t.replace("_", " ").replace("(", " ").replace(")", " ").replace("[", " ").replace("]", " ").replace("-", " ")
     
-    # 6. Remove non-alphanumeric
+    # 3. Eliminar caracteres no alfanuméricos residuales
     t = re.sub(r'[^a-z0-9\s]', ' ', t)
     
-    # 7. Collapse whitespace
+    # 4. Colapsar espacios y limpiar
     t = re.sub(r'\s+', ' ', t).strip()
     
     return t
 
 def get_search_variations(title: str) -> list[str]:
     """
-    Generates variations of a title to increase matching probability.
-    E.g., "Legend of Zelda, The" -> ["legend of zelda the", "the legend of zelda"]
+    Retorna variaciones básicas: la normalizada y la normalizada sin etiquetas ruidosas.
     """
     norm = normalize_title(title)
-    if not norm:
-        return []
+    if not norm: return []
     
     variations = [norm]
     
-    # 2. Variant without noisy tags (useful for hacks/translations)
+    # Versión sin etiquetas comunes (USA, EUR, etc.)
     words = norm.split()
     cleaned_words = [w for w in words if w not in NOISY_TAGS]
-    if len(cleaned_words) != len(words):
-        cleaned_norm = " ".join(cleaned_words)
-        if cleaned_norm:
-            variations.append(cleaned_norm)
+    cleaned_norm = " ".join(cleaned_words)
+    
+    if cleaned_norm and cleaned_norm != norm:
+        variations.append(cleaned_norm)
+        
+    return list(dict.fromkeys(variations))
 
     # 3. Handle "Title, The" pattern
     if ", the" in title.lower():

@@ -1,6 +1,8 @@
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
+import QtQuick.Effects
+import QtQuick.Shapes
 import "../components"
 
 /**
@@ -16,7 +18,71 @@ import "../components"
 Item {
     id: libraryRoot
     
-    state: "carousel" // Estados posibles: "carousel" o "grid"
+    state: "carousel" // Estados posibles: "carousel", "grid" o "collector"
+
+    states: [
+        State { 
+            name: "carousel"
+            PropertyChanges { target: carousel; visible: true; opacity: 1; scale: 1.0 }
+            PropertyChanges { target: gridContainer; visible: false; opacity: 0; y: 40; scale: 0.95 }
+        },
+        State {
+            name: "grid"
+            PropertyChanges { target: carousel; visible: false; opacity: 0; scale: 0.9 }
+            PropertyChanges { target: gridContainer; visible: true; opacity: 1; y: 0; scale: 1.0 }
+        },
+        State {
+            name: "collector" 
+            PropertyChanges { target: carousel; visible: false; opacity: 0; scale: 0.8 }
+            PropertyChanges { target: collectorContainer; visible: true; opacity: 1; y: 0; scale: 1.0 }
+        }
+    ]
+
+    transitions: [
+        Transition {
+            from: "carousel"; to: "grid"
+            SequentialAnimation {
+                PropertyAction { target: gridContainer; property: "visible"; value: true }
+                ParallelAnimation {
+                    NumberAnimation { target: carousel; property: "opacity"; duration: 450; easing.type: Easing.OutCubic }
+                    NumberAnimation { target: carousel; property: "scale"; duration: 450; easing.type: Easing.InBack }
+                    NumberAnimation { target: gridContainer; property: "opacity"; duration: 600; easing.type: Easing.OutCubic }
+                    NumberAnimation { target: gridContainer; property: "y"; duration: 600; easing.type: Easing.OutBack }
+                    NumberAnimation { target: gridContainer; property: "scale"; duration: 600; easing.type: Easing.OutBack }
+                }
+                PropertyAction { target: carousel; property: "visible"; value: false }
+            }
+        },
+        Transition {
+            from: "*"; to: "carousel"
+            SequentialAnimation {
+                PropertyAction { target: carousel; property: "visible"; value: true }
+                ParallelAnimation {
+                    NumberAnimation { target: gridContainer; property: "opacity"; duration: 350; easing.type: Easing.OutCubic }
+                    NumberAnimation { target: collectorContainer; property: "opacity"; duration: 350; easing.type: Easing.OutCubic }
+                    NumberAnimation { target: carousel; property: "opacity"; duration: 500; easing.type: Easing.OutCubic }
+                    NumberAnimation { target: carousel; property: "scale"; duration: 550; easing.type: Easing.OutBack }
+                }
+                PropertyAction { target: gridContainer; property: "visible"; value: false }
+                PropertyAction { target: collectorContainer; property: "visible"; value: false }
+            }
+        },
+        Transition {
+            from: "carousel"; to: "collector"
+            SequentialAnimation {
+                PropertyAction { target: collectorContainer; property: "visible"; value: true }
+                ParallelAnimation {
+                    NumberAnimation { target: carousel; property: "opacity"; duration: 400; easing.type: Easing.OutCubic }
+                    NumberAnimation { target: carousel; property: "scale"; duration: 400; easing.type: Easing.InBack }
+                    NumberAnimation { target: collectorContainer; property: "opacity"; duration: 650; easing.type: Easing.OutCubic }
+                    NumberAnimation { target: collectorContainer; property: "y"; duration: 650; easing.type: Easing.OutBack }
+                    NumberAnimation { target: collectorContainer; property: "scale"; duration: 650; easing.type: Easing.OutBack }
+                }
+                PropertyAction { target: carousel; property: "visible"; value: false }
+            }
+        }
+    ]
+
     
     // Propiedades de estado de la consola seleccionada
     property string currentConsoleId: ""
@@ -600,278 +666,164 @@ Item {
         }
 
         GridView {
-                id: gamesGrid
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-                cellWidth: libraryRoot.gridCellWidth
-                cellHeight: 380
-                model: libraryRoot.filteredGames
-                property var currentItemData: null
-                clip: true
+            id: gamesGrid
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            cellWidth: libraryRoot.gridCellWidth
+            cellHeight: 380
+            model: libraryRoot.filteredGames
+            property var currentItemData: null
+            clip: true
+            
+            ScrollBar.vertical: ScrollBar { 
+                policy: ScrollBar.AsNeeded
+            }
+            
+            leftMargin: libraryRoot.gridHorizontalPadding
+            rightMargin: libraryRoot.gridHorizontalPadding
+
+            delegate: Item {
+                id: gameCardRoot
+                width: 240
+                height: 380
                 
-                // --- COMPORTAMIENTO NATIVO (Mejor inercia) ---
-                ScrollBar.vertical: ScrollBar { 
-                    policy: ScrollBar.AsNeeded
+                property bool isHovered: cardHover.hovered || 
+                                         (typeof infoBtnMouse !== "undefined" && infoBtnMouse.containsMouse) || 
+                                         (typeof favBtnMouse !== "undefined" && favBtnMouse.containsMouse)
+
+                SequentialAnimation {
+                    id: staggeredEntry
+                    running: false
+                    PauseAnimation { duration: Math.min(index * 20, 300) }
+                    ParallelAnimation {
+                        NumberAnimation { target: cardBody; property: "opacity"; to: 1.0; duration: 500; easing.type: Easing.OutCubic }
+                        NumberAnimation { target: cardBody; property: "scale"; to: 1.0; duration: 600; easing.type: Easing.OutBack }
+                    }
                 }
-                
-                leftMargin: libraryRoot.gridHorizontalPadding
-                rightMargin: libraryRoot.gridHorizontalPadding
 
-                delegate: Item {
-                    id: gameCardRoot
-                    width: 240
-                    height: 380
-                    
-                    // ESTADO DE SELECCIÓN: Sincronizado con Hover y Botones
-                    property bool isHovered: cardHover.hovered || 
-                                             (typeof infoBtnMouse !== "undefined" && infoBtnMouse.hovered) || 
-                                             (typeof favBtnMouse !== "undefined" && favBtnMouse.hovered)
+                Connections {
+                    target: libraryRoot
+                    function onGridEntranceTriggered() {
+                        cardBody.opacity = 0
+                        cardBody.scale = 0.8
+                        staggeredEntry.restart()
+                    }
+                }
 
-                    // --- ANIMACIÓN DE ENTRADA ---
-                    SequentialAnimation {
-                        id: staggeredEntry
-                        running: false
-                        PauseAnimation { duration: Math.min(index * 20, 300) }
-                        ParallelAnimation {
-                            NumberAnimation { target: cardBody; property: "opacity"; to: 1.0; duration: 500; easing.type: Easing.OutCubic }
-                            NumberAnimation { target: cardBody; property: "scale"; to: 1.0; duration: 600; easing.type: Easing.OutBack }
+                HoverHandler {
+                    id: cardHover
+                    cursorShape: Qt.PointingHandCursor
+                    onHoveredChanged: if (hovered) gamesGrid.currentItemData = modelData
+                }
+
+                Rectangle {
+                    id: cardBody
+                    anchors.fill: parent
+                    anchors.margins: 12
+                    radius: 0; clip: true; layer.enabled: true
+                    color: "#0d0f1a"
+                    scale: isHovered ? 1.05 : 1.0
+                    z: isHovered ? 10 : 1
+                    Behavior on scale { NumberAnimation { duration: 350; easing.type: Easing.OutBack } }
+
+                    Image {
+                        id: coverImg
+                        anchors.fill: parent; anchors.margins: 4
+                        source: modelData.cover || ""
+                        fillMode: Image.PreserveAspectCrop
+                        opacity: modelData.cover ? (isHovered ? 1.0 : 0.8) : 0.1
+                        scale: isHovered ? 1.1 : 1.0
+                        Behavior on scale { NumberAnimation { duration: 1200; easing.type: Easing.OutCubic } }
+
+                        TapHandler {
+                            onTapped: {
+                                if (window && window.requestLaunch) 
+                                    window.requestLaunch(modelData.path, modelData.id_emu, modelData.name)
+                            }
                         }
                     }
 
-                    Connections {
-                        target: libraryRoot
-                        function onGridEntranceTriggered() {
-                            cardBody.opacity = 0
-                            cardBody.scale = 0.8
-                            staggeredEntry.restart()
-                        }
-                    }
-
-                    readonly property bool isHovered: cardHover.hovered
-
-                    // 1. GESTIÓN DE HOVER Y CURSOR (No bloquea el scroll)
-                    HoverHandler {
-                        id: cardHover
-                        cursorShape: Qt.PointingHandCursor
-                        onHoveredChanged: if (hovered) gamesGrid.currentItemData = modelData
-                    }
-
-                    // 2. CUERPO VISUAL
                     Rectangle {
-                        id: cardBody
-                        anchors.fill: parent
-                        anchors.margins: 12
-                        radius: 28
-                        color: "#1a1c26"
-                        clip: true
-                        scale: isHovered ? 1.05 : 1.0
-                        z: isHovered ? 10 : 1
-                        Behavior on scale { NumberAnimation { duration: 350; easing.type: Easing.OutBack } }
-
-                        // Borde Glow
-                        Rectangle {
-                            anchors.fill: parent; radius: 28; color: "transparent"
-                            border.color: currentAccentColor
-                            border.width: isHovered ? 3 : 1
-                            opacity: isHovered ? 1.0 : 0.2
-                            Behavior on border.width { NumberAnimation { duration: 200 } }
+                        id: infoOverlay
+                        anchors.bottom: parent.bottom; width: parent.width
+                        height: isHovered ? 110 : 70
+                        gradient: Gradient {
+                            GradientStop { position: 0.0; color: "transparent" }
+                            GradientStop { position: 0.4; color: Qt.rgba(10/255, 12/255, 20/255, 0.9) }
+                            GradientStop { position: 1.0; color: "#0a0c14" }
                         }
+                        Behavior on height { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
 
-                        Image {
-                            id: coverImg
-                            anchors.fill: parent
-                            source: modelData.cover || ""
-                            fillMode: Image.PreserveAspectCrop
-                            opacity: modelData.cover ? (isHovered ? 1.0 : 0.8) : 0.1
-                            scale: isHovered ? 1.1 : 1.0
-                            Behavior on scale { NumberAnimation { duration: 1200; easing.type: Easing.OutCubic } }
-
-                            // Lanzamiento del juego (Solo en el cuerpo, no interfiere con botones externos)
-                            TapHandler {
-                                onTapped: {
-                                    if (window && window.requestLaunch) 
-                                        window.requestLaunch(modelData.path, modelData.id_emu, modelData.name)
-                                }
+                        ColumnLayout {
+                            anchors.fill: parent; anchors.margins: 16; Layout.topMargin: 20
+                            spacing: 4
+                            Label {
+                                Layout.fillWidth: true; text: modelData.name
+                                color: "white"; font.pixelSize: 14; font.bold: true
+                                elide: Text.ElideRight; maximumLineCount: 2; wrapMode: Text.WordWrap
                             }
-                        }
-
-                        // Overlay de Información
-                        Rectangle {
-                            id: infoOverlay
-                            anchors.bottom: parent.bottom
-                            width: parent.width
-                            height: isHovered ? 100 : 70
-                            gradient: Gradient {
-                                GradientStop { position: 0.0; color: "transparent" }
-                                GradientStop { position: 0.4; color: Qt.rgba(10/255, 12/255, 20/255, 0.9) }
-                                GradientStop { position: 1.0; color: "#0a0c14" }
-                            }
-                            Behavior on height { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
-
-                            ColumnLayout {
-                                anchors.fill: parent
-                                anchors.margins: 16
-                                spacing: 4
-                                Label {
-                                    Layout.fillWidth: true
-                                    text: modelData.name
-                                    color: "white"; font.pixelSize: 14; font.bold: true
-                                    elide: Text.ElideRight; maximumLineCount: 2
-                                    wrapMode: Text.WordWrap
-                                }
-                                Label { 
-                                    text: "🕒 " + modelData.playtime
-                                    color: "#b0ffffff"; font.pixelSize: 11
-                                    visible: isHovered 
-                                }
+                            Label { 
+                                text: "🕒 " + modelData.playtime
+                                color: "#b0ffffff"; font.pixelSize: 11; visible: isHovered 
                             }
                         }
                     }
 
-                    // 3. BARRA DE ACCIÓN (Info + Favoritos) - Independiente para evitar z-conflicts
-                    Row {
-                        id: actionBar
-                        anchors.top: parent.top; anchors.right: parent.right
-                        anchors.topMargin: 22; anchors.rightMargin: 22
-                        spacing: 8
-                        z: 20
-                        visible: isHovered || modelData.isFavorite
+                    Rectangle {
+                        id: neonBorder
+                        anchors.fill: parent; radius: 0; color: "transparent"
+                        border.color: currentAccentColor; border.width: isHovered ? 3 : 1
+                        opacity: isHovered ? 1.0 : 0.4
+                        Behavior on border.width { NumberAnimation { duration: 250 } }
+                        
+                        layer.enabled: isHovered
+                        layer.effect: MultiEffect {
+                            shadowEnabled: true; shadowBlur: 1.0; shadowColor: currentAccentColor
+                            shadowHorizontalOffset: 0; shadowVerticalOffset: 0
+                        }
+                    }
+                }
 
-                        // Botón INFO
-                        Rectangle {
-                            width: 38; height: 38; radius: 19
-                            color: infoBtnMouse.containsMouse ? currentAccentColor : "#e00a0c14"
-                            border.color: currentAccentColor; border.width: 1
-                            visible: isHovered
-                            
-                            Label {
-                                anchors.centerIn: parent
-                                text: "ⓘ"
-                                font.pixelSize: 20; color: infoBtnMouse.containsMouse ? "black" : "white"
-                            }
-                            
-                            MouseArea {
-                                id: infoBtnMouse
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: {
-                                    libraryRoot.selectedGame = modelData
-                                    infoPanel.open()
-                                }
+                Row {
+                    id: actionBar
+                    anchors.top: parent.top; anchors.right: parent.right
+                    anchors.topMargin: 22; anchors.rightMargin: 22
+                    spacing: 8; z: 20
+                    visible: isHovered || modelData.isFavorite
+
+                    Rectangle {
+                        width: 38; height: 38; radius: 19
+                        color: infoBtnMouse.containsMouse ? currentAccentColor : "#e00a0c14"
+                        border.color: currentAccentColor; border.width: 1
+                        visible: isHovered
+                        Label { anchors.centerIn: parent; text: "ⓘ"; font.pixelSize: 20; color: infoBtnMouse.containsMouse ? "black" : "white" }
+                        MouseArea {
+                            id: infoBtnMouse; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                            onClicked: { libraryRoot.selectedGame = modelData; infoPanel.open() }
+                        }
+                    }
+
+                    Rectangle {
+                        width: 38; height: 38; radius: 19
+                        color: favBtnMouse.containsMouse ? "#ff4d4d" : (modelData.isFavorite ? "#33ff4d4d" : "#e00a0c14")
+                        border.color: modelData.isFavorite ? "#ff4d4d" : currentAccentColor
+                        border.width: 1
+                        Label { anchors.centerIn: parent; text: modelData.isFavorite ? "❤️" : "🤍"; font.pixelSize: 18 }
+                        MouseArea {
+                            id: favBtnMouse; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                            onClicked: {
+                                let newVal = bridge.lib.toggleFavorite(modelData.path)
+                                modelData.isFavorite = newVal
+                                if (libraryRoot.onlyFavorites) libraryRoot.needsHardRefresh = true
                             }
                         }
-
-                        // Botón FAVORITO
-                        Rectangle {
-                            width: 38; height: 38; radius: 19
-                            color: favBtnMouse.containsMouse ? "#ff4d4d" : (modelData.isFavorite ? "#33ff4d4d" : "#e00a0c14")
-                            border.color: modelData.isFavorite ? "#ff4d4d" : currentAccentColor
-                            border.width: 1
-                            
-                            Label {
-                                anchors.centerIn: parent
-                                text: modelData.isFavorite ? "❤️" : "🤍"
-                                font.pixelSize: 18
-                            }
-                            
-                            MouseArea {
-                                id: favBtnMouse
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: {
-                                    let newVal = bridge.lib.toggleFavorite(modelData.path)
-                                    modelData.isFavorite = newVal
-                                    
-                                    if (libraryRoot.onlyFavorites) {
-                                        libraryRoot.needsHardRefresh = true
-                                    }
-                                }
-                            }
-                        }
+                    }
                     }
                 }
             }
         }
     }
 
-    states: [
-        State {
-            name: "carousel"
-            PropertyChanges { target: carousel; visible: true; opacity: 1; scale: 1.0 }
-            PropertyChanges { target: gridContainer; visible: false; opacity: 0; y: 40; scale: 0.95 }
-        },
-        State {
-            name: "grid"
-            PropertyChanges { target: carousel; visible: false; opacity: 0; scale: 0.9 }
-            PropertyChanges { target: gridContainer; visible: true; opacity: 1; y: 0; scale: 1.0 }
-        },
-        State {
-            name: "collector"
-            PropertyChanges { target: carousel; visible: false; opacity: 0; scale: 0.8 }
-            PropertyChanges { target: collectorContainer; visible: true; opacity: 1; y: 0; scale: 1.0 }
-        }
-    ]
-
-    transitions: [
-        Transition {
-            from: "carousel"; to: "grid"
-            SequentialAnimation {
-                PropertyAction { target: gridContainer; property: "visible"; value: true }
-                ParallelAnimation {
-                    NumberAnimation { target: carousel; property: "opacity"; duration: 400; easing.type: Easing.OutCubic }
-                    NumberAnimation { target: carousel; property: "scale"; duration: 400; easing.type: Easing.InBack }
-                    
-                    NumberAnimation { target: gridContainer; property: "opacity"; duration: 600; easing.type: Easing.OutCubic }
-                    NumberAnimation { target: gridContainer; property: "y"; duration: 600; easing.type: Easing.OutBack }
-                    NumberAnimation { target: gridContainer; property: "scale"; duration: 600; easing.type: Easing.OutBack }
-                }
-                PropertyAction { target: carousel; property: "visible"; value: false }
-            }
-        },
-        Transition {
-            from: "grid"; to: "carousel"
-            SequentialAnimation {
-                PropertyAction { target: carousel; property: "visible"; value: true }
-                ParallelAnimation {
-                    NumberAnimation { target: gridContainer; property: "opacity"; duration: 350; easing.type: Easing.OutCubic }
-                    NumberAnimation { target: gridContainer; property: "scale"; duration: 350; easing.type: Easing.InBack }
-                    
-                    NumberAnimation { target: carousel; property: "opacity"; duration: 500; easing.type: Easing.OutCubic }
-                    NumberAnimation { target: carousel; property: "scale"; duration: 500; easing.type: Easing.OutBack }
-                }
-                PropertyAction { target: gridContainer; property: "visible"; value: false }
-            }
-        },
-        Transition {
-            from: "carousel"; to: "collector"
-            SequentialAnimation {
-                PropertyAction { target: collectorContainer; property: "visible"; value: true }
-                ParallelAnimation {
-                    NumberAnimation { target: carousel; property: "opacity"; duration: 400; easing.type: Easing.OutCubic }
-                    NumberAnimation { target: carousel; property: "scale"; duration: 400; easing.type: Easing.InBack }
-                    NumberAnimation { target: collectorContainer; property: "opacity"; duration: 600; easing.type: Easing.OutCubic }
-                    NumberAnimation { target: collectorContainer; property: "y"; duration: 600; easing.type: Easing.OutBack }
-                    NumberAnimation { target: collectorContainer; property: "scale"; duration: 600; easing.type: Easing.OutBack }
-                }
-                PropertyAction { target: carousel; property: "visible"; value: false }
-            }
-        },
-        Transition {
-            from: "collector"; to: "carousel"
-            SequentialAnimation {
-                PropertyAction { target: carousel; property: "visible"; value: true }
-                ParallelAnimation {
-                    NumberAnimation { target: collectorContainer; property: "opacity"; duration: 350; easing.type: Easing.OutCubic }
-                    NumberAnimation { target: collectorContainer; property: "scale"; duration: 350; easing.type: Easing.InBack }
-                    NumberAnimation { target: carousel; property: "opacity"; duration: 500; easing.type: Easing.OutCubic }
-                    NumberAnimation { target: carousel; property: "scale"; duration: 500; easing.type: Easing.OutBack }
-                }
-                PropertyAction { target: collectorContainer; property: "visible"; value: false }
-            }
-        }
-    ]
 
     // --- MODO COLECCIONISTA: CAROUSEL DE JUEGOS ---
     Item {
@@ -937,661 +889,232 @@ Item {
                     PathLine { x: collectorView.width * 1.5; y: collectorView.height / 2 }
                 }
 
-                delegate: Item {
-                    id: collectorDelegate
-                    width: collectorView.width * 0.8
-                    height: collectorView.height * 0.85
-                    z: PathView.isCurrentItem ? 10 : 1
-                    opacity: PathView.isCurrentItem ? 1.0 : 0.4
-                    scale: PathView.isCurrentItem ? 1.0 : 0.85
-                    
-                    property string itemBackground: modelData.background || ""
+                    delegate: Item {
+                        id: collectorDelegate
+                        width: collectorView.width * 0.8
+                        height: collectorView.height * 0.85
+                        z: PathView.isCurrentItem ? 10 : 1
+                        opacity: PathView.isCurrentItem ? 1.0 : 0.4
+                        scale: PathView.isCurrentItem ? 1.0 : 0.85
+                        
+                        property string itemBackground: modelData.background || ""
 
-                    Behavior on opacity { NumberAnimation { duration: 300 } }
-                    Behavior on scale { NumberAnimation { duration: 400; easing.type: Easing.OutBack } }
+                        Behavior on opacity { NumberAnimation { duration: 300 } }
+                        Behavior on scale { NumberAnimation { duration: 400; easing.type: Easing.OutBack } }
 
-                    Rectangle {
-                        anchors.fill: parent
-                        radius: 30
-                        color: "#cc0a0b12"
-                        border.color: collectorDelegate.PathView.isCurrentItem ? currentAccentColor : "#22ffffff"
-                        border.width: collectorDelegate.PathView.isCurrentItem ? 2 : 1
-                        clip: true
-
-                        RowLayout {
-                            anchors.fill: parent
-                            spacing: 0
-
-                            // Panel Izquierdo: Información
-                            ColumnLayout {
-                                Layout.fillWidth: true
-                                Layout.fillHeight: true
-                                Layout.margins: 40
-                                spacing: 20
-
-                                ColumnLayout {
-                                    spacing: 5
-                                    Label {
-                                        text: modelData.title
-                                        font.pixelSize: 32; font.weight: Font.Black; color: "white"
-                                        wrapMode: Text.WordWrap; Layout.fillWidth: true; font.letterSpacing: -0.5
-                                    }
-                                    Label {
-                                        text: (modelData.developer || "N/A") + " • " + (modelData.year || "N/A")
-                                        font.pixelSize: 14; color: currentAccentColor; font.weight: Font.Medium
-                                    }
-                                }
-
-                                Rectangle {
-                                    Layout.fillWidth: true; height: 1; color: "#1affffff"
-                                }
-
-                                ScrollView {
-                                    Layout.fillWidth: true; Layout.fillHeight: true
-                                    clip: true
-                                    Label {
-                                        width: parent.width
-                                        text: modelData.description || tr("lib_no_desc")
-                                        font.pixelSize: 15; color: "#b0ffffff"; wrapMode: Text.WordWrap
-                                        lineHeight: 1.4
-                                    }
-                                }
-
-                                Button {
-                                    id: playBtnCollector
-                                    Layout.preferredWidth: 200; Layout.preferredHeight: 54
-                                    onClicked: {
-                                        if (window && window.requestLaunch) {
-                                            window.requestLaunch(modelData.path, modelData.id_emu, modelData.title)
-                                        }
-                                    }
-                                    background: Rectangle {
-                                        radius: 27
-                                        color: playBtnCollector.hovered ? Qt.lighter(currentAccentColor, 1.1) : currentAccentColor
-                                        Behavior on color { ColorAnimation { duration: 200 } }
-                                    }
-                                    contentItem: Label {
-                                        text: tr("lib_play").toUpperCase()
-                                        color: "black"; font.bold: true; font.pixelSize: 14; font.letterSpacing: 2
-                                        horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
-                                    }
-                                }
-                            }
-
-                            // Panel Derecho: Carátula 3D
-                            Item {
-                                Layout.preferredWidth: parent.width * 0.45
-                                Layout.fillHeight: true
-
-                                Rectangle {
-                                    anchors.fill: parent
-                                    anchors.margins: 20
-                                    radius: 20
-                                    color: "#05ffffff"
-                                    clip: true
-
-                                    Image {
-                                        id: coverImage3D
-                                        anchors.fill: parent
-                                        anchors.margins: 10
-                                        source: modelData.cover_3d || modelData.cover
-                                        fillMode: Image.PreserveAspectFit
-                                        smooth: true
-                                        asynchronous: true
-                                    }
-
-                                    // Badge de Favorito
-                                    Rectangle {
-                                        anchors.top: parent.top; anchors.right: parent.right
-                                        anchors.margins: 15
-                                        width: 40; height: 40; radius: 20
-                                        color: modelData.isFavorite ? "#ccff4d4d" : "#66000000"
-                                        visible: modelData.isFavorite
-                                        Label {
-                                            anchors.centerIn: parent
-                                            text: "❤️"; font.pixelSize: 16
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    MouseArea {
-                        anchors.fill: parent
-                        onClicked: {
-                            if (!collectorDelegate.PathView.isCurrentItem) {
-                                collectorView.currentIndex = index
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    // --- PANEL DE DETALLES INMERSIVO ---
-    // Overlay oscuro para el fondo (Dimmer)
-    Rectangle {
-        id: infoDimmer
-        anchors.fill: parent
-        color: "#aa000000"
-        opacity: infoPanel.isOpen ? 1.0 : 0.0
-        visible: opacity > 0
-        z: 999
-        Behavior on opacity { NumberAnimation { duration: 400 } }
-        MouseArea {
-            anchors.fill: parent
-            onClicked: infoPanel.close()
-        }
-    }
-
-    Rectangle {
-        id: infoPanel
-        width: Math.min(500, parent.width * 0.8)
-        height: parent.height
-        x: parent.width // Escondido a la derecha
-        color: "#f80a0b12" // Más sólido para legibilidad de texto
-        border.color: "#33ffffff"; border.width: 1
-        z: 1000
-
-        property bool isOpen: false
-        function open() { x = parent.width - width; isOpen = true }
-        function close() { x = parent.width; isOpen = false }
-
-        Behavior on x { NumberAnimation { duration: 600; easing.type: Easing.OutQuart } }
-
-        ColumnLayout {
-            anchors.fill: parent
-            anchors.margins: 40
-            spacing: 25
-
-            RowLayout {
-                Layout.fillWidth: true
-                Label {
-                    text: tr("lib_game_details")
-                    font.pixelSize: 12; font.bold: true; color: currentAccentColor
-                    font.letterSpacing: 2
-                }
-                Item { Layout.fillWidth: true }
-                
-                // Botón Cerrar - Premium Circular
-                Rectangle {
-                    id: closeCircle
-                    width: 36; height: 36; radius: 18
-                    color: closeArea.containsMouse ? "#ccff4d4d" : "#22ffffff"
-                    border.color: closeArea.containsMouse ? "#ff4d4d" : "#44ffffff"
-                    border.width: 1
-                    
-                    Label {
-                        anchors.centerIn: parent
-                        text: "✕"; color: "white"; font.pixelSize: 16; font.bold: true
-                    }
-                    
-                    MouseArea {
-                        id: closeArea
-                        anchors.fill: parent; hoverEnabled: true
-                        onClicked: infoPanel.close()
-                    }
-                    
-                    Behavior on color { ColorAnimation { duration: 250 } }
-                    Behavior on border.color { ColorAnimation { duration: 250 } }
-                    
-                    scale: closeArea.pressed ? 0.85 : (closeArea.containsMouse ? 1.1 : 1.0)
-                    Behavior on scale { NumberAnimation { duration: 150; easing.type: Easing.OutBack } }
-                }
-            }
-
-            Rectangle {
-                Layout.fillWidth: true; Layout.preferredHeight: 240
-                radius: 20; clip: true
-                color: "#11ffffff"
-                visible: selectedGame && selectedGame.cover != ""
-                
-                Image {
-                    anchors.fill: parent
-                    source: selectedGame ? (selectedGame.cover || "") : ""
-                    fillMode: Image.PreserveAspectCrop
-                }
-                
-                Rectangle { 
-                    anchors.fill: parent; radius: 20
-                    color: "transparent"; border.color: "#33ffffff"; border.width: 1 
-                }
-            }
-
-            RowLayout {
-                Layout.fillWidth: true; spacing: 20
-                
-                ColumnLayout {
-                    Layout.fillWidth: true; spacing: 5
-                    Label {
-                        text: (selectedGame ? selectedGame.name : "")
-                        font.pixelSize: 32; font.weight: Font.Black; color: "white"
-                        wrapMode: Text.WordWrap; Layout.fillWidth: true
-                        font.letterSpacing: -0.5
-                    }
-                    Label {
-                        text: tr("lib_playtime", (selectedGame ? selectedGame.playtime : "0h"))
-                        color: "#888899"; font.pixelSize: 13; font.weight: Font.Medium
-                    }
-                    RowLayout {
-                        spacing: 15
-                        Label {
-                            text: selectedGame ? (selectedGame.developer + " • " + selectedGame.year) : ""
-                            font.pixelSize: 15; color: "#aa88ccff"
-                        }
                         Rectangle {
-                            visible: selectedGame && selectedGame.genre != ""
-                            height: 24; width: genreLabel.width + 20; radius: 12
-                            color: "#22ffffff"
-                            Label {
-                                id: genreLabel
-                                anchors.centerIn: parent; text: selectedGame ? selectedGame.genre : ""
-                                font.pixelSize: 11; font.bold: true; color: currentAccentColor
-                            }
-                        }
-                    }
-                }
+                            anchors.fill: parent
+                            radius: 0 // Identidad Hard-Edge
+                            color: "#cc0a0b12"
+                            border.color: collectorDelegate.PathView.isCurrentItem ? currentAccentColor : "#22ffffff"
+                            border.width: collectorDelegate.PathView.isCurrentItem ? 2 : 1
+                            
+                            // SISTEMA DE DOS COLUMNAS (REPARADO: 35% / 65%)
+                            Item {
+                                anchors.fill: parent
 
-                // Botones de Acción (Editar + Favorito)
-                RowLayout {
-                    spacing: 12
-                    Layout.alignment: Qt.AlignTop
-                    
-                    // Botón Editar Metadatos (Lápiz)
-                    Rectangle {
-                        width: 48; height: 48; radius: 24
-                        color: editInfoMouse.containsMouse ? "#22ffffff" : "transparent"
-                        border.color: "#33ffffff"
-                        border.width: 1
-                        
-                        Label {
-                            anchors.centerIn: parent
-                            text: "✏️"
-                            font.pixelSize: 20
-                        }
-                        
-                        MouseArea {
-                            id: editInfoMouse
-                            anchors.fill: parent; hoverEnabled: true
-                            onClicked: {
-                                metaEditor.gameData = libraryRoot.selectedGame
-                                metaEditor.open()
-                            }
-                        }
-                        
-                        Behavior on color { ColorAnimation { duration: 200 } }
-                        scale: editInfoMouse.pressed ? 0.85 : (editInfoMouse.containsMouse ? 1.1 : 1.0)
-                        Behavior on scale { NumberAnimation { duration: 150; easing.type: Easing.OutBack } }
-                    }
-
-                    // Botón Favorito Sutil
-                    Rectangle {
-                        width: 48; height: 48; radius: 24
-                        color: favInfoMouse.containsMouse ? (selectedGame && selectedGame.isFavorite ? "#33ff4d4d" : "#22ffffff") : "transparent"
-                        border.color: selectedGame && selectedGame.isFavorite ? "#ff4d4d" : "#33ffffff"
-                        border.width: 1
-                        
-                        Label {
-                            anchors.centerIn: parent
-                    text: selectedGame && selectedGame.isFavorite ? "❤️" : "🤍"
-                            font.pixelSize: 22
-                        }
-                        
-                        MouseArea {
-                            id: favInfoMouse
-                            anchors.fill: parent; hoverEnabled: true
-                            onClicked: {
-                                if (selectedGame) {
-                                    let newState = bridge.lib.toggleFavorite(selectedGame.path)
-                                    selectedGame.isFavorite = newState
+                                // COLUMNA IZQUIERDA: Información (35%)
+                                Item {
+                                    id: leftInfoCol
+                                    anchors.left: parent.left
+                                    width: parent.width * 0.35
+                                    anchors.top: parent.top
+                                    anchors.bottom: parent.bottom
                                     
-                                    // Si el panel está abierto sobre una tarjeta, actualizamos la propiedad local
-                                    // para que el corazón cambie instantáneamente.
-                                    if (libraryRoot.onlyFavorites) {
-                                        libraryRoot.needsHardRefresh = true
+                                    ColumnLayout {
+                                        anchors.fill: parent
+                                        anchors.margins: 40
+                                        spacing: 20
+
+                                        ColumnLayout {
+                                            spacing: 5
+                                            Label {
+                                                id: mainTitle
+                                                text: modelData.title
+                                                font.pixelSize: 28; font.weight: Font.Black; color: "white"
+                                                wrapMode: Text.WordWrap; Layout.fillWidth: true; font.letterSpacing: -0.5
+                                            }
+                                            Label {
+                                                text: (modelData.developer || "N/A") + " • " + (modelData.year || "N/A")
+                                                font.pixelSize: 13; color: currentAccentColor; font.weight: Font.Medium
+                                            }
+                                        }
+
+                                        Rectangle {
+                                            Layout.fillWidth: true; height: 1; color: "#1affffff"
+                                        }
+
+                                        // DESCRIPCIÓN CON SCROLL ESTRICTAMENTE VERTICAL
+                                        ScrollView {
+                                            id: descScroll
+                                            Layout.fillWidth: true; Layout.fillHeight: true
+                                            clip: true
+                                            ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
+                                            ScrollBar.vertical.policy: ScrollBar.AsNeeded
+                                            
+                                            Label {
+                                                width: descScroll.availableWidth - 10 
+                                                text: modelData.description || tr("lib_no_desc")
+                                                font.pixelSize: 14; color: "#b0ffffff"; wrapMode: Text.WordWrap
+                                                lineHeight: 1.5; horizontalAlignment: Text.AlignJustify
+                                            }
+                                        }
+
+                                        Button {
+                                            id: playBtnCollector
+                                            Layout.fillWidth: true; Layout.preferredHeight: 54
+                                            onClicked: {
+                                                if (window && window.requestLaunch) {
+                                                    window.requestLaunch(modelData.path, modelData.id_emu, modelData.title)
+                                                }
+                                            }
+                                            background: Rectangle {
+                                                radius: 0
+                                                color: playBtnCollector.hovered ? currentAccentColor : "transparent"
+                                                border.color: currentAccentColor; border.width: 1
+                                            }
+                                            contentItem: Label {
+                                                text: "L A U N C H"
+                                                color: playBtnCollector.hovered ? "black" : "white"
+                                                font.bold: true; font.pixelSize: 13; font.letterSpacing: 2
+                                                horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
+                                            }
+                                        }
                                     }
-                                    
-                                    let temp = selectedGame
-                                    selectedGame = null
-                                    selectedGame = temp
+                                }
+
+                                // DIVISOR TÉCNICO
+                                Rectangle {
+                                    anchors.left: leftInfoCol.right
+                                    anchors.top: parent.top; anchors.bottom: parent.bottom
+                                    width: 1; color: "#1affffff"
+                                }
+
+                                // COLUMNA DERECHA: 3D SHOWCASE STAGE (65%)
+                                Item {
+                                    id: rightStageCol
+                                    anchors.left: leftInfoCol.right
+                                    anchors.right: parent.right
+                                    anchors.top: parent.top
+                                    anchors.bottom: parent.bottom
+                                    clip: true // Protegemos el área de carátula
+
+                                    Rectangle {
+                                        anchors.fill: parent
+                                        color: "#0a0b12" // Un poco más oscuro para resaltar el arte
+
+                                        // REJILLA DIGITAL MÁS VISIBLE
+                                        Canvas {
+                                            anchors.fill: parent; opacity: 0.22 // Opacidad mejorada
+                                            onPaint: {
+                                                var ctx = getContext("2d"); ctx.strokeStyle = currentAccentColor; ctx.lineWidth = 0.5;
+                                                for (var x = 0; x <= width; x += 40) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, height); ctx.stroke(); }
+                                                for (var y = 0; y <= height; y += 40) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(width, y); ctx.stroke(); }
+                                            }
+                                        }
+
+                                        // RESPLANDOR AMBIENTAL
+                                        Rectangle {
+                                            anchors.centerIn: parent
+                                            width: parent.width * 0.7; height: width
+                                            radius: width / 2; color: currentAccentColor; opacity: 0.12
+                                            scale: 1.4; z: -1
+                                            layer.enabled: true
+                                            layer.effect: MultiEffect { blurEnabled: true; blur: 1.0 }
+                                        }
+
+                                        // SUELO REFLECTANTE CON MEJOR GRADIENTE
+                                        Rectangle {
+                                            anchors.bottom: parent.bottom; width: parent.width; height: 140
+                                            gradient: Gradient {
+                                                GradientStop { position: 0.0; color: "transparent" }
+                                                GradientStop { position: 1.0; color: Qt.rgba(currentAccentColor.r, currentAccentColor.g, currentAccentColor.b, 0.25) }
+                                            }
+                                        }
+
+                                        // IMAGEN HERO 3D (Escalado corregido)
+                                        Image {
+                                            id: coverImageHero
+                                            anchors.centerIn: parent
+                                            width: parent.width * 0.82
+                                            height: parent.height * 0.82
+                                            source: modelData.cover_3d || modelData.cover
+                                            fillMode: Image.PreserveAspectFit
+                                            smooth: true; asynchronous: true
+                                            
+                                            SequentialAnimation on anchors.verticalCenterOffset {
+                                                loops: Animation.Infinite
+                                                NumberAnimation { from: -10; to: 10; duration: 3000; easing.type: Easing.InOutQuad }
+                                                NumberAnimation { from: 10; to: -10; duration: 3000; easing.type: Easing.InOutQuad }
+                                            }
+                                            
+                                            // Sombras Cyberpunk
+                                            layer.enabled: true
+                                            layer.effect: MultiEffect {
+                                                shadowEnabled: true; shadowBlur: 0.6; shadowColor: "#33000000"
+                                                shadowVerticalOffset: 20
+                                            }
+                                        }
+
+                                        // BADGE FAVORITO MODERNO
+                                        Rectangle {
+                                            anchors.top: parent.top; anchors.right: parent.right
+                                            width: 52; height: 52
+                                            color: modelData.isFavorite ? currentAccentColor : "#1affffff"
+                                            visible: modelData.isFavorite
+                                            Label {
+                                                anchors.centerIn: parent
+                                                text: "⭐"; font.pixelSize: 22
+                                                color: "black"
+                                            }
+                                        }
+                                    }
+                                }
+
+                                MouseArea {
+                                    anchors.fill: parent
+                                    onClicked: {
+                                        if (!collectorDelegate.PathView.isCurrentItem) {
+                                            collectorView.currentIndex = index
+                                        }
+                                    }
                                 }
                             }
                         }
-                        
-                        Behavior on color { ColorAnimation { duration: 200 } }
-                        scale: favInfoMouse.pressed ? 0.85 : (favInfoMouse.containsMouse ? 1.1 : 1.0)
-                        Behavior on scale { NumberAnimation { duration: 150; easing.type: Easing.OutBack } }
                     }
                 }
             }
+        }
 
-            // Descripción
-            ScrollView {
-                id: descScroll
-                Layout.fillWidth: true; Layout.fillHeight: true
-                clip: true
-                ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
-                
-                Label {
-                    width: descScroll.availableWidth
-                    text: selectedGame ? (selectedGame.description || "No hay descripción disponible para este título.") : ""
-                    font.pixelSize: 14; color: "#b0ffffff"; wrapMode: Text.WordWrap
-                    lineHeight: 1.4
-                    bottomPadding: 20
-                }
+
+
+    // --- PANEL DE DETALLES NEON HUB (Rediseño Cyberpunk) ---
+    GameInfoPanel {
+        id: infoPanel
+        gameData: libraryRoot.selectedGame
+        accentColor: libraryRoot.currentAccentColor
+        
+        onLaunchClicked: (path, emuId, gameName) => {
+            if (window && window.requestLaunch) {
+                window.requestLaunch(path, emuId, gameName)
             }
-
-                RowLayout {
-                    Layout.fillWidth: true; spacing: 15
-
-                    Button {
-                        id: launchMainBtn
-                        Layout.fillWidth: true; Layout.preferredHeight: 52
-                        onClicked: {
-                            if (window && window.requestLaunch && selectedGame) {
-                                window.requestLaunch(selectedGame.path, selectedGame.id_emu, selectedGame.title)
-                                infoPanel.close()
-                            }
-                        }
-                        
-                        background: Rectangle {
-                            radius: 26
-                            color: launchMainBtn.hovered ? Qt.lighter(currentAccentColor, 1.2) : currentAccentColor
-                            
-                            Rectangle {
-                                anchors.fill: parent; radius: 26; color: "transparent"
-                                border.color: "#33ffffff"; border.width: 1
-                            }
-                            
-                            Behavior on color { ColorAnimation { duration: 200 } }
-                        }
-                        
-                        contentItem: Label {
-                            text: tr("lib_play_btn").toUpperCase()
-                            color: "black"; font.bold: true; font.pixelSize: 14; font.letterSpacing: 1
-                            horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
-                        }
-                        
-                        scale: launchMainBtn.pressed ? 0.95 : (launchMainBtn.hovered ? 1.02 : 1.0)
-                        Behavior on scale { NumberAnimation { duration: 150; easing.type: Easing.OutBack } }
-                    }
-                }
+        }
+        
+        onEditClicked: {
+            metaEditor.gameData = libraryRoot.selectedGame
+            metaEditor.open()
+        }
+        
+        onFavoriteClicked: {
+            if (libraryRoot.selectedGame) {
+                libraryRoot.selectedGame.isFavorite = bridge.lib.toggleFavorite(libraryRoot.selectedGame.path)
+            }
         }
     }
 
-    // --- POPUP DE AJUSTES DEL EMULADOR (TWEAKS) ---
-    Popup {
+    // --- POPUP DE AJUSTES DEL EMULADOR (COMPONENTE MODULAR) ---
+    EmulatorTweakPopup {
         id: tweakPopup
-        anchors.centerIn: parent
-        width: 520
-        height: Math.min(680, parent.height * 0.85)
-        modal: true
-        focus: true
-        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
-
-        property string currentEmuId: ""
-        property string currentEmuName: ""
-        property color accentColor: "#4da6ff"
-
-        background: Rectangle {
-            color: "#161923"
-            radius: 30
-            border.color: "#33ffffff"
-            border.width: 1
-            
-            // Efecto de brillo de fondo
-            Rectangle {
-                anchors.fill: parent; anchors.margins: 1; radius: 29
-                color: "transparent"
-                border.color: Qt.alpha(tweakPopup.accentColor, 0.1)
-                border.width: 1
-            }
-        }
-
-        contentItem: ColumnLayout {
-            id: tweakContent
-            anchors.fill: parent
-            anchors.margins: 30
-            spacing: 25
-
-            RowLayout {
-                spacing: 15
-                Rectangle {
-                    width: 40; height: 40; radius: 20
-                    color: Qt.alpha(tweakPopup.accentColor, 0.2)
-                    Label { anchors.centerIn: parent; text: "⚙️"; font.pixelSize: 18 }
-                }
-                ColumnLayout {
-                    spacing: 0
-                    Label {
-                        text: tweakPopup.currentEmuName.toUpperCase()
-                        color: "white"; font.pixelSize: 18; font.weight: Font.Black
-                        font.letterSpacing: 1
-                    }
-                    Label {
-                        text: tr("lib_emu_settings").toUpperCase()
-                        color: tweakPopup.accentColor; font.pixelSize: 10; font.bold: true; font.letterSpacing: 2
-                    }
-                }
-                Item { Layout.fillWidth: true }
-                Button {
-                    text: "✕"
-                    onClicked: tweakPopup.close()
-                    flat: true
-                    contentItem: Label { text: parent.text; color: "#66ffffff"; font.pixelSize: 20 }
-                    background: null
-                }
-            }
-
-            Rectangle { Layout.fillWidth: true; height: 1; color: "#1affffff" }
-
-            ListView {
-                id: tweakListView
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-                clip: true
-                spacing: 12
-                model: (tweakPopup.visible && bridge) ? bridge.emu.getEmulatorTweaks(tweakPopup.currentEmuId) : []
-                
-                ScrollBar.vertical: ScrollBar {
-                    id: scrollBar
-                    policy: tweakListView.contentHeight > tweakListView.height ? ScrollBar.AlwaysOn : ScrollBar.AlwaysOff
-                }
-
-                delegate: Rectangle {
-                    id: tweakItem
-                    width: tweakListView.width - (scrollBar.visible ? 15 : 0)
-                    // Altura dinámica: 0 si está oculto por depende_de
-                    height: shouldShow ? 90 : 0
-                    radius: 18
-                    color: "#1a202c"
-                    border.color: "#2d3748"; border.width: 1
-                    visible: height > 0
-                    clip: true
-                    
-                    Behavior on height { NumberAnimation { duration: 250; easing.type: Easing.OutQuart } }
-
-                    property bool shouldShow: {
-                        if (modelData.depends_on === undefined) return true;
-                        if (modelData.depends_on.fullscreen !== undefined) {
-                            // Buscar el valor actual de fullscreen en el modelo (un poco ineficiente pero funcional para pocos items)
-                            var fsValue = true;
-                            for (var i=0; i < tweakListView.count; i++) {
-                                var item = tweakListView.model[i];
-                                if (item.id === "fullscreen") { fsValue = item.value; break; }
-                            }
-                            return modelData.depends_on.fullscreen === fsValue;
-                        }
-                        return true;
-                    }
-
-                    RowLayout {
-                        anchors.fill: parent
-                        anchors.leftMargin: 25; anchors.rightMargin: 25
-                        spacing: 20
-
-                        ColumnLayout {
-                            spacing: 4
-                            Layout.fillWidth: true
-                            Label {
-                                text: (bridge && modelData.label.indexOf("lib_") === 0) ? bridge.translate(modelData.label) : modelData.label
-                                font.pixelSize: 16; color: "white"; font.weight: Font.DemiBold
-                                elide: Text.ElideRight; Layout.fillWidth: true
-                            }
-                            Label {
-                                text: (bridge && bridge.currentLanguage) ? (modelData.type === "bool" ? bridge.translate("lib_tweak_on_start") : bridge.translate("lib_tweak_config")) : "Ajuste"
-                                font.pixelSize: 11; color: "#718096"; font.bold: true; font.letterSpacing: 1.0
-                            }
-                        }
-                        
-                        // Control para Booleanos (Switch)
-                        Switch {
-                            visible: modelData.type === "bool"
-                            checked: modelData.value
-                            onToggled: {
-                                if (bridge) {
-                                    bridge.emu.saveEmulatorTweak(tweakPopup.currentEmuId, modelData.id, checked)
-                                    // Forzar refresco del modelo para disparar visibility de otros items
-                                    tweakListView.model = bridge.emu.getEmulatorTweaks(tweakPopup.currentEmuId)
-                                }
-                            }
-                            
-                            indicator: Rectangle {
-                                implicitWidth: 46; implicitHeight: 24
-                                radius: 12
-                                color: parent.checked ? Qt.alpha(tweakPopup.accentColor, 0.2) : "#2d3748"
-                                border.color: parent.checked ? tweakPopup.accentColor : "#4a5568"
-                                border.width: 1
-
-                                Rectangle {
-                                    x: parent.parent.checked ? parent.width - width - 3 : 3
-                                    y: 3; width: 18; height: 18; radius: 9
-                                    color: parent.parent.checked ? tweakPopup.accentColor : "#718096"
-                                    Behavior on x { NumberAnimation { duration: 150; easing.type: Easing.OutQuad } }
-                                }
-                            }
-                        }
-
-                        // Control para Listas (ComboBox Estilo Premium)
-                        ComboBox {
-                            id: tweakCombo
-                            visible: modelData.type === "list"
-                            model: modelData.type === "list" ? modelData.options : []
-                            currentIndex: modelData.type === "list" && modelData.options ? modelData.options.indexOf(modelData.value) : -1
-                            Layout.preferredWidth: 160
-                            Layout.preferredHeight: 38
-                            
-                            onActivated: {
-                                if (bridge) {
-                                    bridge.emu.saveEmulatorTweak(tweakPopup.currentEmuId, modelData.id, modelData.options[currentIndex]);
-                                    // Refrescar para dependencias
-                                    tweakListView.model = bridge.emu.getEmulatorTweaks(tweakPopup.currentEmuId);
-                                }
-                            }
-
-                            contentItem: Label {
-                                text: tweakCombo.displayText
-                                color: "white"; font.pixelSize: 13; font.weight: Font.Medium
-                                verticalAlignment: Text.AlignVCenter; leftPadding: 16; rightPadding: 36
-                            }
-
-                            delegate: ItemDelegate {
-                                width: tweakCombo.width
-                                contentItem: Label {
-                                    text: modelData
-                                    color: highlighted ? "white" : "#9999aa"
-                                    font.pixelSize: 13; font.weight: highlighted ? Font.Medium : Font.Normal
-                                    verticalAlignment: Text.AlignVCenter; leftPadding: 16
-                                }
-                                background: Rectangle {
-                                    color: highlighted ? "#2d3748" : "transparent"
-                                    radius: 8; anchors.fill: parent; anchors.margins: 2
-                                }
-                                highlighted: tweakCombo.highlightedIndex === index
-                            }
-
-                            popup: Popup {
-                                y: tweakCombo.height + 5; width: tweakCombo.width; padding: 2
-                                contentItem: ListView {
-                                    clip: true; implicitHeight: Math.min(contentHeight, 200)
-                                    model: tweakCombo.delegateModel; currentIndex: tweakCombo.highlightedIndex
-                                }
-                                background: Rectangle {
-                                    color: "#1a1c24"; radius: 12
-                                    border.color: "#33ffffff"; border.width: 1
-                                }
-                            }
-
-                            background: Rectangle {
-                                color: "#2d3748"; radius: 10
-                                border.color: tweakCombo.hovered ? tweakPopup.accentColor : "#4a5568"
-                                border.width: 1
-                                Behavior on border.color { ColorAnimation { duration: 150 } }
-                            }
-
-                            indicator: Canvas {
-                                id: comboCanvas
-                                x: tweakCombo.width - width - 15; y: (tweakCombo.height - height) / 2
-                                width: 10; height: 6
-                                onPaint: {
-                                    var ctx = getContext("2d"); ctx.reset();
-                                    ctx.moveTo(0, 0); ctx.lineTo(width, 0); ctx.lineTo(width / 2, height);
-                                    ctx.closePath(); ctx.fillStyle = tweakCombo.hovered ? tweakPopup.accentColor : "#718096";
-                                    ctx.fill();
-                                }
-                                Connections {
-                                    target: tweakCombo
-                                    function onHoveredChanged() { comboCanvas.requestPaint(); }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                footer: Item {
-                    width: tweakListView.width; height: 10
-                    visible: tweakListView.count > 0
-                }
-
-                Label {
-                    anchors.centerIn: parent
-                    visible: tweakListView.count === 0
-                    text: tr("lib_no_tweaks")
-                    font.pixelSize: 13; color: "#44ffffff"; font.italic: true
-                }
-            }
-            
-            Button {
-                id: closeTweakBtn
-                Layout.fillWidth: true; Layout.preferredHeight: 50
-                text: tr("lib_tweak_done").toUpperCase()
-                onClicked: tweakPopup.close()
-                hoverEnabled: true
-
-                background: Rectangle {
-                    radius: 25
-                    color: closeTweakBtn.pressed ? "#1a202c" : (closeTweakBtn.hovered ? "#2d3748" : "#2a2f45")
-                    border.color: closeTweakBtn.hovered ? "#4a5568" : "transparent"; border.width: 1
-                    Behavior on color { ColorAnimation { duration: 150 } }
-                }
-                contentItem: Label {
-                    text: parent.text; color: "white"; font.bold: true; font.pixelSize: 12
-                    horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
-                    font.letterSpacing: 1
-                }
-            }
-        }
-
-        enter: Transition {
-            NumberAnimation { property: "opacity"; from: 0; to: 1; duration: 200 }
-            NumberAnimation { property: "scale"; from: 0.9; to: 1; duration: 300; easing.type: Easing.OutBack }
-        }
-        exit: Transition {
-            NumberAnimation { property: "opacity"; to: 0; duration: 150 }
-            NumberAnimation { property: "scale"; to: 0.9; duration: 150; easing.type: Easing.InBack }
-        }
     }
 
     // Diálogo de Edición de Metadatos
@@ -1618,3 +1141,4 @@ Item {
         }
     }
 }
+

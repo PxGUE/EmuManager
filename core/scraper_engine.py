@@ -26,10 +26,14 @@ class ScraperEngine:
         candidate_words = set(candidate_norm.split())
         
         # Stop words that don't count as "significant" for distinguishing games
-        STOP_WORDS = {'the', 'a', 'an', 'of', 'and', 'for', 'with', 'to', 'in', 'on', 'version', 'vol', 'pt', 'part'}
+        STOP_WORDS = {
+            'the', 'a', 'an', 'of', 'and', 'for', 'with', 'to', 'in', 'on', 'version', 'vol', 'pt', 'part',
+            'usa', 'eur', 'jpn', 'esp', 'spa', 'fra', 'ger', 'ita', 'hack', 'beta', 'demo', 'rev', 'v0', 'v1', 'v2',
+            'juego', 'videojuego', 'game', 'video'
+        }
         
-        # Filter target words: must be > 2 chars and not a stop word
-        significant = {w for w in target_words if len(w) > 2 and w not in STOP_WORDS}
+        # Filter target words: must be > 2 chars OR be a digit OR be a short Roman Numeral
+        significant = {w for w in target_words if ((len(w) > 2 or w.isdigit()) and w not in STOP_WORDS)}
         
         if not significant:
             return True # If no significant words (weird), allow fuzzy match
@@ -90,7 +94,7 @@ class ScraperEngine:
                 return candidate_map[sorted_candidate_map[sorted_variant]]
             
             # Tier 2: get_close_matches (Fast heuristic)
-            matches = difflib.get_close_matches(variant, norm_candidates, n=1, cutoff=0.85)
+            matches = difflib.get_close_matches(variant, norm_candidates, n=1, cutoff=0.75)
             if matches:
                  # Even with high cutoff, verify significant words (though usually ok)
                 if not require_significant or ScraperEngine._check_significant_words(variant, matches[0]):

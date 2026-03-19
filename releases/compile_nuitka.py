@@ -38,15 +38,23 @@ def compile():
         command.insert(7, "--windows-icon-from-ico=media/icon.ico")
 
     # 3. Incluir directorios de recursos necesarios
-    # Nuitka copiará estos directorios dentro del paquete
+    # IMPORTANTE: NO incluir core/_secrets.py aquí; core se compila automáticamente.
     resources = [
         ("ui/qml", "ui/qml"),
         ("media", "media"), # Solo iconos base, el artwork se descarga
         ("resources", "resources"), # Base de datos de emuladores
     ]
     
+    # Comprobar si existen secretos para informar al log
+    secrets_path = os.path.join(root_dir, "core", "_secrets.py")
+    if os.path.exists(secrets_path):
+        print("[BUILD] Secretos encontrados en core/_secrets.py. Serán compilados en el binario.")
+    else:
+        print("[BUILD] ADVERTENCIA: No se encontró core/_secrets.py. El binario dependerá de variables de entorno.")
+
     for src, dest in resources:
         full_src = os.path.normpath(os.path.join(root_dir, src))
+        # Para directorios usamos --include-data-dir
         command.append(f"--include-data-dir={full_src}={dest}")
 
     print(f"Ejecutando comando: {' '.join(command)}")

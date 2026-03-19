@@ -17,7 +17,7 @@ from collections import defaultdict
 from PySide6.QtCore import QObject, Slot, Property, Signal, QUrl
 import core.scanner as scanner
 from core.constants import AVAILABLE_EMULATORS
-from core.artwork import obtener_ruta_caratula, obtener_ruta_fondo_consola
+from core.artwork import obtener_ruta_caratula, obtener_ruta_fondo_consola, obtener_ruta_background
 from core.metadata import obtener_metadata_local, guardar_metadata_local
 
 class LibraryBridge(QObject):
@@ -101,7 +101,9 @@ class LibraryBridge(QObject):
                     "seconds": s,
                     "path": j.get("ruta", ""),
                     "id_emu": j.get("id_emu", ""),
-                    "cover": QUrl.fromLocalFile(obtener_ruta_caratula(j.get("ruta", ""))).toString() if os.path.exists(obtener_ruta_caratula(j.get("ruta", ""))) else ""
+                    "cover": QUrl.fromLocalFile(obtener_ruta_caratula(j.get("ruta", ""), j.get("id_emu", ""))).toString() if os.path.exists(obtener_ruta_caratula(j.get("ruta", ""), j.get("id_emu", ""))) else "",
+                    "cover_3d": QUrl.fromLocalFile(obtener_ruta_caratula(j.get("ruta", ""), j.get("id_emu", ""), "3d")).toString() if os.path.exists(obtener_ruta_caratula(j.get("ruta", ""), j.get("id_emu", ""), "3d")) else "",
+                    "background": QUrl.fromLocalFile(obtener_ruta_background(j.get("ruta", ""), j.get("id_emu", ""))).toString() if os.path.exists(obtener_ruta_background(j.get("ruta", ""), j.get("id_emu", ""))) else ""
                 })
         
         juegos_con_tiempo.sort(key=lambda x: x["seconds"], reverse=True)
@@ -160,8 +162,12 @@ class LibraryBridge(QObject):
             if j.get("id_emu") == console_id:
                 ruta = j.get("ruta", "")
                 s, h, m = self.emu_manager.get_playtime(ruta)
-                cover_raw = obtener_ruta_caratula(ruta)
+                cover_raw = obtener_ruta_caratula(ruta, console_id, "2d")
                 cover_url = QUrl.fromLocalFile(cover_raw).toString() if os.path.exists(cover_raw) else ""
+                cover_3d_raw = obtener_ruta_caratula(ruta, console_id, "3d")
+                cover_3d_url = QUrl.fromLocalFile(cover_3d_raw).toString() if os.path.exists(cover_3d_raw) else ""
+                bg_raw = obtener_ruta_background(ruta, console_id)
+                bg_url = QUrl.fromLocalFile(bg_raw).toString() if os.path.exists(bg_raw) else ""
                 meta = obtener_metadata_local(ruta)
                 
                 games.append({
@@ -171,6 +177,8 @@ class LibraryBridge(QObject):
                     "console": j.get("consola", ""),
                     "playtime": f"{h}h {m}m" if h > 0 else f"{m}m",
                     "cover": cover_url,
+                    "cover_3d": cover_3d_url,
+                    "background": bg_url,
                     "id_emu": console_id,
                     "isFavorite": scanner.es_favorito(ruta),
                     "description": meta.get("description", ""),

@@ -58,10 +58,5 @@ EmuManager es un gestor integral de videojuegos retro diseñado para ofrecer una
 
 ---
 
-## 👨‍💻 Autor
-- **Christian A. Ordoñez** - *Desarrollador Principal*
-- **GitHub**: [@PxGUE](https://github.com/PxGUE)
-- **Email**: [cris.ordonezal@gmail.com](mailto:cris.ordonezal@gmail.com)
-
 ## ⚖️ Licencia
 Este proyecto está bajo la [Licencia GNU GPLv3](https://www.gnu.org/licenses/gpl-3.0.html).

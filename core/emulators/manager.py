@@ -27,6 +27,7 @@ class EmuladorManager:
         self.install_path = config.get("install_path", "")
         self.roms_path = config.get("roms_path", "")
         self.language = config.get("language", "es")
+        self.collector_mode = config.get("collector_mode", False)
         
         self.installed_emus = self._load_installed()
         self.release_cache = self._load_cache()
@@ -165,7 +166,7 @@ class EmuladorManager:
                 self._save_installed()
         except: pass
 
-    def save_config(self, install_path=None, roms_path=None, language=None):
+    def save_config(self, install_path=None, roms_path=None, language=None, collector_mode=None):
         path_changed = False
         if install_path is not None and install_path != self.install_path:
             self.install_path = install_path
@@ -175,11 +176,14 @@ class EmuladorManager:
             self.crear_carpetas_roms()
         if language is not None:
             self.language = language
+        if collector_mode is not None:
+            self.collector_mode = collector_mode
             
         config = {
             "install_path": self.install_path,
             "roms_path": self.roms_path,
-            "language": self.language
+            "language": self.language,
+            "collector_mode": self.collector_mode
         }
         
         try:

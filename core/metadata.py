@@ -124,20 +124,23 @@ async def descargar_metadata_biblioteca(juegos: list, emu_map: dict, on_progress
                     stats["skip"] += 1
                 else:
                     res = None
-                    # Intento secuencial por prioridad (Wiki -> RAWG -> ScreenScraper)
-                    if wiki:
-                        res = await wiki.fetch(session, nombre)
-                    
-                    if not res and rawg:
-                        res = await rawg.fetch(session, nombre)
-
-                    if not res and screenscraper:
+                    # Intento secuencial por prioridad (ScreenScraper -> Wikipedia -> RAWG)
+                    if screenscraper:
                         emu_id = juego.get("id_emu", "")
                         emu_info = emu_map.get(emu_id, {})
                         ss_id = emu_info.get("screenscraper_id")
-                        res = await screenscraper.fetch(session, nombre, ss_platform_id=ss_id)
+                        res = await screenscraper.fetch(session, nombre, ss_platform_id=ss_id, rom_file=os.path.basename(ruta))
+
+                    if not res and wiki:
+                        print(f"[METADATA] Intentando fallback con Wikipedia para {nombre}")
+                        res = await wiki.fetch(session, nombre)
+                    
+                    if not res and rawg:
+                        print(f"[METADATA] Intentando fallback con RAWG para {nombre}")
+                        res = await rawg.fetch(session, nombre)
 
                     if res:
+                        print(f"[METADATA] ¡Éxito! Información encontrada desde {res.get('source', 'desconocido')}")
                         cache[ruta] = res
                         stats["ok"] += 1
                     else:
@@ -173,12 +176,12 @@ def get_providers_config() -> List[Dict]:
     """
     path = os.path.join(config.DATA_DIR, "scrapers_config.json")
     default = [
-        {"id": "libretro", "name": "Libretro CDN", "enabled": True, "type": "artwork", "priority": 0},
-        {"id": "steamgriddb", "name": "SteamGridDB", "enabled": True, "type": "artwork", "priority": 1, "api_key": ""},
-        {"id": "wikipedia", "name": "Wikipedia", "enabled": True, "type": "metadata", "priority": 0},
-        {"id": "tgdb", "name": "TheGamesDB", "enabled": True, "type": "metadata", "priority": 1, "api_key": ""},
-        {"id": "rawg", "name": "RAWG.io", "enabled": True, "type": "metadata", "priority": 2, "api_key": ""},
-        {"id": "screenscraper", "name": "ScreenScraper", "enabled": True, "type": "metadata", "priority": 3, "user": "", "password": ""}
+        {"id": "screenscraper", "name": "ScreenScraper", "enabled": True, "type": "metadata", "priority": 0, "user": "", "password": ""},
+        {"id": "libretro", "name": "Libretro CDN", "enabled": True, "type": "artwork", "priority": 1},
+        {"id": "steamgriddb", "name": "SteamGridDB", "enabled": True, "type": "artwork", "priority": 2, "api_key": ""},
+        {"id": "wikipedia", "name": "Wikipedia", "enabled": True, "type": "metadata", "priority": 3},
+        {"id": "tgdb", "name": "TheGamesDB", "enabled": True, "type": "metadata", "priority": 4, "api_key": ""},
+        {"id": "rawg", "name": "RAWG.io", "enabled": True, "type": "metadata", "priority": 5, "api_key": ""},
     ]
     
     # 1. Cargar preferencias del usuario (Activado/Desactivado, Prioridad)

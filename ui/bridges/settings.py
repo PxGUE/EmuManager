@@ -48,6 +48,17 @@ class SettingsBridge(QObject):
         """Ruta absoluta donde se encuentran los juegos."""
         return self.emu_manager.roms_path or ""
 
+    @Property(bool, notify=configDataChanged)
+    def collectorMode(self):
+        """Indica si el modo coleccionista está activo."""
+        return getattr(self.emu_manager, "collector_mode", False)
+
+    @Slot(bool)
+    def setCollectorMode(self, enabled):
+        """Activa o desactiva el modo coleccionista."""
+        self.emu_manager.save_config(collector_mode=enabled)
+        self.main.configUpdated.emit()
+
     @Slot()
     def browseInstallPath(self):
         """Abre un diálogo nativo para seleccionar la carpeta de emuladores."""

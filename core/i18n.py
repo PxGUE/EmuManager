@@ -243,6 +243,9 @@ TRANSLATIONS = {
         "set_tip_clear": "Elimina las llaves y contraseñas de {0} de tu sistema.",
         "set_msg_cleared": "Credenciales eliminadas del sistema.",
         "set_paths_section": "RUTAS DE EMULADORES",
+        "set_interface_section": "INTERFAZ Y VISUALIZACIÓN",
+        "set_collector_title": "Modo Coleccionista",
+        "set_collector_sub": "Vista inmersiva con carátulas 3D y detalles integrados",
         "set_data_section": "CONFIGURACIÓN DE LOS DATOS",
 
         # Dialogs
@@ -503,6 +506,9 @@ TRANSLATIONS = {
         "set_tip_clear": "Removes keys and passwords for {0} from your system.",
         "set_msg_cleared": "Credentials removed from the system.",
         "set_paths_section": "EMULATOR PATHS",
+        "set_interface_section": "INTERFACE & VISUALS",
+        "set_collector_title": "Collector's Mode",
+        "set_collector_sub": "Immersive view with 3D boxart and integrated details",
         "set_data_section": "DATA CONFIGURATION",
 
         # Dialogs

@@ -15,9 +15,9 @@ class ScreenScraperScraper(BaseScraper):
         super().__init__("ScreenScraper")
         self.user = user
         self.password = password
-        # Dev credentials for the app (placeholders)
-        self.devid = "demose"
-        self.devpassword = "demosepassword"
+        # Dev credentials for the app
+        self.devid = "recalbox"
+        self.devpassword = "recalbox"
         self.softname = "EmuManager"
 
     async def fetch(self, session: aiohttp.ClientSession, query: str, **kwargs) -> Optional[Dict[str, Any]]:
@@ -27,23 +27,32 @@ class ScreenScraperScraper(BaseScraper):
         # ScreenScraper is very platform-sensitive
         platform_id = kwargs.get("ss_platform_id")
         
+        rom_file = kwargs.get("rom_file", query)
         params = {
             "devid": self.devid,
             "devpassword": self.devpassword,
             "softname": self.softname,
             "output": "json",
-            "romnome": query,
-            "id": self.user,
-            "password": self.password
+            "romtype": "rom",
+            "romnom": rom_file,
+            "ssid": self.user,
+            "sspassword": self.password
         }
         
+        # ScreenScraper is very system-sensitive.
         if platform_id:
             params["systemeid"] = platform_id
 
         try:
+            print(f"[SCREEN_SCRAPER] Buscando: {query} (ID Sistema: {platform_id})")
             # Note: ScreenScraper prefers exact ROM name matches, but we can try search
             async with session.get(self.API_BASE, params=params, timeout=12) as resp:
                 if resp.status != 200:
+                    err_txt = await resp.text()
+                    if resp.status == 403:
+                        print(f"[SCREEN_SCRAPER] Error 403: Se requiere registrar un 'devid' de desarrollador en screenscraper.fr para usar esta API.")
+                    else:
+                        print(f"[SCREEN_SCRAPER] Error HTTP: {resp.status} - {err_txt}")
                     return None
                 
                 data = await resp.json()
@@ -51,10 +60,12 @@ class ScreenScraperScraper(BaseScraper):
                 status = response.get("status")
                 
                 if status != "OK":
+                    print(f"[SCREEN_SCRAPER] Respuesta no OK: {status}")
                     # If direct match fails, we can't easily do a 'search' with this specific endpoint
                     # without more sophisticated logic.
                     return None
                 
+                print(f"[SCREEN_SCRAPER] Juego encontrado: {response.get('jeu', {}).get('noms', [{}])[0].get('nom', 'Desconocido')}")
                 jeu = response.get("jeu", {})
                 
                 # Get description (prioritize Spanish, then English)
@@ -75,6 +86,7 @@ class ScreenScraperScraper(BaseScraper):
                 # Get Medias (Artwork)
                 medias = jeu.get("medias", [])
                 boxart_url = ""
+                boxart_3d_url = ""
                 background_url = ""
                 logo_url = ""
                 
@@ -83,8 +95,10 @@ class ScreenScraperScraper(BaseScraper):
                     m_url = m.get("url", "")
                     if not m_url: continue
                     
-                    if m_type in ("box-2D", "box-3D", "box-2D-v", "box-2D-h") and not boxart_url:
+                    if m_type in ("box-2D", "box-2D-v", "box-2D-h") and not boxart_url:
                         boxart_url = m_url
+                    elif m_type == "box-3D" and not boxart_3d_url:
+                        boxart_3d_url = m_url
                     elif m_type in ("fanart-64", "fanart-1080p", "fanart-720p") and not background_url:
                         background_url = m_url
                     elif m_type == "logo" and not logo_url:
@@ -98,10 +112,12 @@ class ScreenScraperScraper(BaseScraper):
                     "genre": genre,
                     "players": jeu.get("joueurs", "1"),
                     "boxart_url": boxart_url,
+                    "boxart_3d_url": boxart_3d_url,
                     "background_url": background_url,
                     "logo_url": logo_url,
                     "source": self.name
                 }
-        except:
+        except Exception as e:
+            print(f"[SCREEN_SCRAPER] Excepción en fetch: {e}")
             pass
         return None

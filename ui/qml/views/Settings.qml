@@ -221,6 +221,87 @@ Item {
                 }
             }
 
+            // --- SECCIÓN: INTERFAZ ---
+            ColumnLayout {
+                spacing: 12
+                Layout.fillWidth: true
+
+                RowLayout {
+                    spacing: 10
+                    Rectangle { width: 3; height: 16; radius: 1.5; color: "#4da6ff" }
+                    Label {
+                        text: tr("set_interface_section").toUpperCase()
+                        font.pixelSize: 13; font.bold: true; color: "white"; font.letterSpacing: 1
+                    }
+                }
+
+                Rectangle {
+                    Layout.fillWidth: true
+                    height: 72
+                    radius: 20
+                    color: "#0dffffff"
+                    border.color: "#1affffff"; border.width: 1
+
+                    RowLayout {
+                        anchors.fill: parent
+                        anchors.leftMargin: 20
+                        anchors.rightMargin: 20
+                        spacing: 20
+
+                        Rectangle {
+                            width: 32; height: 32; radius: 8
+                            color: "#1affffff"
+                            Text {
+                                anchors.centerIn: parent
+                                text: "🎮"
+                                font.pixelSize: 14; opacity: 0.8
+                            }
+                        }
+
+                        ColumnLayout {
+                            spacing: 0
+                            Layout.fillWidth: true
+                            Label {
+                                text: tr("set_collector_title")
+                                font.pixelSize: 14; font.weight: Font.Medium; color: "white"
+                            }
+                            Label {
+                                text: tr("set_collector_sub")
+                                font.pixelSize: 10; color: "#666677"
+                            }
+                        }
+
+                        Switch {
+                            id: collectorSwitch
+                            checked: bridge ? bridge.set.collectorMode : false
+                            onClicked: {
+                                if (bridge) bridge.set.setCollectorMode(checked)
+                            }
+                            
+                            indicator: Rectangle {
+                                implicitWidth: 48
+                                implicitHeight: 26
+                                radius: 13
+                                color: collectorSwitch.checked ? "#4da6ff" : "#2a2d3e"
+                                border.color: collectorSwitch.checked ? "#4da6ff" : "#33ffffff"
+
+                                Rectangle {
+                                    x: collectorSwitch.checked ? parent.width - width - 2 : 2
+                                    y: 2
+                                    width: 22
+                                    height: 22
+                                    radius: 11
+                                    color: "white"
+                                    Behavior on x {
+                                        NumberAnimation { duration: 200; easing.type: Easing.InOutQuad }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
             // --- SECCIÓN: DATOS ---
             ColumnLayout {
                 spacing: 12

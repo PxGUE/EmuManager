@@ -43,7 +43,7 @@ Item {
             return matchSearch && matchFav
         })
     }
-    property string currentBackground: (carousel.currentItem) ? carousel.currentItem.backgroundSource : ""
+    property string currentBackground: (libraryRoot.state === "collector" && collectorView.currentItem) ? collectorView.currentItem.itemBackground : ((carousel.currentItem) ? carousel.currentItem.backgroundSource : "")
     property color currentAccentColor: (carousel.currentItem) ? carousel.currentItem.accentColor : "#4da6ff"
     
     property var selectedGame: null // Para el panel de información
@@ -392,7 +392,7 @@ Item {
                                     libraryRoot.currentConsoleName = modelData.name
                                     libraryRoot.currentEmuName = modelData.emu_name
                                     libraryRoot.currentGames = bridge.lib.getGamesForConsole(modelData.id)
-                                    libraryRoot.state = "grid"
+                                    libraryRoot.state = (bridge && bridge.set.collectorMode) ? "collector" : "grid"
                                     libraryRoot.gridEntranceTriggered()
                                 } else {
                                     carousel.currentIndex = index
@@ -647,17 +647,13 @@ Item {
                         }
                     }
 
-                    // 1. GESTIÓN MODERNA DE EVENTOS (No bloquea el scroll)
+                    readonly property bool isHovered: cardHover.hovered
+
+                    // 1. GESTIÓN DE HOVER Y CURSOR (No bloquea el scroll)
                     HoverHandler {
                         id: cardHover
+                        cursorShape: Qt.PointingHandCursor
                         onHoveredChanged: if (hovered) gamesGrid.currentItemData = modelData
-                    }
-                    
-                    TapHandler {
-                        onTapped: {
-                            if (window && window.requestLaunch) 
-                                window.requestLaunch(modelData.path, modelData.id_emu, modelData.name)
-                        }
                     }
 
                     // 2. CUERPO VISUAL
@@ -689,6 +685,14 @@ Item {
                             opacity: modelData.cover ? (isHovered ? 1.0 : 0.8) : 0.1
                             scale: isHovered ? 1.1 : 1.0
                             Behavior on scale { NumberAnimation { duration: 1200; easing.type: Easing.OutCubic } }
+
+                            // Lanzamiento del juego (Solo en el cuerpo, no interfiere con botones externos)
+                            TapHandler {
+                                onTapped: {
+                                    if (window && window.requestLaunch) 
+                                        window.requestLaunch(modelData.path, modelData.id_emu, modelData.name)
+                                }
+                            }
                         }
 
                         // Overlay de Información
@@ -743,13 +747,15 @@ Item {
                             Label {
                                 anchors.centerIn: parent
                                 text: "ⓘ"
-                                font.pixelSize: 20; color: infoBtnMouse.hovered ? "black" : "white"
+                                font.pixelSize: 20; color: infoBtnMouse.containsMouse ? "black" : "white"
                             }
                             
-                            HoverHandler { id: infoBtnMouse }
-                            
-                            TapHandler {
-                                onTapped: {
+                            MouseArea {
+                                id: infoBtnMouse
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: {
                                     libraryRoot.selectedGame = modelData
                                     infoPanel.open()
                                 }
@@ -759,7 +765,7 @@ Item {
                         // Botón FAVORITO
                         Rectangle {
                             width: 38; height: 38; radius: 19
-                            color: favBtnMouse.hovered ? "#ff4d4d" : (modelData.isFavorite ? "#33ff4d4d" : "#e00a0c14")
+                            color: favBtnMouse.containsMouse ? "#ff4d4d" : (modelData.isFavorite ? "#33ff4d4d" : "#e00a0c14")
                             border.color: modelData.isFavorite ? "#ff4d4d" : currentAccentColor
                             border.width: 1
                             
@@ -769,10 +775,12 @@ Item {
                                 font.pixelSize: 18
                             }
                             
-                            HoverHandler { id: favBtnMouse }
-                            
-                            TapHandler {
-                                onTapped: {
+                            MouseArea {
+                                id: favBtnMouse
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: {
                                     let newVal = bridge.lib.toggleFavorite(modelData.path)
                                     modelData.isFavorite = newVal
                                     
@@ -798,6 +806,11 @@ Item {
             name: "grid"
             PropertyChanges { target: carousel; visible: false; opacity: 0; scale: 0.9 }
             PropertyChanges { target: gridContainer; visible: true; opacity: 1; y: 0; scale: 1.0 }
+        },
+        State {
+            name: "collector"
+            PropertyChanges { target: carousel; visible: false; opacity: 0; scale: 0.8 }
+            PropertyChanges { target: collectorContainer; visible: true; opacity: 1; y: 0; scale: 1.0 }
         }
     ]
 
@@ -830,8 +843,232 @@ Item {
                 }
                 PropertyAction { target: gridContainer; property: "visible"; value: false }
             }
+        },
+        Transition {
+            from: "carousel"; to: "collector"
+            SequentialAnimation {
+                PropertyAction { target: collectorContainer; property: "visible"; value: true }
+                ParallelAnimation {
+                    NumberAnimation { target: carousel; property: "opacity"; duration: 400; easing.type: Easing.OutCubic }
+                    NumberAnimation { target: carousel; property: "scale"; duration: 400; easing.type: Easing.InBack }
+                    NumberAnimation { target: collectorContainer; property: "opacity"; duration: 600; easing.type: Easing.OutCubic }
+                    NumberAnimation { target: collectorContainer; property: "y"; duration: 600; easing.type: Easing.OutBack }
+                    NumberAnimation { target: collectorContainer; property: "scale"; duration: 600; easing.type: Easing.OutBack }
+                }
+                PropertyAction { target: carousel; property: "visible"; value: false }
+            }
+        },
+        Transition {
+            from: "collector"; to: "carousel"
+            SequentialAnimation {
+                PropertyAction { target: carousel; property: "visible"; value: true }
+                ParallelAnimation {
+                    NumberAnimation { target: collectorContainer; property: "opacity"; duration: 350; easing.type: Easing.OutCubic }
+                    NumberAnimation { target: collectorContainer; property: "scale"; duration: 350; easing.type: Easing.InBack }
+                    NumberAnimation { target: carousel; property: "opacity"; duration: 500; easing.type: Easing.OutCubic }
+                    NumberAnimation { target: carousel; property: "scale"; duration: 500; easing.type: Easing.OutBack }
+                }
+                PropertyAction { target: collectorContainer; property: "visible"; value: false }
+            }
         }
     ]
+
+    // --- MODO COLECCIONISTA: CAROUSEL DE JUEGOS ---
+    Item {
+        id: collectorContainer
+        anchors.fill: parent
+        opacity: 0
+        visible: false
+        scale: 0.9
+        y: 50
+
+        ColumnLayout {
+            anchors.fill: parent
+            anchors.margins: 40
+            spacing: 20
+
+            // Header simplificado para modo coleccionista
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 20
+                
+                Button {
+                    id: btnBackCollector
+                    Layout.preferredWidth: 48; Layout.preferredHeight: 48
+                    onClicked: libraryRoot.state = "carousel"
+                    background: Rectangle {
+                        radius: 24
+                        color: btnBackCollector.hovered ? "#33ffffff" : "#11ffffff"
+                        border.color: "#22ffffff"; border.width: 1
+                    }
+                    contentItem: Label { text: "←"; color: "white"; font.pixelSize: 20; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                }
+
+                ColumnLayout {
+                    spacing: 0
+                    Label {
+                        text: libraryRoot.currentConsoleName.toUpperCase()
+                        font.pixelSize: 24; font.bold: true; color: "white"; font.letterSpacing: 2
+                    }
+                    Label {
+                        text: tr("lib_games_count", libraryRoot.filteredGames.length).toUpperCase()
+                        font.pixelSize: 10; font.bold: true; color: currentAccentColor; font.letterSpacing: 1
+                    }
+                }
+                Item { Layout.fillWidth: true }
+            }
+
+            PathView {
+                id: collectorView
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                model: libraryRoot.filteredGames
+                pathItemCount: 3
+                preferredHighlightBegin: 0.5
+                preferredHighlightEnd: 0.5
+                highlightRangeMode: PathView.StrictlyEnforceRange
+                snapMode: PathView.SnapToItem
+                clip: true
+
+                path: Path {
+                    startX: -collectorView.width * 0.5
+                    startY: collectorView.height / 2
+                    PathLine { x: collectorView.width * 0.5; y: collectorView.height / 2 }
+                    PathLine { x: collectorView.width * 1.5; y: collectorView.height / 2 }
+                }
+
+                delegate: Item {
+                    id: collectorDelegate
+                    width: collectorView.width * 0.8
+                    height: collectorView.height * 0.85
+                    z: PathView.isCurrentItem ? 10 : 1
+                    opacity: PathView.isCurrentItem ? 1.0 : 0.4
+                    scale: PathView.isCurrentItem ? 1.0 : 0.85
+                    
+                    property string itemBackground: modelData.background || ""
+
+                    Behavior on opacity { NumberAnimation { duration: 300 } }
+                    Behavior on scale { NumberAnimation { duration: 400; easing.type: Easing.OutBack } }
+
+                    Rectangle {
+                        anchors.fill: parent
+                        radius: 30
+                        color: "#cc0a0b12"
+                        border.color: collectorDelegate.PathView.isCurrentItem ? currentAccentColor : "#22ffffff"
+                        border.width: collectorDelegate.PathView.isCurrentItem ? 2 : 1
+                        clip: true
+
+                        RowLayout {
+                            anchors.fill: parent
+                            spacing: 0
+
+                            // Panel Izquierdo: Información
+                            ColumnLayout {
+                                Layout.fillWidth: true
+                                Layout.fillHeight: true
+                                Layout.margins: 40
+                                spacing: 20
+
+                                ColumnLayout {
+                                    spacing: 5
+                                    Label {
+                                        text: modelData.title
+                                        font.pixelSize: 32; font.weight: Font.Black; color: "white"
+                                        wrapMode: Text.WordWrap; Layout.fillWidth: true; font.letterSpacing: -0.5
+                                    }
+                                    Label {
+                                        text: (modelData.developer || "N/A") + " • " + (modelData.year || "N/A")
+                                        font.pixelSize: 14; color: currentAccentColor; font.weight: Font.Medium
+                                    }
+                                }
+
+                                Rectangle {
+                                    Layout.fillWidth: true; height: 1; color: "#1affffff"
+                                }
+
+                                ScrollView {
+                                    Layout.fillWidth: true; Layout.fillHeight: true
+                                    clip: true
+                                    Label {
+                                        width: parent.width
+                                        text: modelData.description || tr("lib_no_desc")
+                                        font.pixelSize: 15; color: "#b0ffffff"; wrapMode: Text.WordWrap
+                                        lineHeight: 1.4
+                                    }
+                                }
+
+                                Button {
+                                    id: playBtnCollector
+                                    Layout.preferredWidth: 200; Layout.preferredHeight: 54
+                                    onClicked: {
+                                        if (window && window.requestLaunch) {
+                                            window.requestLaunch(modelData.path, modelData.id_emu, modelData.title)
+                                        }
+                                    }
+                                    background: Rectangle {
+                                        radius: 27
+                                        color: playBtnCollector.hovered ? Qt.lighter(currentAccentColor, 1.1) : currentAccentColor
+                                        Behavior on color { ColorAnimation { duration: 200 } }
+                                    }
+                                    contentItem: Label {
+                                        text: tr("lib_play").toUpperCase()
+                                        color: "black"; font.bold: true; font.pixelSize: 14; font.letterSpacing: 2
+                                        horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
+                                    }
+                                }
+                            }
+
+                            // Panel Derecho: Carátula 3D
+                            Item {
+                                Layout.preferredWidth: parent.width * 0.45
+                                Layout.fillHeight: true
+
+                                Rectangle {
+                                    anchors.fill: parent
+                                    anchors.margins: 20
+                                    radius: 20
+                                    color: "#05ffffff"
+                                    clip: true
+
+                                    Image {
+                                        id: coverImage3D
+                                        anchors.fill: parent
+                                        anchors.margins: 10
+                                        source: modelData.cover_3d || modelData.cover
+                                        fillMode: Image.PreserveAspectFit
+                                        smooth: true
+                                        asynchronous: true
+                                    }
+
+                                    // Badge de Favorito
+                                    Rectangle {
+                                        anchors.top: parent.top; anchors.right: parent.right
+                                        anchors.margins: 15
+                                        width: 40; height: 40; radius: 20
+                                        color: modelData.isFavorite ? "#ccff4d4d" : "#66000000"
+                                        visible: modelData.isFavorite
+                                        Label {
+                                            anchors.centerIn: parent
+                                            text: "❤️"; font.pixelSize: 16
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: {
+                            if (!collectorDelegate.PathView.isCurrentItem) {
+                                collectorView.currentIndex = index
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     // --- PANEL DE DETALLES INMERSIVO ---
     // Overlay oscuro para el fondo (Dimmer)

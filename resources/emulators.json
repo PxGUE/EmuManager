@@ -10,7 +10,8 @@
     "github_win": "RPCS3/rpcs3-binaries-win",
     "github_linux": "RPCS3/rpcs3-binaries-linux",
     "website": "https://rpcs3.net/",
-    "extensions": [".ps3", ".pkg", ".iso"]
+    "extensions": [".ps3", ".pkg", ".iso"],
+    "screenscraper_id": "153"
   },
   {
     "id": "pcsx2",
@@ -21,7 +22,8 @@
     "folder": "PS2",
     "github": "PCSX2/pcsx2",
     "website": "https://pcsx2.net/",
-    "extensions": [".iso", ".chd", ".cso", ".gz", ".bin", ".elf"]
+    "extensions": [".iso", ".chd", ".cso", ".gz", ".bin", ".elf"],
+    "screenscraper_id": "58"
   },
   {
     "id": "duckstation",
@@ -32,7 +34,8 @@
     "folder": "PS1",
     "github": "stenzek/duckstation",
     "website": "https://www.duckstation.org/",
-    "extensions": [".bin", ".cue", ".chd", ".iso", ".m3u", ".pbp"]
+    "extensions": [".bin", ".cue", ".chd", ".iso", ".m3u", ".pbp"],
+    "screenscraper_id": "57"
   },
   {
     "id": "dolphin",
@@ -43,7 +46,8 @@
     "folder": "Wii_GC",
     "github": "dolphin-emu/dolphin",
     "website": "https://dolphin-emu.org/",
-    "extensions": [".iso", ".gcm", ".rvz", ".wbfs", ".elf", ".dol", ".wad"]
+    "extensions": [".iso", ".gcm", ".rvz", ".wbfs", ".elf", ".dol", ".wad"],
+    "screenscraper_id": "13"
   },
   {
     "id": "ppsspp",
@@ -54,7 +58,8 @@
     "folder": "PSP",
     "github": "hrydgard/ppsspp",
     "website": "https://www.ppsspp.org/",
-    "extensions": [".iso", ".cso", ".pbp"]
+    "extensions": [".iso", ".cso", ".pbp"],
+    "screenscraper_id": "61"
   },
   {
     "id": "xemu",
@@ -65,7 +70,8 @@
     "folder": "Xbox",
     "github": "xemu-project/xemu",
     "website": "https://xemu.app/",
-    "extensions": [".iso", ".xiso"]
+    "extensions": [".iso", ".xiso"],
+    "screenscraper_id": "145"
   },
   {
     "id": "cemu",
@@ -76,7 +82,8 @@
     "folder": "WiiU",
     "github": "cemu-project/Cemu",
     "website": "https://cemu.info/",
-    "extensions": [".wud", ".wux", ".wua", ".rpx"]
+    "extensions": [".wud", ".wux", ".wua", ".rpx"],
+    "screenscraper_id": "122"
   },
   {
     "id": "lime3ds",
@@ -87,7 +94,8 @@
     "folder": "3DS",
     "github": "Lime3DS/Lime3DS",
     "website": "https://lime3ds.github.io/",
-    "extensions": [".3ds", ".cia", ".cci", ".cxi"]
+    "extensions": [".3ds", ".cia", ".cci", ".cxi"],
+    "screenscraper_id": "17"
   },
   {
     "id": "mgba",
@@ -98,7 +106,8 @@
     "folder": "GBA",
     "github": "mgba-emu/mgba",
     "website": "https://mgba.io/",
-    "extensions": [".gba", ".gbc", ".gb", ".sgb", ".zip", ".7z"]
+    "extensions": [".gba", ".gbc", ".gb", ".sgb", ".zip", ".7z"],
+    "screenscraper_id": "31"
   },
   {
     "id": "mesen",

@@ -1,7 +1,8 @@
 import aiohttp
-from typing import Optional, Dict, Any
+from typing import Optional, List, Dict, Any
 from core.scrapers.base import BaseScraper
 from core.logic.scraper_engine import ScraperEngine
+from core.scrapers.models import ScrapedData
 
 class TGDBScraper(BaseScraper):
     """

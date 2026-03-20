@@ -43,6 +43,12 @@ class ScrapedData:
                 self.extra_data.update(value)
                 continue
             
+            # Special case for source_name: allow overwriting "Unknown"
+            if key == "source_name":
+                if self.source_name == "Unknown":
+                    self.source_name = value
+                continue
+
             # If we don't have a value for this key, take it from 'other'
             if getattr(self, key) is None:
                 setattr(self, key, value)

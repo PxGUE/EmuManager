@@ -9,15 +9,16 @@ Item {
     property string providerId: ""
     property string name: ""
     property string typeDisplay: ""
+    property string description: ""
     property bool isActive: true
     property bool isConfigured: true
     
     signal configureClicked()
 
-    implicitHeight: 64
+    implicitHeight: 72
     Layout.fillWidth: true
 
-    readonly property var needsConfig: ["tgdb", "rawg", "steamgriddb", "screenscraper"]
+    readonly property var needsConfig: ["tgdb", "rawg", "screenscraper"]
     property bool hasAConfig: needsConfig.includes(providerId)
 
     // Fondo con HoverHandler (No bloquea clics)
@@ -67,17 +68,27 @@ Item {
             
             Label { 
                 text: name
-                font.pixelSize: 14; font.weight: Font.Medium; color: "white" 
+                font.pixelSize: 15; font.weight: Font.DemiBold; color: "white" 
                 horizontalAlignment: Text.AlignLeft
                 Layout.fillWidth: true
                 opacity: isActive ? 1.0 : 0.6
                 Behavior on opacity { NumberAnimation { duration: 200 } }
             }
             Label {
-                text: typeDisplay.toUpperCase()
-                font.pixelSize: 9; color: "#666677"; font.letterSpacing: 1.5
+                text: description
+                font.pixelSize: 11; color: "#aaaab0"
                 horizontalAlignment: Text.AlignLeft
                 Layout.fillWidth: true
+                visible: description !== ""
+                opacity: isActive ? 0.9 : 0.5
+            }
+            Label {
+                text: typeDisplay.toUpperCase()
+                font.pixelSize: 10; color: "#2ecc71"
+                font.letterSpacing: 1.2; font.bold: true
+                horizontalAlignment: Text.AlignLeft
+                Layout.fillWidth: true
+                Layout.topMargin: 2
             }
         }
 

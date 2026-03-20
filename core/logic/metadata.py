@@ -12,10 +12,10 @@ import os
 import json
 from typing import Optional, Dict, Any, List, Callable
 
-from core.scrapers.providers.wikipedia import WikipediaScraper
 from core.scrapers.providers.rawg import RAWGScraper
 from core.scrapers.providers.tgdb import TGDBScraper
 from core.scrapers.providers.screenscraper import ScreenScraperScraper
+from core.scrapers.manager import ScraperManager as ScraperEngineManager
 from core.security.security import get_secret
 from .scraper_engine import ScraperEngine
 from .normalization import normalize_title, get_search_variations
@@ -97,83 +97,39 @@ async def descargar_metadata_biblioteca(juegos: list, emu_map: dict, on_progress
         except:
             pass
 
-    # --- Inicialización de Proveedores (Solo si están activados) ---
+    # --- Inicialización del Manager Unificado ---
     configs = get_providers_config()
-    
-    # 1. Wikipedia (Sin API Key, texto básico)
-    wiki_cfg = next((c for c in configs if c["id"] == "wikipedia"), {"enabled": True})
-    wiki = WikipediaScraper() if wiki_cfg.get("enabled") else None
-    
-    # 2. RAWG (Requiere API Key)
-    rawg_cfg = next((c for c in configs if c["id"] == "rawg"), None)
-    rawg_api_key = rawg_cfg["api_key"] if rawg_cfg and rawg_cfg.get("enabled") else None
-    rawg = RAWGScraper(rawg_api_key) if rawg_api_key else None
-
-    # 3. ScreenScraper (Requiere cuenta de usuario)
-    ss_cfg = next((c for c in configs if c["id"] == "screenscraper"), None)
-    ss_user = ss_cfg.get("user") if ss_cfg and ss_cfg.get("enabled") else None
-    ss_pass = ss_cfg.get("password") if ss_cfg and ss_cfg.get("enabled") else None
-    ss_dev_id = ss_cfg.get("devid") if ss_cfg and ss_cfg.get("enabled") else None
-    ss_dev_pass = ss_cfg.get("devpassword") if ss_cfg and ss_cfg.get("enabled") else None
-    
-    # El usuario solo necesita poner su usuario/pass. El DevID se suministra en el código.
-    screenscraper = ScreenScraperScraper(ss_user, ss_pass, ss_dev_id, ss_dev_pass) if (ss_user and ss_pass) else None
-
-    headers = {
-        "User-Agent": f"EmuManager/1.0 ({config.REPO_URL})"
-    }
-
-    async with aiohttp.ClientSession(headers=headers) as session:
-        # Limitamos la concurrencia para evitar bloqueos por parte de las APIs
-        semaphore = asyncio.Semaphore(3)
+    async with aiohttp.ClientSession(cookie_jar=aiohttp.DummyCookieJar()) as session:
+        manager = ScraperEngineManager(session, configs)
         
         async def _worker(idx, juego):
-            async with semaphore:
-                ruta = juego.get("ruta", "")
-                nombre = juego.get("nombre", "")
+            ruta = juego.get("ruta", "")
+            nombre = juego.get("nombre", "")
+            
+            # Omitir si ya tiene descripción en caché
+            if ruta in cache and cache[ruta].get("description"):
+                stats["skip"] += 1
+            else:
+                emu_id = juego.get("id_emu", "")
+                emu_info = emu_map.get(emu_id, {})
+                ss_id = emu_info.get("screenscraper_id")
                 
-                # Omitir si ya tiene descripción en caché
-                if ruta in cache and cache[ruta].get("description"):
-                    stats["skip"] += 1
+                # Scrapeamos usando el Manager (él decide prioridades y falla a Libretro/RAWG)
+                res = await manager.scrape_game(
+                    nombre, 
+                    system_id=ss_id,
+                    rom_file=os.path.basename(ruta)
+                )
+                
+                if res and res.description:
+                    cache[ruta] = res.to_dict()
+                    stats["ok"] += 1
                 else:
-                    # Intento secuencial por prioridad con MERGE inteligente
-                    res = {}
-                    
-                    # 1. ScreenScraper
-                    if screenscraper:
-                        emu_id = juego.get("id_emu", "")
-                        emu_info = emu_map.get(emu_id, {})
-                        ss_id = emu_info.get("screenscraper_id")
-                        ss_res = await screenscraper.fetch(session, nombre, ss_platform_id=ss_id, rom_file=os.path.basename(ruta))
-                        if ss_res:
-                            res.update(ss_res)
-
-                    # 2. Wikipedia (Fallback para descripción y datos básicos)
-                    if (not res.get("description")) and wiki:
-                        variations = get_search_variations(nombre)
-                        clean_name = variations[-1] if variations else nombre # Usamos la versión más limpia (sin tags)
-                        wiki_res = await wiki.fetch(session, clean_name)
-                        if wiki_res:
-                            for k, v in wiki_res.items():
-                                if not res.get(k): res[k] = v
-
-                    # 3. RAWG (Último recurso para completar huecos)
-                    if (not res.get("description")) and rawg:
-                        rawg_res = await rawg.fetch(session, nombre)
-                        if rawg_res:
-                            for k, v in rawg_res.items():
-                                if not res.get(k): res[k] = v
-
-                    if res and res.get("description"):
-                        cache[ruta] = res
-                        stats["ok"] += 1
-                    else:
-                        stats["fail"] += 1
-                        fails_list.append(nombre)
-                
-                if on_progress:
-                    on_progress(idx + 1, total, nombre)
-                await asyncio.sleep(0.01)
+                    stats["fail"] += 1
+                    fails_list.append(nombre)
+            
+            if on_progress:
+                on_progress(idx + 1, total, nombre)
 
         await asyncio.gather(*[_worker(i, j) for i, j in enumerate(juegos)])
 
@@ -214,12 +170,10 @@ def get_providers_config() -> List[Dict]:
     """
     path = os.path.join(config.DATA_DIR, "scrapers_config.json")
     default = [
-        {"id": "screenscraper", "name": "ScreenScraper", "enabled": True, "type": "metadata", "priority": 0, "user": "", "password": "", "devid": "", "devpassword": ""},
-        {"id": "libretro", "name": "Libretro CDN", "enabled": True, "type": "artwork", "priority": 1},
-        {"id": "steamgriddb", "name": "SteamGridDB", "enabled": True, "type": "artwork", "priority": 2, "api_key": ""},
-        {"id": "wikipedia", "name": "Wikipedia", "enabled": True, "type": "metadata", "priority": 3},
-        {"id": "tgdb", "name": "TheGamesDB", "enabled": True, "type": "metadata", "priority": 4, "api_key": ""},
-        {"id": "rawg", "name": "RAWG.io", "enabled": True, "type": "metadata", "priority": 5, "api_key": ""},
+        {"id": "screenscraper", "name": "ScreenScraper", "description": "Fuente principal (2D/3D + Meta)", "enabled": True, "type": "Primary", "priority": 0, "user": "", "password": "", "devid": "", "devpassword": ""},
+        {"id": "libretro", "name": "Libretro CDN", "description": "Arte 2D de alta calidad", "enabled": True, "type": "Fallback", "priority": 1},
+        {"id": "tgdb", "name": "TheGamesDB", "description": "Metadatos detallados", "enabled": True, "type": "Fallback", "priority": 2, "api_key": ""},
+        {"id": "rawg", "name": "RAWG.io", "description": "Descripciones y fechas", "enabled": True, "type": "Fallback", "priority": 3, "api_key": ""},
     ]
     
     # 1. Cargar preferencias del usuario (Activado/Desactivado, Prioridad)

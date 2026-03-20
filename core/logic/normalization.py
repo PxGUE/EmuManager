@@ -1,28 +1,29 @@
 import re
 import unicodedata
 
-# Common tags that appear at the end or within titles that can interfere with matching base games/official entries.
+# Extended noisy tags to cover more common scene and region identifiers
 NOISY_TAGS = {
     'esp', 'spa', 'eng', 'usa', 'eur', 'jpn', 'jap', 'ita', 'fra', 'ger',
     'beta', 'demo', 'v0', 'v1', 'v2', 'v3', 'v4', 'v5', 'alpha', 'hack', 
-    'translation', 'traducido', 'vers', 'rev', 'fixed', 'patched'
+    'translation', 'traducido', 'vers', 'rev', 'fixed', 'patched', 'clone',
+    'pal', 'ntsc', 'unlicensed', 'proto', 'hidden', 'fixed'
 }
 
 def normalize_title(title: str) -> str:
     """
-    Normalización simplificada para maximizar la eficacia de difflib.
+    Normalización orientada a maximizar la eficacia de difflib y ScreenScraper.
     """
     if not title:
         return ""
     
-    # 1. Bajada a minúsculas y quitar acentos (crítico para difflib)
-    t = title.lower()
+    # 1. Quitar contenido entre paréntesis y corchetes (Suele ser basura: [!], (USA), etc)
+    t = re.sub(r'[\(\[].*?[\)\]]', ' ', title)
+    
+    # 2. Lowercase y quitar acentos
+    t = t.lower()
     t = unicodedata.normalize('NFKD', t).encode('ascii', 'ignore').decode('ascii')
     
-    # 2. Sustituir símbolos por espacios (no borrarlos, solo separarlos)
-    t = t.replace("_", " ").replace("(", " ").replace(")", " ").replace("[", " ").replace("]", " ").replace("-", " ")
-    
-    # 3. Eliminar caracteres no alfanuméricos residuales
+    # 3. Sustituir símbolos por espacios
     t = re.sub(r'[^a-z0-9\s]', ' ', t)
     
     # 4. Colapsar espacios y limpiar
@@ -30,29 +31,28 @@ def normalize_title(title: str) -> str:
     
     return t
 
-def get_search_variations(title: str) -> list[str]:
+def get_search_variations(title: str) -> list:
     """
-    Retorna variaciones básicas: la normalizada y la normalizada sin etiquetas ruidosas.
+    Genera variaciones de búsqueda inteligentes.
     """
+    # 1. El nombre tal cual (normalizado)
     norm = normalize_title(title)
     if not norm: return []
     
     variations = [norm]
     
-    # 1. Versión sin etiquetas comunes (USA, EUR, etc.)
-    words = norm.split()
-    cleaned_words = [w for w in words if w not in NOISY_TAGS]
-    cleaned_norm = " ".join(cleaned_words)
-    
-    if cleaned_norm and cleaned_norm != norm:
-        variations.append(cleaned_norm)
+    # 2. Sin tags ruidosos
+    cleaned_words = [w for w in norm.split() if w not in NOISY_TAGS]
+    cleaned = " ".join(cleaned_words)
+    if cleaned and cleaned != norm:
+        variations.append(cleaned)
         
-    # 2. Manejo de patrón "Title, The"
-    if ", the" in title.lower():
-        # "Legend of Zelda, The" -> "The Legend of Zelda"
-        parts = re.split(r',\s*the', title, flags=re.IGNORECASE)
-        if len(parts) > 1:
-            alternative = "the " + " ".join(parts)
-            variations.append(normalize_title(alternative))
+    # 3. Solo la primera parte (antes del primer sep fuerte como ":" o "-")
+    # Ejemplo: "Sonic Adventure 2: Battle" -> "Sonic Adventure 2"
+    if ":" in title or "-" in title:
+        base = re.split(r'[:\-]', title)[0]
+        base_norm = normalize_title(base)
+        if base_norm and base_norm not in variations:
+            variations.append(base_norm)
             
-    return list(dict.fromkeys(variations)) # Valores únicos
+    return list(dict.fromkeys(variations))

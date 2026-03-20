@@ -5,6 +5,7 @@ from typing import Optional, List, Dict, Any
 from core.scrapers.base import BaseScraper
 from core.logic.scraper_engine import ScraperEngine
 from core.logic.normalization import normalize_title
+from core.scrapers.models import ScrapedData
 
 class LibretroScraper(BaseScraper):
     """
@@ -61,7 +62,7 @@ class LibretroScraper(BaseScraper):
         
         return []
 
-    async def fetch(self, session: aiohttp.ClientSession, query: str, **kwargs) -> Optional[Dict[str, Any]]:
+    async def fetch(self, session: aiohttp.ClientSession, query: str, **kwargs) -> Optional[ScrapedData]:
         platform = kwargs.get("platform")
         if not platform:
             return None
@@ -72,10 +73,12 @@ class LibretroScraper(BaseScraper):
 
         best_match = ScraperEngine.find_best_match(query, candidates)
         if best_match:
+            # Construir la URL final (Libretro usa Named_Boxarts para 2D)
             url = f"{self.CDN_URL}/{urllib.parse.quote(platform)}/{self.THUMBNAIL_TYPE}/{urllib.parse.quote(best_match + '.png')}"
-            return {
-                "boxart_url": url,
-                "source": self.name,
-                "match_name": best_match
-            }
+            
+            return ScrapedData(
+                boxart_2d=url,
+                source_name=self.name,
+                extra_data={"match_name": best_match}
+            )
         return None

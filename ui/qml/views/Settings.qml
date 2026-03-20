@@ -288,6 +288,7 @@ Item {
                                 ProviderCard {
                                     providerId: modelData.id
                                     name: modelData.name
+                                    description: modelData.description || ""
                                     typeDisplay: modelData.type
                                     isActive: modelData.enabled
                                     isConfigured: modelData.is_configured
@@ -385,9 +386,9 @@ Item {
                 spacing: 15
                 Layout.fillWidth: true
 
-                // API Key Field (for TGDB, RAWG, SteamGridDB)
+                // API Key Field (for TGDB, RAWG)
                 ColumnLayout {
-                    visible: selectedProvider && ["tgdb", "rawg", "steamgriddb"].includes(selectedProvider.id)
+                    visible: selectedProvider && ["tgdb", "rawg"].includes(selectedProvider.id)
                     Layout.fillWidth: true
                     spacing: 6
                     Label { text: tr("set_lbl_api_key"); color: "#888899"; font.pixelSize: 12 }

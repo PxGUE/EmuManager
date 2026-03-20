@@ -3,6 +3,7 @@ from typing import Optional, Dict, Any
 from core.scrapers.base import BaseScraper
 from core.logic.scraper_engine import ScraperEngine
 from core.logic.normalization import normalize_title, get_search_variations
+from core.scrapers.models import ScrapedData
 
 class RAWGScraper(BaseScraper):
     """
@@ -14,7 +15,7 @@ class RAWGScraper(BaseScraper):
         super().__init__("RAWG.io")
         self.api_key = api_key
 
-    async def fetch(self, session: aiohttp.ClientSession, query: str, **kwargs) -> Optional[Dict[str, Any]]:
+    async def fetch(self, session: aiohttp.ClientSession, query: str, **kwargs) -> Optional[ScrapedData]:
         if not self.api_key:
             return None
 
@@ -46,18 +47,20 @@ class RAWGScraper(BaseScraper):
                     if d_resp.status == 200:
                         d = await d_resp.json()
                         desc = d.get("description_raw") or d.get("description") or ""
-                        # Sanitize description (split by newline and take first relevant para)
+                        
+                        # Sanitize description
                         clean_desc = desc.split('\n')[0][:500] if desc else ""
                         
-                        return {
-                            "description": clean_desc,
-                            "year": (d.get("released") or "")[:4],
-                            "developer": d.get("developers", [{}])[0].get("name", "") if d.get("developers") else "",
-                            "publisher": d.get("publishers", [{}])[0].get("name", "") if d.get("publishers") else "",
-                            "genre": d.get("genres", [{}])[0].get("name", "") if d.get("genres") else "",
-                            "players": "Multiplayer" if any(p['name'].lower() == 'multiplayer' for p in d.get('tags', [])) else "Single-player",
-                            "source": self.name
-                        }
+                        return ScrapedData(
+                            title=best["name"],
+                            description=clean_desc,
+                            release_date=(d.get("released") or "")[:4],
+                            developer=d.get("developers", [{}])[0].get("name", "") if d.get("developers") else None,
+                            publisher=d.get("publishers", [{}])[0].get("name", "") if d.get("publishers") else None,
+                            genre=d.get("genres", [{}])[0].get("name", "") if d.get("genres") else None,
+                            players="Multiplayer" if any(p['name'].lower() == 'multiplayer' for p in d.get('tags', [])) else "Single-player",
+                            source_name=self.name
+                        )
         except:
             pass
         return None

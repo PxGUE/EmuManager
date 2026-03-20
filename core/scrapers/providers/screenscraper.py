@@ -4,6 +4,7 @@ import os
 from typing import Optional, Dict, Any
 from core.scrapers.base import BaseScraper
 from core.logic.scraper_engine import ScraperEngine
+from core.scrapers.models import ScrapedData
 
 class ScreenScraperScraper(BaseScraper):
     """
@@ -28,200 +29,146 @@ class ScreenScraperScraper(BaseScraper):
 
         self.devid = final_dev_id
         self.devpassword = final_dev_pass
-        self.softname = "EmuManager"
+        self.softname = "EmuManagerApp"
 
-    async def fetch(self, session: aiohttp.ClientSession, query: str, **kwargs) -> Optional[Dict[str, Any]]:
-        # 🛡️ GUARD: No intentamos nada si faltan credenciales críticas
-        user = str(self.user or "")
-        pwd = str(self.password or "")
-        dev = str(self.devid or "")
-        if not user or not pwd or not dev or dev == "EMU_MANAGER_DEV":
+    async def fetch(self, session: aiohttp.ClientSession, query: str, **kwargs) -> Optional[ScrapedData]:
+        # 🛡️ GUARD: Solo bloqueamos si el usuario no tiene cuenta SS básica
+        if not self.user or not self.password:
             return None
 
-        # ScreenScraper is very platform-sensitive
         platform_id = kwargs.get("ss_platform_id")
-        
         rom_file = kwargs.get("rom_file", query)
-        params = {
-            "devid": str(self.devid or ""),
-            "devpassword": str(self.devpassword or ""),
-            "softname": str(self.softname or ""),
-            "output": "json",
-            "romtype": "rom",
-            "romnom": str(rom_file or query or ""),
-            "ssid": str(self.user or ""),
-            "sspassword": str(self.password or "")
+        
+        # 🛡️ CABECERAS MINIMALISTAS (Evitar Error 431)
+        headers = {
+            "User-Agent": "EmuManager/0.1.20 (Scraping Engine; Windows)",
+            "Accept": "application/json",
+            "Cookie": "" # Forzar limpieza absoluta
         }
         
-        # ScreenScraper is very system-sensitive.
-        if platform_id:
-            params["systemeid"] = str(platform_id)
+        base_params = {
+            "devid": self.devid,
+            "devpassword": self.devpassword,
+            "softname": self.softname,
+            "output": "json"
+        }
+        # Solo añadir credenciales de usuario si existen
+        if self.user: base_params["ssid"] = str(self.user)
+        if self.password: base_params["sspassword"] = str(self.password)
+        
+        if platform_id: base_params["systemeid"] = str(platform_id)
 
+        print(f"[SCREEN_SCRAPER] Buscando: {query} (ID Sistema: {platform_id or '?'})")
+        
+        data = None
         try:
-            # 🛡️ LIMPIEZA TOTAL: Evitar Error 431 y TypeErrors
-            params = {k: str(v) if v is not None else "" for k, v in params.items()}
-            headers = {"Connection": "close", "Cache-Control": "no-cache"}
-            
-            print(f"[SCREEN_SCRAPER] Buscando: {query} (ID Sistema: {platform_id or '?'})")
-            
-            data = None
-            try:
-                async with session.get(self.API_BASE, params=params, headers=headers, timeout=12) as resp:
-                    if resp.status == 200:
-                        data = await resp.json()
-                    elif resp.status == 404:
-                        print(f"[SCREEN_SCRAPER] 404 No encontrado por ROM. Probando nombre: {query}")
-                        # FALLBACK 1: Por nombre de juego directo
-                        params["romtype"] = "nom"
-                        params["romnom"] = str(query or "")
-                        async with session.get(self.API_BASE, params=params, headers=headers, timeout=12) as retry_resp:
-                            if retry_resp.status == 200:
-                                data = await retry_resp.json()
-                            elif retry_resp.status == 404:
-                                print(f"[SCREEN_SCRAPER] 404 No encontrado por nombre. Probando búsqueda flexible...")
-                                # FALLBACK 2: Búsqueda flexible
-                                search_url = "https://www.screenscraper.fr/api2/jeuRecherche.php"
-                                search_params = {
-                                    "devid": params["devid"], "devpassword": params["devpassword"],
-                                    "softname": params["softname"], "output": "json",
-                                    "recherche": str(query or ""), "ssid": params["ssid"], "sspassword": params["sspassword"]
-                                }
-                                if platform_id: search_params["systemeid"] = str(platform_id)
-                                
-                                async with session.get(search_url, params=search_params, headers=headers, timeout=12) as search_resp:
-                                    if search_resp.status == 200:
-                                        search_data = await search_resp.json()
-                                        results = search_data.get("response", {}).get("jeux", [])
-                                        if results:
-                                            print(f"[SCREEN_SCRAPER] {len(results)} Resultados en búsqueda flexible.")
-                                            candidates_map = {} 
-                                            for r in results:
-                                                if not isinstance(r, dict): continue
-                                                game_id = r.get("id")
-                                                for nm in r.get("noms", []):
-                                                    n_txt = nm.get("nom")
-                                                    if n_txt: candidates_map[n_txt] = game_id
-                                            
-                                            best_match_name = ScraperEngine.find_best_match(query, list(candidates_map.keys()))
-                                            best_id = candidates_map.get(best_match_name) if best_match_name else results[0].get("id")
-                                            
-                                            if best_id:
-                                                print(f"[SCREEN_SCRAPER] Obteniendo detalles ID: {best_id}")
-                                                info_params = params.copy()
-                                                info_params["romtype"] = "id"
-                                                info_params["romnom"] = str(best_id)
-                                                async with session.get(self.API_BASE, params=info_params, headers=headers, timeout=12) as final_resp:
-                                                    if final_resp.status == 200:
-                                                        data = await final_resp.json()
-                                                    else:
-                                                        print(f"[SCREEN_SCRAPER] Error detalles ID {best_id} (Status {final_resp.status})")
-                                    else:
-                                        print(f"[SCREEN_SCRAPER] Error búsqueda flexible (Status {search_resp.status})")
-                            else:
-                                if retry_resp.status != 404:
-                                    print(f"[SCREEN_SCRAPER] Error nombre {query} (Status {retry_resp.status})")
-                    else:
-                        print(f"[SCREEN_SCRAPER] Error ROM {query} (Status {resp.status})")
-            except Exception as e_inner:
-                print(f"[SCREEN_SCRAPER] Error en petición HTTP: {e_inner}")
+            # ETAPA 1: Búsqueda por ROM (Checksum o nombre exacto de archivo)
+            params = base_params.copy()
+            params.update({"romtype": "rom", "romnom": str(rom_file or query)})
+            async with session.get(self.API_BASE, params=params, headers=headers, timeout=12) as resp:
+                if resp.status == 200:
+                    data = await resp.json()
+                elif resp.status == 404:
+                    # ETAPA 2: Búsqueda por Nombre de Juego Directo
+                    print(f"[SCREEN_SCRAPER] 404 por ROM. Probando nombre: {query}")
+                    params.update({"romtype": "nom", "romnom": str(query)})
+                    async with session.get(self.API_BASE, params=params, headers=headers, timeout=12) as retry_resp:
+                        if retry_resp.status == 200:
+                            data = await retry_resp.json()
+                        elif retry_resp.status == 404:
+                            # ETAPA 3: Búsqueda Flexible
+                            print(f"[SCREEN_SCRAPER] 404 por nombre. Iniciando búsqueda flexible...")
+                            search_url = "https://www.screenscraper.fr/api2/jeuRecherche.php"
+                            search_params = base_params.copy()
+                            search_params["recherche"] = str(query)
+                            async with session.get(search_url, params=search_params, headers=headers, timeout=12) as s_resp:
+                                if s_resp.status == 200:
+                                    s_data = await s_resp.json()
+                                    jeux = s_data.get("response", {}).get("jeux", [])
+                                    if jeux:
+                                        print(f"[SCREEN_SCRAPER] {len(jeux)} resultados en búsqueda flexible.")
+                                        cand_map = {}
+                                        for j in jeux:
+                                            jid = j.get("id")
+                                            for n in j.get("noms", []):
+                                                if n.get("nom"): cand_map[n.get("nom")] = jid
+                                        
+                                        best_name = ScraperEngine.find_best_match(query, list(cand_map.keys()))
+                                        best_id = cand_map.get(best_name) if best_name else jeux[0].get("id")
+                                        
+                                        if best_id:
+                                            print(f"[SCREEN_SCRAPER] Resolviendo ID: {best_id}")
+                                            params.update({"romtype": "id", "romnom": str(best_id)})
+                                            async with session.get(self.API_BASE, params=params, headers=headers, timeout=12) as f_resp:
+                                                if f_resp.status == 200:
+                                                    data = await f_resp.json()
+                elif resp.status != 200:
+                    print(f"[SCREEN_SCRAPER] Error HTTP {resp.status} para: {query}")
+
+            if not data or data.get("response", {}).get("status") != "OK":
                 return None
 
-            if not data:
-                return None
-
-            response = data.get("response", {})
-            status = response.get("status")
+            jeu = data["response"].get("jeu", {})
             
-            if status != "OK":
-                err = response.get("errortext", status)
-                print(f"[SCREEN_SCRAPER] Respuesta no OK: {err}")
-                return None
-                
-            jeu = response.get("jeu", {})
-            game_name_found = jeu.get("noms", [{}])[0].get("nom", "Desconocido")
-            print(f"[SCREEN_SCRAPER] Juego encontrado: {game_name_found}")
+            # --- PARSEO DE DATOS ---
+            scraped = ScrapedData(source_name=self.name)
+            scraped.title = jeu.get("noms", [{}])[0].get("nom", query)
             
-            # Get description (prioritize Spanish, then English)
-            textes = jeu.get("textes", [])
-            desc = ""
-            for t in textes:
+            # Textos (Descripción)
+            for t in jeu.get("textes", []):
                 if t.get("langue") == "es":
-                    desc = t.get("text")
-                elif t.get("langue") == "en" and not desc:
-                    desc = t.get("text")
+                    scraped.description = t.get("text")
+                    break
+            if not scraped.description:
+                for t in jeu.get("textes", []):
+                    if t.get("langue") == "en":
+                        scraped.description = t.get("text")
+                        break
+
+            # Metadatos básicos
+            scraped.developer = jeu.get("developpeur", {}).get("nom", "")
+            scraped.publisher = jeu.get("editeur", {}).get("nom", "")
+            scraped.genre = jeu.get("genres", [{}])[0].get("nom", "")
+            if jeu.get("dates"):
+                d = jeu["dates"][0].get("date", "")
+                scraped.release_date = d[:4] if d else None
+            scraped.players = str(jeu.get("joueurs", "1"))
             
-            # Get Metadatos
-            edit = jeu.get("editeur", {}).get("nom", "")
-            dev = jeu.get("developpeur", {}).get("nom", "")
-            genre = jeu.get("genres", [{}])[0].get("nom", "")
-            year = jeu.get("dates", [{}])[0].get("date", "")[:4] if jeu.get("dates") else ""
-            
-            # Get Medias (Artwork)
+            # --- PARSEO DE MEDIAS (ARTE) ---
             medias = jeu.get("medias", [])
-            boxart_url = ""
-            boxart_3d_url = ""
-            background_url = ""
-            logo_url = ""
-            manual_url = ""
-            
-            found_media_summary = []
-            raw_media_logs = []
+            raw_logs = []
             
             for m in medias:
-                m_type_orig = str(m.get("type", ""))
-                m_type = m_type_orig.lower()
-                m_region = str(m.get("region", "ss")).lower()
+                m_type = str(m.get("type", "")).lower()
                 m_url = m.get("url", "")
+                m_reg = str(m.get("region", "ss")).lower()
+                if not m_url: continue
+
+                raw_logs.append(f"{m_type}({m_reg})")
+
+                # Boxart 2D (Prioridad: v > h > normal)
+                if m_type in ("box-2d-v", "box-2d-h", "box-2d"):
+                    if not scraped.boxart_2d: scraped.boxart_2d = m_url
                 
-                if m_url:
-                    raw_media_logs.append(f"{m_type_orig} ({m_region})")
-                    
-                    # Carátula 2D (Priorizamos box-2D-v para consolas verticales/handhelds)
-                    if not boxart_url:
-                        if m_type in ("box-2d", "box-2d-v", "box-2d-h"):
-                            boxart_url = m_url
-                            found_media_summary.append("2D")
-                    
-                    # Carátula 3D (Priorizamos box-3D-v que es el estándar GBA/Handheld en SS)
-                    if not boxart_3d_url:
-                        if m_type in ("box-3d", "box-3d-v", "box-3d-h"):
-                            boxart_3d_url = m_url
-                            found_media_summary.append("3D")
+                # Boxart 3D (Prioridad: v > h > normal)
+                elif m_type in ("box-3d-v", "box-3d-h", "box-3d"):
+                    if not scraped.boxart_3d: scraped.boxart_3d = m_url
 
-                    # Assets comunes
-                    if "fanart" in m_type and not background_url:
-                        background_url = m_url
-                        found_media_summary.append("Fanart")
-                    elif "logo" in m_type and not logo_url:
-                        logo_url = m_url
-                        found_media_summary.append("Logo")
-                    elif ("manuel" in m_type or "manual" in m_type) and not manual_url:
-                        manual_url = m_url
-                        found_media_summary.append("Manual")
+                # Background / Logo / Manual
+                elif "fanart" in m_type and not scraped.background:
+                    scraped.background = m_url
+                elif "logo" in m_type and not scraped.logo:
+                    scraped.logo = m_url
+                elif ("manuel" in m_type or "manual" in m_type) and not scraped.manual:
+                    scraped.manual = m_url
 
-            if raw_media_logs:
-                print(f"[SCREEN_SCRAPER] API Medias: {', '.join(raw_media_logs[:8])}{'...' if len(raw_media_logs) > 8 else ''}")
+            found_types = []
+            if scraped.boxart_2d: found_types.append("2D")
+            if scraped.boxart_3d: found_types.append("3D")
             
-            if found_media_summary:
-                print(f"[SCREEN_SCRAPER] Seleccionados: {', '.join(set(found_media_summary))}")
-            else:
-                print(f"[SCREEN_SCRAPER] No se encontraron medios compatibles en la respuesta de la API.")
+            print(f"[SCREEN_SCRAPER] Encontrado: {scraped.title} [{', '.join(found_types)}]")
+            return scraped
 
-            return {
-                "description": desc[:500] if desc else "",
-                "year": year,
-                "developer": dev,
-                "publisher": edit,
-                "genre": genre,
-                "players": jeu.get("joueurs", "1"),
-                "boxart_url": boxart_url,
-                "boxart_3d_url": boxart_3d_url,
-                "background_url": background_url,
-                "logo_url": logo_url,
-                "manual_url": manual_url,
-                "source": self.name
-            }
         except Exception as e:
-            print(f"[SCREEN_SCRAPER] Excepción en fetch: {e}")
-            pass
-        return None
+            print(f"[SCREEN_SCRAPER] Excepción en fetch para {query}: {e}")
+            return None

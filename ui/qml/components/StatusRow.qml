@@ -25,7 +25,7 @@ RowLayout {
         
         Label {
             anchors.centerIn: parent
-            text: root.exists ? "✓" : (root.path ? "!" : "✕")
+            text: root.exists ? "" : (root.path ? "!" : "")
             font.pixelSize: 18; font.bold: true
             color: root.exists ? "#4dc6a6" : (root.path ? "#f0a040" : "#e05050")
         }

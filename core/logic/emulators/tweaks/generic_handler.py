@@ -1,10 +1,10 @@
-﻿from .base_handler import BaseTweakHandler
+from .base_handler import BaseTweakHandler
 from typing import List, Dict, Any
 
 class GenericTweakHandler(BaseTweakHandler):
     """
-    Handler genÃ©rico para la mayorÃ­a de emuladores que siguen convenciones
-    estÃ¡ndar de CLI (--fullscreen, --nogui, etc.)
+    Handler genérico para la mayoría de emuladores que siguen convenciones
+    estándar de CLI (--fullscreen, --nogui, etc.)
     """
 
     def get_supported_tweaks(self) -> List[Dict[str, Any]]:

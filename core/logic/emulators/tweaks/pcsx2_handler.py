@@ -1,4 +1,4 @@
-﻿from .base_handler import BaseTweakHandler
+from .base_handler import BaseTweakHandler
 from typing import List, Dict, Any
 
 class PCSX2Handler(BaseTweakHandler):
@@ -38,7 +38,7 @@ class PCSX2Handler(BaseTweakHandler):
             },
             {
                 "id": "resolution",
-                "label": "ResoluciÃ³n de Ventana",
+                "label": "Resolución de Ventana",
                 "type": "list",
                 "options": ["640x480", "1280x720", "1920x1080", "2560x1440"],
                 "default": "1280x720",

@@ -63,7 +63,7 @@ Item {
 
                     SettingRow {
                         anchors.fill: parent
-                        icon: "🌐"
+                        icon: ""
                         title: tr("set_lang_title")
                         subtitle: tr("set_lang_sub")
 
@@ -404,7 +404,7 @@ Item {
                             anchors.right: parent.right
                             anchors.rightMargin: 12
                             anchors.verticalCenter: parent.verticalCenter
-                            text: configPopup.apiKeyVisible ? "🙈" : "👁️"
+                            text: configPopup.apiKeyVisible ? "H" : "A"
                             font.pixelSize: 14
                             opacity: 0.7
                             MouseArea {
@@ -450,7 +450,7 @@ Item {
                                 anchors.right: parent.right
                                 anchors.rightMargin: 12
                                 anchors.verticalCenter: parent.verticalCenter
-                                text: configPopup.passVisible ? "🙈" : "👁️"
+                                text: configPopup.passVisible ? "H" : "A"
                                 font.pixelSize: 14
                                 opacity: 0.7
                                 MouseArea {

@@ -1,4 +1,4 @@
-﻿import re
+import re
 import unicodedata
 
 # Common tags that appear at the end or within titles that can interfere with matching base games/official entries.
@@ -10,19 +10,19 @@ NOISY_TAGS = {
 
 def normalize_title(title: str) -> str:
     """
-    NormalizaciÃ³n simplificada para maximizar la eficacia de difflib.
+    Normalización simplificada para maximizar la eficacia de difflib.
     """
     if not title:
         return ""
     
-    # 1. Bajada a minÃºsculas y quitar acentos (crÃ­tico para difflib)
+    # 1. Bajada a minúsculas y quitar acentos (crítico para difflib)
     t = title.lower()
     t = unicodedata.normalize('NFKD', t).encode('ascii', 'ignore').decode('ascii')
     
-    # 2. Sustituir sÃ­mbolos por espacios (no borrarlos, solo separarlos)
+    # 2. Sustituir símbolos por espacios (no borrarlos, solo separarlos)
     t = t.replace("_", " ").replace("(", " ").replace(")", " ").replace("[", " ").replace("]", " ").replace("-", " ")
     
-    # 3. Eliminar caracteres no alfanumÃ©ricos residuales
+    # 3. Eliminar caracteres no alfanuméricos residuales
     t = re.sub(r'[^a-z0-9\s]', ' ', t)
     
     # 4. Colapsar espacios y limpiar
@@ -32,14 +32,14 @@ def normalize_title(title: str) -> str:
 
 def get_search_variations(title: str) -> list[str]:
     """
-    Retorna variaciones bÃ¡sicas: la normalizada y la normalizada sin etiquetas ruidosas.
+    Retorna variaciones básicas: la normalizada y la normalizada sin etiquetas ruidosas.
     """
     norm = normalize_title(title)
     if not norm: return []
     
     variations = [norm]
     
-    # VersiÃ³n sin etiquetas comunes (USA, EUR, etc.)
+    # 1. Versión sin etiquetas comunes (USA, EUR, etc.)
     words = norm.split()
     cleaned_words = [w for w in words if w not in NOISY_TAGS]
     cleaned_norm = " ".join(cleaned_words)
@@ -47,9 +47,7 @@ def get_search_variations(title: str) -> list[str]:
     if cleaned_norm and cleaned_norm != norm:
         variations.append(cleaned_norm)
         
-    return list(dict.fromkeys(variations))
-
-    # 3. Handle "Title, The" pattern
+    # 2. Manejo de patrón "Title, The"
     if ", the" in title.lower():
         # "Legend of Zelda, The" -> "The Legend of Zelda"
         parts = re.split(r',\s*the', title, flags=re.IGNORECASE)
@@ -57,4 +55,4 @@ def get_search_variations(title: str) -> list[str]:
             alternative = "the " + " ".join(parts)
             variations.append(normalize_title(alternative))
             
-    return list(dict.fromkeys(variations)) # Unique values
+    return list(dict.fromkeys(variations)) # Valores únicos

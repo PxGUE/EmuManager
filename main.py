@@ -1,4 +1,4 @@
-﻿import sys
+import sys
 import os
 import asyncio
 from PySide6.QtWidgets import QApplication
@@ -33,24 +33,24 @@ async def monitor_playtime(emu_manager):
         await asyncio.sleep(5)
 
 def main():
-    print("[MAIN] FunciÃ³n main iniciada")
+    print("[MAIN] Función main iniciada")
     # 0. Configurar estilo
     QQuickStyle.setStyle("Fusion")
     
-    # 1. Configurar aplicaciÃ³n
+    # 1. Configurar aplicación
     app = QApplication(sys.argv)
     
-    # Configurar el icono de la aplicaciÃ³n
+    # Configurar el icono de la aplicación
     icon_path = get_resource_path(os.path.join("media", "icon.svg"))
     if os.path.exists(icon_path):
         app.setWindowIcon(QIcon(icon_path))
     
     # 2. Integrar Asyncio con el loop de Qt (PRIMERO)
-    # Esto permite que los objetos creados despuÃ©s usen asyncio.create_task
+    # Esto permite que los objetos creados después usen asyncio.create_task
     event_loop = QEventLoop(app)
     asyncio.set_event_loop(event_loop)
     
-    # 3. Inicializar lÃ³gica central
+    # 3. Inicializar lógica central
     emu_manager = EmuladorManager()
     translator = Translator(emu_manager.language)
     

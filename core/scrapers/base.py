@@ -1,6 +1,7 @@
-﻿from abc import ABC, abstractmethod
+from abc import ABC, abstractmethod
 import aiohttp
-from typing import Optional, Dict, Any
+from typing import Optional
+from .models import ScrapedData
 
 class BaseScraper(ABC):
     """
@@ -11,9 +12,9 @@ class BaseScraper(ABC):
         self.name = name
 
     @abstractmethod
-    async def fetch(self, session: aiohttp.ClientSession, query: str, **kwargs) -> Optional[Dict[str, Any]]:
+    async def fetch(self, session: aiohttp.ClientSession, query: str, **kwargs) -> Optional[ScrapedData]:
         """
         Fetches data for a given query.
-        Returns a dictionary or None if not found.
+        Returns a ScrapedData object or None if not found.
         """
         pass

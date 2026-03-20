@@ -1,10 +1,10 @@
-﻿from .base_handler import BaseTweakHandler
+from .base_handler import BaseTweakHandler
 from typing import List, Dict, Any
 
 class MGBAHandler(BaseTweakHandler):
     """
     Handler especializado para mGBA.
-    Soporta pantalla completa y modo sin interfaz (solo versiÃ³n Qt).
+    Soporta pantalla completa y modo sin interfaz (solo versión Qt).
     """
 
     def get_supported_tweaks(self) -> List[Dict[str, Any]]:

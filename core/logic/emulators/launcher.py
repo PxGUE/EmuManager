@@ -1,4 +1,4 @@
-﻿import platform
+import platform
 import subprocess
 import os
 import time
@@ -6,7 +6,7 @@ from core.logic.constants import AVAILABLE_EMULATORS
 
 class Launcher:
     """
-    Gestiona la ejecuciÃ³n y el monitoreo de procesos de emuladores.
+    Gestiona la ejecución y el monitoreo de procesos de emuladores.
     
     Se encarga de encontrar el ejecutable correcto, aplicar argumentos (tweaks)
     y rastrear el tiempo de juego.
@@ -22,7 +22,7 @@ class Launcher:
         if self.current_process:
             is_running = self.current_process.poll() is None
             if not is_running and self.current_game:
-                # El emulador se cerrÃ³, guardar tiempo final
+                # El emulador se cerró, guardar tiempo final
                 self.manager.update_playtime(self.current_game, self.current_game_start)
                 self.current_game = None
                 self.current_game_start = 0
@@ -60,7 +60,7 @@ class Launcher:
                 return True
             except Exception as e:
                 print(f"[LAUNCHER] Error al terminar proceso con psutil: {e}")
-                # Fallback al mÃ©todo estÃ¡ndar si psutil falla
+                # Fallback al método estándar si psutil falla
                 try:
                     self.current_process.terminate()
                     self.current_process = None
@@ -70,14 +70,14 @@ class Launcher:
         return False
 
     async def lanzar_juego(self, repo_github: str, ruta_rom: str, juego_obj=None):
-        """Lanza un juego de forma asÃ­ncrona sin bloquear la UI."""
+        """Lanza un juego de forma asíncrona sin bloquear la UI."""
         import asyncio
         return await asyncio.to_thread(self._lanzar_juego_sync, repo_github, ruta_rom, juego_obj)
 
     def _lanzar_juego_sync(self, repo_github: str, ruta_rom: str, juego_obj=None):
-        """LÃ³gica sÃ­ncrona de lanzamiento (para ejecutar en hilo separado)."""
+        """Lógica síncrona de lanzamiento (para ejecutar en hilo separado)."""
         if repo_github not in self.manager.installed_emus:
-            return False, "El emulador no estÃ¡ instalado."
+            return False, "El emulador no está instalado."
 
         if ruta_rom and not os.path.exists(ruta_rom):
             return False, "El archivo del juego no existe."
@@ -88,7 +88,7 @@ class Launcher:
             executable = self._encontrar_ejecutable(files)
 
             if not executable:
-                return False, "No se encontrÃ³ el ejecutable. Â¿Se extrajo correctamente?"
+                return False, "No se encontró el ejecutable. ¿Se extrajo correctamente?"
             
             args = [executable]
             emu_id = next((e["id"] for e in AVAILABLE_EMULATORS if e["github"] == repo_github), "default")
@@ -107,7 +107,7 @@ class Launcher:
                 
             self.current_game = juego_obj
             self.current_game_start = time.time()
-            return True, "Â¡Abierto correctamente!"
+            return True, "¡Abierto correctamente!"
         except Exception as e:
             print(f"[LAUNCHER] Error al lanzar: {e}")
             return False, f"Error al lanzar: {e}"

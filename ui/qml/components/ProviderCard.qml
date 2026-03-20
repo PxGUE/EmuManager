@@ -47,7 +47,7 @@ Item {
                 // Lógica de colores Solicitada:
                 // 🟡 Amarrillo: No configurado
                 // 🟢 Verde: Configurado y Activo
-                // 🔴 Rojo: Configurado y Apagado
+                // 4 Rojo: Configurado y Apagado
                 color: !isConfigured ? "#f1c40f" : (isActive ? "#2ecc71" : "#e74c3c")
                 
                 Rectangle {

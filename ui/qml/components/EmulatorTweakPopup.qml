@@ -62,7 +62,7 @@ Popup {
             }
             Item { Layout.fillWidth: true }
             Button {
-                text: "✕"
+                text: ""
                 onClicked: root.close()
                 flat: true
                 contentItem: Label { text: parent.text; color: "#66ffffff"; font.pixelSize: 22 }

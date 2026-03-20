@@ -72,7 +72,7 @@ Item {
                 contentItem: RowLayout {
                     spacing: 10
                     Label { 
-                        text: "🔄"
+                        text: ""
                         font.pixelSize: 16
                         RotationAnimation on rotation {
                             from: 0; to: 360; duration: 1000; loops: Animation.Infinite; running: isCheckingUpdates

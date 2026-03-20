@@ -1,4 +1,4 @@
-﻿import aiohttp
+import aiohttp
 from typing import Optional, Dict, Any
 from core.scrapers.base import BaseScraper
 from core.logic.scraper_engine import ScraperEngine
@@ -18,7 +18,7 @@ class RAWGScraper(BaseScraper):
         if not self.api_key:
             return None
 
-        # Usar la variaciÃ³n mÃ¡s limpia del tÃ­tulo para la bÃºsqueda en RAWG
+        # Usar la variación más limpia del título para la búsqueda en RAWG
         variations = get_search_variations(query)
         search_query = variations[0] if variations else query
         

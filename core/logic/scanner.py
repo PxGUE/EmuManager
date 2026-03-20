@@ -1,10 +1,10 @@
-﻿"""
-scanner.py â€” Motor de bÃºsqueda y gestiÃ³n de biblioteca (ROMs).
+"""
+scanner.py — Motor de búsqueda y gestión de biblioteca (ROMs).
 
-Este mÃ³dulo se encarga de:
+Este módulo se encarga de:
 1. Escanear el sistema de archivos buscando ROMs compatibles.
 2. Normalizar nombres de archivos para la interfaz.
-3. Gestionar la agrupaciÃ³n de juegos multi-disco (.m3u).
+3. Gestionar la agrupación de juegos multi-disco (.m3u).
 4. Mantener el sistema de favoritos y la persistencia de la biblioteca.
 """
 
@@ -26,11 +26,11 @@ class Juego:
     Representa un videojuego detectado en el sistema.
     
     Attributes:
-        id_emu (str): ID del emulador asignado (segÃºn emulators.json).
+        id_emu (str): ID del emulador asignado (según emulators.json).
         nombre (str): Nombre limpio para mostrar en la UI.
-        ruta (str): Ruta absoluta al archivo fÃ­sico.
+        ruta (str): Ruta absoluta al archivo físico.
         consola (str): Nombre descriptivo de la plataforma.
-        extension (str): ExtensiÃ³n del archivo original.
+        extension (str): Extensión del archivo original.
     """
     id_emu: str
     nombre: str
@@ -40,7 +40,7 @@ class Juego:
 
 def limpiar_nombre_juego(nombre_original: str) -> str:
     """
-    Normaliza el nombre de un archivo ROM para una presentaciÃ³n limpia.
+    Normaliza el nombre de un archivo ROM para una presentación limpia.
     
     Ejemplo: "Sonic_Hedgehog_(USA)_[!]" -> "Sonic Hedgehog"
 
@@ -50,16 +50,16 @@ def limpiar_nombre_juego(nombre_original: str) -> str:
     Returns:
         str: El nombre formateado y capitalizado.
     """
-    # 1. Eliminar contenido entre parÃ©ntesis o corchetes (regiones, versiones, etc.)
+    # 1. Eliminar contenido entre paréntesis o corchetes (regiones, versiones, etc.)
     nombre = re.sub(r'\s*[\(\[][^()\[\]]*[\)\]]', '', nombre_original)
     
-    # 2. Reemplazar caracteres de uniÃ³n por espacios
+    # 2. Reemplazar caracteres de unión por espacios
     nombre = nombre.replace('_', ' ').replace('-', ' ')
     
-    # 3. Eliminar espacios mÃºltiples resultantes
+    # 3. Eliminar espacios múltiples resultantes
     nombre = re.sub(r'\s+', ' ', nombre).strip()
     
-    # 4. CapitalizaciÃ³n: "the legend" -> "The Legend"
+    # 4. Capitalización: "the legend" -> "The Legend"
     nombre = ' '.join(word.capitalize() for word in nombre.split())
     
     return nombre if nombre else nombre_original
@@ -69,13 +69,13 @@ async def escanear_roms(ruta_base: str, emu_id: Optional[str] = None) -> List[Ju
     Escanea el directorio de ROMs y actualiza la base de datos local.
 
     Args:
-        ruta_base (str): Carpeta raÃ­z donde se encuentran las ROMs por subcarpetas.
+        ruta_base (str): Carpeta raíz donde se encuentran las ROMs por subcarpetas.
         emu_id (str, optional): Si se especifica, solo escanea esta consola/emulador.
 
     Returns:
         List[Juego]: Lista actualizada de todos los juegos en la biblioteca.
     """
-    library_file = config.METADATA_FILE.replace("metadata.json", "library.json") # TODO: Mover a config de forma explÃ­cita
+    library_file = config.METADATA_FILE.replace("metadata.json", "library.json") # TODO: Mover a config de forma explícita
     # Nota: Usamos la carpeta de datos configurada en config.py
     
     juegos_finales = []
@@ -90,7 +90,7 @@ async def escanear_roms(ruta_base: str, emu_id: Optional[str] = None) -> List[Ju
     if not ruta_base or not os.path.exists(ruta_base):
         return juegos_finales
 
-    # Decidir quÃ© emuladores/carpetas procesar
+    # Decidir qué emuladores/carpetas procesar
     emus_procesar = [e for e in AVAILABLE_EMULATORS if e["id"] == emu_id] if emu_id else AVAILABLE_EMULATORS
 
     try:
@@ -104,7 +104,7 @@ async def escanear_roms(ruta_base: str, emu_id: Optional[str] = None) -> List[Ju
         target_id = emu["id"].lower()
         target_console = emu["console"].lower()
         
-        # BÃºsqueda difusa de carpetas (puede ser por ID, nombre de carpeta o consola)
+        # Búsqueda difusa de carpetas (puede ser por ID, nombre de carpeta o consola)
         matched_folders = []
         for f in subfolders:
             f_low = f.lower()
@@ -125,7 +125,7 @@ async def escanear_roms(ruta_base: str, emu_id: Optional[str] = None) -> List[Ju
                     if ext in extensions:
                         archivos_candidatos.append((root, file, ext))
             
-            # 2. GestiÃ³n de Multi-Disco: Leer archivos .m3u para ocultar archivos referenciados
+            # 2. Gestión de Multi-Disco: Leer archivos .m3u para ocultar archivos referenciados
             # Esto evita que aparezca "Disc 1", "Disc 2" en la UI si el M3U ya los agrupa.
             rutas_a_ignorar: Set[str] = set()
             for root, file, ext in archivos_candidatos:
@@ -135,7 +135,7 @@ async def escanear_roms(ruta_base: str, emu_id: Optional[str] = None) -> List[Ju
                         with open(m3u_path, "r", encoding="utf-8") as f:
                             for line in f:
                                 line = line.strip()
-                                # Ignorar lÃ­neas vacÃ­as y comentarios de M3U
+                                # Ignorar líneas vacías y comentarios de M3U
                                 if line and not line.startswith("#"):
                                     ref_path = os.path.abspath(os.path.join(root, line))
                                     rutas_a_ignorar.add(ref_path)
@@ -157,13 +157,13 @@ async def escanear_roms(ruta_base: str, emu_id: Optional[str] = None) -> List[Ju
                         extension=ext
                     )
                 )
-            # PequeÃ±a pausa para no bloquear el loop de eventos en escaneos masivos
+            # Pequeña pausa para no bloquear el loop de eventos en escaneos masivos
             await asyncio.sleep(0.01)
     
     juegos_finales.extend(juegos_escaneados)
     juegos_finales.sort(key=lambda x: x.nombre.lower())
     
-    # Limpiar cachÃ© para forzar recarga
+    # Limpiar caché para forzar recarga
     global _library_cache
     _library_cache = None
     
@@ -190,7 +190,7 @@ async def escanear_roms(ruta_base: str, emu_id: Optional[str] = None) -> List[Ju
 def cargar_biblioteca_cache() -> List[dict]:
     """
     Carga la lista de juegos desde el JSON persistente resolviendo rutas.
-    Utiliza cachÃ© en memoria para evitar lecturas de disco repetitivas.
+    Utiliza caché en memoria para evitar lecturas de disco repetitivas.
     """
     global _library_cache
     if _library_cache is not None:
@@ -213,14 +213,14 @@ def cargar_biblioteca_cache() -> List[dict]:
     return []
 
 
-# â”€â”€ SISTEMA DE FAVORITOS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+#  SISTEMA DE FAVORITOS 
 
 _favorites_cache: Optional[Set[str]] = None
 
 def cargar_favoritos() -> Set[str]:
     """
     Obtiene el conjunto de rutas marcadas como favoritas.
-    Utiliza un sistema de cachÃ© en memoria para accesos rÃ¡pidos en la misma sesiÃ³n.
+    Utiliza un sistema de caché en memoria para accesos rápidos en la misma sesión.
     
     Returns:
         Set[str]: Un conjunto (set) de rutas absolutas de ROMs.
@@ -263,13 +263,13 @@ def guardar_favoritos(favorites: Set[str]):
 
 def toggle_favorito(ruta_rom: str) -> bool:
     """
-    AÃ±ade o quita un juego de la lista de favoritos.
+    Añade o quita un juego de la lista de favoritos.
 
     Args:
         ruta_rom (str): Ruta absoluta del juego.
 
     Returns:
-        bool: True si el juego terminÃ³ como favorito, False si se quitÃ³.
+        bool: True si el juego terminó como favorito, False si se quitó.
     """
     favs = cargar_favoritos()
     if ruta_rom in favs:
@@ -284,7 +284,7 @@ def toggle_favorito(ruta_rom: str) -> bool:
 
 def es_favorito(ruta_rom: str) -> bool:
     """
-    Consulta si un juego especÃ­fico es favorito.
+    Consulta si un juego específico es favorito.
 
     Args:
         ruta_rom (str): Ruta absoluta del juego.

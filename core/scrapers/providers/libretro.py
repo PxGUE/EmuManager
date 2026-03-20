@@ -1,4 +1,4 @@
-﻿import aiohttp
+import aiohttp
 import urllib.parse
 from bs4 import BeautifulSoup
 from typing import Optional, List, Dict, Any
@@ -21,7 +21,7 @@ class LibretroScraper(BaseScraper):
         if platform in self._index_cache:
             return self._index_cache[platform]
 
-        # Variantes de bÃºsqueda (Espacios, Guiones, etc.) para evitar el Error 404
+        # Variantes de búsqueda (Espacios, Guiones, etc.) para evitar el Error 404
         search_variations = [
             platform,                            # "Nintendo - Game Boy Advance"
             platform.replace(" ", "_"),          # "Nintendo_-_Game_Boy_Advance"
@@ -49,15 +49,15 @@ class LibretroScraper(BaseScraper):
                         
                         if names:
                             self._index_cache[platform] = names
-                            print(f"[LIBRETRO] Ãndice cargado para '{plat_atempt}' (Intento exitoso): {len(names)} juegos.")
+                            print(f"[LIBRETRO] Índice cargado para '{plat_atempt}' (Intento exitoso): {len(names)} juegos.")
                             return names
                     elif resp.status == 404:
                         # Silencioso, intentamos la siguiente variante
                         continue
                     else:
-                        print(f"[LIBRETRO] Error HTTP {resp.status} al cargar el Ã­ndice de '{plat_atempt}'")
+                        print(f"[LIBRETRO] Error HTTP {resp.status} al cargar el índice de '{plat_atempt}'")
             except Exception as e:
-                print(f"[LIBRETRO] ExcepciÃ³n en _get_index para '{plat_atempt}': {e}")
+                print(f"[LIBRETRO] Excepción en _get_index para '{plat_atempt}': {e}")
         
         return []
 

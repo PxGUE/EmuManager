@@ -239,7 +239,7 @@ Item {
                     Layout.fillWidth: true
                 }
                 StatCard {
-                    icon: "🕹️"; label: tr("dash_stat_consoles"); accentColor: "#4dc6a6"
+                    icon: "y"; label: tr("dash_stat_consoles"); accentColor: "#4dc6a6"
                     value: (bridge && bridge.lib.dashboardStats) ? bridge.lib.dashboardStats.totalConsoles : 0
                     Layout.fillWidth: true
                 }

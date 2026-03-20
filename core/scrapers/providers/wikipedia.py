@@ -1,4 +1,4 @@
-﻿import aiohttp
+import aiohttp
 import re
 import unicodedata
 from typing import Optional, Dict, Any, List
@@ -41,7 +41,7 @@ class WikipediaScraper(BaseScraper):
         # Estrategia: Probar idiomas (EN, ES) y recursividad (pop-back)
         for lang, url in self.API_URLS.items():
             base_search = query
-            attempts = 0 # MÃ¡ximo 2 intentos recursivos (quitando palabras del final)
+            attempts = 0 # Máximo 2 intentos recursivos (quitando palabras del final)
             
             while attempts < 3:
                 try:
@@ -53,7 +53,7 @@ class WikipediaScraper(BaseScraper):
                         tag = "video game" if lang == "en" else "videojuego"
                         search_queries.append(f"{v} {tag}")
                     
-                    # 2. Realizar bÃºsquedas
+                    # 2. Realizar búsquedas
                     results = []
                     for sq in search_queries:
                         batch = await self._do_search(session, sq, lang=lang)
@@ -62,14 +62,14 @@ class WikipediaScraper(BaseScraper):
                             if len(results) > 5: break
                     
                     if not results:
-                        # Recursividad: Quitar la Ãºltima palabra e intentar de nuevo
+                        # Recursividad: Quitar la última palabra e intentar de nuevo
                         words = base_search.split()
                         if len(words) > 1:
                             base_search = " ".join(words[:-1])
                             attempts += 1
                             continue
                         else:
-                            break # No se puede recortar mÃ¡s
+                            break # No se puede recortar más
 
                     # 3. Procesar Candidatos
                     seen = set()
@@ -83,7 +83,7 @@ class WikipediaScraper(BaseScraper):
                     best_title = ScraperEngine.find_best_match(query, candidates, min_ratio=0.30, require_significant=False)
                     
                     if not best_title:
-                        # Si no hay match bueno, probar acortando el nombre de bÃºsqueda
+                        # Si no hay match bueno, probar acortando el nombre de búsqueda
                         words = base_search.split()
                         if len(words) > 1:
                             base_search = " ".join(words[:-1])
@@ -132,7 +132,7 @@ class WikipediaScraper(BaseScraper):
 
     def _extract_developer(self, text: str) -> str:
         match = re.search(r'developed by\s+([^,.;]+)', text, re.IGNORECASE)
-        # Fallback para espaÃ±ol
+        # Fallback para español
         if not match:
             match = re.search(r'desarrollado por\s+([^,.;]+)', text, re.IGNORECASE)
         return match.group(1).replace("and published by", "").strip()[:32] if match else ""

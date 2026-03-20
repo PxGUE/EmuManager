@@ -107,7 +107,7 @@ Item {
                     anchors.top: parent.top; anchors.right: parent.right; anchors.margins: 15
                     width: 32; height: 32; onClicked: root.close()
                     background: Rectangle { radius: 0; color: "#44000000"; border.color: "#33ffffff"; border.width: 1 }
-                    contentItem: Label { text: "✕"; color: "white"; font.pixelSize: 14; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                    contentItem: Label { text: ""; color: "white"; font.pixelSize: 14; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                 }
             }
 
@@ -133,13 +133,13 @@ Item {
                             id: subFavBtn; width: 36; height: 36
                             onClicked: { root.favoriteClicked(); root.localFavorite = !root.localFavorite }
                             background: Rectangle { radius: 0; color: subFavBtn.hovered ? "#33ffffff" : "transparent"; border.color: root.localFavorite ? root.accentColor : "#33ffffff"; border.width: 1 }
-                            contentItem: Label { text: root.localFavorite ? "❤️" : "🤍"; font.pixelSize: 18; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                            contentItem: Label { text: root.localFavorite ? "d" : ""; font.pixelSize: 18; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                         }
                         Button {
                             id: subEditBtn; width: 36; height: 36
                             onClicked: root.editClicked()
                             background: Rectangle { radius: 0; color: subEditBtn.hovered ? "#33ffffff" : "transparent"; border.color: "#33ffffff"; border.width: 1 }
-                            contentItem: Label { text: "✏️"; font.pixelSize: 16; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter; opacity: 0.7 }
+                            contentItem: Label { text: ""; font.pixelSize: 16; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter; opacity: 0.7 }
                         }
                     }
                 }

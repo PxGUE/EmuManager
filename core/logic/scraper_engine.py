@@ -1,4 +1,4 @@
-﻿import difflib
+import difflib
 import re
 from typing import Optional, List, TypeVar, Callable
 from .normalization import normalize_title, get_search_variations
@@ -18,21 +18,21 @@ class ScraperEngine:
         require_significant: bool = True
     ) -> Optional[str]:
         """
-        Calcula la mejor coincidencia entre un objetivo y mÃºltiples candidatos.
-        Prioriza Identidad Exacta -> InclusiÃ³n de Tokens -> Ratio de Similitud.
+        Calcula la mejor coincidencia entre un objetivo y múltiples candidatos.
+        Prioriza Identidad Exacta -> Inclusión de Tokens -> Ratio de Similitud.
         """
         if not target or not candidates:
             return None
             
         target_norm = normalize_title(target)
         target_tokens = set(target_norm.split())
-        # Tokens significativos (mÃ¡s de 2 letras o nÃºmeros)
+        # Tokens significativos (más de 2 letras o números)
         sig_target = {t for t in target_tokens if len(t) > 2 or t.isdigit()}
         
         candidate_data = []
         for c in candidates:
             c_norm = normalize_title(c)
-            # 1. COINCIDENCIA EXACTA (Tras normalizaciÃ³n)
+            # 1. COINCIDENCIA EXACTA (Tras normalización)
             if target_norm == c_norm:
                 return c
             
@@ -41,7 +41,7 @@ class ScraperEngine:
             if target_tokens == c_tokens:
                 return c
                 
-            # 3. INCLUSIÃ“N (El objetivo es parte integral del candidato o viceversa)
+            # 3. INCLUSIÓN (El objetivo es parte integral del candidato o viceversa)
             if sig_target and sig_target.issubset(c_tokens):
                 # Caso: "Mario World" -> "Super Mario World"
                 candidate_data.append((c, 0.90))
@@ -53,7 +53,7 @@ class ScraperEngine:
                 candidate_data.append((c, 0.85))
                 continue
 
-            # 4. DIFflib (Como Ãºltimo recurso para errores tipogrÃ¡ficos)
+            # 4. DIFflib (Como último recurso para errores tipográficos)
             ratio = difflib.SequenceMatcher(None, target_norm, c_norm).ratio()
             if ratio >= min_ratio:
                 candidate_data.append((c, ratio))

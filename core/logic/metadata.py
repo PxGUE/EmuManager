@@ -1,9 +1,9 @@
 """
-metadata.py â€” Motor de metadatos (Hub de Scrapers).
+metadata.py — Motor de metadatos (Hub de Scrapers).
 
-Este mÃ³dulo coordina la obtenciÃ³n de informaciÃ³n descriptiva de los juegos
-(tÃ­tulo, descripciÃ³n, desarrollador, aÃ±o, etc.) consultando mÃºltiples 
-fuentes externas de forma secuencial y manteniendo una cachÃ© local.
+Este módulo coordina la obtención de información descriptiva de los juegos
+(título, descripción, desarrollador, año, etc.) consultando múltiples 
+fuentes externas de forma secuencial y manteniendo una caché local.
 """
 
 import asyncio
@@ -25,12 +25,12 @@ _metadata_cache: Optional[Dict[str, Any]] = None
 
 def obtener_metadata_local(ruta_rom: str) -> dict:
     """
-    Obtiene los metadatos almacenados en la cachÃ© local para un juego especÃ­fico.
-    Utiliza una cachÃ© en memoria para evitar lecturas de disco repetitivas.
+    Obtiene los metadatos almacenados en la caché local para un juego específico.
+    Utiliza una caché en memoria para evitar lecturas de disco repetitivas.
     """
     global _metadata_cache
     
-    # 1. Si ya estÃ¡ en memoria, devolverlo instantÃ¡neamente
+    # 1. Si ya está en memoria, devolverlo instantáneamente
     if _metadata_cache is not None:
         norm_ruta = config.normalize_path(ruta_rom)
         return _metadata_cache.get(norm_ruta, {})
@@ -47,12 +47,12 @@ def obtener_metadata_local(ruta_rom: str) -> dict:
             _metadata_cache = data
             return _metadata_cache.get(config.normalize_path(ruta_rom), {})
     except Exception as e:
-        print(f"[METADATA] Error cargando cachÃ©: {e}")
+        print(f"[METADATA] Error cargando caché: {e}")
         return {}
 
 def guardar_metadata_local(ruta_rom: str, meta: dict):
     """
-    Persiste o actualiza los metadatos de un juego en la cachÃ© local.
+    Persiste o actualiza los metadatos de un juego en la caché local.
     """
     global _metadata_cache
     
@@ -74,21 +74,21 @@ def guardar_metadata_local(ruta_rom: str, meta: dict):
 async def descargar_metadata_biblioteca(juegos: list, emu_map: dict, on_progress: Optional[Callable] = None) -> dict:
     """
     Proceso masivo de descarga de metadatos para una lista de juegos.
-    Consulta proveedores activos segÃºn la configuraciÃ³n del usuario.
+    Consulta proveedores activos según la configuración del usuario.
 
     Args:
         juegos (list): Lista de juegos (objetos Juego o dicts de library.json).
-        emu_map (dict): Mapa de emuladores para obtener IDs especÃ­ficos (ej: screenscraper_id).
+        emu_map (dict): Mapa de emuladores para obtener IDs específicos (ej: screenscraper_id).
         on_progress (callable, optional): Callback para reportar el progreso (actual, total, nombre).
 
     Returns:
-        dict: EstadÃ­sticas del proceso (ok, skip, fail).
+        dict: Estadísticas del proceso (ok, skip, fail).
     """
     stats = {"ok": 0, "skip": 0, "fail": 0}
     fails_list = []
     total = len(juegos)
     
-    # Cargar cachÃ© para evitar descargas duplicadas
+    # Cargar caché para evitar descargas duplicadas
     cache = {}
     if os.path.exists(config.METADATA_FILE):
         try:
@@ -97,10 +97,10 @@ async def descargar_metadata_biblioteca(juegos: list, emu_map: dict, on_progress
         except:
             pass
 
-    # --- InicializaciÃ³n de Proveedores (Solo si estÃ¡n activados) ---
+    # --- Inicialización de Proveedores (Solo si están activados) ---
     configs = get_providers_config()
     
-    # 1. Wikipedia (Sin API Key, texto bÃ¡sico)
+    # 1. Wikipedia (Sin API Key, texto básico)
     wiki_cfg = next((c for c in configs if c["id"] == "wikipedia"), {"enabled": True})
     wiki = WikipediaScraper() if wiki_cfg.get("enabled") else None
     
@@ -116,7 +116,7 @@ async def descargar_metadata_biblioteca(juegos: list, emu_map: dict, on_progress
     ss_dev_id = ss_cfg.get("devid") if ss_cfg and ss_cfg.get("enabled") else None
     ss_dev_pass = ss_cfg.get("devpassword") if ss_cfg and ss_cfg.get("enabled") else None
     
-    # El usuario solo necesita poner su usuario/pass. El DevID se suministra en el cÃ³digo.
+    # El usuario solo necesita poner su usuario/pass. El DevID se suministra en el código.
     screenscraper = ScreenScraperScraper(ss_user, ss_pass, ss_dev_id, ss_dev_pass) if (ss_user and ss_pass) else None
 
     headers = {
@@ -132,7 +132,7 @@ async def descargar_metadata_biblioteca(juegos: list, emu_map: dict, on_progress
                 ruta = juego.get("ruta", "")
                 nombre = juego.get("nombre", "")
                 
-                # Omitir si ya tiene descripciÃ³n en cachÃ©
+                # Omitir si ya tiene descripción en caché
                 if ruta in cache and cache[ruta].get("description"):
                     stats["skip"] += 1
                 else:
@@ -148,16 +148,16 @@ async def descargar_metadata_biblioteca(juegos: list, emu_map: dict, on_progress
                         if ss_res:
                             res.update(ss_res)
 
-                    # 2. Wikipedia (Fallback para descripciÃ³n y datos bÃ¡sicos)
+                    # 2. Wikipedia (Fallback para descripción y datos básicos)
                     if (not res.get("description")) and wiki:
                         variations = get_search_variations(nombre)
-                        clean_name = variations[-1] if variations else nombre # Usamos la versiÃ³n mÃ¡s limpia (sin tags)
+                        clean_name = variations[-1] if variations else nombre # Usamos la versión más limpia (sin tags)
                         wiki_res = await wiki.fetch(session, clean_name)
                         if wiki_res:
                             for k, v in wiki_res.items():
                                 if not res.get(k): res[k] = v
 
-                    # 3. RAWG (Ãšltimo recurso para completar huecos)
+                    # 3. RAWG (Último recurso para completar huecos)
                     if (not res.get("description")) and rawg:
                         rawg_res = await rawg.fetch(session, nombre)
                         if rawg_res:
@@ -179,17 +179,17 @@ async def descargar_metadata_biblioteca(juegos: list, emu_map: dict, on_progress
 
     # --- REPORTE FINAL ---
     print("\n" + "="*45)
-    print("ðŸ“Š RESUMEN SINCRONIZACIÃ“N METADATOS")
-    print(f"   âœ… Nuevos encontrados: {stats['ok']}")
-    print(f"   â­ï¸ Ya en cachÃ©: {stats['skip']}")
-    print(f"   âŒ No encontrados:    {stats['fail']}")
+    print("📊 RESUMEN SINCRONIZACIÓN METADATOS")
+    print(f"    Nuevos encontrados: {stats['ok']}")
+    print(f"   ⏭️ Ya en caché: {stats['skip']}")
+    print(f"   L No encontrados:    {stats['fail']}")
     
     if fails_list:
-        print("\n--- ðŸ” JUEGOS SIN INFORMACIÃ“N ---")
+        print("\n--- 🔍 JUEGOS SIN INFORMACIÓN ---")
         for f in sorted(fails_list)[:25]:
-            print(f" â€¢ {f}")
+            print(f" • {f}")
         if len(fails_list) > 25:
-            print(f" ... y {len(fails_list)-25} mÃ¡s.")
+            print(f" ... y {len(fails_list)-25} más.")
     print("="*45 + "\n")
 
     # Persistencia de los nuevos datos
@@ -200,14 +200,14 @@ async def descargar_metadata_biblioteca(juegos: list, emu_map: dict, on_progress
         with open(config.METADATA_FILE, "w", encoding="utf-8") as f:
             json.dump(norm_cache, f, ensure_ascii=False, indent=2)
     except Exception as e:
-        print(f"[METADATA] Error guardando cachÃ©: {e}")
+        print(f"[METADATA] Error guardando caché: {e}")
     
     return stats
 
 def get_providers_config() -> List[Dict]:
     """
     Obtiene la lista de proveedores de metadatos y arte configurados.
-    Mezcla los valores por defecto con la configuraciÃ³n guardada y los secretos.
+    Mezcla los valores por defecto con la configuración guardada y los secretos.
 
     Returns:
         List[Dict]: Lista de diccionarios con el estado y credenciales de cada scraper.
@@ -240,7 +240,7 @@ def get_providers_config() -> List[Dict]:
     # 2. Cargar credenciales desde el sistema de secretos
     for d in default:
         is_conf = True
-        # AÃ±adimos 'devid' y 'devpassword' para que el motor los pida al sistema de seguridad
+        # Añadimos 'devid' y 'devpassword' para que el motor los pida al sistema de seguridad
         for field in ["api_key", "user", "password", "devid", "devpassword"]:
             if field in d:
                 val = get_secret(d["id"], field)

@@ -1,18 +1,18 @@
-﻿"""
-constants.py Ã¢â‚¬â€ Diccionarios y configuraciones fijas del sistema
-AquÃƒÂ­ se definen los emuladores soportados y sus metadatos de Libretro.
+"""
+constants.py — Diccionarios y configuraciones fijas del sistema
+Aquí se definen los emuladores soportados y sus metadatos de Libretro.
 """
 
 import os
 import json
 
 def cargar_emuladores_config():
-    """Carga la lista de emuladores desde el archivo JSON dinÃƒÂ¡mico."""
+    """Carga la lista de emuladores desde el archivo JSON dinámico."""
     base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
     
-    # 1. Intentar en la nueva ubicaciÃƒÂ³n de recursos (protegida de limpiezas del usuario)
+    # 1. Intentar en la nueva ubicación de recursos (protegida de limpiezas del usuario)
     ruta_resources = os.path.join(base_dir, "resources", "emulators.json")
-    # 2. Intentar en la antigua ubicaciÃƒÂ³n (retrocompatibilidad)
+    # 2. Intentar en la antigua ubicación (retrocompatibilidad)
     ruta_data = os.path.join(base_dir, "data", "emulators.json")
     
     for ruta_json in [ruta_resources, ruta_data]:
@@ -23,11 +23,11 @@ def cargar_emuladores_config():
             except Exception as e:
                 print(f"[CONSTANTS] Error cargando {ruta_json}: {e}")
     
-    print("[CONSTANTS] CRÃƒÂTICO: No se encontrÃƒÂ³ emulators.json en ninguna ubicaciÃƒÂ³n.")
+    print("[CONSTANTS] CRÍTICO: No se encontró emulators.json en ninguna ubicación.")
     return []
 
-# La lista principal ahora es dinÃƒÂ¡mica
+# La lista principal ahora es dinámica
 AVAILABLE_EMULATORS = cargar_emuladores_config()
 
-# Otras constantes fijas del sistema podrÃƒÂ­an ir aquÃƒÂ­ en el futuro
+# Otras constantes fijas del sistema podrían ir aquí en el futuro
 # Ejemplo: APP_THEME_COLOR = "#7c6ff7"

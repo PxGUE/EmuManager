@@ -1,4 +1,4 @@
-﻿import os
+import os
 import time
 import asyncio
 import aiohttp
@@ -11,9 +11,9 @@ from core.logic.constants import AVAILABLE_EMULATORS
 
 class Installer:
     """
-    Gestiona la descarga, extracciÃ³n e instalaciÃ³n de emuladores desde GitHub o local.
+    Gestiona la descarga, extracción e instalación de emuladores desde GitHub o local.
     
-    Implementa lÃ³gica inteligente para detectar el mejor 'asset' segÃºn el sistema
+    Implementa lógica inteligente para detectar el mejor 'asset' según el sistema
     operativo y la arquitectura del procesador.
     """
     def __init__(self, manager):
@@ -23,7 +23,7 @@ class Installer:
         self.linux_distro = self._get_linux_distro()
 
     def _get_linux_distro(self):
-        """Detecta la distribuciÃ³n de Linux de forma bÃ¡sica."""
+        """Detecta la distribución de Linux de forma básica."""
         if platform.system() != "Linux":
             return None
         try:
@@ -89,7 +89,7 @@ class Installer:
         is_x64 = any(x in arch for x in ["x86_64", "amd64", "x64"])
         is_arm = any(x in arch for x in ["arm64", "aarch64"])
 
-        # Prioridad 1: Coincidencia exacta de arquitectura + extensiÃ³n preferida
+        # Prioridad 1: Coincidencia exacta de arquitectura + extensión preferida
         if sys_name == "Windows":
             # Extensiones preferidas para Windows (portables)
             valid_exts = (".zip", ".7z", ".exe")
@@ -114,14 +114,14 @@ class Installer:
                     if "win" in name or "windows" in name: return asset
 
         elif sys_name == "Linux":
-            # 1.1 Intentar buscar AppImage (es lo mÃ¡s universal)
+            # 1.1 Intentar buscar AppImage (es lo más universal)
             for asset in assets:
                 name = asset["name"].lower()
                 if name.endswith(".appimage") and "libretro" not in name:
                     if is_x64 and any(x in name for x in ["x86_64", "amd64", "x64"]): return asset
                     if is_arm and any(x in name for x in ["arm64", "aarch64"]): return asset
 
-            # 1.2 Priorizar por distribuciÃ³n (Debian/Ubuntu son comunes)
+            # 1.2 Priorizar por distribución (Debian/Ubuntu son comunes)
             distro_keywords = {
                 "ubuntu": ["ubuntu", "debian", "pop", "mint"],
                 "debian": ["debian", "ubuntu"],
@@ -129,7 +129,7 @@ class Installer:
                 "fedora": ["fedora", "redhat", "suse"]
             }
             
-            # Si detectamos una distro especÃ­fica, buscar keywords relacionadas
+            # Si detectamos una distro específica, buscar keywords relacionadas
             search_keywords = distro_keywords.get(self.linux_distro, [self.linux_distro])
             
             for asset in assets:
@@ -143,7 +143,7 @@ class Installer:
                     if any(k in name for k in search_keywords):
                         return asset
 
-            # 1.3 Buscar binarios comprimidos genÃ©ricos de Linux
+            # 1.3 Buscar binarios comprimidos genéricos de Linux
             for asset in assets:
                 name = asset["name"].lower()
                 if any(ext in name for ext in [".tar.gz", ".tar.xz", ".7z", ".zip"]):
@@ -151,7 +151,7 @@ class Installer:
                     if "windows" in name or "win64" in name or "exe" in name: continue
                     if is_x64 and any(x in name for x in ["x86_64", "amd64", "x64", "linux"]): return asset
 
-        # Fallback genÃ©rico: el primero que parezca portable y no sea de otra arquitectura
+        # Fallback genérico: el primero que parezca portable y no sea de otra arquitectura
         for asset in assets:
             name = asset["name"].lower()
             if is_x64 and any(x in name for x in ["arm64", "aarch64", "armv7"]): continue
@@ -165,7 +165,7 @@ class Installer:
 
     async def instalar_emulador(self, repo_github: str):
         if not self.manager.install_path:
-            yield "ERROR:No se ha configurado una ruta de instalaciÃ³n."
+            yield "ERROR:No se ha configurado una ruta de instalación."
             return
             
         self.manager.install_path = os.path.abspath(self.manager.install_path)
@@ -173,7 +173,7 @@ class Installer:
 
         emu_info = next((e for e in AVAILABLE_EMULATORS if e["github"] == repo_github), None)
         
-        # Determinar el repo real segÃºn plataforma
+        # Determinar el repo real según plataforma
         target_repo = repo_github
         if emu_info:
             if platform.system() == "Windows" and emu_info.get("github_win"):
@@ -208,7 +208,7 @@ class Installer:
         if not download_url:
             for emu in AVAILABLE_EMULATORS:
                 if emu["github"] == repo_github:
-                    # Intentar fallback especÃ­fico por OS
+                    # Intentar fallback específico por OS
                     if platform.system() == "Windows" and emu.get("fallback_win"):
                         download_url = emu["fallback_win"]
                     elif platform.system() == "Linux" and emu.get("fallback_linux"):
@@ -232,7 +232,7 @@ class Installer:
             if platform.system() == "Linux":
                 sys_info += f" - Distro: {self.linux_distro}"
             
-            yield f"ERROR:No se encontrÃ³ una versiÃ³n compatible para {sys_info}."
+            yield f"ERROR:No se encontró una versión compatible para {sys_info}."
             return
 
         target_file = os.path.abspath(os.path.join(full_install_path, filename))
@@ -304,15 +304,15 @@ class Installer:
                             except: pass
                 return True
             except Exception as e:
-                print(f"[DEBUG] Error en extracciÃ³n: {e}")
+                print(f"[DEBUG] Error en extracción: {e}")
                 return False
 
         success_ext = await asyncio.to_thread(_extract)
         if not success_ext:
-            yield "ERROR:Falla en la configuraciÃ³n local."
+            yield "ERROR:Falla en la configuración local."
             return
         
-        # Determinar la versiÃ³n instalada exacta
+        # Determinar la versión instalada exacta
         version_str = "latest"
         if chosen_release:
             version_str = chosen_release.get("tag_name", "latest")
@@ -330,14 +330,14 @@ class Installer:
         self.manager.crear_carpetas_roms(repo_github)
         
         if os.path.exists(target_file):
-            yield "PROGRESS:1.0|Â¡InstalaciÃ³n exitosa!"
+            yield "PROGRESS:1.0|¡Instalación exitosa!"
         else:
-            yield "ERROR:No se encontrÃ³ el archivo instalado."
+            yield "ERROR:No se encontró el archivo instalado."
 
     async def instalar_emulador_local(self, repo_github: str, local_zip_path: str):
         """Instala un emulador desde un archivo local proporcionado por el usuario."""
         if not self.manager.install_path:
-            yield "ERROR:No se ha configurado una ruta de instalaciÃ³n."
+            yield "ERROR:No se ha configurado una ruta de instalación."
             return
 
         emu_info = next((e for e in AVAILABLE_EMULATORS if e["github"] == repo_github), None)
@@ -359,7 +359,7 @@ class Installer:
         success_ext, installed_files = await self._ejecutar_extraccion(target_file, filename, full_install_path)
 
         if not success_ext:
-            yield "ERROR:Falla en la extracciÃ³n manual."
+            yield "ERROR:Falla en la extracción manual."
             return
 
         self.manager.installed_emus[repo_github] = {
@@ -369,10 +369,10 @@ class Installer:
         }
         self.manager._save_installed()
         self.manager.crear_carpetas_roms(repo_github)
-        yield "PROGRESS:1.0|Â¡InstalaciÃ³n manual exitosa!"
+        yield "PROGRESS:1.0|¡Instalación manual exitosa!"
 
     async def _ejecutar_extraccion(self, target_file, filename, full_install_path):
-        """LÃ³gica comÃºn de extracciÃ³n."""
+        """Lógica común de extracción."""
         installed_files = [target_file]
 
         def _extract():
@@ -422,7 +422,7 @@ class Installer:
                             except: pass
                 return True
             except Exception as e:
-                print(f"[DEBUG] Error en extracciÃ³n: {e}")
+                print(f"[DEBUG] Error en extracción: {e}")
                 return False
 
         success = await asyncio.to_thread(_extract)
@@ -440,7 +440,7 @@ class Installer:
 
     async def desinstalar_emulador(self, repo_github: str):
         if repo_github not in self.manager.installed_emus:
-            yield "ERROR:El emulador no estÃ¡ registrado."
+            yield "ERROR:El emulador no está registrado."
             return
 
         yield f"Desinstalando {repo_github}..."
@@ -468,6 +468,6 @@ class Installer:
         if success:
             del self.manager.installed_emus[repo_github]
             self.manager._save_installed()
-            yield f"[Ã‰XITO] Emulador desinstalado."
+            yield f"[ÉXITO] Emulador desinstalado."
         else:
-            yield "Error parcial durante la desinstalaciÃ³n."
+            yield "Error parcial durante la desinstalación."

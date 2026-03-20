@@ -606,7 +606,7 @@ Item {
                             border.width: 1
                         }
                         contentItem: Label {
-                            text: "⭐"
+                            text: "P"
                             opacity: libraryRoot.onlyFavorites ? 1.0 : 0.4
                             horizontalAlignment: Text.AlignHCenter
                             verticalAlignment: Text.AlignVCenter
@@ -699,7 +699,7 @@ Item {
                         anchors.fill: parent
                         anchors.leftMargin: 15
                         spacing: 10
-                        Label { text: "🔍"; opacity: 0.6; font.pixelSize: 14 }
+                        Label { text: ""; opacity: 0.6; font.pixelSize: 14 }
                         TextInput {
                             id: searchInput
                             Layout.fillWidth: true
@@ -830,7 +830,7 @@ Item {
                                 elide: Text.ElideRight; maximumLineCount: 2; wrapMode: Text.WordWrap
                             }
                             Label { 
-                                text: "🕒 " + modelData.playtime
+                                text: "R " + modelData.playtime
                                 color: "#b0ffffff"; font.pixelSize: 11; visible: isHovered 
                             }
                         }
@@ -893,7 +893,7 @@ Item {
                             
                             Label {
                                 anchors.centerIn: parent
-                                text: modelData.isFavorite ? "❤️" : "🤍"
+                                text: modelData.isFavorite ? "d" : ""
                                 font.pixelSize: 18
                             }
                             
@@ -1077,7 +1077,7 @@ Item {
                             radius: height / 2; color: "#1affffff"; border.color: "#30ffffff"; border.width: 1 
                         }
                         contentItem: Label { 
-                            text: "✕"; color: "white"; font.pixelSize: 18 * responsiveScale
+                            text: ""; color: "white"; font.pixelSize: 18 * responsiveScale
                             horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter 
                         }
                     }
@@ -1143,7 +1143,7 @@ Item {
                 }
                 Item { Layout.fillWidth: true }
                 Button {
-                    text: "✕"
+                    text: ""
                     onClicked: tweakPopup.close()
                     flat: true
                     contentItem: Label { text: parent.text; color: "#66ffffff"; font.pixelSize: 20 }

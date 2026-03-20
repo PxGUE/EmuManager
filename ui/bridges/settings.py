@@ -1,10 +1,10 @@
-﻿"""
-settings.py â€” Bridge especializado en la gestiÃ³n de configuraciÃ³n y rutas.
+"""
+settings.py — Bridge especializado en la gestión de configuración y rutas.
 
 Este sub-bridge maneja:
-1. SelecciÃ³n y apertura de rutas (Emuladores, ROMs).
-2. ActivaciÃ³n/desactivaciÃ³n de proveedores de metadatos (Scrapers).
-3. GestiÃ³n de credenciales seguras (API Keys, ContraseÃ±as).
+1. Selección y apertura de rutas (Emuladores, ROMs).
+2. Activación/desactivación de proveedores de metadatos (Scrapers).
+3. Gestión de credenciales seguras (API Keys, Contraseñas).
 """
 
 import os
@@ -19,23 +19,23 @@ from core.logic.metadata import get_providers_config
 
 class SettingsBridge(QObject):
     """
-    Gestiona la comunicaciÃ³n entre la pantalla de Ajustes de QML y el backend.
+    Gestiona la comunicación entre la pantalla de Ajustes de QML y el backend.
     """
     
-    # SeÃ±al para notificar cambios en la configuraciÃ³n a la UI
+    # Señal para notificar cambios en la configuración a la UI
     configDataChanged = Signal()
 
     def __init__(self, main_bridge):
         """
         Args:
-            main_bridge (AppBridge): Referencia al bridge principal para emitir seÃ±ales globales.
+            main_bridge (AppBridge): Referencia al bridge principal para emitir señales globales.
         """
         super().__init__()
         self.main = main_bridge
         self.emu_manager = main_bridge.emu_manager
         self.translator = main_bridge.translator
 
-        # Vincular seÃ±al global con refresco local
+        # Vincular señal global con refresco local
         self.main.configUpdated.connect(self.configDataChanged)
 
     @Property(str, notify=configDataChanged)
@@ -50,7 +50,7 @@ class SettingsBridge(QObject):
 
     @Property(bool, notify=configDataChanged)
     def collectorMode(self):
-        """Indica si el modo coleccionista estÃ¡ activo."""
+        """Indica si el modo coleccionista está activo."""
         return getattr(self.emu_manager, "collector_mode", False)
 
     @Slot(bool)
@@ -61,7 +61,7 @@ class SettingsBridge(QObject):
 
     @Slot()
     def browseInstallPath(self):
-        """Abre un diÃ¡logo nativo para seleccionar la carpeta de emuladores."""
+        """Abre un diálogo nativo para seleccionar la carpeta de emuladores."""
         path = QFileDialog.getExistingDirectory(None, self.translator.t("set_dlg_emus"), self.installPath)
         if path:
             self.emu_manager.install_path = path
@@ -70,7 +70,7 @@ class SettingsBridge(QObject):
 
     @Slot()
     def browseRomsPath(self):
-        """Abre un diÃ¡logo nativo para seleccionar la carpeta de ROMs."""
+        """Abre un diálogo nativo para seleccionar la carpeta de ROMs."""
         path = QFileDialog.getExistingDirectory(None, self.translator.t("set_dlg_roms"), self.romsPath)
         if path:
             self.emu_manager.roms_path = path
@@ -96,7 +96,7 @@ class SettingsBridge(QObject):
 
     @Slot(str, bool)
     def toggleProvider(self, provider_id, enabled):
-        """Activa o desactiva un proveedor de metadatos especÃ­fico."""
+        """Activa o desactiva un proveedor de metadatos específico."""
         providers = get_providers_config()
         for p in providers:
             if p["id"] == provider_id:
@@ -106,7 +106,7 @@ class SettingsBridge(QObject):
         self.main.configUpdated.emit()
 
     def _save_scrapers_config(self, providers):
-        """Guarda la configuraciÃ³n de scrapers (filtros y estado) en disco."""
+        """Guarda la configuración de scrapers (filtros y estado) en disco."""
         path = os.path.join("data", "scrapers_config.json")
         clean_data = []
         # No guardar secretos directamente en este JSON (por seguridad)
@@ -129,7 +129,7 @@ class SettingsBridge(QObject):
 
     @Slot(str, str, str)
     def saveSecret(self, provider_id, key, value):
-        """Guarda una credencial de forma segura usando el mÃ³dulo security."""
+        """Guarda una credencial de forma segura usando el módulo security."""
         security.save_secret(provider_id, key, value)
         self.main.configUpdated.emit()
 

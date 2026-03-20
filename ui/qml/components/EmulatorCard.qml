@@ -117,7 +117,7 @@ Item {
                     background: Rectangle { 
                         color: btnWeb.hovered ? "#1c1e2a" : "transparent"; radius: 20; border.color: btnWeb.hovered ? accentColor : "#25283a"; border.width: 2
                     }
-                    contentItem: Label { text: "🌐"; font.pixelSize: 24; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                    contentItem: Label { text: ""; font.pixelSize: 24; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
                 }
 
                 Button {
@@ -208,7 +208,7 @@ Item {
                     Rectangle {
                         anchors.bottom: parent.bottom; anchors.right: parent.right; width: 28; height: 28; radius: 14
                         color: isInstalled ? "#00ff88" : "#2a2d3a"; border.color: "#0a0b10"; border.width: 3
-                        Label { anchors.centerIn: parent; text: isInstalled ? "✓" : "+"; color: isInstalled ? "black" : "#666677"; font.bold: true; font.pixelSize: 14 }
+                        Label { anchors.centerIn: parent; text: isInstalled ? "" : "+"; color: isInstalled ? "black" : "#666677"; font.bold: true; font.pixelSize: 14 }
                     }
                 }
             }

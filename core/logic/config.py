@@ -1,12 +1,12 @@
-﻿"""
-config.py â€” ConfiguraciÃ³n global y metadatos del sistema
+"""
+config.py — Configuración global y metadatos del sistema
 """
 
 import os
 import json
 import sys
 
-# Metadatos de la AplicaciÃ³n
+# Metadatos de la Aplicación
 APP_NAME = "EmuManager"
 APP_VERSION = "0.1.20-alpha"
 PORTABLE_MODE = True
@@ -22,7 +22,7 @@ if getattr(sys, 'frozen', False) or "__compiled__" in globals():
     RESOURCE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     # Ruta para datos persistentes (junto al ejecutable si es portable)
     if os.getenv("APPIMAGE"):
-        # En AppImage, el ejecutable estÃ¡ en el monte, pero queremos los datos
+        # En AppImage, el ejecutable está en el monte, pero queremos los datos
         # junto al archivo .AppImage real (o en el HOME si se prefiere)
         # Para modo portable extremo, usamos el directorio del archivo .AppImage
         DATA_BASE_DIR = os.path.dirname(os.getenv("APPIMAGE"))
@@ -50,7 +50,7 @@ def get_resource_path(relative_path):
 
 def normalize_path(path):
     """
-    Si la ruta estÃ¡ dentro del BASE_DIR, la convierte en relativa.
+    Si la ruta está dentro del BASE_DIR, la convierte en relativa.
     Esto permite la portabilidad si se mueve la carpeta del proyecto.
     """
     if not path: return ""

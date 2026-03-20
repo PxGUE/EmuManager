@@ -1,4 +1,4 @@
-﻿from .base_handler import BaseTweakHandler
+from .base_handler import BaseTweakHandler
 from typing import List, Dict, Any
 
 class RetroArchHandler(BaseTweakHandler):
@@ -18,7 +18,7 @@ class RetroArchHandler(BaseTweakHandler):
             },
             {
                 "id": "aspect_ratio",
-                "label": "RelaciÃ³n de Aspecto",
+                "label": "Relación de Aspecto",
                 "type": "list",
                 "options": ["Core Provided", "4:3", "16:9", "Full"],
                 "default": "Core Provided"
@@ -45,7 +45,7 @@ class RetroArchHandler(BaseTweakHandler):
             val = user_settings.get(t["id"], t["default"])
             
             if t["id"] == "aspect_ratio":
-                # LÃ³gica especial para aspect ratio
+                # Lógica especial para aspect ratio
                 mapping = {"Core Provided": "0", "4:3": "1", "16:9": "2", "Full": "3"}
                 args.extend(["--aspect-ratio-index", mapping.get(val, "0")])
             

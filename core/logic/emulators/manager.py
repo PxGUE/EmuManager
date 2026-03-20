@@ -1,4 +1,4 @@
-﻿import os
+import os
 import json
 import time
 from core.logic.constants import AVAILABLE_EMULATORS
@@ -9,10 +9,10 @@ from .tweaks.manager import TweakManager
 
 class EmuladorManager:
     """
-    Coordinador central para la gestiÃƒÂ³n de emuladores, ROMs y tiempo de juego.
+    Coordinador central para la gestión de emuladores, ROMs y tiempo de juego.
     
     Esta clase orquestra el instalador, el lanzador y el gestor de 'tweaks'.
-    Mantiene el estado de quÃƒÂ© emuladores estÃƒÂ¡n instalados y el registro de configuraciÃƒÂ³n.
+    Mantiene el estado de qué emuladores están instalados y el registro de configuración.
     """
     def __init__(self):
         self.data_dir = DATA_DIR
@@ -30,7 +30,7 @@ class EmuladorManager:
         self.installed_emus = self._load_installed()
         self.release_cache = self._load_cache()
         self.playtimes = self._load_playtime()
-        self._is_installed_cache = {} # CachÃƒÂ© para evitar os.path.exists excesivos
+        self._is_installed_cache = {} # Caché para evitar os.path.exists excesivos
 
         self.installer = Installer(self)
         self.tweak_manager = TweakManager(self.data_dir)
@@ -117,16 +117,16 @@ class EmuladorManager:
         except: pass
 
     def _sync_with_disk(self, force=False):
-        """VersiÃƒÂ³n interna sÃƒÂ­ncrona."""
+        """Versión interna síncrona."""
         self._sync_logic(force)
 
     async def sync_with_disk_async(self, force=False):
-        """VersiÃƒÂ³n asÃƒÂ­ncrona que no bloquea el event loop de Qt."""
+        """Versión asíncrona que no bloquea el event loop de Qt."""
         import asyncio
         await asyncio.to_thread(self._sync_logic, force)
 
     def _sync_logic(self, force=False):
-        """LÃƒÂ³gica real de sincronizaciÃƒÂ³n (separada para ser llamada sÃƒÂ­ncrona o asÃƒÂ­ncronamente)."""
+        """Lógica real de sincronización (separada para ser llamada síncrona o asíncronamente)."""
         if not self.install_path or not os.path.exists(self.install_path):
             return
         
@@ -163,7 +163,7 @@ class EmuladorManager:
                                     updated = True
             if updated:
                 self._save_installed()
-                # Limpiar la cachÃƒÂ© de verificaciÃƒÂ³n fÃƒÂ­sica
+                # Limpiar la caché de verificación física
                 self._is_installed_cache = {}
         except: pass
 
@@ -200,7 +200,7 @@ class EmuladorManager:
             if path_changed:
                 self._sync_with_disk(force=True)
         except Exception as e:
-            print(f"[EMU_MGR] Error al guardar configuraciÃƒÂ³n: {e}")
+            print(f"[EMU_MGR] Error al guardar configuración: {e}")
 
     def crear_carpetas_roms(self, repo_github=None):
         if not self.roms_path or not os.path.exists(self.roms_path): return
@@ -235,16 +235,16 @@ class EmuladorManager:
 
     def esta_instalado(self, repo_github: str) -> bool:
         """
-        Consulta si un emulador estÃƒÂ¡ instalado con cachÃƒÂ© de verificaciÃƒÂ³n en disco.
+        Consulta si un emulador está instalado con caché de verificación en disco.
         """
         if repo_github not in self.installed_emus:
             return False
         
-        # 1. Devolver desde la cachÃƒÂ© de sesiÃƒÂ³n si ya se verificÃƒÂ³ antes
+        # 1. Devolver desde la caché de sesión si ya se verificó antes
         if repo_github in self._is_installed_cache:
             return self._is_installed_cache[repo_github]
         
-        # 2. ValidaciÃƒÂ³n real en disco (Solo ocurre una vez por sesiÃƒÂ³n o tras un cambio)
+        # 2. Validación real en disco (Solo ocurre una vez por sesión o tras un cambio)
         info = self.installed_emus[repo_github]
         files = info.get("files", [])
         if not files: 
@@ -266,14 +266,14 @@ class EmuladorManager:
         return self.installer.desinstalar_emulador(repo_github)
 
     async def instalar_manual(self, emu_info: dict, file_path: str):
-        """VersiÃƒÂ³n simplificada para el bridge que retorna (success, msg)"""
+        """Versión simplificada para el bridge que retorna (success, msg)"""
         success = False
         last_msg = "Error desconocido"
         try:
             async for step in self.installer.instalar_emulador_local(emu_info["github"], file_path):
                 if "ERROR:" in step:
                     return False, step.replace("ERROR:", "")
-                if "Ã‚Â¡InstalaciÃƒÂ³n manual exitosa!" in step:
+                if "¡Instalación manual exitosa!" in step:
                     success = True
                 last_msg = step.split("|")[-1] if "|" in step else step
             return success, last_msg

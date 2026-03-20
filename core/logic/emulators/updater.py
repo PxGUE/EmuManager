@@ -1,8 +1,8 @@
-﻿"""
-updater.py â€” Sistema de verificaciÃ³n de actualizaciones de emuladores.
+"""
+updater.py — Sistema de verificación de actualizaciones de emuladores.
 
-Este mÃ³dulo consulta la API de GitHub para comparar las versiones instaladas
-con las Ãºltimas disponibles en sus respectivos repositorios.
+Este módulo consulta la API de GitHub para comparar las versiones instaladas
+con las últimas disponibles en sus respectivos repositorios.
 """
 
 import aiohttp
@@ -14,14 +14,14 @@ from typing import Dict, Any, List, Optional
 
 async def check_for_update(github_repo: str, current_version: str) -> dict:
     """
-    Consulta la API de GitHub para ver si hay una versiÃ³n mÃ¡s reciente.
+    Consulta la API de GitHub para ver si hay una versión más reciente.
     
     Args:
         github_repo (str): "owner/repo" en GitHub.
-        current_version (str): VersiÃ³n actualmente instalada.
+        current_version (str): Versión actualmente instalada.
         
     Returns:
-        dict: Metadatos sobre la actualizaciÃ³n encontrada.
+        dict: Metadatos sobre la actualización encontrada.
     """
     if not github_repo:
         return {"update_available": False, "latest_version": current_version, "url": ""}
@@ -53,7 +53,7 @@ async def check_for_update(github_repo: str, current_version: str) -> dict:
                 latest_tag = data.get("tag_name", "").strip()
                 html_url = data.get("html_url", "")
                 
-                # NormalizaciÃ³n robusta
+                # Normalización robusta
                 def normalize(v):
                     if not v: return ""
                     v = v.lower().strip()
@@ -70,7 +70,7 @@ async def check_for_update(github_repo: str, current_version: str) -> dict:
                 v_curr_orig = current_version
                 v_late_orig = latest_tag
 
-                # FunciÃ³n para comparar versiones de forma numÃ©rica y alfanumÃ©rica
+                # Función para comparar versiones de forma numérica y alfanumérica
                 def version_is_newer(local, remote):
                     def split_v(v):
                         normalized = normalize(v)
@@ -86,11 +86,11 @@ async def check_for_update(github_repo: str, current_version: str) -> dict:
                             if isinstance(l, int) and isinstance(r, int):
                                 if r > l: return True
                                 if l > r: return False
-                            else: # ComparaciÃ³n alfanumÃ©rica
+                            else: # Comparación alfanumérica
                                 if str(r) > str(l): return True
                                 if str(l) > str(r): return False
                         
-                        # Si una versiÃ³n tiene mÃ¡s partes que la otra, la mÃ¡s larga suele ser mÃ¡s especÃ­fica/nueva
+                        # Si una versión tiene más partes que la otra, la más larga suele ser más específica/nueva
                         return len(r_parts) > len(l_parts)
                     except Exception as e:
                         logger.warning(f"Error comparando versiones '{local}' y '{remote}': {e}. Fallback a desigualdad.")
@@ -99,17 +99,17 @@ async def check_for_update(github_repo: str, current_version: str) -> dict:
                 v_curr = normalize(v_curr_orig)
                 v_late = normalize(v_late_orig)
                 
-                # VerificaciÃ³n de identidad
+                # Verificación de identidad
                 is_same = (v_late == v_curr)
                 
-                # Caso especial: Hashes de git (comparaciÃ³n parcial)
+                # Caso especial: Hashes de git (comparación parcial)
                 if not is_same and len(v_late) >= 7 and len(v_curr) >= 7:
                     if v_late in v_curr or v_curr in v_late:
                         is_same = True
 
-                # Caso especial: Palabras clave (si el usuario instalÃ³ una versiÃ³n "master/rolling")
-                # Solo forzamos actualizaciÃ³n si la versiÃ³n local es "detected" (no sabemos quÃ© es)
-                # O si la versiÃ³n remota es un nÃºmero de versiÃ³n claro y la local es genÃ©rica.
+                # Caso especial: Palabras clave (si el usuario instaló una versión "master/rolling")
+                # Solo forzamos actualización si la versión local es "detected" (no sabemos qué es)
+                # O si la versión remota es un número de versión claro y la local es genérica.
                 force_update = False
                 if not is_same:
                     if v_curr_orig.lower() in ["detected", "manual"]:
@@ -120,15 +120,15 @@ async def check_for_update(github_repo: str, current_version: str) -> dict:
                 if force_update:
                     update_available = v_late != ""
                 else:
-                    # ComparaciÃ³n real de jerarquÃ­a para el resto de casos (v1.2 vs v1.3, preview vs latest, etc.)
+                    # Comparación real de jerarquía para el resto de casos (v1.2 vs v1.3, preview vs latest, etc.)
                     update_available = not is_same and version_is_newer(v_curr_orig, v_late_orig)
 
-                # Log para depuraciÃ³n en consola
+                # Log para depuración en consola
                 if update_available:
-                    print(f"[UPDATER] ActualizaciÃ³n disponible para {github_repo}: Local({current_version}) -> Remoto({latest_tag})")
+                    print(f"[UPDATER] Actualización disponible para {github_repo}: Local({current_version}) -> Remoto({latest_tag})")
                 else:
                     if v_late_orig:
-                        print(f"[UPDATER] {github_repo} al dÃ­a: {latest_tag}")
+                        print(f"[UPDATER] {github_repo} al día: {latest_tag}")
                 
                 return {
                     "update_available": update_available,
@@ -161,12 +161,12 @@ async def check_all_updates(installed_emus: dict, available_emus: List[dict]) ->
         available_emus (list): Lista de emuladores conocidos (de emulators.json).
         
     Returns:
-        dict: Mapa de 'emu_id' -> info de actualizaciÃ³n.
+        dict: Mapa de 'emu_id' -> info de actualización.
     """
     results = {}
     is_win = platform.system() == "Windows"
     
-    # Creamos un mapa rÃ¡pido para buscar el repo correcto segÃºn plataforma
+    # Creamos un mapa rápido para buscar el repo correcto según plataforma
     # Nota: Algunos emuladores tienen repos de binarios separados (ej: RPCS3)
     repo_map = {}
     for e in available_emus:

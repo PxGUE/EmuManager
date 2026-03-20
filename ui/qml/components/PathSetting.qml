@@ -17,7 +17,7 @@ Item {
     }
 
     Layout.fillWidth: true
-    implicitHeight: 64
+    implicitHeight: 76
 
     // Fondo con efecto hover
     Rectangle {
@@ -29,44 +29,12 @@ Item {
         HoverHandler { id: hoverTracker }
     }
 
-    RowLayout {
+    SettingRow {
+        id: row
         anchors.fill: parent
-        anchors.leftMargin: 20
-        anchors.rightMargin: 20
-        spacing: 20
-
-        // Icono de Carpeta Minimalista
-        Rectangle {
-            Layout.preferredWidth: 32; Layout.preferredHeight: 32; radius: 8
-            color: "#1affffff"
-            Text {
-                anchors.centerIn: parent
-                text: "📂"
-                font.pixelSize: 14; opacity: 0.8
-            }
-        }
-
-        ColumnLayout {
-            spacing: 2
-            Layout.fillWidth: true
-            Label {
-                text: title
-                font.pixelSize: 13; font.weight: Font.DemiBold; color: "white"
-            }
-            Label {
-                text: subtitle
-                font.pixelSize: 10; color: "#6e7282"; Layout.fillWidth: true
-                visible: subtitle !== ""
-            }
-            Item { Layout.preferredHeight: 4 }
-            Label {
-                text: pathSettingRoot.path ? pathSettingRoot.path : tr("dash_missing")
-                font.pixelSize: 10; color: path ? "#4da6ff" : "#ff4d4d"
-                elide: Text.ElideMiddle; Layout.fillWidth: true
-                font.family: "JetBrains Mono, Monospace"
-                opacity: 0.8
-            }
-        }
+        icon: "📂"
+        title: pathSettingRoot.title
+        subtitle: (pathSettingRoot.subtitle ? pathSettingRoot.subtitle + "\n" : "") + (pathSettingRoot.path ? pathSettingRoot.path : tr("dash_missing"))
 
         Button {
             id: browseBtn
@@ -74,7 +42,6 @@ Item {
             onClicked: browse()
             Layout.preferredHeight: 30
             
-            // Para el cursor de mano en botones, usualmente se hace via MouseArea
             MouseArea {
                 anchors.fill: parent
                 cursorShape: Qt.PointingHandCursor

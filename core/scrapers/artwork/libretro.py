@@ -21,23 +21,44 @@ class LibretroScraper(BaseScraper):
         if platform in self._index_cache:
             return self._index_cache[platform]
 
-        url = f"{self.CDN_URL}/{urllib.parse.quote(platform)}/{self.THUMBNAIL_TYPE}/"
-        try:
-            async with session.get(url, timeout=15) as resp:
-                if resp.status == 200:
-                    html = await resp.text()
-                    soup = BeautifulSoup(html, 'html.parser')
-                    links = soup.find_all('a')
-                    names = []
-                    for link in links:
-                        href = link.get('href', '')
-                        if href.endswith('.png'):
-                            name = urllib.parse.unquote(href[:-4])
-                            names.append(name)
-                    self._index_cache[platform] = names
-                    return names
-        except:
-            pass
+        # Variantes de búsqueda (Espacios, Guiones, etc.) para evitar el Error 404
+        search_variations = [
+            platform,                            # "Nintendo - Game Boy Advance"
+            platform.replace(" ", "_"),          # "Nintendo_-_Game_Boy_Advance"
+            platform.replace(" - ", " - "),      # Normalizar espacios en el guion
+            platform.replace(" - ", "-")         # "Nintendo-Game Boy Advance"
+        ]
+        
+        # Eliminar duplicados manteniendo orden
+        search_variations = list(dict.fromkeys(search_variations))
+
+        for plat_atempt in search_variations:
+            url = f"{self.CDN_URL}/{urllib.parse.quote(plat_atempt)}/{self.THUMBNAIL_TYPE}/"
+            try:
+                async with session.get(url, timeout=12) as resp:
+                    if resp.status == 200:
+                        html = await resp.text()
+                        soup = BeautifulSoup(html, 'html.parser')
+                        links = soup.find_all('a')
+                        names = []
+                        for link in links:
+                            href = link.get('href', '')
+                            if href.endswith('.png'):
+                                name = urllib.parse.unquote(href[:-4])
+                                names.append(name)
+                        
+                        if names:
+                            self._index_cache[platform] = names
+                            print(f"[LIBRETRO] Índice cargado para '{plat_atempt}' (Intento exitoso): {len(names)} juegos.")
+                            return names
+                    elif resp.status == 404:
+                        # Silencioso, intentamos la siguiente variante
+                        continue
+                    else:
+                        print(f"[LIBRETRO] Error HTTP {resp.status} al cargar el índice de '{plat_atempt}'")
+            except Exception as e:
+                print(f"[LIBRETRO] Excepción en _get_index para '{plat_atempt}': {e}")
+        
         return []
 
     async def fetch(self, session: aiohttp.ClientSession, query: str, **kwargs) -> Optional[Dict[str, Any]]:

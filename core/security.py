@@ -4,6 +4,11 @@ Utiliza la librería 'keyring' para guardar API Keys y contraseñas de forma seg
 """
 
 import keyring
+try:
+    from . import _secrets as secrets
+except ImportError:
+    secrets = None
+
 from core.config import APP_NAME
 
 def save_secret(service_id, key, value):
@@ -27,8 +32,18 @@ def save_secret(service_id, key, value):
 
 def get_secret(service_id, key):
     """
-    Recupera un secreto del almacén del sistema.
+    Recupera un secreto del almacén del sistema o del archivo de secretos privados.
+    Prioriza _secrets.py para IDs de desarrollador globales.
     """
+    # 1. Intentar obtener desde _secrets.py (Software-level Hardcoded/Compiled)
+    if secrets:
+        if service_id == "screenscraper":
+            if key == "devid" and hasattr(secrets, "SS_DEV_ID"):
+                return secrets.SS_DEV_ID
+            if key == "devpassword" and hasattr(secrets, "SS_DEV_PASSWORD"):
+                return secrets.SS_DEV_PASSWORD
+
+    # 2. Intentar obtener desde el almacén de seguridad del Sistema Operativo
     try:
         full_service_name = f"{APP_NAME}_{service_id}"
         return keyring.get_password(full_service_name, key) or ""

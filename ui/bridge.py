@@ -32,6 +32,7 @@ class AppBridge(QObject):
     # --- Señales Globales (Notificaciones a la UI) ---
     languageChanged = Signal()
     statsUpdated = Signal()
+    systemResourcesChanged = Signal()
     configUpdated = Signal()
     downloadProgress = Signal(str, float)  # (emu_id, porcentaje)
     downloadFinished = Signal(str, bool, str)  # (emu_id, éxito, mensaje)
@@ -57,6 +58,8 @@ class AppBridge(QObject):
         self._is_fullscreen = False
         self._is_ready = False
         self._loading_message = ""
+        self._cpu_usage = 0.0
+        self._ram_usage = 0.0
 
         # Inicializar sub-bridges (Modularidad)
         self._library = LibraryBridge(self)
@@ -89,6 +92,19 @@ class AppBridge(QObject):
         # Marcar como listo. La Splash Screen se ocultará.
         self._is_ready = True
         self.isReadyChanged.emit()
+        
+        # 5. Iniciar monitor de recursos ligero
+        asyncio.create_task(self._monitor_resources())
+
+    async def _monitor_resources(self):
+        """Actualiza estadísticas del PC sin bloquear nunca la interfaz."""
+        import psutil
+        while True:
+            # interval=None hace que no bloquee, usa la diferencia desde la última llamada
+            self._cpu_usage = psutil.cpu_percent(interval=None)
+            self._ram_usage = psutil.virtual_memory().percent
+            self.systemResourcesChanged.emit()
+            await asyncio.sleep(3) # Cada 3 segundos es suficiente y suave
 
     def _set_loading_msg(self, msg):
         self._loading_message = msg
@@ -201,15 +217,15 @@ class AppBridge(QObject):
             
         return result
 
-    @Property(dict, notify=statsUpdated)
+    @Property(dict, notify=systemResourcesChanged)
     def systemStatus(self):
         """
         Estado dinámico del PC y la configuración de rutas.
         Utilizado principalmente en el panel lateral o Dashboard.
         """
         return {
-            "cpu": psutil.cpu_percent(),
-            "ram": psutil.virtual_memory().percent,
+            "cpu": self._cpu_usage,
+            "ram": self._ram_usage,
             "running": self.emu_manager.is_emulator_running(),
             "emusPath": self.emu_manager.install_path or "No configurado",
             "romsPath": self.emu_manager.roms_path or "No configurado",

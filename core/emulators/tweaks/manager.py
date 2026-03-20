@@ -61,4 +61,5 @@ class TweakManager:
     def apply_tweaks(self, emu_id: str, args: list, game_path: str):
         handler = self.get_handler(emu_id)
         saved_settings = self.user_prefs.get(emu_id, {})
+        print(f"[TWEAKS] Aplicando ajustes para '{emu_id}': {saved_settings}")
         return handler.apply_tweaks(args, game_path, saved_settings)

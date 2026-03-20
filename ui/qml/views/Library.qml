@@ -20,6 +20,7 @@ Item {
     
     state: "carousel" // Estados posibles: "carousel", "grid" o "collector"
 
+
     states: [
         State { 
             name: "carousel"
@@ -34,7 +35,9 @@ Item {
         State {
             name: "collector" 
             PropertyChanges { target: carousel; visible: false; opacity: 0; scale: 0.8 }
+            PropertyChanges { target: gridContainer; visible: false; opacity: 0; y: 40; scale: 0.95 }
             PropertyChanges { target: collectorContainer; visible: true; opacity: 1; y: 0; scale: 1.0 }
+            PropertyChanges { target: backgroundBlur; opacity: 0.8 } // More visible aura in collector mode
         }
     ]
 
@@ -89,6 +92,7 @@ Item {
     property string currentConsoleName: ""
     property string currentEmuName: ""
     property var currentGames: []
+    property color currentPlatformColor: "#4da6ff" // Color principal de la plataforma seleccionada
     
     // Propiedades de búsqueda y filtrado
     property string searchText: searchInput.text
@@ -115,8 +119,22 @@ Item {
             return matchSearch && matchFav
         })
     }
-    property string currentBackground: (libraryRoot.state === "collector" && collectorView.currentItem) ? collectorView.currentItem.itemBackground : ((carousel.currentItem) ? carousel.currentItem.backgroundSource : "")
-    property color currentAccentColor: (carousel.currentItem) ? carousel.currentItem.accentColor : "#4da6ff"
+    property string currentBackground: {
+        // SEGURIDAD TOTAL: Nunca mostramos carátulas como fondo. 
+        // Solo el background explícito para juegos, o el background manual para consolas.
+        if (libraryRoot.state === "collector" && libraryRoot.selectedGame) {
+            return libraryRoot.selectedGame.background || ""
+        }
+        if (libraryRoot.state === "carousel" || libraryRoot.state === "grid") {
+            return (carousel.currentItem) ? carousel.currentItem.backgroundSource || "" : ""
+        }
+        return ""
+    }
+    property color currentAccentColor: {
+        if (libraryRoot.state === "collector" && libraryRoot.selectedGame) return libraryRoot.selectedGame.accentColor || libraryRoot.currentPlatformColor
+        if (libraryRoot.state === "grid" && libraryRoot.selectedGame) return libraryRoot.selectedGame.accentColor || libraryRoot.currentPlatformColor
+        return (carousel.currentItem) ? carousel.currentItem.accentColor || "#4da6ff" : "#4da6ff"
+    }
     
     property var selectedGame: null // Para el panel de información
     property bool isEmpty: bridge ? (bridge.lib.scannedConsoles.length === 0) : true
@@ -129,6 +147,20 @@ Item {
     }
 
     signal gridEntranceTriggered()
+    
+    onStateChanged: {
+        if (state === "carousel") {
+            selectedGame = null
+            // Forzamos el limpiado del fondo inmersivo para que no queden remanentes
+            immersiveBg.source = ""
+            immersiveBg.opacity = 0
+        }
+        
+        // REQUERIDO: Asegurar que hay un juego seleccionado al entrar en modo coleccionista
+        if (state === "collector" && !selectedGame && currentGames.length > 0) {
+            selectedGame = currentGames[0]
+        }
+    }
 
     Connections {
         target: bridge
@@ -155,16 +187,22 @@ Item {
         bgFadeAnim.stop()
         bgFadeAnim.start()
     }
-
+    
     SequentialAnimation {
         id: bgFadeAnim
         NumberAnimation { target: immersiveBg; property: "opacity"; to: 0; duration: 250 }
         PropertyAction { target: immersiveBg; property: "source"; value: libraryRoot.currentBackground }
-        NumberAnimation { target: immersiveBg; property: "opacity"; to: 0.4; duration: 600; easing.type: Easing.OutQuad }
+        NumberAnimation { 
+            target: immersiveBg; 
+            property: "opacity"; 
+            to: (libraryRoot.currentBackground !== "" ? 0.4 : 0); 
+            duration: 600; 
+            easing.type: Easing.OutQuad 
+        }
     }
-    
+
     // --- LÓGICA DE RESPONSIVIDAD PREMIUM ---
-    readonly property real responsiveScale: Math.max(1.0, Math.min(width / 1000, height / 650))
+    readonly property real responsiveScale: Math.max(0.7, Math.min(width / 1100, height / 700))
     readonly property real cardWidth: 340 * responsiveScale
     readonly property real cardHeight: 480 * responsiveScale
 
@@ -177,31 +215,31 @@ Item {
     Rectangle {
         anchors.fill: parent
         color: "#0a0b12"
-        
-        // Glow ambiental (Aurora) - Unificado y más visible
+        z: 0
+
+        // Glow ambiental (Aurora) - UNIFICADO Y VISIBLE
         Rectangle {
             id: backgroundBlur
             anchors.fill: parent
-            opacity: 0.4
+            opacity: 0.45
             gradient: Gradient {
                 orientation: Gradient.Vertical
                 GradientStop { position: 0.0; color: Qt.alpha(currentAccentColor, 0.5) }
                 GradientStop { position: 0.8; color: "transparent" }
             }
             Behavior on color { ColorAnimation { duration: 800 } }
+            z: 1
         }
 
-        // Fondo de Consola (Simplificado para evitar parpadeos o fallos)
+        // Fondo de Consola (Inmersivo)
         Image {
             id: immersiveBg
             anchors.fill: parent
-            source: "" // Manual control via animation
-            fillMode: Image.PreserveAspectCrop
-            opacity: 0.0
-            visible: opacity > 0
+            source: ""
+            fillMode: Image.PreserveAspectCrop; opacity: 0.0; visible: opacity > 0
+            z: 2
         }
 
-        
         // Viñeta para legibilidad
         Rectangle {
             anchors.fill: parent
@@ -224,8 +262,8 @@ Item {
     Rectangle {
         id: emptyState
         anchors.centerIn: parent
-        width: 480
-        height: 360
+        implicitWidth: 380
+        implicitHeight: 540
         radius: 40
         color: "#11131a"
         border.color: "#252835"
@@ -463,7 +501,14 @@ Item {
                                     libraryRoot.currentConsoleId = modelData.id
                                     libraryRoot.currentConsoleName = modelData.name
                                     libraryRoot.currentEmuName = modelData.emu_name
+                                    libraryRoot.currentPlatformColor = modelData.color // GUARDAMOS COLOR
                                     libraryRoot.currentGames = bridge.lib.getGamesForConsole(modelData.id)
+                                    
+                                    // REQUERIDO: Si entramos en modo coleccionista, forzar la selección del primer juego
+                                    if (bridge && bridge.set.collectorMode && libraryRoot.currentGames.length > 0) {
+                                        libraryRoot.selectedGame = libraryRoot.currentGames[0]
+                                    }
+                                    
                                     libraryRoot.state = (bridge && bridge.set.collectorMode) ? "collector" : "grid"
                                     libraryRoot.gridEntranceTriggered()
                                 } else {
@@ -513,7 +558,10 @@ Item {
                     id: btnBackGrid
                     Layout.preferredWidth: 48
                     Layout.preferredHeight: 48
-                    onClicked: libraryRoot.state = "carousel"
+                    onClicked: (mouse) => {
+                        libraryRoot.selectedGame = null
+                        libraryRoot.state = "carousel"
+                    }
                     background: Rectangle {
                         radius: 24
                         color: btnBackGrid.hovered ? "#33ffffff" : "#11ffffff"
@@ -550,7 +598,7 @@ Item {
                         id: btnFavFilter
                         Layout.preferredWidth: 44
                         Layout.preferredHeight: 44
-                        onClicked: libraryRoot.onlyFavorites = !libraryRoot.onlyFavorites
+                        onClicked: (mouse) => libraryRoot.onlyFavorites = !libraryRoot.onlyFavorites
                         background: Rectangle {
                             radius: 22
                             color: btnFavFilter.hovered ? "#22ffffff" : (libraryRoot.onlyFavorites ? "#33ffff00" : "#12ffffff")
@@ -571,7 +619,7 @@ Item {
                     id: btnRefresh
                     Layout.preferredWidth: 44
                     Layout.preferredHeight: 44
-                    onClicked: {
+                    onClicked: (mouse) => {
                         searchInput.text = ""
                         libraryRoot.needsHardRefresh = true
                         bridge.lib.scanGames(false, false, libraryRoot.currentConsoleId)
@@ -693,9 +741,9 @@ Item {
                 width: 240
                 height: 380
                 
-                property bool isHovered: cardHover.hovered || 
-                                         (typeof infoBtnMouse !== "undefined" && infoBtnMouse.containsMouse) || 
-                                         (typeof favBtnMouse !== "undefined" && favBtnMouse.containsMouse)
+                property bool isHovered: (mainCardArea.containsMouse) ||
+                                         (infoBtnArea && infoBtnArea.containsMouse) || 
+                                         (favBtnArea && favBtnArea.containsMouse)
 
                 SequentialAnimation {
                     id: staggeredEntry
@@ -716,14 +764,16 @@ Item {
                     }
                 }
 
-                    // 1. GESTIÓN MODERNA DE EVENTOS (No bloquea el scroll)
-                    HoverHandler {
-                        id: cardHover
-                        onHoveredChanged: if (hovered) gamesGrid.currentItemData = modelData
-                    }
-                    
-                    TapHandler {
-                        onTapped: {
+                    // 1. GESTIÓN MODERNA Y SIMPLIFICADA DE EVENTOS (Un solo punto de entrada)
+                    MouseArea {
+                        id: mainCardArea
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onEntered: if (gamesGrid) gamesGrid.currentItemData = modelData
+                        
+                        // Lanzamiento único
+                        onClicked: (mouse) => {
                             if (window && window.requestLaunch) 
                                 window.requestLaunch(modelData.path, modelData.id_emu, modelData.name)
                         }
@@ -758,13 +808,6 @@ Item {
                         opacity: modelData.cover ? (isHovered ? 1.0 : 0.8) : 0.1
                         scale: isHovered ? 1.1 : 1.0
                         Behavior on scale { NumberAnimation { duration: 1200; easing.type: Easing.OutCubic } }
-
-                        TapHandler {
-                            onTapped: {
-                                if (window && window.requestLaunch) 
-                                    window.requestLaunch(modelData.path, modelData.id_emu, modelData.name)
-                            }
-                        }
                     }
 
                     Rectangle {
@@ -812,26 +855,29 @@ Item {
                     id: actionBar
                     anchors.top: parent.top; anchors.right: parent.right
                     anchors.topMargin: 22; anchors.rightMargin: 22
-                    spacing: 8; z: 20
+                    spacing: 8; z: 100 // Aseguramos que esté POR ENCIMA de la MouseArea de la tarjeta
                     visible: isHovered || modelData.isFavorite
 
                         // Botón INFO
                         Rectangle {
                             width: 38; height: 38; radius: 19
-                            color: infoBtnMouse.containsMouse ? currentAccentColor : "#e00a0c14"
+                            color: infoBtnArea.containsMouse ? currentAccentColor : "#e00a0c14"
                             border.color: currentAccentColor; border.width: 1
                             visible: isHovered
                             
                             Label {
                                 anchors.centerIn: parent
                                 text: "ⓘ"
-                                font.pixelSize: 20; color: infoBtnMouse.hovered ? "black" : "white"
+                                font.pixelSize: 20; color: infoBtnArea.containsMouse ? "black" : "white"
                             }
                             
-                            HoverHandler { id: infoBtnMouse }
-                            
-                            TapHandler {
-                                onTapped: {
+                            MouseArea {
+                                id: infoBtnArea
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                // Detenemos la propagación para que no lance el juego
+                                onClicked: (mouse) => {
+                                    mouse.accepted = true
                                     libraryRoot.selectedGame = modelData
                                     infoPanel.open()
                                 }
@@ -841,7 +887,7 @@ Item {
                         // Botón FAVORITO
                         Rectangle {
                             width: 38; height: 38; radius: 19
-                            color: favBtnMouse.hovered ? "#ff4d4d" : (modelData.isFavorite ? "#33ff4d4d" : "#e00a0c14")
+                            color: favBtnArea.containsMouse ? "#ff4d4d" : (modelData.isFavorite ? "#33ff4d4d" : "#e00a0c14")
                             border.color: modelData.isFavorite ? "#ff4d4d" : currentAccentColor
                             border.width: 1
                             
@@ -851,10 +897,12 @@ Item {
                                 font.pixelSize: 18
                             }
                             
-                            HoverHandler { id: favBtnMouse }
-                            
-                            TapHandler {
-                                onTapped: {
+                            MouseArea {
+                                id: favBtnArea
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                onClicked: (mouse) => {
+                                    mouse.accepted = true
                                     let newVal = bridge.lib.toggleFavorite(modelData.path)
                                     modelData.isFavorite = newVal
                                     
@@ -870,234 +918,178 @@ Item {
         }
     }
 
-
-    // --- MODO COLECCIONISTA: CAROUSEL DE JUEGOS ---
+    // --- MODO COLECCIONISTA (OBSIDIAN GALLERY 8.5 - PREMIUM HORIZONTAL) ---
     Item {
         id: collectorContainer
-        anchors.fill: parent
-        opacity: 0
-        visible: false
-        scale: 0.9
-        y: 50
+        anchors.fill: parent; opacity: libraryRoot.state === "collector" ? 1 : 0
+        visible: opacity > 0; Behavior on opacity { NumberAnimation { duration: 600 } }
 
-        ColumnLayout {
-            anchors.fill: parent
-            anchors.margins: 40
-            spacing: 20
+        // 1. FONDO INMERSIVO
+        Rectangle { anchors.fill: parent; color: "#080a0f" }
+        
+        Rectangle {
+            id: galleryAura
+            anchors.centerIn: parent
+            width: parent.width * 1.5; height: parent.height * 1.2
+            radius: width / 2; color: "transparent"; border.color: currentAccentColor; border.width: 0
+            opacity: 0.15; z: 1
+            layer.enabled: true
+            layer.effect: MultiEffect { shadowEnabled: true; shadowBlur: 1.0; shadowColor: currentAccentColor }
+        }
 
-            // Header simplificado para modo coleccionista
-            RowLayout {
-                Layout.fillWidth: true
-                Label {
-                    text: tr("lib_game_details")
-                    font.pixelSize: 12; font.bold: true; color: currentAccentColor
-                    font.letterSpacing: 2
+        // 2. SECTOR DEL CARRUSEL (PRIORIDAD DE INTERACCIÓN)
+        Item {
+            id: galleryZone
+            anchors.top: parent.top; anchors.left: parent.left; anchors.right: parent.right
+            height: parent.height * 0.64; z: 100 // Elevamos un poco el carrusel para equilibrar el espacio inferior
+
+            PathView {
+                id: galleryView
+                anchors.fill: parent; model: libraryRoot.currentGames || []
+                pathItemCount: 11; preferredHighlightBegin: 0.5; preferredHighlightEnd: 0.5
+                highlightRangeMode: PathView.StrictlyEnforceRange; snapMode: PathView.SnapToItem
+                clip: false
+                onCurrentIndexChanged: { if (currentItem) libraryRoot.selectedGame = currentItem.gameData; }
+
+                path: Path {
+                    startX: -galleryView.width * 0.2; startY: galleryView.height * 0.45
+                    PathAttribute { name: "itemScale"; value: 0.6 }
+                    PathAttribute { name: "itemOpacity"; value: 0.3 }
+                    PathAttribute { name: "itemRotation"; value: 35 }
+                    PathAttribute { name: "itemZ"; value: 1 }
+
+                    PathLine { x: galleryView.width * 0.15; y: galleryView.height * 0.45 }
+                    PathPercent { value: 0.2 }
+                    PathAttribute { name: "itemScale"; value: 0.85 }
+                    PathAttribute { name: "itemOpacity"; value: 0.7 }
+                    PathAttribute { name: "itemRotation"; value: 15 }
+                    PathAttribute { name: "itemZ"; value: 10 }
+
+                    PathLine { x: galleryView.width * 0.5; y: galleryView.height * 0.45 }
+                    PathPercent { value: 0.5 }
+                    PathAttribute { name: "itemScale"; value: 1.25 }
+                    PathAttribute { name: "itemOpacity"; value: 1.0 }
+                    PathAttribute { name: "itemRotation"; value: 0 }
+                    PathAttribute { name: "itemZ"; value: 1000 }
+
+                    PathLine { x: galleryView.width * 0.85; y: galleryView.height * 0.45 }
+                    PathPercent { value: 0.8 }
+                    PathAttribute { name: "itemScale"; value: 0.85 }
+                    PathAttribute { name: "itemOpacity"; value: 0.7 }
+                    PathAttribute { name: "itemRotation"; value: -15 }
+                    PathAttribute { name: "itemZ"; value: 10 }
+
+                    PathLine { x: galleryView.width * 1.2; y: galleryView.height * 0.45 }
+                    PathPercent { value: 1.0 }
+                    PathAttribute { name: "itemScale"; value: 0.6 }
+                    PathAttribute { name: "itemOpacity"; value: 0.3 }
+                    PathAttribute { name: "itemRotation"; value: -35 }
+                    PathAttribute { name: "itemZ"; value: 1 }
                 }
-                Item { Layout.fillWidth: true }
-                
-                // Botón Cerrar - Premium Circular
-                Rectangle {
-                    id: closeCircle
-                    width: 36; height: 36; radius: 18
-                    color: closeArea.containsMouse ? "#ccff4d4d" : "#22ffffff"
-                    border.color: closeArea.containsMouse ? "#ff4d4d" : "#44ffffff"
-                    border.width: 1
-                    
-                    Label {
+
+                delegate: Item {
+                    id: galleryDelegate
+                    width: galleryView.width * 0.35; height: galleryView.height
+                    opacity: galleryDelegate.PathView.itemOpacity || 1.0
+                    z: galleryDelegate.PathView.itemZ || 1
+                    property var gameData: modelData
+
+                    GameBox3D {
+                        id: case3d
                         anchors.centerIn: parent
-                        text: "✕"; color: "white"; font.pixelSize: 16; font.bold: true
+                        source: modelData.cover_3d || modelData.cover || ""
+                        accentColor: libraryRoot.currentPlatformColor
+                        showShadow: true
+                        showGlow: galleryView.currentIndex === index
+                        height: galleryView.height * 0.6 
+                        width: height * 0.72
+                        scale: galleryDelegate.PathView.itemScale || 1.0 
+                        
+                        property real pathRotation: galleryDelegate.PathView.itemRotation || 0
                     }
-                    
-                    MouseArea {
-                        id: closeArea
-                        anchors.fill: parent; hoverEnabled: true
-                        onClicked: infoPanel.close()
-                    }
-                    
-                    Behavior on color { ColorAnimation { duration: 250 } }
-                    Behavior on border.color { ColorAnimation { duration: 250 } }
-                    
-                    scale: closeArea.pressed ? 0.85 : (closeArea.containsMouse ? 1.1 : 1.0)
-                    Behavior on scale { NumberAnimation { duration: 150; easing.type: Easing.OutBack } }
                 }
             }
+        }
 
-            Rectangle {
-                Layout.fillWidth: true; Layout.preferredHeight: 240
-                radius: 20; clip: true
-                color: "#11ffffff"
-                visible: selectedGame && selectedGame.cover != ""
-                
-                Image {
-                    anchors.fill: parent
-                    source: selectedGame ? (selectedGame.cover || "") : ""
-                    fillMode: Image.PreserveAspectCrop
-                }
-                
-                Rectangle { 
-                    anchors.fill: parent; radius: 20
-                    color: "transparent"; border.color: "#33ffffff"; border.width: 1 
-                }
-            }
+        // 3. SECTOR DE INFORMACIÓN (ABAJO)
+        Item {
+            id: infoZone
+            anchors.top: galleryZone.bottom; anchors.bottom: parent.bottom
+            anchors.left: parent.left; anchors.right: parent.right; z: 10
+            anchors.bottomMargin: 45 * responsiveScale // Mayor despeje inferior solicitado por el usuario
 
-            RowLayout {
-                Layout.fillWidth: true; spacing: 20
-                
+            ColumnLayout {
+                anchors.centerIn: parent
+                width: parent.width * 0.85
+                spacing: 22 * responsiveScale // Espaciado vertical más generoso y uniforme
+
                 ColumnLayout {
-                    spacing: 0
+                    Layout.fillWidth: true; spacing: 6 * responsiveScale
                     Label {
-                        text: libraryRoot.currentConsoleName.toUpperCase()
-                        font.pixelSize: 24; font.bold: true; color: "white"; font.letterSpacing: 2
+                        Layout.fillWidth: true; horizontalAlignment: Text.AlignHCenter
+                        text: (libraryRoot.selectedGame && libraryRoot.selectedGame.name ? libraryRoot.selectedGame.name : "").toUpperCase()
+                        font.pixelSize: Math.max(18, 28 * responsiveScale); font.weight: Font.Black; color: "white"; font.letterSpacing: 2; elide: Text.ElideRight
+                        maximumLineCount: 1
                     }
                     Label {
-                        text: tr("lib_playtime", (selectedGame ? selectedGame.playtime : "0h"))
-                        color: "#888899"; font.pixelSize: 13; font.weight: Font.Medium
-                    }
-                    RowLayout {
-                        spacing: 15
-                        Label {
-                            text: selectedGame ? (selectedGame.developer + " • " + selectedGame.year) : ""
-                            font.pixelSize: 15; color: "#aa88ccff"
-                        }
-                        Rectangle {
-                            visible: selectedGame && selectedGame.genre != ""
-                            height: 24; width: genreLabel.width + 20; radius: 12
-                            color: "#22ffffff"
-                            Label {
-                                id: genreLabel
-                                anchors.centerIn: parent; text: selectedGame ? selectedGame.genre : ""
-                                font.pixelSize: 11; font.bold: true; color: currentAccentColor
-                            }
-                        }
+                        Layout.fillWidth: true; horizontalAlignment: Text.AlignHCenter
+                        text: libraryRoot.selectedGame ? (libraryRoot.selectedGame.developer + "  |  " + libraryRoot.selectedGame.year).toUpperCase() : ""
+                        font.pixelSize: 11 * responsiveScale; font.bold: true; color: currentAccentColor; opacity: 0.7; font.letterSpacing: 3
                     }
                 }
 
-                // Botones de Acción (Editar + Favorito)
-                RowLayout {
-                    spacing: 12
-                    Layout.alignment: Qt.AlignTop
-                    
-                    // Botón Editar Metadatos (Lápiz)
-                    Rectangle {
-                        width: 48; height: 48; radius: 24
-                        color: editInfoMouse.containsMouse ? "#22ffffff" : "transparent"
-                        border.color: "#33ffffff"
-                        border.width: 1
-                        
-                        Label {
-                            anchors.centerIn: parent
-                            text: "✏️"
-                            font.pixelSize: 20
-                        }
-                        
-                        MouseArea {
-                            id: editInfoMouse
-                            anchors.fill: parent; hoverEnabled: true
-                            onClicked: {
-                                metaEditor.gameData = libraryRoot.selectedGame
-                                metaEditor.open()
-                            }
-                        }
-                        
-                        Behavior on color { ColorAnimation { duration: 200 } }
-                        scale: editInfoMouse.pressed ? 0.85 : (editInfoMouse.containsMouse ? 1.1 : 1.0)
-                        Behavior on scale { NumberAnimation { duration: 150; easing.type: Easing.OutBack } }
-                    }
+                ScrollView {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 90 * responsiveScale // Altura fija pero centrada para uniformidad
+                    Layout.leftMargin: parent.width * 0.05
+                    Layout.rightMargin: parent.width * 0.05
+                    clip: true
+                    contentWidth: availableWidth
+                    ScrollBar.vertical.policy: ScrollBar.AsNeeded
 
-                    // Botón Favorito Sutil
-                    Rectangle {
-                        width: 48; height: 48; radius: 24
-                        color: favInfoMouse.containsMouse ? (selectedGame && selectedGame.isFavorite ? "#33ff4d4d" : "#22ffffff") : "transparent"
-                        border.color: selectedGame && selectedGame.isFavorite ? "#ff4d4d" : "#33ffffff"
-                        border.width: 1
-                        
-                        Label {
-                            anchors.centerIn: parent
-                    text: selectedGame && selectedGame.isFavorite ? "❤️" : "🤍"
-                            font.pixelSize: 22
-                        }
-                        
-                        MouseArea {
-                            id: favInfoMouse
-                            anchors.fill: parent; hoverEnabled: true
-                            onClicked: {
-                                if (selectedGame) {
-                                    let newState = bridge.lib.toggleFavorite(selectedGame.path)
-                                    selectedGame.isFavorite = newState
-                                    
-                                    // Si el panel está abierto sobre una tarjeta, actualizamos la propiedad local
-                                    // para que el corazón cambie instantáneamente.
-                                    if (libraryRoot.onlyFavorites) {
-                                        libraryRoot.needsHardRefresh = true
-                                    }
-                                    
-                                    let temp = selectedGame
-                                    selectedGame = null
-                                    selectedGame = temp
-                                }
-                            }
-                        }
-                        
-                        Behavior on color { ColorAnimation { duration: 200 } }
-                        scale: favInfoMouse.pressed ? 0.85 : (favInfoMouse.containsMouse ? 1.1 : 1.0)
-                        Behavior on scale { NumberAnimation { duration: 150; easing.type: Easing.OutBack } }
+                    TextArea {
+                        width: parent.width
+                        text: (libraryRoot.selectedGame ? libraryRoot.selectedGame.description || "" : "")
+                        color: "#b0ffffff"; font.pixelSize: 13 * responsiveScale; wrapMode: Text.WordWrap; horizontalAlignment: Text.AlignHCenter; background: null; readOnly: true
+                        padding: 0
+                        selectByMouse: true
                     }
                 }
-            }
-
-            // Descripción
-            ScrollView {
-                id: descScroll
-                Layout.fillWidth: true; Layout.fillHeight: true
-                clip: true
-                ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
-                
-                Label {
-                    width: descScroll.availableWidth
-                    text: selectedGame ? (selectedGame.description || "No hay descripción disponible para este título.") : ""
-                    font.pixelSize: 14; color: "#b0ffffff"; wrapMode: Text.WordWrap
-                    lineHeight: 1.4
-                    bottomPadding: 20
-                }
-            }
 
                 RowLayout {
-                    Layout.fillWidth: true; spacing: 15
-
+                    Layout.alignment: Qt.AlignHCenter
+                    spacing: 25 * responsiveScale
                     Button {
-                        id: launchMainBtn
-                        Layout.fillWidth: true; Layout.preferredHeight: 52
-                        onClicked: {
-                            if (window && window.requestLaunch && selectedGame) {
-                                window.requestLaunch(selectedGame.path, selectedGame.id_emu, selectedGame.title)
-                                infoPanel.close()
-                            }
+                        id: playBtn
+                        Layout.preferredWidth: 260 * responsiveScale; Layout.preferredHeight: 52 * responsiveScale
+                        onClicked: if (libraryRoot.selectedGame) window.requestLaunch(libraryRoot.selectedGame.path, libraryRoot.selectedGame.id_emu, libraryRoot.selectedGame.name)
+                        background: Rectangle { 
+                            radius: height / 2; color: currentAccentColor
+                            layer.enabled: true
+                            layer.effect: MultiEffect { shadowEnabled: true; shadowColor: currentAccentColor; shadowBlur: 0.6 } 
                         }
-                        
-                        background: Rectangle {
-                            radius: 26
-                            color: launchMainBtn.hovered ? Qt.lighter(currentAccentColor, 1.2) : currentAccentColor
-                            
-                            Rectangle {
-                                anchors.fill: parent; radius: 26; color: "transparent"
-                                border.color: "#33ffffff"; border.width: 1
-                            }
-                            
-                            Behavior on color { ColorAnimation { duration: 200 } }
+                        contentItem: Label { 
+                            text: libraryRoot.tr("lib_btn_launch").toUpperCase()
+                            color: "black"; font.bold: true; font.pixelSize: 15 * responsiveScale
+                            horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter 
                         }
-                        
-                        contentItem: Label {
-                            text: tr("lib_play_btn").toUpperCase()
-                            color: "black"; font.bold: true; font.pixelSize: 14; font.letterSpacing: 1
-                            horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
+                    }
+                    Button {
+                        Layout.preferredWidth: 52 * responsiveScale; Layout.preferredHeight: 52 * responsiveScale
+                        onClicked: { libraryRoot.selectedGame = null; libraryRoot.state = "carousel" }
+                        background: Rectangle { 
+                            radius: height / 2; color: "#1affffff"; border.color: "#30ffffff"; border.width: 1 
                         }
-                        
-                        scale: launchMainBtn.pressed ? 0.95 : (launchMainBtn.hovered ? 1.02 : 1.0)
-                        Behavior on scale { NumberAnimation { duration: 150; easing.type: Easing.OutBack } }
+                        contentItem: Label { 
+                            text: "✕"; color: "white"; font.pixelSize: 18 * responsiveScale
+                            horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter 
+                        }
                     }
                 }
+            }
         }
     }
+
 
     // --- POPUP DE AJUSTES DEL EMULADOR (TWEAKS) ---
     Popup {
@@ -1392,6 +1384,36 @@ Item {
                         break
                     }
                 }
+            }
+        }
+    }
+
+    // --- PANEL DE INFORMACIÓN LATERAL ---
+    GameInfoPanel {
+        id: infoPanel
+        gameData: libraryRoot.selectedGame
+        accentColor: libraryRoot.currentAccentColor
+        
+        onLaunchClicked: (path, emuId, gameName) => {
+            if (window && window.requestLaunch) {
+                window.requestLaunch(path, emuId, gameName)
+            }
+        }
+        
+        onEditClicked: {
+            metaEditor.gameData = libraryRoot.selectedGame
+            metaEditor.open()
+        }
+        
+        onFavoriteClicked: {
+            if (libraryRoot.selectedGame) {
+                let newVal = bridge.lib.toggleFavorite(libraryRoot.selectedGame.path)
+                libraryRoot.selectedGame.isFavorite = newVal
+                
+                // Sincronizar con el mapa de favoritos para reactividad en el grid
+                let temp = favMap
+                temp[libraryRoot.selectedGame.path] = newVal
+                libraryRoot.favMap = Object.assign({}, temp)
             }
         }
     }

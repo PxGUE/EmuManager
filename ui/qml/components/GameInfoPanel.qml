@@ -25,6 +25,13 @@ Item {
     signal favoriteClicked()
     signal closed()
 
+    function tr(key, ...args) {
+        if (!bridge) return key
+        var _ = bridge.currentLanguage
+        if (args.length > 0) return bridge.translateWithArgs(key, args)
+        return bridge.translate(key)
+    }
+
     function open() { isOpen = true }
     function close() { isOpen = false; closed() }
 
@@ -140,10 +147,10 @@ Item {
                 // Metadata
                 RowLayout {
                     Layout.fillWidth: true; spacing: 20
-                    Column { spacing: 2; Label { text: "DESARROLLADOR"; color: "#66ffffff"; font.pixelSize: 10; font.bold: true }
+                    Column { spacing: 2; Label { text: tr("lib_developer"); color: "#66ffffff"; font.pixelSize: 10; font.bold: true }
                                         Label { text: root.gameData ? (root.gameData.developer || "Unknown") : ""; color: root.accentColor; font.pixelSize: 12 } }
                     Rectangle { width: 1; height: 20; color: "#1affffff" }
-                    Column { spacing: 2; Label { text: "JUGADO"; color: "#66ffffff"; font.pixelSize: 10; font.bold: true }
+                    Column { spacing: 2; Label { text: tr("lib_played"); color: "#66ffffff"; font.pixelSize: 10; font.bold: true }
                                         Label { text: root.gameData ? root.gameData.playtime : "0m"; color: "white"; font.pixelSize: 12 } }
                 }
 
@@ -154,7 +161,7 @@ Item {
                     ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
                     Label {
                         width: panelContainer.width - 80
-                        text: root.gameData ? (root.gameData.description || "No hay información adicional disponible.") : ""
+                        text: root.gameData ? (root.gameData.description || tr("lib_no_info")) : ""
                         color: "#99ffffff"; font.pixelSize: 15; wrapMode: Text.WordWrap; lineHeight: 1.7; horizontalAlignment: Text.AlignJustify
                     }
                 }
@@ -180,7 +187,7 @@ Item {
                         // AQUÍ FORZAMOS EL CENTRADO TOTAL
                         Label {
                             anchors.centerIn: parent
-                            text: "L A U N C H   G A M E"
+                            text: tr("lib_btn_launch").toUpperCase()
                             color: megaPlayBtn.hovered ? "white" : "#ccffffff"
                             font.pixelSize: 16; font.weight: Font.Bold; font.letterSpacing: 2
                         }

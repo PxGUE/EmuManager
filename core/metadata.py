@@ -20,50 +20,56 @@ from .security import get_secret
 from .scraper_engine import ScraperEngine
 from .normalization import normalize_title, get_search_variations
 from . import config
+ 
+_metadata_cache: Optional[Dict[str, Any]] = None
 
 def obtener_metadata_local(ruta_rom: str) -> dict:
     """
     Obtiene los metadatos almacenados en la caché local para un juego específico.
-
-    Args:
-        ruta_rom (str): Ruta absoluta del archivo ROM.
-
-    Returns:
-        dict: Diccionario con los metadatos o vacío si no existe.
+    Utiliza una caché en memoria para evitar lecturas de disco repetitivas.
     """
-    if not os.path.exists(config.METADATA_FILE):
-        return {}
-    try:
-        # Normalizar para buscar en el JSON
+    global _metadata_cache
+    
+    # 1. Si ya está en memoria, devolverlo instantáneamente
+    if _metadata_cache is not None:
         norm_ruta = config.normalize_path(ruta_rom)
+        return _metadata_cache.get(norm_ruta, {})
+
+    # 2. Si no, cargarlo del disco una sola vez
+    if not os.path.exists(config.METADATA_FILE):
+        _metadata_cache = {}
+        return {}
+        
+    try:
         with open(config.METADATA_FILE, "r", encoding="utf-8") as f:
-            return json.load(f).get(norm_ruta, {})
-    except:
+            data = json.load(f)
+            # Resolver rutas si es necesario (generalmente no, ya que las claves son normalizadas)
+            _metadata_cache = data
+            return _metadata_cache.get(config.normalize_path(ruta_rom), {})
+    except Exception as e:
+        print(f"[METADATA] Error cargando caché: {e}")
         return {}
 
 def guardar_metadata_local(ruta_rom: str, meta: dict):
     """
     Persiste o actualiza los metadatos de un juego en la caché local.
-
-    Args:
-        ruta_rom (str): Ruta absoluta del juego.
-        meta (dict): Diccionario con la nueva información a guardar.
     """
-    cache = {}
-    if os.path.exists(config.METADATA_FILE):
-        try:
-            with open(config.METADATA_FILE, "r", encoding="utf-8") as f:
-                cache = json.load(f)
-        except:
-            pass
+    global _metadata_cache
     
-    # Normalizar ruta antes de guardar como clave
+    # Cargar si no existe
+    if _metadata_cache is None:
+        obtener_metadata_local(ruta_rom)
+    
+    # Actualizar memoria y disco
     norm_ruta = config.normalize_path(ruta_rom)
-    cache[norm_ruta] = meta
+    _metadata_cache[norm_ruta] = meta
     
-    os.makedirs(config.DATA_DIR, exist_ok=True)
-    with open(config.METADATA_FILE, "w", encoding="utf-8") as f:
-        json.dump(cache, f, ensure_ascii=False, indent=2)
+    try:
+        os.makedirs(config.DATA_DIR, exist_ok=True)
+        with open(config.METADATA_FILE, "w", encoding="utf-8") as f:
+            json.dump(_metadata_cache, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print(f"[METADATA] Error guardando metadatos: {e}")
 
 async def descargar_metadata_biblioteca(juegos: list, emu_map: dict, on_progress: Optional[Callable] = None) -> dict:
     """
@@ -234,12 +240,13 @@ def get_providers_config() -> List[Dict]:
     # 2. Cargar credenciales desde el sistema de secretos
     for d in default:
         is_conf = True
-        for field in ["api_key", "user", "password"]:
+        # Añadimos 'devid' y 'devpassword' para que el motor los pida al sistema de seguridad
+        for field in ["api_key", "user", "password", "devid", "devpassword"]:
             if field in d:
                 val = get_secret(d["id"], field)
                 if val:
                     d[field] = val
-                else:
+                elif field in ["api_key", "user", "password"]:
                     is_conf = False
         d["is_configured"] = is_conf
 

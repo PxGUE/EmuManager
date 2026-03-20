@@ -32,6 +32,7 @@ class EmuladorManager:
         self.installed_emus = self._load_installed()
         self.release_cache = self._load_cache()
         self.playtimes = self._load_playtime()
+        self._is_installed_cache = {} # Caché para evitar os.path.exists excesivos
 
         self.installer = Installer(self)
         self.tweak_manager = TweakManager(self.data_dir)
@@ -164,6 +165,8 @@ class EmuladorManager:
                                     updated = True
             if updated:
                 self._save_installed()
+                # Limpiar la caché de verificación física
+                self._is_installed_cache = {}
         except: pass
 
     def save_config(self, install_path=None, roms_path=None, language=None, collector_mode=None):
@@ -233,20 +236,25 @@ class EmuladorManager:
                 self._save_playtime()
 
     def esta_instalado(self, repo_github: str) -> bool:
+        """
+        Consulta si un emulador está instalado con caché de verificación en disco.
+        """
         if repo_github not in self.installed_emus:
             return False
         
-        # Validación real en disco
+        # 1. Devolver desde la caché de sesión si ya se verificó antes
+        if repo_github in self._is_installed_cache:
+            return self._is_installed_cache[repo_github]
+        
+        # 2. Validación real en disco (Solo ocurre una vez por sesión o tras un cambio)
         info = self.installed_emus[repo_github]
         files = info.get("files", [])
         if not files: 
-            print(f"[EMU_MGR] {repo_github} no tiene archivos registrados")
+            self._is_installed_cache[repo_github] = False
             return False
         
-        # Verificar si el archivo principal existe
         exists = os.path.exists(files[0])
-        if not exists:
-            print(f"[EMU_MGR] {repo_github} archivo no encontrado: {files[0]}")
+        self._is_installed_cache[repo_github] = exists
         return exists
 
     # Delegated installer methods

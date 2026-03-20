@@ -20,8 +20,8 @@ class MGBAHandler(BaseTweakHandler):
                 "id": "headless",
                 "label": "lib_tweak_headless",
                 "type": "bool",
-                "default": True,
-                "flag": "-n"
+                "default": False,
+                "flag": ""
             },
             {
                 "id": "scaling",
@@ -55,9 +55,9 @@ class MGBAHandler(BaseTweakHandler):
         if user_settings.get("mute", False):
             if "-m" not in args: args.append("-m")
 
-        # 4. Ocultar Interfaz (Solo en Qt)
-        is_sdl = any("sdl" in a.lower() for a in args)
-        if not is_sdl and user_settings.get("headless", True):
-            if "-n" not in args: args.append("-n")
+        # 4. Ocultar Interfaz (Desactivado por incompatibilidad)
+        # s_sdl = any("sdl" in a.lower() for a in args)
+        # if not is_sdl and user_settings.get("headless", True):
+        #     if "-n" not in args: args.append("-n")
                 
         return args

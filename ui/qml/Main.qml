@@ -50,6 +50,7 @@ ApplicationWindow {
 
         // --- SIDEBAR ---
         Rectangle {
+            id: sidebar
             Layout.fillHeight: parent
             Layout.preferredWidth: 200
             color: "#161922"

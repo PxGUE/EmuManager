@@ -1,4 +1,5 @@
 import difflib
+import re
 from typing import Optional, List, TypeVar, Callable
 from .normalization import normalize_title, get_search_variations
 
@@ -59,18 +60,19 @@ class ScraperEngine:
     def find_best_match(
         target: str, 
         candidates: List[str], 
-        min_ratio: float = 0.60,
+        min_ratio: float = 0.55,
         require_significant: bool = True
     ) -> Optional[str]:
         """
-        Finds the best match for a target string among a list of candidates.
+        Calcula la mejor coincidencia entre un objetivo y múltiples candidatos.
+        Utiliza una estrategia multi-etapa: Exacto -> Permutado -> Heurístico -> Exhaustivo.
         """
         if not target or not candidates:
             return None
             
         target_variations = get_search_variations(target)
         
-        # Normalize candidates once
+        # 1. Preparar mapa de candidatos normalizados
         candidate_map = {}
         for c in candidates:
             norm = normalize_title(c)
@@ -82,59 +84,58 @@ class ScraperEngine:
         
         best_overall_match = None
         highest_ratio = 0.0
-        
+
+        # ETAPAS 1 y 2: Búsquedas rápidas (Exactas y Heurística de difflib)
         for variant in target_variations:
-            # Tier 1: Exact match
             if variant in candidate_map:
                 return candidate_map[variant]
                 
-            # Tier 1.5: Sorted words match (Permutations like 'Ruby Version' / 'Version Ruby')
             sorted_variant = ScraperEngine._get_sorted_words(variant)
             if sorted_variant in sorted_candidate_map:
                 return candidate_map[sorted_candidate_map[sorted_variant]]
             
-            # Tier 2: get_close_matches (Fast heuristic)
-            matches = difflib.get_close_matches(variant, norm_candidates, n=1, cutoff=0.75)
+            matches = difflib.get_close_matches(variant, norm_candidates, n=1, cutoff=0.85)
             if matches:
-                 # Even with high cutoff, verify significant words (though usually ok)
                 if not require_significant or ScraperEngine._check_significant_words(variant, matches[0]):
                     return candidate_map[matches[0]]
-            
-        # Tier 3: Exhaustive Scan with Significant Word Validation and Subset Logic
-        for norm_c in norm_candidates:
-            # 3.1 Subset Match (High Priority)
-            # If our search query is fully contained within the candidate words (or vice versa)
-            v_words = set(variant.split())
-            c_words = set(norm_c.split())
-            
-            # If all our variant words are in the candidate, it's a very strong match
-            if v_words and v_words.issubset(c_words):
-                ratio = 0.95
-            else:
-                ratio = difflib.SequenceMatcher(None, variant, norm_c).ratio()
-            
-            if ratio > highest_ratio and ratio >= min_ratio:
-                # Still check significant words to avoid things like 'Pokemon Ruby' matching 'Pokemon Red'
-                if not require_significant or ScraperEngine._check_significant_words(variant, norm_c):
-                    highest_ratio = ratio
-                    best_overall_match = candidate_map[norm_c]
-        
+
+        # ETAPA 3: Escaneo Exhaustivo con todas las variaciones
+        # Esto permite que Tony Hawk's (USA) coincida con Tony Hawk's sin tags.
+        for variant in target_variations:
+            for norm_c in norm_candidates:
+                v_words = set(variant.split())
+                c_words = set(norm_c.split())
+                
+                # Coincidencia por sub-conjunto (Muy potente para nombres largos)
+                if v_words and v_words.issubset(c_words):
+                    ratio = 0.95
+                elif c_words.issubset(v_words):
+                    ratio = 0.90
+                else:
+                    ratio = difflib.SequenceMatcher(None, variant, norm_c).ratio()
+                
+                if ratio > highest_ratio:
+                    if not require_significant or ScraperEngine._check_significant_words(variant, norm_c):
+                        highest_ratio = ratio
+                        best_overall_match = candidate_map[norm_c]
+                        # Si encontramos una coincidencia casi perfecta, paramos
+                        if ratio >= 0.98: return best_overall_match
+
         if best_overall_match and highest_ratio >= min_ratio:
             return best_overall_match
 
-        # Tier 4: Greedy Fallback (No spaces, no symbols) - For metadata/hacks matching base series
+        # ETAPA 4: Fallback "Greedy" (Sin espacios ni símbolos)
         if not require_significant:
             greedy_highest = 0.0
             greedy_match = None
-            v_greedy = re.sub(r'[^a-z0-9]', '', variant)
-            
-            for norm_c in norm_candidates:
-                c_greedy = re.sub(r'[^a-z0-9]', '', norm_c)
-                ratio = difflib.SequenceMatcher(None, v_greedy, c_greedy).ratio()
-                if ratio > greedy_highest and ratio >= min_ratio:
-                    greedy_highest = ratio
-                    greedy_match = candidate_map[norm_c]
-            
+            for variant in target_variations:
+                v_greedy = re.sub(r'[^a-z0-9]', '', variant)
+                for norm_c in norm_candidates:
+                    c_greedy = re.sub(r'[^a-z0-9]', '', norm_c)
+                    ratio = difflib.SequenceMatcher(None, v_greedy, c_greedy).ratio()
+                    if ratio > greedy_highest and ratio >= min_ratio:
+                        greedy_highest = ratio
+                        greedy_match = candidate_map[norm_c]
             return greedy_match
                     
         return None

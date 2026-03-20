@@ -56,40 +56,16 @@ Item {
 
                 Rectangle {
                     Layout.fillWidth: true
-                    height: 72
+                    height: 80
                     radius: 20
                     color: "#0dffffff"
                     border.color: "#1affffff"; border.width: 1
 
-                    RowLayout {
+                    SettingRow {
                         anchors.fill: parent
-                        anchors.leftMargin: 20
-                        anchors.rightMargin: 20
-                        spacing: 20
-
-                        // Icono de Idioma
-                        Rectangle {
-                            width: 32; height: 32; radius: 8
-                            color: "#1affffff"
-                            Text {
-                                anchors.centerIn: parent
-                                text: "🌐"
-                                font.pixelSize: 14; opacity: 0.8
-                            }
-                        }
-
-                        ColumnLayout {
-                            spacing: 0
-                            Layout.fillWidth: true
-                            Label {
-                                text: tr("set_lang_title")
-                                font.pixelSize: 14; font.weight: Font.Medium; color: "white"
-                            }
-                            Label {
-                                text: tr("set_lang_sub")
-                                font.pixelSize: 10; color: "#666677"
-                            }
-                        }
+                        icon: "🌐"
+                        title: tr("set_lang_title")
+                        subtitle: tr("set_lang_sub")
 
                         ComboBox {
                             id: langCombo
@@ -234,42 +210,19 @@ Item {
                         font.pixelSize: 13; font.bold: true; color: "white"; font.letterSpacing: 1
                     }
                 }
-
+                
                 Rectangle {
                     Layout.fillWidth: true
-                    height: 72
+                    height: 80
                     radius: 20
                     color: "#0dffffff"
                     border.color: "#1affffff"; border.width: 1
 
-                    RowLayout {
+                    SettingRow {
                         anchors.fill: parent
-                        anchors.leftMargin: 20
-                        anchors.rightMargin: 20
-                        spacing: 20
-
-                        Rectangle {
-                            width: 32; height: 32; radius: 8
-                            color: "#1affffff"
-                            Text {
-                                anchors.centerIn: parent
-                                text: "🎮"
-                                font.pixelSize: 14; opacity: 0.8
-                            }
-                        }
-
-                        ColumnLayout {
-                            spacing: 0
-                            Layout.fillWidth: true
-                            Label {
-                                text: tr("set_collector_title")
-                                font.pixelSize: 14; font.weight: Font.Medium; color: "white"
-                            }
-                            Label {
-                                text: tr("set_collector_sub")
-                                font.pixelSize: 10; color: "#666677"
-                            }
-                        }
+                        icon: "🎮"
+                        title: tr("set_collector_title")
+                        subtitle: tr("set_collector_sub")
 
                         Switch {
                             id: collectorSwitch
@@ -293,7 +246,7 @@ Item {
                                     radius: 11
                                     color: "white"
                                     Behavior on x {
-                                        NumberAnimation { duration: 200; easing.type: Easing.InOutQuad }
+                                        NumberAnimation { duration: 200; easing.type: Easing.OutQuad }
                                     }
                                 }
                             }

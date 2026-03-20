@@ -122,8 +122,10 @@ class ArtworkHub:
             
             # Si tras cualquier scraper ya tenemos carátula, salimos de los intentos de nombre
             if os.path.exists(caratula_path):
+                print(f"[ARTWORK] Descarga exitosa para: {game_name}")
                 return True
                 
+        print(f"[ARTWORK] No se encontró arte para: {game_name} tras agotar todos los scrapers.")
         return os.path.exists(caratula_path)
 
 
@@ -185,9 +187,13 @@ async def _descargar_archivo(session: aiohttp.ClientSession, url: str, ruta_dest
                     with open(ruta_destino, "wb") as f:
                         f.write(await resp.read())
                     return True
-        except:
+                else:
+                    print(f"[DESCARGA] Error HTTP {resp.status} al bajar de: {url}")
+        except Exception as e:
             if attempt < retries:
                 await asyncio.sleep(1)
+            else:
+                print(f"[DESCARGA] Excepción al descargar {url}: {e}")
     return False
 
 # Mapeos de Consolas para scrapers externos
@@ -207,6 +213,7 @@ EXTENSION_PLATFORM_MAP = {
     ".sms": "Sega - Master System - Mark III",
     ".gg":  "Sega - Game Gear",
     ".pce": "NEC - PC Engine - TurboGrafx 16",
+    ".sg":  "Sega - SG-1000",
 }
 
 def get_platform_for_rom(emu_id: str, ruta_rom: str, default_platform: Optional[str]) -> Optional[str]:

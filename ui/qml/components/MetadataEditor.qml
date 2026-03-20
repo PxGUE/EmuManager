@@ -134,7 +134,7 @@ Popup {
                     // Título
                     ColumnLayout {
                         spacing: 8; Layout.fillWidth: true
-                        Label { text: tr("set_lbl_user").replace("Usuario", "Título"); font.pixelSize: 12; color: "#888899" }
+                        Label { text: tr("lib_title"); font.pixelSize: 12; color: "#888899" }
                         TextField {
                             id: titleField
                             Layout.fillWidth: true; selectByMouse: true
@@ -152,7 +152,7 @@ Popup {
 
                         ColumnLayout {
                             spacing: 8; Layout.fillWidth: true
-                            Label { text: "Año"; font.pixelSize: 12; color: "#888899" }
+                            Label { text: tr("lib_year"); font.pixelSize: 12; color: "#888899" }
                             TextField {
                                 id: yearField
                                 Layout.fillWidth: true; selectByMouse: true
@@ -164,7 +164,7 @@ Popup {
 
                         ColumnLayout {
                             spacing: 8; Layout.fillWidth: true
-                            Label { text: "Género"; font.pixelSize: 12; color: "#888899" }
+                            Label { text: tr("lib_genre"); font.pixelSize: 12; color: "#888899" }
                             TextField {
                                 id: genreField
                                 Layout.fillWidth: true; selectByMouse: true
@@ -176,7 +176,7 @@ Popup {
 
                         ColumnLayout {
                             spacing: 8; Layout.fillWidth: true; Layout.columnSpan: 2
-                            Label { text: "Desarrollador"; font.pixelSize: 12; color: "#888899" }
+                            Label { text: tr("lib_developer"); font.pixelSize: 12; color: "#888899" }
                             TextField {
                                 id: devField
                                 Layout.fillWidth: true; selectByMouse: true
@@ -189,7 +189,7 @@ Popup {
                     // Descripción
                     ColumnLayout {
                         spacing: 8; Layout.fillWidth: true
-                        Label { text: "Descripción"; font.pixelSize: 12; color: "#888899" }
+                        Label { text: tr("lib_desc"); font.pixelSize: 12; color: "#888899" }
                         TextArea {
                             id: descField
                             Layout.fillWidth: true; Layout.preferredHeight: 120

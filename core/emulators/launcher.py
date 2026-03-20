@@ -70,46 +70,39 @@ class Launcher:
         return False
 
     async def lanzar_juego(self, repo_github: str, ruta_rom: str, juego_obj=None):
-        """Lanza un juego usando el emulador correspondiente."""
-        
+        """Lanza un juego de forma asíncrona sin bloquear la UI."""
+        import asyncio
+        return await asyncio.to_thread(self._lanzar_juego_sync, repo_github, ruta_rom, juego_obj)
+
+    def _lanzar_juego_sync(self, repo_github: str, ruta_rom: str, juego_obj=None):
+        """Lógica síncrona de lanzamiento (para ejecutar en hilo separado)."""
         if repo_github not in self.manager.installed_emus:
             return False, "El emulador no está instalado."
 
-        # Si hay ruta, verificar que exista. Si está vacío, es para abrir solo el emulador.
         if ruta_rom and not os.path.exists(ruta_rom):
             return False, "El archivo del juego no existe."
 
         try:
             info = self.manager.installed_emus[repo_github]
             files = info.get("files", [])
-            
-            # Buscar el ejecutable principal (AppImage, exe) o binario linux
             executable = self._encontrar_ejecutable(files)
 
             if not executable:
                 return False, "No se encontró el ejecutable. ¿Se extrajo correctamente?"
             
-            # 1. Base executable
             args = [executable]
-            
-            # 2. Add Tweaks (Flags) BEFORE the ROM path
             emu_id = next((e["id"] for e in AVAILABLE_EMULATORS if e["github"] == repo_github), "default")
-            
-            # Pass the current args (with executable) so handler knows the context
             args = self.manager.tweak_manager.apply_tweaks(emu_id, args, ruta_rom)
             
-            # 3. Add ROM path at the end (standard for most CLIs)
             if ruta_rom and ruta_rom not in args:
                 args.append(ruta_rom)
 
-            # Usar el directorio del ejecutable como CWD es crucial en Linux para encontrar librerías locales
+            print(f"[LAUNCHER] Ejecutando: {' '.join(args)}")
             cwd = os.path.dirname(executable)
 
             if platform.system() == "Linux":
-                # start_new_session=True evita que el emulador muera si cerramos la app
                 self.current_process = subprocess.Popen(args, cwd=cwd, start_new_session=True)
             else:
-                # shell=False es necesario para psutil.terminate()
                 self.current_process = subprocess.Popen(args, cwd=cwd, shell=False)
                 
             self.current_game = juego_obj
@@ -117,7 +110,6 @@ class Launcher:
             return True, "¡Abierto correctamente!"
         except Exception as e:
             print(f"[LAUNCHER] Error al lanzar: {e}")
-
             return False, f"Error al lanzar: {e}"
 
     def _encontrar_ejecutable(self, files):

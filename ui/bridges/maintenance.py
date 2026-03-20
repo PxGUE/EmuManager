@@ -1,6 +1,6 @@
-from PySide6.QtCore import QObject, Slot, Signal
-from core.emulators.updater import check_all_updates
-from core.constants import AVAILABLE_EMULATORS
+﻿from PySide6.QtCore import QObject, Slot, Signal
+from core.logic.emulators.updater import check_all_updates
+from core.logic.constants import AVAILABLE_EMULATORS
 
 class MaintenanceBridge(QObject):
     """
@@ -18,7 +18,7 @@ class MaintenanceBridge(QObject):
     @Slot()
     def checkUpdates(self):
         """
-        Verifica actualizaciones de forma asíncrona para todos los emuladores.
+        Verifica actualizaciones de forma asÃ­ncrona para todos los emuladores.
         Emite updatesDiscoveryFinished al terminar.
         """
         import asyncio

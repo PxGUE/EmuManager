@@ -29,7 +29,7 @@ data/
 *.log
 
 # --- Media descargada (carátulas, fondos, etc.) ---
-media/scraped/
+data/scraped/
 media/artwork/
 media/backgrounds/
 

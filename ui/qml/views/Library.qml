@@ -202,9 +202,9 @@ Item {
     }
 
     // --- LÓGICA DE RESPONSIVIDAD PREMIUM ---
-    readonly property real responsiveScale: Math.max(0.7, Math.min(width / 1100, height / 700))
-    readonly property real cardWidth: 340 * responsiveScale
-    readonly property real cardHeight: 480 * responsiveScale
+    readonly property real responsiveScale: Math.max(1.0, Math.min(width / 1100, height / 750))
+    readonly property real cardWidth: 380 * responsiveScale
+    readonly property real cardHeight: 540 * responsiveScale
 
     // --- LÓGICA DE CENTRADO DE GRID ---
     readonly property real gridCellWidth: 240
@@ -319,7 +319,7 @@ Item {
             
             PathLine { x: carousel.width * 0.5; y: carousel.height * 0.5 }
             PathAttribute { name: "itemZ"; value: 100 }
-            PathAttribute { name: "itemScale"; value: 1.15 }
+            PathAttribute { name: "itemScale"; value: 1.25 }
             PathAttribute { name: "itemRotation"; value: 0 }
             PathAttribute { name: "itemOpacity"; value: 1.0 }
             
@@ -911,20 +911,19 @@ Item {
                                     }
                                 }
                             }
-                        }
                     }
                 }
             }
         }
     }
+}
 
-    // --- MODO COLECCIONISTA (OBSIDIAN GALLERY 8.5 - PREMIUM HORIZONTAL) ---
+    // --- SECCIÓN: MODO COLECCIONISTA (GALLERY VIEW) ---
     Item {
         id: collectorContainer
         anchors.fill: parent; opacity: libraryRoot.state === "collector" ? 1 : 0
         visible: opacity > 0; Behavior on opacity { NumberAnimation { duration: 600 } }
 
-        // 1. FONDO INMERSIVO
         Rectangle { anchors.fill: parent; color: "#080a0f" }
         
         Rectangle {
@@ -937,11 +936,11 @@ Item {
             layer.effect: MultiEffect { shadowEnabled: true; shadowBlur: 1.0; shadowColor: currentAccentColor }
         }
 
-        // 2. SECTOR DEL CARRUSEL (PRIORIDAD DE INTERACCIÓN)
+        // --- GALERÍA DE JUEGOS (CARRUSEL) ---
         Item {
             id: galleryZone
             anchors.top: parent.top; anchors.left: parent.left; anchors.right: parent.right
-            height: parent.height * 0.64; z: 100 // Elevamos un poco el carrusel para equilibrar el espacio inferior
+            height: parent.height * 0.6; z: 100 
 
             PathView {
                 id: galleryView
@@ -952,37 +951,37 @@ Item {
                 onCurrentIndexChanged: { if (currentItem) libraryRoot.selectedGame = currentItem.gameData; }
 
                 path: Path {
-                    startX: -galleryView.width * 0.2; startY: galleryView.height * 0.45
+                    startX: -galleryView.width * 0.2; startY: galleryView.height * 0.55
                     PathAttribute { name: "itemScale"; value: 0.6 }
-                    PathAttribute { name: "itemOpacity"; value: 0.3 }
+                    PathAttribute { name: "itemOpacity"; value: 0.2 }
                     PathAttribute { name: "itemRotation"; value: 35 }
                     PathAttribute { name: "itemZ"; value: 1 }
 
-                    PathLine { x: galleryView.width * 0.15; y: galleryView.height * 0.45 }
+                    PathLine { x: galleryView.width * 0.15; y: galleryView.height * 0.55 }
                     PathPercent { value: 0.2 }
-                    PathAttribute { name: "itemScale"; value: 0.85 }
-                    PathAttribute { name: "itemOpacity"; value: 0.7 }
+                    PathAttribute { name: "itemScale"; value: 0.9 }
+                    PathAttribute { name: "itemOpacity"; value: 0.6 }
                     PathAttribute { name: "itemRotation"; value: 15 }
                     PathAttribute { name: "itemZ"; value: 10 }
 
-                    PathLine { x: galleryView.width * 0.5; y: galleryView.height * 0.45 }
+                    PathLine { x: galleryView.width * 0.5; y: galleryView.height * 0.55 }
                     PathPercent { value: 0.5 }
-                    PathAttribute { name: "itemScale"; value: 1.25 }
+                    PathAttribute { name: "itemScale"; value: 1.45 }
                     PathAttribute { name: "itemOpacity"; value: 1.0 }
                     PathAttribute { name: "itemRotation"; value: 0 }
                     PathAttribute { name: "itemZ"; value: 1000 }
 
-                    PathLine { x: galleryView.width * 0.85; y: galleryView.height * 0.45 }
+                    PathLine { x: galleryView.width * 0.85; y: galleryView.height * 0.55 }
                     PathPercent { value: 0.8 }
-                    PathAttribute { name: "itemScale"; value: 0.85 }
-                    PathAttribute { name: "itemOpacity"; value: 0.7 }
+                    PathAttribute { name: "itemScale"; value: 0.9 }
+                    PathAttribute { name: "itemOpacity"; value: 0.6 }
                     PathAttribute { name: "itemRotation"; value: -15 }
                     PathAttribute { name: "itemZ"; value: 10 }
 
-                    PathLine { x: galleryView.width * 1.2; y: galleryView.height * 0.45 }
+                    PathLine { x: galleryView.width * 1.2; y: galleryView.height * 0.55 }
                     PathPercent { value: 1.0 }
                     PathAttribute { name: "itemScale"; value: 0.6 }
-                    PathAttribute { name: "itemOpacity"; value: 0.3 }
+                    PathAttribute { name: "itemOpacity"; value: 0.2 }
                     PathAttribute { name: "itemRotation"; value: -35 }
                     PathAttribute { name: "itemZ"; value: 1 }
                 }
@@ -999,29 +998,28 @@ Item {
                         anchors.centerIn: parent
                         source: modelData.cover_3d || modelData.cover || ""
                         accentColor: libraryRoot.currentPlatformColor
-                        showShadow: true
+                        showShadow: false
                         showGlow: galleryView.currentIndex === index
                         height: galleryView.height * 0.6 
                         width: height * 0.72
                         scale: galleryDelegate.PathView.itemScale || 1.0 
-                        
                         property real pathRotation: galleryDelegate.PathView.itemRotation || 0
                     }
                 }
             }
         }
 
-        // 3. SECTOR DE INFORMACIÓN (ABAJO)
+        // --- ZONA DE INFORMACIÓN Y ACCIONES ---
         Item {
             id: infoZone
             anchors.top: galleryZone.bottom; anchors.bottom: parent.bottom
             anchors.left: parent.left; anchors.right: parent.right; z: 10
-            anchors.bottomMargin: 45 * responsiveScale // Mayor despeje inferior solicitado por el usuario
+            anchors.bottomMargin: 45 * responsiveScale 
 
             ColumnLayout {
                 anchors.centerIn: parent
                 width: parent.width * 0.85
-                spacing: 22 * responsiveScale // Espaciado vertical más generoso y uniforme
+                spacing: 22 * responsiveScale 
 
                 ColumnLayout {
                     Layout.fillWidth: true; spacing: 6 * responsiveScale
@@ -1040,19 +1038,17 @@ Item {
 
                 ScrollView {
                     Layout.fillWidth: true
-                    Layout.preferredHeight: 90 * responsiveScale // Altura fija pero centrada para uniformidad
+                    Layout.preferredHeight: 90 * responsiveScale 
                     Layout.leftMargin: parent.width * 0.05
                     Layout.rightMargin: parent.width * 0.05
-                    clip: true
-                    contentWidth: availableWidth
+                    clip: true; contentWidth: availableWidth
                     ScrollBar.vertical.policy: ScrollBar.AsNeeded
 
                     TextArea {
                         width: parent.width
                         text: (libraryRoot.selectedGame ? libraryRoot.selectedGame.description || "" : "")
                         color: "#b0ffffff"; font.pixelSize: 13 * responsiveScale; wrapMode: Text.WordWrap; horizontalAlignment: Text.AlignHCenter; background: null; readOnly: true
-                        padding: 0
-                        selectByMouse: true
+                        padding: 0; selectByMouse: true
                     }
                 }
 

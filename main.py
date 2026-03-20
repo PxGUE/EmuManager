@@ -1,4 +1,4 @@
-import sys
+﻿import sys
 import os
 import asyncio
 from PySide6.QtWidgets import QApplication
@@ -8,11 +8,11 @@ from PySide6.QtCore import qInstallMessageHandler, Qt
 from PySide6.QtQuickControls2 import QQuickStyle
 from qasync import QEventLoop
 
-from core.emulators.manager import EmuladorManager
-from core.i18n import Translator
+from core.logic.emulators.manager import EmuladorManager
+from core.logic.i18n import Translator
 from ui.bridge import AppBridge
 
-from core.config import get_resource_path
+from core.logic.config import get_resource_path
 
 def qt_message_handler(mode, context, message):
     if "libpng warning: iCCP" in message or "CRC error" in message:
@@ -33,24 +33,24 @@ async def monitor_playtime(emu_manager):
         await asyncio.sleep(5)
 
 def main():
-    print("[MAIN] Función main iniciada")
+    print("[MAIN] FunciÃ³n main iniciada")
     # 0. Configurar estilo
     QQuickStyle.setStyle("Fusion")
     
-    # 1. Configurar aplicación
+    # 1. Configurar aplicaciÃ³n
     app = QApplication(sys.argv)
     
-    # Configurar el icono de la aplicación
+    # Configurar el icono de la aplicaciÃ³n
     icon_path = get_resource_path(os.path.join("media", "icon.svg"))
     if os.path.exists(icon_path):
         app.setWindowIcon(QIcon(icon_path))
     
     # 2. Integrar Asyncio con el loop de Qt (PRIMERO)
-    # Esto permite que los objetos creados después usen asyncio.create_task
+    # Esto permite que los objetos creados despuÃ©s usen asyncio.create_task
     event_loop = QEventLoop(app)
     asyncio.set_event_loop(event_loop)
     
-    # 3. Inicializar lógica central
+    # 3. Inicializar lÃ³gica central
     emu_manager = EmuladorManager()
     translator = Translator(emu_manager.language)
     

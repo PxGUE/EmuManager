@@ -1,9 +1,9 @@
-"""
-bridge.py — Puente principal de comunicación entre Python y QML.
+﻿"""
+bridge.py â€” Puente principal de comunicaciÃ³n entre Python y QML.
 
-Este módulo define la clase AppBridge, que actúa como el "Hub" central.
-Organiza la lógica mediante sub-bridges especializados (Library, Settings, Emulators)
-y gestiona el estado global (idioma, procesos en ejecución, metadatos de la app).
+Este mÃ³dulo define la clase AppBridge, que actÃºa como el "Hub" central.
+Organiza la lÃ³gica mediante sub-bridges especializados (Library, Settings, Emulators)
+y gestiona el estado global (idioma, procesos en ejecuciÃ³n, metadatos de la app).
 """
 
 import os
@@ -13,8 +13,8 @@ import psutil
 import asyncio
 from PySide6.QtCore import QObject, Slot, Property, Signal, QUrl
 
-from core.constants import AVAILABLE_EMULATORS
-import core.config as config
+from core.logic.constants import AVAILABLE_EMULATORS
+import core.logic.config as config
 from ui.bridges.library import LibraryBridge
 from ui.bridges.settings import SettingsBridge
 from ui.bridges.emulators import EmulatorsBridge
@@ -24,18 +24,18 @@ class AppBridge(QObject):
     """
     Clase principal expuesta al motor QML.
     
-    Proporciona acceso a todas las funcionalidades del backend mediante señales,
+    Proporciona acceso a todas las funcionalidades del backend mediante seÃ±ales,
     slots y propiedades. Utiliza una arquitectura de sub-objetos para mantener
-    el código organizado y escalable.
+    el cÃ³digo organizado y escalable.
     """
     
-    # --- Señales Globales (Notificaciones a la UI) ---
+    # --- SeÃ±ales Globales (Notificaciones a la UI) ---
     languageChanged = Signal()
     statsUpdated = Signal()
     systemResourcesChanged = Signal()
     configUpdated = Signal()
     downloadProgress = Signal(str, float)  # (emu_id, porcentaje)
-    downloadFinished = Signal(str, bool, str)  # (emu_id, éxito, mensaje)
+    downloadFinished = Signal(str, bool, str)  # (emu_id, Ã©xito, mensaje)
     scanProgress = Signal(float, str)  # (porcentaje, nombre_actual)
     bridgeStateChanged = Signal()
     isReadyChanged = Signal()
@@ -46,13 +46,13 @@ class AppBridge(QObject):
         Inicializa el bridge y conecta los sub-objetos.
 
         Args:
-            emu_manager (EmuManager): El controlador lógico central de la app.
+            emu_manager (EmuManager): El controlador lÃ³gico central de la app.
             translator (Translator): El motor de traducciones i18n.
         """
         super().__init__()
         self.emu_manager = emu_manager
         self.translator = translator
-        # Versión y nombre hardcoded preventivamente por si config no carga
+        # VersiÃ³n y nombre hardcoded preventivamente por si config no carga
         self._app_version = config.APP_VERSION
         self._app_name = config.APP_NAME
         self._is_fullscreen = False
@@ -68,11 +68,11 @@ class AppBridge(QObject):
         self._maintenance = MaintenanceBridge(self)
 
     async def _initialize_async(self):
-        """Tarea asíncrona para cargar datos pesados sin bloquear la UI."""
+        """Tarea asÃ­ncrona para cargar datos pesados sin bloquear la UI."""
         import asyncio
-        import core.scanner as scanner
+        import core.logic.scanner as scanner
 
-        # 1. Verificando configuración
+        # 1. Verificando configuraciÃ³n
         self._set_loading_msg(self.translator.t("loading_config"))
         await asyncio.sleep(0.4) # Simulado para que sea legible
         
@@ -80,16 +80,16 @@ class AppBridge(QObject):
         self._set_loading_msg(self.translator.t("loading_emus"))
         await self.emu_manager.sync_with_disk_async()
         
-        # 3. Precargar biblioteca (Caché)
+        # 3. Precargar biblioteca (CachÃ©)
         self._set_loading_msg(self.translator.t("loading_library"))
-        # Esto forzará que cargar_biblioteca_cache llene el _library_cache
+        # Esto forzarÃ¡ que cargar_biblioteca_cache llene el _library_cache
         await asyncio.to_thread(scanner.cargar_biblioteca_cache)
         
         # 4. Finalizando
         self._set_loading_msg(self.translator.t("loading_ready"))
         await asyncio.sleep(0.4)
         
-        # Marcar como listo. La Splash Screen se ocultará.
+        # Marcar como listo. La Splash Screen se ocultarÃ¡.
         self._is_ready = True
         self.isReadyChanged.emit()
         
@@ -97,10 +97,10 @@ class AppBridge(QObject):
         asyncio.create_task(self._monitor_resources())
 
     async def _monitor_resources(self):
-        """Actualiza estadísticas del PC sin bloquear nunca la interfaz."""
+        """Actualiza estadÃ­sticas del PC sin bloquear nunca la interfaz."""
         import psutil
         while True:
-            # interval=None hace que no bloquee, usa la diferencia desde la última llamada
+            # interval=None hace que no bloquee, usa la diferencia desde la Ãºltima llamada
             self._cpu_usage = psutil.cpu_percent(interval=None)
             self._ram_usage = psutil.virtual_memory().percent
             self.systemResourcesChanged.emit()
@@ -128,12 +128,12 @@ class AppBridge(QObject):
     
     @Property(QObject, constant=True)
     def set(self):
-        """Bridge especializado en ajustes y configuración."""
+        """Bridge especializado en ajustes y configuraciÃ³n."""
         return self._settings
     
     @Property(QObject, constant=True)
     def emu(self):
-        """Bridge especializado en la gestión física de emuladores."""
+        """Bridge especializado en la gestiÃ³n fÃ­sica de emuladores."""
         return self._emulators
         
     @Property(QObject, constant=True)
@@ -141,11 +141,11 @@ class AppBridge(QObject):
         """Bridge especializado en mantenimiento y utilidades (Backups, Updates)."""
         return self._maintenance
 
-    # --- Gestión de Idioma (i18n) ---
+    # --- GestiÃ³n de Idioma (i18n) ---
     
     @Property(str, notify=languageChanged)
     def currentLanguage(self):
-        """Código del idioma actual (ej: 'es')."""
+        """CÃ³digo del idioma actual (ej: 'es')."""
         return self.translator.lang
 
     @Slot(str)
@@ -188,7 +188,7 @@ class AppBridge(QObject):
     def allEmulators(self):
         """
         Retorna la lista de todos los emuladores agrupados por consola.
-        Ideal para vistas tipo cuadrícula o Dashboard.
+        Ideal para vistas tipo cuadrÃ­cula o Dashboard.
         """
         groups = OrderedDict()
         
@@ -220,7 +220,7 @@ class AppBridge(QObject):
     @Property(dict, notify=systemResourcesChanged)
     def systemStatus(self):
         """
-        Estado dinámico del PC y la configuración de rutas.
+        Estado dinÃ¡mico del PC y la configuraciÃ³n de rutas.
         Utilizado principalmente en el panel lateral o Dashboard.
         """
         return {
@@ -245,18 +245,18 @@ class AppBridge(QObject):
 
     @Property(str, notify=statsUpdated)
     def activeGameName(self):
-        """Retorna el nombre del juego que se está ejecutando actualmente."""
+        """Retorna el nombre del juego que se estÃ¡ ejecutando actualmente."""
         current = self.emu_manager.launcher.current_game
         return current.get("nombre", "") if current else ""
 
     @Property(str, constant=True)
     def appVersion(self):
-        """Versión de la aplicación."""
+        """VersiÃ³n de la aplicaciÃ³n."""
         return config.APP_VERSION
 
     @Property(str, constant=True)
     def appName(self):
-        """Nombre de la aplicación."""
+        """Nombre de la aplicaciÃ³n."""
         return config.APP_NAME
 
     @Property(str, constant=True)
@@ -268,7 +268,7 @@ class AppBridge(QObject):
 
     @Slot()
     def refreshDashboard(self):
-        """Dispara manualmente la actualización de estadísticas en la UI."""
+        """Dispara manualmente la actualizaciÃ³n de estadÃ­sticas en la UI."""
         self.statsUpdated.emit()
 
     @Property(bool, notify=bridgeStateChanged)
@@ -284,6 +284,6 @@ class AppBridge(QObject):
 
     @Slot()
     def quit(self):
-        """Cierra de forma segura emuladores activos y sale de la aplicación."""
+        """Cierra de forma segura emuladores activos y sale de la aplicaciÃ³n."""
         self.emu_manager.terminar_proceso_actual()
         sys.exit(0)

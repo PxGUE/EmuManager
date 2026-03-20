@@ -13,6 +13,13 @@ Item {
     property bool showShadow: true
     property bool showGlow: false
     
+    onShowGlowChanged: {
+        if (!showGlow) {
+            tiltX = 0
+            tiltY = 0
+        }
+    }
+    
     // Suavizado de la inclinación
     Behavior on tiltX { NumberAnimation { duration: 300 } }
     Behavior on tiltY { NumberAnimation { duration: 300 } }
@@ -26,7 +33,7 @@ Item {
         anchors.fill: parent
         hoverEnabled: true
         z: 1000 
-        enabled: true
+        enabled: root3d.showGlow
         
         onPositionChanged: (mouse) => {
             root3d.tiltX = (mouse.x / width) * 2 - 1

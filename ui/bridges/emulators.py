@@ -1,11 +1,11 @@
-"""
-emulators.py — Bridge especializado en la gestión de emuladores.
+﻿"""
+emulators.py â€” Bridge especializado en la gestiÃ³n de emuladores.
 
 Este sub-bridge maneja:
-1. Instalación de emuladores (desde GitHub o manual).
-2. Desinstalación de emuladores.
-3. Apertura de carpetas de instalación.
-4. Gestión de 'tweaks' (ajustes específicos por emulador).
+1. InstalaciÃ³n de emuladores (desde GitHub o manual).
+2. DesinstalaciÃ³n de emuladores.
+3. Apertura de carpetas de instalaciÃ³n.
+4. GestiÃ³n de 'tweaks' (ajustes especÃ­ficos por emulador).
 """
 
 import os
@@ -13,16 +13,16 @@ import asyncio
 from PySide6.QtCore import QObject, Slot, Signal, QUrl
 from PySide6.QtGui import QDesktopServices
 
-from core.constants import AVAILABLE_EMULATORS
+from core.logic.constants import AVAILABLE_EMULATORS
 
 class EmulatorsBridge(QObject):
     """
-    Gestiona las operaciones físicas sobre los emuladores instalados.
+    Gestiona las operaciones fÃ­sicas sobre los emuladores instalados.
     """
     def __init__(self, main_bridge):
         """
         Args:
-            main_bridge (AppBridge): Referencia para emitir señales de progreso globales.
+            main_bridge (AppBridge): Referencia para emitir seÃ±ales de progreso globales.
         """
         super().__init__()
         self.main = main_bridge
@@ -32,7 +32,7 @@ class EmulatorsBridge(QObject):
     @Slot(str)
     def installEmulator(self, github_url):
         """
-        Inicia la descarga e instalación automática de un emulador.
+        Inicia la descarga e instalaciÃ³n automÃ¡tica de un emulador.
         
         Args:
             github_url (str): URL del repositorio para identificar el emulador.
@@ -58,22 +58,22 @@ class EmulatorsBridge(QObject):
                             
                             if len(partes) > 1:
                                 msg_part = partes[1].lower()
-                                if "éxito" in msg_part or "exitosa" in msg_part or prog_val >= 1.0:
+                                if "Ã©xito" in msg_part or "exitosa" in msg_part or prog_val >= 1.0:
                                     success = True
                                     message = partes[1]
                         except: pass
                     elif step.startswith("ERROR:"):
                         message = step.split(":", 1)[1]
                         success = False
-                    elif "éxito" in step.lower() or "exitosa" in step.lower():
+                    elif "Ã©xito" in step.lower() or "exitosa" in step.lower():
                         success = True
                         message = step
                 
                 if success:
-                    print(f"[BRIDGE] Instalación finalizada: {github_url}")
+                    print(f"[BRIDGE] InstalaciÃ³n finalizada: {github_url}")
                     self.main.statsUpdated.emit()
                 
-                # Intentamos encontrar el ID corto para facilitar la lógica de la UI
+                # Intentamos encontrar el ID corto para facilitar la lÃ³gica de la UI
                 emu_id = github_url
                 for e in AVAILABLE_EMULATORS:
                     if e.get("github") == github_url or e.get("github_win") == github_url or e.get("github_linux") == github_url:
@@ -82,7 +82,7 @@ class EmulatorsBridge(QObject):
                         
                 self.main.downloadFinished.emit(emu_id, success, message)
             except Exception as e:
-                print(f"[BRIDGE] Fallo en instalación {github_url}: {e}")
+                print(f"[BRIDGE] Fallo en instalaciÃ³n {github_url}: {e}")
                 
                 emu_id = github_url
                 for e in AVAILABLE_EMULATORS:
@@ -104,7 +104,7 @@ class EmulatorsBridge(QObject):
             try:
                 async for step in self.emu_manager.desinstalar_emulador(github_url):
                     low_step = step.lower()
-                    if "éxito" in low_step or "desinstalado" in low_step:
+                    if "Ã©xito" in low_step or "desinstalado" in low_step:
                         success = True
                         message = step
                     elif "error" in low_step:
@@ -112,7 +112,7 @@ class EmulatorsBridge(QObject):
                         message = step
                 
                 if success:
-                    print(f"[BRIDGE] Desinstalación finalizada: {github_url}")
+                    print(f"[BRIDGE] DesinstalaciÃ³n finalizada: {github_url}")
                 
                 emu_id = github_url
                 for e in AVAILABLE_EMULATORS:
@@ -123,7 +123,7 @@ class EmulatorsBridge(QObject):
                 self.main.downloadFinished.emit(emu_id, success, message)
                 self.main.statsUpdated.emit()
             except Exception as e:
-                print(f"[BRIDGE] Fallo en desinstalación {github_url}: {e}")
+                print(f"[BRIDGE] Fallo en desinstalaciÃ³n {github_url}: {e}")
                 
                 emu_id = github_url
                 for e in AVAILABLE_EMULATORS:
@@ -136,7 +136,7 @@ class EmulatorsBridge(QObject):
 
     @Slot(str)
     def openEmulatorFolder(self, github_url):
-        """Abre la carpeta de instalación del emulador en el explorador de archivos."""
+        """Abre la carpeta de instalaciÃ³n del emulador en el explorador de archivos."""
         info = self.emu_manager.installed_emus.get(github_url)
         if info:
             files = info.get("files", [])
@@ -168,7 +168,7 @@ class EmulatorsBridge(QObject):
 
     @Slot(str)
     def openManualUrl(self, github_url):
-        """Abre la página oficial de descarga del emulador."""
+        """Abre la pÃ¡gina oficial de descarga del emulador."""
         emu = next((e for e in AVAILABLE_EMULATORS if e["github"] == github_url), None)
         if emu:
             url = emu.get("manual_url", emu.get("github"))
@@ -181,5 +181,5 @@ class EmulatorsBridge(QObject):
 
     @Slot(str, str, "QVariant")
     def saveEmulatorTweak(self, emu_id, tweak_id, value):
-        """Guarda un ajuste específico."""
+        """Guarda un ajuste especÃ­fico."""
         self.emu_manager.tweak_manager.save_tweak(emu_id, tweak_id, value)

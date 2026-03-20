@@ -1,12 +1,12 @@
-"""
-library.py — Bridge especializado para la gestión de la biblioteca de juegos.
+﻿"""
+library.py â€” Bridge especializado para la gestiÃ³n de la biblioteca de juegos.
 
 Este sub-bridge maneja:
-1. Estadísticas del dashboard (juegos instalados, tiempo total).
+1. EstadÃ­sticas del dashboard (juegos instalados, tiempo total).
 2. Actividad reciente de juego.
 3. Listado de consolas con ROMs.
-4. Información detallada de los juegos y sus metadatos.
-5. Sincronización (escaneo) de ROMs y descarga de arte/info.
+4. InformaciÃ³n detallada de los juegos y sus metadatos.
+5. SincronizaciÃ³n (escaneo) de ROMs y descarga de arte/info.
 """
 
 import os
@@ -15,17 +15,17 @@ from typing import List, Dict, Any, Optional
 from collections import defaultdict
 
 from PySide6.QtCore import QObject, Slot, Property, Signal, QUrl
-import core.scanner as scanner
-from core.constants import AVAILABLE_EMULATORS
-from core.artwork import obtener_ruta_caratula, obtener_ruta_fondo_consola, obtener_ruta_background
-from core.metadata import obtener_metadata_local, guardar_metadata_local
+import core.logic.scanner as scanner
+from core.logic.constants import AVAILABLE_EMULATORS
+from core.logic.artwork import obtener_ruta_caratula, obtener_ruta_fondo_consola, obtener_ruta_background
+from core.logic.metadata import obtener_metadata_local, guardar_metadata_local
 
 class LibraryBridge(QObject):
     """
-    Gestiona la lógica de la biblioteca y la exposición de datos de juegos a QML.
+    Gestiona la lÃ³gica de la biblioteca y la exposiciÃ³n de datos de juegos a QML.
     """
     
-    # --- Señales de Notificación ---
+    # --- SeÃ±ales de NotificaciÃ³n ---
     dashboardStatsChanged = Signal()
     recentActivityChanged = Signal()
     scannedConsolesChanged = Signal()
@@ -33,7 +33,7 @@ class LibraryBridge(QObject):
     def __init__(self, main_bridge):
         """
         Args:
-            main_bridge (AppBridge): Referencia al bridge principal para emitir señales globales.
+            main_bridge (AppBridge): Referencia al bridge principal para emitir seÃ±ales globales.
         """
         super().__init__()
         self.main = main_bridge
@@ -48,7 +48,7 @@ class LibraryBridge(QObject):
     @Property(dict, notify=dashboardStatsChanged)
     def dashboardStats(self):
         """
-        Calcula las estadísticas generales para la pantalla de inicio.
+        Calcula las estadÃ­sticas generales para la pantalla de inicio.
         
         Returns:
             dict: {installed, totalRoms, totalConsoles, totalHours, totalTimeDisplay}
@@ -77,7 +77,7 @@ class LibraryBridge(QObject):
     @Property(list, notify=recentActivityChanged)
     def recentActivity(self):
         """
-        Retorna la lista de los últimos 10 juegos jugados con su tiempo y carátula.
+        Retorna la lista de los Ãºltimos 10 juegos jugados con su tiempo y carÃ¡tula.
         """
         biblioteca = scanner.cargar_biblioteca_cache()
         juegos_con_tiempo = []
@@ -113,7 +113,7 @@ class LibraryBridge(QObject):
     def scannedConsoles(self):
         """
         Retorna la lista de consolas que tienen al menos un juego en la biblioteca.
-        Utilizado para mostrar la cuadrícula de plataformas.
+        Utilizado para mostrar la cuadrÃ­cula de plataformas.
         """
         lib = scanner.cargar_biblioteca_cache()
         result = []
@@ -151,7 +151,7 @@ class LibraryBridge(QObject):
     @Slot(str, result=list)
     def getGamesForConsole(self, console_id):
         """
-        Retorna la lista detallada de juegos para una consola específica.
+        Retorna la lista detallada de juegos para una consola especÃ­fica.
         
         Args:
             console_id (str): ID del emulador/consola (ej: 'mgba').
@@ -227,7 +227,7 @@ class LibraryBridge(QObject):
     @Slot(str, result=int)
     def checkLaunchState(self, game_path):
         """
-        Verifica si el juego ya está en ejecución.
+        Verifica si el juego ya estÃ¡ en ejecuciÃ³n.
         Devuelve: 0 (No), 1 (Otro juego), 2 (Este mismo juego).
         """
         if not self.emu_manager.is_emulator_running():
@@ -246,9 +246,9 @@ class LibraryBridge(QObject):
     @Slot(bool, bool, str)
     def scanGames(self, dl_artwork=True, dl_metadata=True, emu_id=None):
         """
-        Inicia el proceso asíncrono de escaneo y actualización de la biblioteca.
+        Inicia el proceso asÃ­ncrono de escaneo y actualizaciÃ³n de la biblioteca.
         """
-        from core.scanner import escanear_roms, asdict
+        from core.logic.scanner import escanear_roms, asdict
         async def do_scan():
             try:
                 msg = f"[BRIDGE] Iniciando escaneo (Arte={dl_artwork}, Meta={dl_metadata}"
@@ -264,7 +264,7 @@ class LibraryBridge(QObject):
                 
                 if dl_artwork:
                     self.main.scanProgress.emit(0.1, self.translator.t("lib_status_artwork"))
-                    from core.artwork import descargar_caratulas_biblioteca
+                    from core.logic.artwork import descargar_caratulas_biblioteca
                     def on_art_progress(curr, total, name):
                         prog = 0.1 + (curr / total) * 0.4
                         self.main.scanProgress.emit(prog, self.translator.t("dl_status_art", name))
@@ -275,7 +275,7 @@ class LibraryBridge(QObject):
 
                 if dl_metadata:
                     self.main.scanProgress.emit(0.5, self.translator.t("lib_status_processing"))
-                    from core.metadata import descargar_metadata_biblioteca
+                    from core.logic.metadata import descargar_metadata_biblioteca
                     def on_meta_progress(curr, total, name):
                         prog = 0.5 + (curr / total) * 0.5
                         self.main.scanProgress.emit(prog, self.translator.t("dl_status_meta", name))
@@ -284,7 +284,7 @@ class LibraryBridge(QObject):
                     print(f"[BRIDGE] Metadatos completados: {stats_meta}")
                     self.main.statsUpdated.emit()
                 
-                print("[BRIDGE] Proceso de sincronización finalizado.")
+                print("[BRIDGE] Proceso de sincronizaciÃ³n finalizado.")
                 self.main.scanProgress.emit(1.0, self.translator.t("lib_status_complete"))
                 self.main.statsUpdated.emit()
                 await asyncio.sleep(3)

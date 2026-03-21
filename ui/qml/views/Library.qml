@@ -399,15 +399,15 @@ Item {
         }
     }
 
-    Rectangle {
-        id: emptyState
-        anchors.centerIn: parent
-        implicitWidth: 380
-        implicitHeight: 540
-        radius: 40
-        color: "#11131a"
-        border.color: "#252835"
-        border.width: 1
+        Rectangle {
+            id: emptyState
+            anchors.centerIn: parent
+            implicitWidth: 380
+            implicitHeight: 540
+            radius: 40
+            color: window.themeCardBg
+            border.color: window.themeBorder
+            border.width: 1
         visible: isEmpty
         opacity: visible ? 1.0 : 0.0
         Behavior on opacity { 
@@ -522,9 +522,18 @@ Item {
                 height: parent.height - (40 * responsiveScale)
                 anchors.centerIn: parent
                 radius: 45 * responsiveScale
-                color: "#13151d"
-                border.color: isCurrent ? accentColor : "#2a2d3a"
+                color: window.themeCardBg
+                border.color: isCurrent ? accentColor : Qt.rgba(1,1,1,0.08)
                 border.width: isCurrent ? 3 : 1
+                
+                layer.enabled: true
+                layer.effect: MultiEffect {
+                    shadowEnabled: true; shadowColor: isCurrent ? accentColor : "black"
+                    shadowBlur: isCurrent ? 2.0 : 1.0; shadowOpacity: isCurrent ? 0.8 : 0.5
+                    shadowVerticalOffset: 6
+                }
+                
+                Rectangle { anchors.fill: parent; radius: 44 * responsiveScale; anchors.margins: 1; color: "transparent"; border.color: Qt.rgba(1,1,1,0.05); border.width: 1 }
                 
                 Rectangle {
                     id: clickRipple
@@ -601,9 +610,11 @@ Item {
                             width: 140
                             height: 140
                             radius: 70
-                            color: "#0a0b12"
-                            border.color: Qt.alpha(accentColor, 0.5)
+                            color: Qt.rgba(0,0,0,0.4)
+                            border.color: isCurrent ? accentColor : Qt.rgba(1,1,1,0.1)
                             border.width: 2
+                            layer.enabled: isCurrent
+                            layer.effect: MultiEffect { shadowEnabled: true; shadowColor: accentColor; shadowBlur: 1.2; shadowOpacity: 0.8 }
                             Icon { 
                                 anchors.centerIn: parent
                                 name: "library"
@@ -922,68 +933,83 @@ Item {
                         id: cardBody
                         anchors.fill: parent
                         anchors.margins: 12
-                        radius: 28
+                        radius: 20
                         color: window.themeCardBg
+                        border.color: Qt.alpha(modelData.accentColor || neonCyan, isHovered ? 0.8 : 0.4)
+                        border.width: 1
                         clip: true
                         scale: isHovered ? 1.05 : 1.0
                         z: isHovered ? 10 : 1
                         Behavior on scale { NumberAnimation { duration: 350; easing.type: Easing.OutBack } }
                         
-                        // Glassmorphism border panel
-                        Rectangle { 
+                        // Efecto de brillo interior tipo StatCard
+                        Rectangle {
                             anchors.fill: parent
-                            radius: 28
-                            color: "transparent"
-                            border.color: isHovered ? (modelData.accentColor || themeAccent) : window.themeBorder
-                            border.width: isHovered ? 2 : 1
-                            opacity: isHovered ? 1.0 : 0.6
-                            Behavior on border.width { 
-                                NumberAnimation { duration: 200 } 
-                            } 
-                        }
-                        Image { 
-                            id: coverImg
-                            anchors.fill: parent
-                            anchors.margins: 4
-                            source: modelData.cover || ""
-                            fillMode: Image.PreserveAspectCrop
-                            opacity: modelData.cover ? (isHovered ? 1.0 : 0.8) : 0.1
-                            scale: isHovered ? 1.1 : 1.0
-                            Behavior on scale { 
-                                NumberAnimation { duration: 1200; easing.type: Easing.OutCubic } 
-                            } 
-                        }
-                        Rectangle { 
-                            id: infoOverlay
-                            anchors.bottom: parent.bottom
-                            width: parent.width
-                            height: isHovered ? 110 : 70
-                            gradient: Gradient { 
-                                GradientStop { position: 0.0; color: "transparent" }
-                                GradientStop { position: 0.4; color: Qt.rgba(10/255, 12/255, 20/255, 0.9) }
-                                GradientStop { position: 1.0; color: "#0a0c14" } 
+                            anchors.margins: 1
+                            radius: 19
+                            gradient: Gradient {
+                                GradientStop { position: 0.0; color: Qt.alpha("white", 0.1) }
+                                GradientStop { position: 0.4; color: "transparent" }
+                                GradientStop { position: 1.0; color: Qt.alpha(modelData.accentColor || neonCyan, 0.15) }
                             }
-                            Behavior on height { NumberAnimation { duration: 300 } }
-                            ColumnLayout { 
+                        }
+
+                        layer.enabled: true
+                        layer.effect: MultiEffect {
+                            shadowEnabled: true; shadowColor: isHovered ? (modelData.accentColor || neonCyan) : "black"
+                            shadowBlur: isHovered ? 2.5 : 1.0; shadowOpacity: isHovered ? 0.8 : 0.4
+                            shadowVerticalOffset: 4
+                        }
+                        
+                        // "Marco" fotográfico interior para aislar la carátula cuadrada de los bordes redondeados
+                        Rectangle {
+                            anchors.fill: parent
+                            anchors.margins: 15 // Empuja la imagen hacia adentro para que no toque las curvas
+                            color: "transparent"
+                            border.color: Qt.alpha(modelData.accentColor || neonCyan, 0.3)
+                            border.width: 1
+                            
+                            Image { 
+                                id: coverImg
                                 anchors.fill: parent
-                                anchors.margins: 16
-                                Layout.topMargin: 20
-                                spacing: 4
-                                Label { 
-                                    Layout.fillWidth: true
-                                    text: modelData.name
-                                    color: "white"
-                                    font.pixelSize: 14
-                                    font.bold: true
-                                    elide: Text.ElideRight
-                                    maximumLineCount: 2
-                                    wrapMode: Text.WordWrap 
+                                anchors.margins: 1
+                                source: modelData.cover || ""
+                                fillMode: Image.PreserveAspectCrop
+                                opacity: modelData.cover ? (isHovered ? 1.0 : 0.8) : 0.1
+                            }
+                            
+                            Rectangle { 
+                                id: infoOverlay
+                                anchors.bottom: parent.bottom
+                                width: parent.width
+                                height: isHovered ? 90 : 60
+                                z: 5
+                                gradient: Gradient { 
+                                    GradientStop { position: 0.0; color: "transparent" }
+                                    GradientStop { position: 0.4; color: Qt.rgba(10/255, 12/255, 20/255, 0.9) }
+                                    GradientStop { position: 1.0; color: "#0a0c14" } 
                                 }
-                                Label { 
-                                    text: "R " + modelData.playtime
-                                    color: "#b0ffffff"
-                                    font.pixelSize: 11
-                                    visible: isHovered 
+                                Behavior on height { NumberAnimation { duration: 300 } }
+                                ColumnLayout { 
+                                    anchors.fill: parent
+                                    anchors.margins: 10
+                                    spacing: 4
+                                    Label { 
+                                        Layout.fillWidth: true
+                                        text: modelData.name
+                                        color: "white"
+                                        font.pixelSize: 13
+                                        font.bold: true
+                                        elide: Text.ElideRight
+                                        maximumLineCount: 2
+                                        wrapMode: Text.WordWrap 
+                                    }
+                                    Label { 
+                                        text: "R " + modelData.playtime
+                                        color: Qt.alpha("white", 0.6)
+                                        font.pixelSize: 11
+                                        visible: isHovered 
+                                    }
                                 }
                             }
                         }
@@ -1002,7 +1028,7 @@ Item {
                             height: 38
                             radius: 19
                             color: infoBtnArea.containsMouse ? (modelData.accentColor || libraryRoot.currentPlatformColor) : "#e00a0c14"
-                            border.color: modelData.accentColor || libraryRoot.currentPlatformColor
+                            border.color: modelData.accentColor || neonCyan
                             border.width: 1
                             visible: isHovered
                             Icon { 
@@ -1027,7 +1053,7 @@ Item {
                             height: 38
                             radius: 19
                             color: favBtnArea.containsMouse ? "#ff4d4d" : (modelData.isFavorite ? "#33ff4d4d" : "#e00a0c14")
-                            border.color: modelData.isFavorite ? "#ff4d4d" : (modelData.accentColor || libraryRoot.currentPlatformColor)
+                            border.color: modelData.isFavorite ? window.neonPink : (modelData.accentColor || neonCyan)
                             border.width: 1
                             Icon { 
                                 anchors.centerIn: parent
@@ -1301,16 +1327,24 @@ Item {
         property color accentColor: window.themeAccent
         
         background: Rectangle { 
-            color: "#161923"
+            color: window.themeCardBg
             radius: 30
-            border.color: "#33ffffff"
+            border.color: Qt.rgba(1,1,1,0.15)
             border.width: 1
+            
+            layer.enabled: true
+            layer.effect: MultiEffect {
+                shadowEnabled: true; shadowColor: "black"
+                shadowBlur: 1.5; shadowOpacity: 0.8
+                shadowVerticalOffset: 6
+            }
+            
             Rectangle { 
                 anchors.fill: parent
                 anchors.margins: 1
                 radius: 29
                 color: "transparent"
-                border.color: Qt.alpha(tweakPopup.accentColor, 0.1)
+                border.color: Qt.rgba(tweakPopup.accentColor.r, tweakPopup.accentColor.g, tweakPopup.accentColor.b, 0.1)
                 border.width: 1 
             } 
         }

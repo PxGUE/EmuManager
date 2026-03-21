@@ -1,10 +1,11 @@
 import QtQuick
+import QtQuick.Effects
 import QtQuick.Controls
 import QtQuick.Layouts
 
 /**
  * EmulatorTweakPopup.qml
- * Popup modularizado para configurar ajustes específicos de cada emulador.
+ * Popup modularizado para configurar ajustes especÃ­ficos de cada emulador.
  */
 
 Popup {
@@ -16,7 +17,7 @@ Popup {
     focus: true
     closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
 
-    // --- PROPIEDADES PÚBLICAS ---
+    // --- PROPIEDADES PÃšBLICAS ---
     property string currentEmuId: ""
     property string currentEmuName: ""
     property color accentColor: "#4da6ff"
@@ -24,15 +25,21 @@ Popup {
     // El objeto 'bridge' debe ser accesible globalmente o pasado
 
     background: Rectangle {
-        color: "#121520"
+        color: window.themeCardBg
         radius: 24
-        border.color: "#33ffffff"
+        border.color: Qt.rgba(1,1,1,0.15)
         border.width: 1
+        
+        layer.enabled: true
+        layer.effect: MultiEffect {
+            shadowEnabled: true; shadowColor: "black"
+            shadowBlur: 1.5; shadowOpacity: 0.8; shadowVerticalOffset: 6
+        }
         
         // Brillo interior sutil
         Rectangle {
-            anchors.fill: parent; anchors.margins: 1; radius: 31
-            color: "transparent"; border.color: Qt.alpha(root.accentColor, 0.05); border.width: 1
+            anchors.fill: parent; anchors.margins: 1; radius: 23
+            color: "transparent"; border.color: Qt.rgba(root.accentColor.r, root.accentColor.g, root.accentColor.b, 0.1); border.width: 1
         }
     }
 
@@ -127,12 +134,12 @@ Popup {
                             font.pixelSize: 17; color: "white"; font.weight: Font.DemiBold
                         }
                         Label {
-                            text: modelData.description || "Ajuste dinámico"
+                            text: modelData.description || "Ajuste dinÃ¡mico"
                             font.pixelSize: 11; color: "#8899aa"; font.weight: Font.Medium
                         }
                     }
 
-                    // Selectores dinámicos según el tipo de dato
+                    // Selectores dinÃ¡micos segÃºn el tipo de dato
                     Loader {
                         sourceComponent: {
                             if (modelData.type === "bool") return switchComp;

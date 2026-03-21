@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import QtQuick.Effects
 import "./views"
 import "./components"
 
@@ -11,14 +12,21 @@ ApplicationWindow {
     visible: true
     title: bridge ? (bridge.appName + " " + bridge.appVersion) : "EmuManager"
     
-    // --- PREMIUM THEME ---
-    property color themeBg: "#0e0f1a"
-    property color themeAccent: "#7c6ff7" // Púrpura brillante de la referencia
-    property color themeCardBg: Qt.rgba(1, 1, 1, 0.05)
-    property color themeBorder: Qt.rgba(1, 1, 1, 0.08)
+    // --- NEON GLASS THEME ---
+    property color themeBg: "#0d0f17"
+    property color themeAccent: "#6ff7d4" // Bright Cyan as new base accent
+    property color themeCardBg: Qt.rgba(0.06, 0.08, 0.12, 0.6) // Glassmorphism base
+    property color themeBorder: Qt.rgba(1, 1, 1, 0.15) // Thicker glass border
     property color themeTextMain: "#ffffff"
-    property color themeTextDim: "#9494a5"
-    property color themeSidebarBg: "#0a0b14"
+    property color themeTextDim: "#85889a"
+    property color themeSidebarBg: "#080a10"
+    
+    // --- NEON PALETTE ---
+    property color neonCyan: "#4dc6a6"
+    property color neonPurple: "#a56ff7" // Púrpura brillante de la referencia
+    property color neonPink: "#f76fbc"
+    property color neonYellow: "#f0d040"
+    property color neonBlue: "#4da6ff"
     
     // Sincronizar fullscreen mediante señal
     Connections {
@@ -81,10 +89,18 @@ ApplicationWindow {
                     horizontalAlignment: Text.AlignHCenter
                     font.pixelSize: 15
                     font.weight: Font.Black
-                    color: themeAccent
+                    color: neonPurple
                     Layout.topMargin: 24
                     Layout.bottomMargin: 8
                     renderType: Text.NativeRendering
+                    
+                    layer.enabled: true
+                    layer.effect: MultiEffect {
+                        shadowEnabled: true
+                        shadowColor: neonPurple
+                        shadowBlur: 1.2
+                        shadowOpacity: 0.8
+                    }
                 }
 
                 Rectangle {
@@ -115,24 +131,61 @@ ApplicationWindow {
                         height: 50
                         
                         Rectangle {
+                            id: highlightBg
                             anchors.fill: parent
                             anchors.margins: 4
                             anchors.leftMargin: 12
                             anchors.rightMargin: 12
-                            radius: 8
-                            color: sidebarList.currentIndex === index ? "#2a2f45" : 
-                                   (mouseArea.containsMouse ? "#151726" : "transparent")
+                            radius: 12
+                            color: "transparent"
                             
-                            Behavior on color { ColorAnimation { duration: 150 } }
+                            Rectangle {
+                                id: mainHighlight
+                                anchors.fill: parent
+                                radius: 12
+                                opacity: sidebarList.currentIndex === index ? 0.8 : (mouseArea.containsMouse ? 0.2 : 0)
+                                gradient: Gradient {
+                                    orientation: Gradient.Horizontal
+                                    GradientStop { position: 0.0; color: sidebarList.currentIndex === index ? Qt.rgba(neonCyan.r, neonCyan.g, neonCyan.b, 0.4) : Qt.rgba(1,1,1,0.05) }
+                                    GradientStop { position: 1.0; color: sidebarList.currentIndex === index ? Qt.rgba(neonPurple.r, neonPurple.g, neonPurple.b, 0.1) : "transparent" }
+                                }
+                                Behavior on opacity { NumberAnimation { duration: 200 } }
+                            }
+                            
+                            // Glowing border for active item
+                            Rectangle {
+                                anchors.fill: parent
+                                radius: 12
+                                color: "transparent"
+                                border.color: Qt.rgba(neonCyan.r, neonCyan.g, neonCyan.b, 0.5)
+                                border.width: 1
+                                visible: sidebarList.currentIndex === index
+                                opacity: 0.6
+                                
+                                layer.enabled: true
+                                layer.effect: MultiEffect {
+                                    shadowEnabled: true
+                                    shadowColor: neonCyan
+                                    shadowBlur: 1.0
+                                    shadowOpacity: 0.8
+                                }
+                            }
 
-                            // Indicador activo (Línea vertical izquierda sutil)
+                            // Indicador activo (Glow sutil)
                             Rectangle {
                                 anchors.left: parent.left
                                 anchors.verticalCenter: parent.verticalCenter
-                                width: 3; height: 18; radius: 1.5
-                                color: themeAccent
+                                width: 4; height: 24; radius: 2
+                                color: neonCyan
                                 visible: sidebarList.currentIndex === index
-                                opacity: 0.8
+                                opacity: 0.9
+                                layer.enabled: true
+                                layer.effect: MultiEffect {
+                                    shadowEnabled: true
+                                    shadowColor: neonCyan
+                                    shadowBlur: 1.2
+                                    shadowOpacity: 0.6
+                                }
                             }
                         }
 
@@ -144,9 +197,16 @@ ApplicationWindow {
                             Icon {
                                 name: model.icon
                                 size: 18
-                                color: sidebarList.currentIndex === index ? "white" : themeTextDim
+                                color: sidebarList.currentIndex === index ? neonCyan : themeTextDim
                                 opacity: sidebarList.currentIndex === index ? 1.0 : 0.5
                                 Behavior on color { ColorAnimation { duration: 150 } }
+                                layer.enabled: sidebarList.currentIndex === index
+                                layer.effect: MultiEffect {
+                                    shadowEnabled: true
+                                    shadowColor: neonCyan
+                                    shadowBlur: 0.8
+                                    shadowOpacity: 0.8
+                                }
                             }
 
                             Text {
@@ -157,6 +217,13 @@ ApplicationWindow {
                                 font.pixelSize: 13
                                 font.bold: sidebarList.currentIndex === index
                                 font.letterSpacing: 0.5
+                                layer.enabled: sidebarList.currentIndex === index
+                                layer.effect: MultiEffect {
+                                    shadowEnabled: true
+                                    shadowColor: "white"
+                                    shadowBlur: 0.4
+                                    shadowOpacity: 0.3
+                                }
                             }
                         }
 

@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Effects
 import QtQuick.Layouts
 import QtQuick.Controls
 import QtQuick.Dialogs
@@ -33,7 +34,7 @@ Item {
     // Diccionario global de actualizaciones detectadas
     property var updateResults: ({})
     
-    // Obtenemos info específica para el emulador seleccionado actualmente
+    // Obtenemos info especÃ­fica para el emulador seleccionado actualmente
     property var updateInfo: (currentEmu && updateResults) ? updateResults[currentEmu.id] || null : null
     property bool isUpdateAvailable: updateInfo && updateInfo.update_available && isInstalled
 
@@ -42,7 +43,7 @@ Item {
     
     Timer { id: statusTimer; interval: 5000; onTriggered: statusText = "" }
 
-    // --- POPUP DE CONFIGURACIÓN (REDISEÑO CON CENTRADO ABSOLUTO) ---
+    // --- POPUP DE CONFIGURACIÃ“N (REDISEÃ‘O CON CENTRADO ABSOLUTO) ---
     Popup {
         id: configPopup
         parent: Overlay.overlay
@@ -161,25 +162,33 @@ Item {
     // --- TARJETA PRINCIPAL ---
     Rectangle {
         id: container
-        anchors.fill: parent; radius: 40; color: "#0a0b10"
-        border.color: cardHover.hovered ? accentColor : "#1c1e26"
+        anchors.fill: parent; radius: 40; color: window.themeCardBg
+        border.color: cardHover.hovered ? accentColor : Qt.rgba(1,1,1,0.08)
         border.width: cardHover.hovered ? 2 : 1; clip: true
         scale: cardHover.hovered ? 1.02 : 1.0
         Behavior on scale { NumberAnimation { duration: 400; easing.type: Easing.OutBack } }
 
-        // Glow de fondo dinámico Premium (Simulado para compatibilidad)
+        layer.enabled: true
+        layer.effect: MultiEffect {
+            shadowEnabled: true; shadowColor: cardHover.hovered ? accentColor : "black"
+            shadowBlur: cardHover.hovered ? 2.5 : 1.0; shadowOpacity: cardHover.hovered ? 0.8 : 0.4
+            shadowVerticalOffset: 4
+        }
+        
         Rectangle {
-            anchors.centerIn: parent
-            width: parent.width * 1.4; height: parent.height * 1.4
-            radius: 100
-            opacity: cardHover.hovered ? 0.25 : 0.0
+            anchors.fill: parent; anchors.margins: 1; radius: 39; color: "transparent"
+            border.color: Qt.rgba(1,1,1,0.05); border.width: 1
+        }
+
+        // Inner Glass glare
+        Rectangle {
+            anchors.fill: parent
+            radius: 40
             gradient: Gradient {
-                orientation: Gradient.Vertical
-                GradientStop { position: 0.0; color: "transparent" }
-                GradientStop { position: 0.5; color: accentColor }
+                GradientStop { position: 0.0; color: cardHover.hovered ? Qt.rgba(accentColor.r, accentColor.g, accentColor.b, 0.25) : Qt.rgba(1,1,1,0.05) }
                 GradientStop { position: 1.0; color: "transparent" }
             }
-            Behavior on opacity { NumberAnimation { duration: 450 } }
+            Behavior on color { ColorAnimation { duration: 400 } }
         }
 
         ColumnLayout {
@@ -189,25 +198,41 @@ Item {
             Item {
                 Layout.fillWidth: true; Layout.preferredHeight: 140
                 Rectangle {
-                    anchors.centerIn: parent; width: 100; height: 100; radius: 50; color: "#13151d"
-                    border.color: cardHover.hovered ? accentColor : "#252836"; border.width: 2
-                    Label { anchors.centerIn: parent; text: name !== "" ? name.charAt(0).toUpperCase() : "?"; font.pixelSize: 44; font.bold: true; color: accentColor }
+                    anchors.centerIn: parent; width: 100; height: 100; radius: 50; color: Qt.rgba(0,0,0,0.4)
+                    border.color: cardHover.hovered ? accentColor : Qt.rgba(1,1,1,0.1); border.width: 2
                     
-                    // Indicador de Actualización
+                    layer.enabled: cardHover.hovered
+                    layer.effect: MultiEffect {
+                        shadowEnabled: true; shadowColor: accentColor; shadowBlur: 1.2; shadowOpacity: 0.8
+                    }
+                    
+                    Label { anchors.centerIn: parent; text: name !== "" ? name.charAt(0).toUpperCase() : "?"; font.pixelSize: 44; font.bold: true; color: accentColor 
+                        layer.enabled: true
+                        layer.effect: MultiEffect { shadowEnabled: true; shadowColor: accentColor; shadowBlur: 1.0; shadowOpacity: 0.8 }
+                    }
+                    
+                    // Indicador de ActualizaciÃ³n
                     Rectangle {
                         anchors.top: parent.top; anchors.right: parent.right; width: 24; height: 24; radius: 12
-                        color: "#ffaa00"; border.color: "#0a0b10"; border.width: 2
+                        color: window.neonYellow; border.color: window.themeBg; border.width: 2
                         visible: updateInfo && updateInfo.update_available
+                        
+                        layer.enabled: true
+                        layer.effect: MultiEffect { shadowEnabled: true; shadowColor: window.neonYellow; shadowBlur: 0.8; shadowOpacity: 1.0 }
                         
                         HoverHandler { id: updateHover }
                         
-                        Icon { anchors.centerIn: parent; name: "arrow_up"; color: "white"; size: 14 }
+                        Icon { anchors.centerIn: parent; name: "arrow_up"; color: "black"; size: 14 }
                         ToolTip.visible: updateHover.hovered; ToolTip.text: updateInfo ? tr("maint_update_available", updateInfo.latest_version) : ""
                     }
 
                     Rectangle {
                         anchors.bottom: parent.bottom; anchors.right: parent.right; width: 28; height: 28; radius: 14
-                        color: isInstalled ? "#00ff88" : "#2a2d3a"; border.color: "#0a0b10"; border.width: 3
+                        color: isInstalled ? window.neonCyan : "transparent"; border.color: isInstalled ? window.themeBg : Qt.rgba(1,1,1,0.2); border.width: 3
+                        
+                        layer.enabled: isInstalled
+                        layer.effect: MultiEffect { shadowEnabled: true; shadowColor: window.neonCyan; shadowBlur: 0.8; shadowOpacity: 0.8 }
+
                         Icon { 
                             anchors.centerIn: parent
                             name: isInstalled ? "" : "plus"
@@ -219,7 +244,7 @@ Item {
                             anchors.centerIn: parent
                             name: "check"
                             size: 14
-                            color: "white"
+                            color: "black"
                             visible: isInstalled
                         }
                     }

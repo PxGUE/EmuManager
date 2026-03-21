@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Effects
 import QtQuick.Controls
 import QtQuick.Layouts
 
@@ -35,16 +36,22 @@ Popup {
     }
 
     background: Rectangle {
-        color: "#121520"
+        color: window.themeCardBg
         radius: 24
-        border.color: "#33ffffff"
+        border.color: Qt.rgba(1,1,1,0.15)
         border.width: 1
+        
+        layer.enabled: true
+        layer.effect: MultiEffect {
+            shadowEnabled: true; shadowColor: "black"
+            shadowBlur: 1.5; shadowOpacity: 0.8; shadowVerticalOffset: 6
+        }
 
         // Sutil brillo interior
         Rectangle {
             anchors.fill: parent; anchors.margins: 1; radius: 23
             color: "transparent"
-            border.color: Qt.alpha(accentColor, 0.1)
+            border.color: Qt.rgba(accentColor.r, accentColor.g, accentColor.b, 0.1)
             border.width: 1
         }
     }

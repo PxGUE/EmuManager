@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Effects
 import QtQuick.Layouts
 import QtQuick.Controls
 
@@ -14,7 +15,7 @@ Popup {
     
     property var gameData: null
     
-    // Señal para avisar a la vista que refresque
+    // SeÃ±al para avisar a la vista que refresque
     signal metadataSaved()
 
     function tr(key, ...args) {
@@ -35,15 +36,21 @@ Popup {
     }
 
     background: Rectangle {
-        color: window.themeSidebarBg
+        color: window.themeCardBg
         radius: 30
-        border.color: window.themeBorder
+        border.color: Qt.rgba(1,1,1,0.15)
         border.width: 1
+        
+        layer.enabled: true
+        layer.effect: MultiEffect {
+            shadowEnabled: true; shadowColor: "black"
+            shadowBlur: 1.5; shadowOpacity: 0.8; shadowVerticalOffset: 6
+        }
         
         // Efecto de brillo superior
         Rectangle {
             anchors.top: parent.top
-            width: parent.width; height: 100; radius: 30; opacity: 0.1
+            width: parent.width; height: 100; radius: 30; opacity: 0.15
             gradient: Gradient {
                 GradientStop { position: 0.0; color: window.themeAccent }
                 GradientStop { position: 1.0; color: "transparent" }
@@ -82,7 +89,7 @@ Popup {
             Layout.fillHeight: true
             spacing: 30
 
-            // Izquierda: Previsualización
+            // Izquierda: PrevisualizaciÃ³n
             ColumnLayout {
                 Layout.preferredWidth: 200
                 spacing: 15
@@ -131,7 +138,7 @@ Popup {
                     width: parent.width
                     spacing: 20
 
-                    // Título
+                    // TÃ­tulo
                     ColumnLayout {
                         spacing: 8; Layout.fillWidth: true
                         Label { text: tr("lib_title"); font.pixelSize: 12; color: "#888899" }
@@ -186,7 +193,7 @@ Popup {
                         }
                     }
 
-                    // Descripción
+                    // DescripciÃ³n
                     ColumnLayout {
                         spacing: 8; Layout.fillWidth: true
                         Label { text: tr("lib_desc"); font.pixelSize: 12; color: "#888899" }
@@ -242,10 +249,15 @@ Popup {
                     radius: 12
                     gradient: Gradient {
                         orientation: Gradient.Horizontal
-                        GradientStop { position: 0.0; color: window.themeAccent }
-                        GradientStop { position: 1.0; color: "#b36ff7" } // Variación violeta
+                        GradientStop { position: 0.0; color: window.neonCyan }
+                        GradientStop { position: 1.0; color: window.neonPurple }
                     }
                     opacity: btnSave.pressed ? 0.8 : 1.0
+                    
+                    layer.enabled: true
+                    layer.effect: MultiEffect {
+                        shadowEnabled: true; shadowColor: window.neonCyan; shadowBlur: 0.8; shadowOpacity: 0.6
+                    }
                 }
                 contentItem: Label { text: parent.text; color: "white"; font.bold: true; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
             }

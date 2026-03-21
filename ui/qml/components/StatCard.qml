@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Effects
 import QtQuick.Layouts
 import QtQuick.Controls
 
@@ -21,7 +22,7 @@ Item {
     Layout.maximumWidth: 400
     Layout.preferredHeight: 110
     
-    // Animación de conteo
+    // AnimaciÃ³n de conteo
     NumberAnimation {
         id: counterAnim
         target: cardRoot
@@ -32,7 +33,7 @@ Item {
         easing.type: Easing.OutExpo
     }
 
-    // Reiniciar animación cuando la tarjeta se hace visible (al cambiar de pestaña)
+    // Reiniciar animaciÃ³n cuando la tarjeta se hace visible (al cambiar de pestaÃ±a)
     onVisibleChanged: {
         if (visible) {
             displayValue = 0
@@ -51,18 +52,28 @@ Item {
         anchors.fill: parent
         radius: 20
         color: window.themeCardBg
-        border.color: window.themeBorder
+        border.color: Qt.rgba(cardRoot.accentColor.r, cardRoot.accentColor.g, cardRoot.accentColor.b, 0.4)
         border.width: 1
         
-        // Efecto de brillo interior (Glassmorphism)
+        // Efecto de brillo interior (Glassmorphism intenso)
         Rectangle {
             anchors.fill: parent
             anchors.margins: 1
             radius: 19
             gradient: Gradient {
-                GradientStop { position: 0.0; color: "#08ffffff" }
-                GradientStop { position: 1.0; color: "transparent" }
+                GradientStop { position: 0.0; color: Qt.rgba(1, 1, 1, 0.1) }
+                GradientStop { position: 0.4; color: "transparent" }
+                GradientStop { position: 1.0; color: Qt.rgba(cardRoot.accentColor.r, cardRoot.accentColor.g, cardRoot.accentColor.b, 0.1) }
             }
+        }
+        
+        layer.enabled: true
+        layer.effect: MultiEffect {
+            shadowEnabled: true
+            shadowColor: cardRoot.accentColor
+            shadowBlur: 1.0
+            shadowOpacity: 0.3
+            shadowVerticalOffset: 2
         }
 
         RowLayout {
@@ -70,18 +81,36 @@ Item {
             anchors.margins: 18
             spacing: 15
 
-                Rectangle {
-                    width: 44
-                    height: 44
-                    radius: 12
-                    color: Qt.alpha(cardRoot.accentColor, 0.1)
-                    Layout.alignment: Qt.AlignVCenter
+            Rectangle {
+                width: 48
+                height: 48
+                radius: 16
+                color: Qt.rgba(cardRoot.accentColor.r, cardRoot.accentColor.g, cardRoot.accentColor.b, 0.15)
+                Layout.alignment: Qt.AlignVCenter
+                border.color: Qt.rgba(cardRoot.accentColor.r, cardRoot.accentColor.g, cardRoot.accentColor.b, 0.4)
+                border.width: 1
+                
+                layer.enabled: true
+                layer.effect: MultiEffect {
+                    shadowEnabled: true
+                    shadowColor: cardRoot.accentColor
+                    shadowBlur: 1.0
+                    shadowOpacity: 0.5
+                }
                 
                 Icon {
                     anchors.centerIn: parent
                     name: cardRoot.icon
                     size: 24
-                    color: cardRoot.accentColor
+                    color: "white" // In neon design, icon is usually white over colored background
+                    
+                    layer.enabled: true
+                    layer.effect: MultiEffect {
+                        shadowEnabled: true
+                        shadowColor: "white"
+                        shadowBlur: 1.0
+                        shadowOpacity: 0.8
+                    }
                 }
             }
 

@@ -32,18 +32,19 @@ Item {
             width: parent.width * 1.5
             height: parent.height * 1.5
             radius: width / 2
-            opacity: 0.1
+            opacity: 0.15 // Slightly higher opacity for neon reflection
             
             gradient: Gradient {
                 GradientStop { position: 0.0; color: currentAccentColor }
-                GradientStop { position: 0.5; color: "transparent" }
+                GradientStop { position: 0.3; color: window.neonPurple }
+                GradientStop { position: 0.8; color: "transparent" }
             }
             
             SequentialAnimation on color {
                 loops: Animation.Infinite
-                ColorAnimation { from: window.themeAccent; to: "#7c6ff7"; duration: 10000; easing.type: Easing.InOutSine }
-                ColorAnimation { from: "#7c6ff7"; to: "#4dc6a6"; duration: 10000; easing.type: Easing.InOutSine }
-                ColorAnimation { from: "#4dc6a6"; to: window.themeAccent; duration: 10000; easing.type: Easing.InOutSine }
+                ColorAnimation { from: window.neonCyan; to: window.neonPurple; duration: 10000; easing.type: Easing.InOutSine }
+                ColorAnimation { from: window.neonPurple; to: window.neonPink; duration: 10000; easing.type: Easing.InOutSine }
+                ColorAnimation { from: window.neonPink; to: window.neonCyan; duration: 10000; easing.type: Easing.InOutSine }
             }
         }
     }
@@ -137,24 +138,19 @@ Item {
                 Layout.fillWidth: true
                 height: 300
                 
-                Rectangle {
-                    anchors.fill: parent
-                    color: Qt.darker(window.themeAccent, 2.5)
-                    opacity: 0.4
-                    border.color: window.themeBorder
-                    border.width: 1
-                }
-
+                // We can remove the solid hero background rectangle for a cleaner look
+                // matching the reference image.
                 Item {
                     anchors.fill: parent
                     z: -1
                     Rectangle {
                         anchors.fill: parent
-                        opacity: 0.2
+                        opacity: 0.15
                         gradient: Gradient {
                             orientation: Gradient.Horizontal
-                            GradientStop { position: 0.0; color: currentAccentColor }
-                            GradientStop { position: 0.8; color: "transparent" }
+                            GradientStop { position: 0.0; color: window.neonCyan }
+                            GradientStop { position: 0.5; color: "transparent" }
+                            GradientStop { position: 1.0; color: window.neonPurple }
                         }
                     }
                 }
@@ -186,16 +182,16 @@ Item {
                             font.pixelSize: 84; font.weight: Font.Black; color: "#ffffff"
                             font.letterSpacing: -3
                             
-                            // Efecto de brillo (Glow)
+                            // Efecto de brillo (Glow neon intenso)
                             layer.enabled: true
                             layer.effect: MultiEffect {
                                 autoPaddingEnabled: true
                                 shadowEnabled: true
-                                shadowColor: window.themeAccent
-                                shadowBlur: 1.0
+                                shadowColor: window.neonPink
+                                shadowBlur: 1.8
                                 shadowHorizontalOffset: 0
                                 shadowVerticalOffset: 0
-                                shadowOpacity: 0.4
+                                shadowOpacity: 0.8
                             }
                         }
                         
@@ -233,30 +229,29 @@ Item {
                     }
                 }
             }
-
-            // 2. STATS SECTION
+            // 2. STATS SECTION
             RowLayout {
                 Layout.fillWidth: true
                 Layout.leftMargin: 40
                 Layout.rightMargin: 40
-                spacing: 15
-                                StatCard {
-                    icon: "play"; label: tr("dash_stat_installed"); accentColor: window.themeAccent
+                spacing: 20
+                                StatCard {
+                    icon: "play"; label: tr("dash_stat_installed"); accentColor: window.neonCyan
                     value: (bridge && bridge.lib.dashboardStats) ? bridge.lib.dashboardStats.installed : 0
                     Layout.fillWidth: true
                 }
                 StatCard {
-                    icon: "library"; label: tr("dash_stat_roms"); accentColor: "#7c6ff7"
+                    icon: "library"; label: tr("dash_stat_roms"); accentColor: window.neonBlue
                     value: (bridge && bridge.lib.dashboardStats) ? bridge.lib.dashboardStats.totalRoms : 0
                     Layout.fillWidth: true
                 }
                 StatCard {
-                    icon: "settings"; label: tr("dash_stat_consoles"); accentColor: "#4dc6a6"
+                    icon: "settings"; label: tr("dash_stat_consoles"); accentColor: window.neonPurple
                     value: (bridge && bridge.lib.dashboardStats) ? bridge.lib.dashboardStats.totalConsoles : 0
                     Layout.fillWidth: true
                 }
                 StatCard {
-                    icon: "library"; label: tr("dash_stat_hours"); accentColor: "#f0a040"
+                    icon: "library"; label: tr("dash_stat_hours"); accentColor: window.neonYellow
                     value: (bridge && bridge.lib.dashboardStats) ? bridge.lib.dashboardStats.totalHours : 0
                     textValue: (bridge && bridge.lib.dashboardStats) ? bridge.lib.dashboardStats.totalTimeDisplay : "0h"
                     Layout.fillWidth: true
@@ -277,8 +272,23 @@ Item {
                         Layout.leftMargin: 5
                     }
                     Rectangle {
-                        Layout.fillWidth: true; Layout.preferredHeight: actContent.implicitHeight + 30; radius: 28
+                        Layout.fillWidth: true; Layout.preferredHeight: actContent.implicitHeight + 30; radius: 24
                         color: window.themeCardBg; border.color: window.themeBorder; border.width: 1
+
+                        // Inner subtle glow
+                        layer.enabled: true
+                        layer.effect: MultiEffect {
+                            shadowEnabled: true; shadowColor: "black"
+                            shadowBlur: 1.0; shadowOpacity: 0.5
+                            shadowVerticalOffset: 4
+                        }
+                        
+                        Rectangle {
+                            anchors.fill: parent; anchors.margins: 1; radius: 23
+                            color: "transparent"
+                            border.color: Qt.rgba(1,1,1,0.05); border.width: 1
+                        }
+
                         ColumnLayout {
                             id: actContent
                             anchors.fill: parent; anchors.margins: 15; spacing: 0
@@ -297,10 +307,19 @@ Item {
                                         anchors.fill: parent; anchors.leftMargin: 15; anchors.rightMargin: 15; spacing: 15
                                         // Mini Carátula
                                         Rectangle {
-                                            width: 42; height: 54; radius: 6; color: "#1a1c2b"
+                                            width: 42; height: 54; radius: 8; color: "#1a1c2b"
                                             clip: true
-                                            border.color: mouseAreaAct.containsMouse ? modelData.color : "#252835"
+                                            border.color: mouseAreaAct.containsMouse ? modelData.color : "transparent"
                                             border.width: 1
+                                            
+                                            // Soft ambient shadow for thumbnail
+                                            layer.enabled: true
+                                            layer.effect: MultiEffect {
+                                                shadowEnabled: true
+                                                shadowColor: modelData.color
+                                                shadowBlur: mouseAreaAct.containsMouse ? 1.0 : 0.0
+                                                shadowOpacity: mouseAreaAct.containsMouse ? 0.8 : 0.0
+                                            }
                                             
                                             Image {
                                                 anchors.fill: parent
@@ -402,6 +421,11 @@ Item {
                         Rectangle {
                             Layout.fillWidth: true; implicitHeight: pathCol.implicitHeight + 40
                             radius: 24; color: window.themeCardBg; border.color: window.themeBorder; border.width: 1
+                            layer.enabled: true
+                            layer.effect: MultiEffect {
+                                shadowEnabled: true; shadowColor: "black"; shadowBlur: 1.0; shadowOpacity: 0.5; shadowVerticalOffset: 4
+                            }
+                            Rectangle { anchors.fill: parent; anchors.margins: 1; radius: 23; color: "transparent"; border.color: Qt.rgba(1,1,1,0.05); border.width: 1 }
                             ColumnLayout {
                                 id: pathCol; anchors.left: parent.left; anchors.right: parent.right; anchors.top: parent.top; anchors.margins: 20; spacing: 18
                                 StatusRow {
@@ -427,6 +451,11 @@ Item {
                         Rectangle {
                             Layout.fillWidth: true; implicitHeight: emuCol.implicitHeight + 40
                             radius: 24; color: window.themeCardBg; border.color: window.themeBorder; border.width: 1
+                            layer.enabled: true
+                            layer.effect: MultiEffect {
+                                shadowEnabled: true; shadowColor: "black"; shadowBlur: 1.0; shadowOpacity: 0.5; shadowVerticalOffset: 4
+                            }
+                            Rectangle { anchors.fill: parent; anchors.margins: 1; radius: 23; color: "transparent"; border.color: Qt.rgba(1,1,1,0.05); border.width: 1 }
                             ColumnLayout {
                                 id: emuCol; anchors.left: parent.left; anchors.right: parent.right; anchors.top: parent.top; anchors.margins: 20; spacing: 15
                                 Repeater {

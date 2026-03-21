@@ -1,11 +1,12 @@
 import QtQuick
+import QtQuick.Effects
 import QtQuick.Layouts
 import QtQuick.Controls
 
 Item {
     id: cardRoot
     
-    // Propiedades (Renombradas para evitar colisión con built-in 'enabled')
+    // Propiedades (Renombradas para evitar colisiÃ³n con built-in 'enabled')
     property string providerId: ""
     property string name: ""
     property string typeDisplay: ""
@@ -21,12 +22,14 @@ Item {
     readonly property var needsConfig: ["tgdb", "rawg", "screenscraper"]
     property bool hasAConfig: needsConfig.includes(providerId)
 
-    // Fondo con HoverHandler (No bloquea clics)
+    // Fondo con HoverHandler
     Rectangle {
         anchors.fill: parent
         anchors.margins: 2
         radius: 12
         color: hoverTracker.hovered ? window.themeCardBg : "transparent"
+        border.color: hoverTracker.hovered ? Qt.rgba(1,1,1,0.1) : "transparent"
+        border.width: 1
         Behavior on color { ColorAnimation { duration: 150 } }
         HoverHandler { id: hoverTracker }
     }
@@ -37,7 +40,7 @@ Item {
         anchors.rightMargin: 20
         spacing: 12
 
-        // 🟢 Columna 1: Status LED (Ancho Fijo para Alineación)
+        // ðŸŸ¢ Columna 1: Status LED (Ancho Fijo para AlineaciÃ³n)
         Item {
             Layout.preferredWidth: 40
             Layout.fillHeight: true
@@ -45,11 +48,14 @@ Item {
                 anchors.centerIn: parent
                 width: 10; height: 10; radius: 5
                 
-                // Lógica de colores Solicitada:
-                // 🟡 Amarrillo: No configurado
-                // 🟢 Verde: Configurado y Activo
-                // 4 Rojo: Configurado y Apagado
-                color: !isConfigured ? "#f1c40f" : (isActive ? "#2ecc71" : "#e74c3c")
+                // LÃ³gica de colores Solicitada:
+                color: !isConfigured ? window.neonYellow : (isActive ? window.neonCyan : window.neonPink)
+                
+                layer.enabled: true
+                layer.effect: MultiEffect {
+                    shadowEnabled: true; shadowColor: !isConfigured ? window.neonYellow : (isActive ? window.neonCyan : window.neonPink)
+                    shadowBlur: 1.0; shadowOpacity: 0.8
+                }
                 
                 Rectangle {
                     anchors.centerIn: parent
@@ -60,7 +66,7 @@ Item {
             }
         }
 
-        // 🟢 Columna 2: Info (Flexible)
+        // ðŸŸ¢ Columna 2: Info (Flexible)
         ColumnLayout {
             spacing: 2
             Layout.fillWidth: true
@@ -92,13 +98,13 @@ Item {
             }
         }
 
-        // 🟢 Columna 3: Acciones (Ancho Fijo para Alineación Vertical Perfecta)
+        // ðŸŸ¢ Columna 3: Acciones (Ancho Fijo para AlineaciÃ³n Vertical Perfecta)
         RowLayout {
             Layout.preferredWidth: 100
             Layout.alignment: Qt.AlignRight
             spacing: 12
 
-            // Botón Gear
+            // BotÃ³n Gear
             Item {
                 width: 32; height: 32
                 visible: hasAConfig
@@ -124,7 +130,7 @@ Item {
             // Espaciador si no hay gear
             Item { width: 32; height: 32; visible: !hasAConfig }
 
-            // INTERRUPTOR CUSTOM (Mecánica Robusta)
+            // INTERRUPTOR CUSTOM (MecÃ¡nica Robusta)
             Rectangle {
                 id: toggleBase
                 width: 38; height: 21; radius: 10.5

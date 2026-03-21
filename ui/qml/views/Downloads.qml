@@ -427,7 +427,7 @@ Item {
                             }
                             Label {
                                 text: Math.round(scanProgress * 100) + "%"
-                                color: "#4da6ff"
+                                color: window.themeAccent
                                 font.pixelSize: 12
                                 font.bold: true
                             }

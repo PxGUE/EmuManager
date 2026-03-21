@@ -47,7 +47,7 @@ Popup {
             Rectangle {
                 width: 44; height: 44; radius: 22
                 color: Qt.alpha(root.accentColor, 0.15)
-                Label { anchors.centerIn: parent; text: "⚙️"; font.pixelSize: 20 }
+                Icon { anchors.centerIn: parent; name: "settings"; size: 20; color: root.accentColor }
             }
             ColumnLayout {
                 spacing: 2
@@ -62,10 +62,11 @@ Popup {
             }
             Item { Layout.fillWidth: true }
             Button {
-                text: ""
+                id: btnCloseTweaks
                 onClicked: root.close()
                 flat: true
-                contentItem: Label { text: parent.text; color: "#66ffffff"; font.pixelSize: 22 }
+                Layout.preferredWidth: 32; Layout.preferredHeight: 32
+                contentItem: Icon { name: "close"; size: 18; color: btnCloseTweaks.hovered ? "white" : "#66ffffff"; anchors.centerIn: parent }
                 background: null
             }
         }

@@ -24,7 +24,7 @@ Item {
         anchors.fill: parent
         anchors.margins: 2
         radius: 12
-        color: hoverTracker.hovered ? "#0cffffff" : "transparent"
+        color: hoverTracker.hovered ? window.themeCardBg : "transparent"
         Behavior on color { ColorAnimation { duration: 150 } }
         HoverHandler { id: hoverTracker }
     }
@@ -32,7 +32,7 @@ Item {
     SettingRow {
         id: row
         anchors.fill: parent
-        icon: "📂"
+        icon: "folder"
         title: pathSettingRoot.title
         subtitle: (pathSettingRoot.subtitle ? pathSettingRoot.subtitle + "\n" : "") + (pathSettingRoot.path ? pathSettingRoot.path : tr("dash_missing"))
 
@@ -50,9 +50,9 @@ Item {
             }
             
             background: Rectangle {
-                color: browseBtn.pressed ? "#4da6ff" : (browseBtn.hovered ? "#33ffffff" : "#1affffff")
+                color: browseBtn.pressed ? window.themeAccent : (browseBtn.hovered ? "#33ffffff" : "#1affffff")
                 radius: 6
-                border.color: browseBtn.hovered ? "#4dffffff" : "transparent"
+                border.color: browseBtn.hovered ? window.themeBorder : "transparent"
                 border.width: 1
                 Behavior on color { ColorAnimation { duration: 150 } }
             }

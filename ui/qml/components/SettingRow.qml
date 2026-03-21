@@ -26,10 +26,13 @@ Item {
             Layout.preferredWidth: 40; Layout.preferredHeight: 40; radius: 10
             color: "#1affffff"
             Layout.alignment: Qt.AlignVCenter
-            Text {
+            Icon {
                 anchors.centerIn: parent
-                text: icon
-                font.pixelSize: 14; opacity: 0.8
+                name: settingRowRoot.icon
+                size: 16
+                color: "white"
+                opacity: 0.6
+                visible: name !== ""
             }
         }
 

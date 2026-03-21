@@ -47,7 +47,7 @@ Item {
 
                 RowLayout {
                     spacing: 10
-                    Rectangle { width: 3; height: 16; radius: 1.5; color: "#4da6ff" }
+                    Rectangle { width: 3; height: 16; radius: 1.5; color: window.themeAccent }
                     Label {
                         text: tr("set_lang_lbl").toUpperCase()
                         font.pixelSize: 13; font.bold: true; color: "white"; font.letterSpacing: 1
@@ -58,12 +58,12 @@ Item {
                     Layout.fillWidth: true
                     height: 80
                     radius: 20
-                    color: "#0dffffff"
-                    border.color: "#1affffff"; border.width: 1
+                    color: window.themeCardBg
+                    border.color: window.themeBorder; border.width: 1
 
                     SettingRow {
                         anchors.fill: parent
-                        icon: ""
+                        icon: ""
                         title: tr("set_lang_title")
                         subtitle: tr("set_lang_sub")
 
@@ -159,7 +159,7 @@ Item {
 
                 RowLayout {
                     spacing: 10
-                    Rectangle { width: 3; height: 16; radius: 1.5; color: "#4da6ff" }
+                    Rectangle { width: 3; height: 16; radius: 1.5; color: window.themeAccent }
                     Label {
                         text: tr("set_paths_section").toUpperCase()
                         font.pixelSize: 13; font.bold: true; color: "white"; font.letterSpacing: 1
@@ -170,8 +170,8 @@ Item {
                     Layout.fillWidth: true
                     height: pathsCol.implicitHeight
                     radius: 20
-                    color: "#0dffffff"
-                    border.color: "#1affffff"; border.width: 1
+                    color: window.themeCardBg
+                    border.color: window.themeBorder; border.width: 1
 
                     ColumnLayout {
                         id: pathsCol
@@ -204,7 +204,7 @@ Item {
 
                 RowLayout {
                     spacing: 10
-                    Rectangle { width: 3; height: 16; radius: 1.5; color: "#4da6ff" }
+                    Rectangle { width: 3; height: 16; radius: 1.5; color: window.themeAccent }
                     Label {
                         text: tr("set_interface_section").toUpperCase()
                         font.pixelSize: 13; font.bold: true; color: "white"; font.letterSpacing: 1
@@ -215,12 +215,12 @@ Item {
                     Layout.fillWidth: true
                     height: 80
                     radius: 20
-                    color: "#0dffffff"
-                    border.color: "#1affffff"; border.width: 1
+                    color: window.themeCardBg
+                    border.color: window.themeBorder; border.width: 1
 
                     SettingRow {
                         anchors.fill: parent
-                        icon: "🎮"
+                        icon: "library"
                         title: tr("set_collector_title")
                         subtitle: tr("set_collector_sub")
 
@@ -262,7 +262,7 @@ Item {
 
                 RowLayout {
                     spacing: 10
-                    Rectangle { width: 3; height: 16; radius: 1.5; color: "#4da6ff" }
+                    Rectangle { width: 3; height: 16; radius: 1.5; color: window.themeAccent }
                     Label {
                         text: tr("set_data_section").toUpperCase()
                         font.pixelSize: 13; font.bold: true; color: "white"; font.letterSpacing: 1
@@ -273,8 +273,8 @@ Item {
                     Layout.fillWidth: true
                     height: providersCol.implicitHeight
                     radius: 20
-                    color: "#0dffffff"
-                    border.color: "#1affffff"; border.width: 1
+                    color: window.themeCardBg
+                    border.color: window.themeBorder; border.width: 1
 
                     ColumnLayout {
                         id: providersCol
@@ -567,7 +567,7 @@ Item {
                     anchors.centerIn: parent
                     width: 50; height: 50
                     radius: 25
-                    color: "#4da6ff"
+                    color: window.themeAccent
                     opacity: 0.1
                     z: -1
                 }
@@ -590,7 +590,7 @@ Item {
                 }
                 Rectangle {
                     Layout.alignment: Qt.AlignHCenter
-                    width: 40; height: 2; radius: 1; color: "#4da6ff"
+                    width: 40; height: 2; radius: 1; color: window.themeAccent
                 }
                 Label {
                     text: tr("app_version", (bridge ? bridge.appVersion : "1.0")).toUpperCase()
@@ -640,7 +640,7 @@ Item {
                         spacing: 4
                         Label {
                             text: tr("set_about_license_title").toUpperCase()
-                            font.pixelSize: 10; font.bold: true; color: "#4da6ff"
+                            font.pixelSize: 10; font.bold: true; color: window.themeAccent
                             Layout.alignment: Qt.AlignHCenter
                             horizontalAlignment: Text.AlignHCenter
                         }
@@ -669,7 +669,7 @@ Item {
                         spacing: 4
                         Label {
                             text: tr("set_about_privacy_title").toUpperCase()
-                            font.pixelSize: 10; font.bold: true; color: "#4da6ff"
+                            font.pixelSize: 10; font.bold: true; color: window.themeAccent
                             Layout.alignment: Qt.AlignHCenter
                             horizontalAlignment: Text.AlignHCenter
                         }

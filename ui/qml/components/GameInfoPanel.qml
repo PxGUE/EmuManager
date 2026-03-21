@@ -13,7 +13,7 @@ Item {
     id: root
     
     property var gameData: null
-    property color accentColor: "#00f3ff"
+    property color accentColor: window.themeAccent
     property bool isOpen: false
     
     // Estado local para forzar actualización visual
@@ -50,10 +50,10 @@ Item {
             opacity: 0.15
             onPaint: {
                 var ctx = getContext("2d")
-                ctx.strokeStyle = "#4da6ff"
+                ctx.strokeStyle = window.themeAccent
                 ctx.lineWidth = 0.5
-                for (var x = 0; x <= width; x += 40) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, height); ctx.stroke() }
-                for (var y = 0; y <= height; y += 40) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(width, y); ctx.stroke() }
+                for (var x = 0; x <= width; x += 60) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, height); ctx.stroke() }
+                for (var y = 0; y <= height; y += 60) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(width, y); ctx.stroke() }
             }
         }
         MouseArea { anchors.fill: parent; onClicked: root.close() }
@@ -73,8 +73,9 @@ Item {
 
         Rectangle {
             anchors.fill: parent
-            color: "#121520"
-            border.color: "#33ffffff"
+            color: window.themeSidebarBg
+            opacity: 0.98
+            border.color: window.themeBorder
             border.width: 1
             radius: 0
             layer.enabled: true
@@ -113,7 +114,12 @@ Item {
                     height: 32
                     onClicked: root.close()
                     background: Rectangle { radius: 0; color: "#44000000"; border.color: "#33ffffff"; border.width: 1 }
-                    contentItem: Label { text: " "; color: "white"; font.pixelSize: 14; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                    contentItem: Icon { 
+                        name: "close"
+                        color: "white"
+                        size: 16
+                        opacity: 0.8
+                    }
                 }
             }
 
@@ -152,11 +158,11 @@ Item {
                                 border.color: root.localFavorite ? root.accentColor : "#33ffffff"
                                 border.width: 1 
                             }
-                            contentItem: Label { 
-                                text: root.localFavorite ? "❤️" : "🤍"
-                                font.pixelSize: 18
-                                horizontalAlignment: Text.AlignHCenter
-                                verticalAlignment: Text.AlignVCenter 
+                            contentItem: Icon { 
+                                name: root.localFavorite ? "favorite_filled" : "favorite"
+                                color: root.localFavorite ? root.accentColor : "white"
+                                size: 18
+                                opacity: root.localFavorite ? 1.0 : 0.6
                             }
                         }
                         Button {
@@ -170,11 +176,10 @@ Item {
                                 border.color: "#33ffffff"
                                 border.width: 1 
                             }
-                            contentItem: Label { 
-                                text: "✏️"
-                                font.pixelSize: 16
-                                horizontalAlignment: Text.AlignHCenter
-                                verticalAlignment: Text.AlignVCenter
+                            contentItem: Icon { 
+                                name: "edit"
+                                color: "white"
+                                size: 16
                                 opacity: 0.7 
                             }
                         }
@@ -225,9 +230,15 @@ Item {
                         layer.effect: MultiEffect { shadowEnabled: true; shadowBlur: 0.4; shadowColor: root.accentColor }
                         Rectangle { anchors.fill: parent; radius: 0; color: root.accentColor; opacity: megaPlayBtn.hovered ? 0.1 : 0.0 }
                     }
-                    contentItem: Item {
+                    contentItem: RowLayout {
+                        spacing: 10
+                        Layout.alignment: Qt.AlignHCenter
+                        Icon {
+                            name: "play"
+                            size: 18
+                            color: megaPlayBtn.hovered ? "white" : "#ccffffff"
+                        }
                         Label {
-                            anchors.centerIn: parent
                             text: tr("lib_btn_launch").toUpperCase()
                             color: megaPlayBtn.hovered ? "white" : "#ccffffff"
                             font.pixelSize: 16

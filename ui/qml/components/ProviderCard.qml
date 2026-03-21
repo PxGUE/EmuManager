@@ -26,7 +26,7 @@ Item {
         anchors.fill: parent
         anchors.margins: 2
         radius: 12
-        color: hoverTracker.hovered ? "#0cffffff" : "transparent"
+        color: hoverTracker.hovered ? window.themeCardBg : "transparent"
         Behavior on color { ColorAnimation { duration: 150 } }
         HoverHandler { id: hoverTracker }
     }
@@ -105,9 +105,13 @@ Item {
                 Rectangle {
                     anchors.fill: parent; radius: 16
                     color: gearMouse.containsMouse ? "#20ffffff" : "transparent"
-                    Text {
+                    Icon {
                         anchors.centerIn: parent
-                        text: "⚙️"; font.pixelSize: 14; opacity: gearMouse.containsMouse ? 1.0 : 0.6
+                        name: "settings"
+                        size: 16
+                        color: gearMouse.containsMouse ? "white" : "#888899"
+                        opacity: gearMouse.containsMouse ? 1.0 : 0.6
+                        Behavior on color { ColorAnimation { duration: 150 } }
                     }
                 }
                 MouseArea {
@@ -124,7 +128,7 @@ Item {
             Rectangle {
                 id: toggleBase
                 width: 38; height: 21; radius: 10.5
-                color: isActive ? "#4da6ff" : "#2a2d3e"
+                color: isActive ? window.themeAccent : "#2a2d3e"
                 
                 Rectangle {
                     id: handle

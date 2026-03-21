@@ -8,7 +8,7 @@ Item {
     
     property string name: ""  
     property string emulatorsJson: "[]" 
-    property color accentColor: "#4da6ff"
+    property color accentColor: window.themeAccent
     property bool isInstalled: false
     
     function tr(key, ...args) {
@@ -81,7 +81,7 @@ Item {
                     Rectangle {
                         Layout.alignment: Qt.AlignHCenter; width: 72; height: 72; radius: 24; color: "#161826"
                         border.color: accentColor; border.width: 2
-                        Label { anchors.centerIn: parent; text: "⚙️"; font.pixelSize: 32 }
+                        Icon { anchors.centerIn: parent; name: "settings"; size: 24; color: accentColor }
                     }
                     
                     ColumnLayout {
@@ -117,7 +117,7 @@ Item {
                     background: Rectangle { 
                         color: btnWeb.hovered ? "#1c1e2a" : "transparent"; radius: 20; border.color: btnWeb.hovered ? accentColor : "#25283a"; border.width: 2
                     }
-                    contentItem: Label { text: ""; font.pixelSize: 24; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                    contentItem: Icon { name: "globe"; size: 24; anchors.centerIn: parent; color: btnWeb.hovered ? "white" : "#888899" }
                 }
 
                 Button {
@@ -137,7 +137,7 @@ Item {
                     }
                     contentItem: RowLayout {
                         anchors.centerIn: parent; spacing: 12
-                        Label { text: "📂"; font.pixelSize: 22 }
+                        Icon { name: "folder"; size: 20; color: "white" }
                         Label { text: tr("dl_btn_manual").toUpperCase(); color: "black"; font.bold: true; font.pixelSize: 13; font.letterSpacing: 1 }
                     }
                 }
@@ -201,14 +201,27 @@ Item {
                         
                         HoverHandler { id: updateHover }
                         
-                        Label { anchors.centerIn: parent; text: "↑"; color: "black"; font.bold: true; font.pixelSize: 14 }
+                        Icon { anchors.centerIn: parent; name: "arrow_up"; color: "white"; size: 14 }
                         ToolTip.visible: updateHover.hovered; ToolTip.text: updateInfo ? tr("maint_update_available", updateInfo.latest_version) : ""
                     }
 
                     Rectangle {
                         anchors.bottom: parent.bottom; anchors.right: parent.right; width: 28; height: 28; radius: 14
                         color: isInstalled ? "#00ff88" : "#2a2d3a"; border.color: "#0a0b10"; border.width: 3
-                        Label { anchors.centerIn: parent; text: isInstalled ? "" : "+"; color: isInstalled ? "black" : "#666677"; font.bold: true; font.pixelSize: 14 }
+                        Icon { 
+                            anchors.centerIn: parent
+                            name: isInstalled ? "" : "plus"
+                            size: 14
+                            color: "#666677"
+                            visible: !isInstalled
+                        }
+                        Icon {
+                            anchors.centerIn: parent
+                            name: "check"
+                            size: 14
+                            color: "white"
+                            visible: isInstalled
+                        }
                     }
                 }
             }
@@ -230,7 +243,7 @@ Item {
                         visible: emulatorsList && emulatorsList.length > 1
                         onClicked: selectedIndex = (selectedIndex - 1 + emulatorsList.length) % emulatorsList.length
                         background: null
-                        contentItem: Label { text: "◀"; color: prevBtn.hovered ? accentColor : "#555566"; font.bold: true; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                        contentItem: Icon { name: "chevron_left"; size: 16; color: prevBtn.hovered ? accentColor : "#555566"; anchors.centerIn: parent }
                     }
                     Label { 
                         Layout.fillWidth: true; text: currentEmu ? currentEmu.name : ""; font.pixelSize: 12; font.bold: true; color: accentColor; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight 
@@ -240,7 +253,7 @@ Item {
                         visible: emulatorsList && emulatorsList.length > 1
                         onClicked: selectedIndex = (selectedIndex + 1) % emulatorsList.length
                         background: null
-                        contentItem: Label { text: "▶"; color: nextBtn.hovered ? accentColor : "#555566"; font.bold: true; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                        contentItem: Icon { name: "chevron_right"; size: 16; color: nextBtn.hovered ? accentColor : "#555566"; anchors.centerIn: parent }
                     }
                 }
             }
@@ -265,7 +278,7 @@ Item {
                     id: btnFolder; Layout.preferredWidth: 56; Layout.preferredHeight: 56
                     onClicked: bridge.emu.openEmulatorFolder(currentEmu.github); enabled: currentEmu && currentEmu.isInstalled
                     background: Rectangle { radius: 16; color: btnFolder.pressed ? accentColor : (btnFolder.hovered ? "#252836" : "#161922"); border.color: btnFolder.hovered ? accentColor : "#252836"; border.width: 1; opacity: enabled ? 1.0 : 0.2 }
-                    contentItem: Label { text: "📂"; font.pixelSize: 18; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                    contentItem: Icon { name: "folder"; size: 18; color: btnFolder.pressed ? "white" : (btnFolder.hovered ? "white" : "#888899") }
                 }
 
                 Button {
@@ -296,7 +309,7 @@ Item {
                     id: btnConfig; Layout.preferredWidth: 56; Layout.preferredHeight: 56
                     onClicked: configPopup.open()
                     background: Rectangle { radius: 16; color: btnConfig.hovered ? "#252836" : "#161922"; border.color: btnConfig.hovered ? accentColor : "#252836"; border.width: 1 }
-                    contentItem: Label { text: "⚙️"; font.pixelSize: 18; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                    contentItem: Icon { name: "settings"; size: 18; color: btnConfig.hovered ? "white" : "#888899" }
                 }
             }
         }

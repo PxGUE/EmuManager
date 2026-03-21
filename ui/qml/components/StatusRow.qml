@@ -23,10 +23,10 @@ RowLayout {
         border.color: root.exists ? Qt.alpha("#4dc6a6", 0.2) : (root.path ? Qt.alpha("#f0a040", 0.2) : Qt.alpha("#e05050", 0.2))
         border.width: 1
         
-        Label {
+        Icon {
             anchors.centerIn: parent
-            text: root.exists ? "" : (root.path ? "!" : "")
-            font.pixelSize: 18; font.bold: true
+            name: root.exists ? "check" : (root.path ? "warning" : "close")
+            size: 18
             color: root.exists ? "#4dc6a6" : (root.path ? "#f0a040" : "#e05050")
         }
     }

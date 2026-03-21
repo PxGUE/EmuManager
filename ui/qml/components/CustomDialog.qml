@@ -60,10 +60,11 @@ Popup {
             Rectangle {
                 width: 32; height: 32; radius: 16
                 color: Qt.alpha(accentColor, 0.2)
-                Label {
+                Icon {
                     anchors.centerIn: parent
-                    text: isInfoOnly ? "ℹ️" : "⚠️"
-                    font.pixelSize: 14
+                    name: isInfoOnly ? "info" : "warning"
+                    size: 16
+                    color: accentColor
                 }
             }
             Label {

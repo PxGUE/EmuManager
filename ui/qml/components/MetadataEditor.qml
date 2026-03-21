@@ -35,9 +35,9 @@ Popup {
     }
 
     background: Rectangle {
-        color: "#161821"
+        color: window.themeSidebarBg
         radius: 30
-        border.color: "#303440"
+        border.color: window.themeBorder
         border.width: 1
         
         // Efecto de brillo superior
@@ -45,7 +45,7 @@ Popup {
             anchors.top: parent.top
             width: parent.width; height: 100; radius: 30; opacity: 0.1
             gradient: Gradient {
-                GradientStop { position: 0.0; color: "#4da6ff" }
+                GradientStop { position: 0.0; color: window.themeAccent }
                 GradientStop { position: 1.0; color: "transparent" }
             }
         }
@@ -60,9 +60,9 @@ Popup {
         RowLayout {
             spacing: 15
             Rectangle {
-                width: 48; height: 48; radius: 14; color: "#1c1e29"
-                border.color: "#303440"; border.width: 1
-                Label { anchors.centerIn: parent; text: "📝"; font.pixelSize: 24 }
+                width: 48; height: 48; radius: 14; color: window.themeCardBg
+                border.color: window.themeBorder; border.width: 1
+                Icon { anchors.centerIn: parent; name: "edit"; size: 20; color: "white" }
             }
             ColumnLayout {
                 spacing: 2
@@ -107,7 +107,7 @@ Popup {
                         anchors.fill: parent
                         visible: !gameData || !gameData.cover
                         color: "transparent"
-                        Label { anchors.centerIn: parent; text: "🖼️"; font.pixelSize: 40; opacity: 0.2 }
+                        Icon { anchors.centerIn: parent; name: "library"; size: 40; color: "white"; opacity: 0.1 }
                     }
                 }
                 
@@ -140,7 +140,7 @@ Popup {
                             Layout.fillWidth: true; selectByMouse: true
                             placeholderText: "Nombre del juego..."
                             color: "white"
-                            background: Rectangle { color: "#0f111a"; radius: 10; border.color: parent.activeFocus ? "#4da6ff" : "#252830" }
+                            background: Rectangle { color: "#0f111a"; radius: 10; border.color: parent.activeFocus ? window.themeAccent : window.themeBorder }
                         }
                     }
 
@@ -158,7 +158,7 @@ Popup {
                                 Layout.fillWidth: true; selectByMouse: true
                                 placeholderText: "Ej: 1998"
                                 color: "white"
-                                background: Rectangle { color: "#0f111a"; radius: 10; border.color: parent.activeFocus ? "#4da6ff" : "#252830" }
+                                background: Rectangle { color: "#0f111a"; radius: 10; border.color: parent.activeFocus ? window.themeAccent : window.themeBorder }
                             }
                         }
 
@@ -170,7 +170,7 @@ Popup {
                                 Layout.fillWidth: true; selectByMouse: true
                                 placeholderText: "Ej: RPG"
                                 color: "white"
-                                background: Rectangle { color: "#0f111a"; radius: 10; border.color: parent.activeFocus ? "#4da6ff" : "#252830" }
+                                background: Rectangle { color: "#0f111a"; radius: 10; border.color: parent.activeFocus ? window.themeAccent : window.themeBorder }
                             }
                         }
 
@@ -181,7 +181,7 @@ Popup {
                                 id: devField
                                 Layout.fillWidth: true; selectByMouse: true
                                 color: "white"
-                                background: Rectangle { color: "#0f111a"; radius: 10; border.color: parent.activeFocus ? "#4da6ff" : "#252830" }
+                                background: Rectangle { color: "#0f111a"; radius: 10; border.color: parent.activeFocus ? window.themeAccent : window.themeBorder }
                             }
                         }
                     }
@@ -196,7 +196,7 @@ Popup {
                             wrapMode: TextEdit.WordWrap; selectByMouse: true
                             placeholderText: "Escribe la historia del juego..."
                             color: "white"
-                            background: Rectangle { color: "#0f111a"; radius: 10; border.color: parent.activeFocus ? "#4da6ff" : "#252830" }
+                            background: Rectangle { color: "#0f111a"; radius: 10; border.color: parent.activeFocus ? window.themeAccent : window.themeBorder }
                         }
                     }
                 }
@@ -242,8 +242,8 @@ Popup {
                     radius: 12
                     gradient: Gradient {
                         orientation: Gradient.Horizontal
-                        GradientStop { position: 0.0; color: "#4da6ff" }
-                        GradientStop { position: 1.0; color: "#7c6ff7" }
+                        GradientStop { position: 0.0; color: window.themeAccent }
+                        GradientStop { position: 1.0; color: "#b36ff7" } // Variación violeta
                     }
                     opacity: btnSave.pressed ? 0.8 : 1.0
                 }

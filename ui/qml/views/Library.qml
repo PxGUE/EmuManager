@@ -225,7 +225,7 @@ Item {
     property string currentConsoleName: ""
     property string currentEmuName: ""
     property var currentGames: []
-    property color currentPlatformColor: "#4da6ff"
+    property color currentPlatformColor: window.themeAccent
     
     property string searchText: searchInput.text
     property bool onlyFavorites: false
@@ -262,7 +262,7 @@ Item {
     property color currentAccentColor: {
         if (libraryRoot.state === "collector" && libraryRoot.selectedGame) return libraryRoot.selectedGame.accentColor || libraryRoot.currentPlatformColor
         if (libraryRoot.state === "grid" && libraryRoot.selectedGame) return libraryRoot.selectedGame.accentColor || libraryRoot.currentPlatformColor
-        return (carousel.currentItem) ? carousel.currentItem.accentColor || "#4da6ff" : "#4da6ff"
+        return (carousel.currentItem) ? carousel.currentItem.accentColor || "#4da6ff" : window.themeAccent
     }
     
     property var selectedGame: null
@@ -417,10 +417,11 @@ Item {
         ColumnLayout {
             anchors.centerIn: parent
             spacing: 30
-            Label { 
-                text: "📚"
-                font.pixelSize: 84
-                Layout.alignment: Qt.AlignHCenter 
+            Icon {
+                name: "library"
+                size: 80
+                color: "#252835"
+                Layout.alignment: Qt.AlignHCenter
             }
             ColumnLayout {
                 spacing: 8
@@ -603,10 +604,11 @@ Item {
                             color: "#0a0b12"
                             border.color: Qt.alpha(accentColor, 0.5)
                             border.width: 2
-                            Label { 
+                            Icon { 
                                 anchors.centerIn: parent
-                                text: "🎮"
-                                font.pixelSize: 64
+                                name: "library"
+                                size: 64
+                                color: isCurrent ? accentColor : "#33ffffff"
                                 scale: isCurrent ? 1.1 : 1.0
                                 Behavior on scale { 
                                     NumberAnimation { duration: 400 } 
@@ -730,12 +732,10 @@ Item {
                         border.color: "#22ffffff"
                         border.width: 1 
                     }
-                    contentItem: Label { 
-                        text: "←"
+                    contentItem: Icon { 
+                        name: "back"
                         color: "white"
-                        font.pixelSize: 20
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter 
+                        size: 24
                     }
                 }
 
@@ -772,12 +772,11 @@ Item {
                             border.color: libraryRoot.onlyFavorites ? "#ffff00" : "transparent"
                             border.width: 1 
                         }
-                        contentItem: Label { 
-                            text: "⭐"
+                        contentItem: Icon { 
+                            name: libraryRoot.onlyFavorites ? "favorite_filled" : "favorite"
+                            color: libraryRoot.onlyFavorites ? "#ffff00" : "white"
+                            size: 20
                             opacity: libraryRoot.onlyFavorites ? 1.0 : 0.4
-                            horizontalAlignment: Text.AlignHCenter
-                            verticalAlignment: Text.AlignVCenter
-                            font.pixelSize: 18 
                         }
                     }
                     Button {
@@ -795,16 +794,11 @@ Item {
                             border.color: "#1affffff"
                             border.width: 1 
                         }
-                        contentItem: Label { 
-                            text: "↻"
-                            font.pixelSize: 22
+                        contentItem: Icon { 
+                            name: "refresh"
                             color: "white"
-                            horizontalAlignment: Text.AlignHCenter
-                            verticalAlignment: Text.AlignVCenter
-                            opacity: btnRefresh.hovered ? 1.0 : 0.6
-                            Behavior on opacity { 
-                                NumberAnimation { duration: 200 } 
-                            }
+                            size: 22
+
                             RotationAnimation on rotation { 
                                 running: btnRefresh.pressed
                                 from: 0
@@ -830,12 +824,11 @@ Item {
                             border.color: "#1affffff"
                             border.width: 1 
                         }
-                        contentItem: Label { 
-                            text: "⚙️"
-                            font.pixelSize: 18
+                        contentItem: Icon { 
+                            anchors.centerIn: parent
+                            name: "settings"
+                            size: 18
                             color: "white"
-                            horizontalAlignment: Text.AlignHCenter
-                            verticalAlignment: Text.AlignVCenter
                             opacity: btnSettings.hovered ? 1.0 : 0.6
                             Behavior on opacity { 
                                 NumberAnimation { duration: 200 } 
@@ -930,18 +923,20 @@ Item {
                         anchors.fill: parent
                         anchors.margins: 12
                         radius: 28
-                        color: "#1a1c26"
+                        color: window.themeCardBg
                         clip: true
                         scale: isHovered ? 1.05 : 1.0
                         z: isHovered ? 10 : 1
                         Behavior on scale { NumberAnimation { duration: 350; easing.type: Easing.OutBack } }
+                        
+                        // Glassmorphism border panel
                         Rectangle { 
                             anchors.fill: parent
                             radius: 28
                             color: "transparent"
-                            border.color: modelData.accentColor || libraryRoot.currentPlatformColor
-                            border.width: isHovered ? 3 : 1
-                            opacity: isHovered ? 1.0 : 0.2
+                            border.color: isHovered ? (modelData.accentColor || themeAccent) : window.themeBorder
+                            border.width: isHovered ? 2 : 1
+                            opacity: isHovered ? 1.0 : 0.6
                             Behavior on border.width { 
                                 NumberAnimation { duration: 200 } 
                             } 
@@ -1010,10 +1005,10 @@ Item {
                             border.color: modelData.accentColor || libraryRoot.currentPlatformColor
                             border.width: 1
                             visible: isHovered
-                            Label { 
+                            Icon { 
                                 anchors.centerIn: parent
-                                text: "ℹ️"
-                                font.pixelSize: 20
+                                name: "info"
+                                size: 18
                                 color: infoBtnArea.containsMouse ? "black" : "white" 
                             }
                             MouseArea { 
@@ -1034,10 +1029,11 @@ Item {
                             color: favBtnArea.containsMouse ? "#ff4d4d" : (modelData.isFavorite ? "#33ff4d4d" : "#e00a0c14")
                             border.color: modelData.isFavorite ? "#ff4d4d" : (modelData.accentColor || libraryRoot.currentPlatformColor)
                             border.width: 1
-                            Label { 
+                            Icon { 
                                 anchors.centerIn: parent
-                                text: modelData.isFavorite ? "❤️" : "🤍"
-                                font.pixelSize: 18 
+                                name: modelData.isFavorite ? "favorite_filled" : "favorite"
+                                size: 18
+                                color: modelData.isFavorite ? "#ff4d4d" : (favBtnArea.containsMouse ? "white" : "#ccffffff")
                             }
                             MouseArea { 
                                 id: favBtnArea
@@ -1302,7 +1298,7 @@ Item {
         closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
         property string currentEmuId: ""
         property string currentEmuName: ""
-        property color accentColor: "#4da6ff"
+        property color accentColor: window.themeAccent
         
         background: Rectangle { 
             color: "#161923"

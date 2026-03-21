@@ -1,13 +1,14 @@
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
+import QtQuick.Effects
 import "../components"
 
 Item {
     id: dashboardRoot
     
     property bool isEmpty: bridge ? (bridge.lib.dashboardStats.installed === 0 && bridge.lib.dashboardStats.totalRoms === 0) : true
-    property color currentAccentColor: "#4da6ff"
+    property color currentAccentColor: window.themeAccent
     
     function tr(key, ...args) {
         if (!bridge) return key
@@ -40,9 +41,9 @@ Item {
             
             SequentialAnimation on color {
                 loops: Animation.Infinite
-                ColorAnimation { from: "#4da6ff"; to: "#7c6ff7"; duration: 10000; easing.type: Easing.InOutSine }
+                ColorAnimation { from: window.themeAccent; to: "#7c6ff7"; duration: 10000; easing.type: Easing.InOutSine }
                 ColorAnimation { from: "#7c6ff7"; to: "#4dc6a6"; duration: 10000; easing.type: Easing.InOutSine }
-                ColorAnimation { from: "#4dc6a6"; to: "#4da6ff"; duration: 10000; easing.type: Easing.InOutSine }
+                ColorAnimation { from: "#4dc6a6"; to: window.themeAccent; duration: 10000; easing.type: Easing.InOutSine }
             }
         }
     }
@@ -138,9 +139,9 @@ Item {
                 
                 Rectangle {
                     anchors.fill: parent
-                    color: "#0f111a"
-                    opacity: 0.5
-                    border.color: "#1d1f2b"
+                    color: Qt.darker(window.themeAccent, 2.5)
+                    opacity: 0.4
+                    border.color: window.themeBorder
                     border.width: 1
                 }
 
@@ -182,8 +183,20 @@ Item {
 
                         Label {
                             text: bridge ? bridge.appName : "EmuManager"
-                            font.pixelSize: 72; font.weight: Font.Black; color: "#ffffff"
-                            font.letterSpacing: -2
+                            font.pixelSize: 84; font.weight: Font.Black; color: "#ffffff"
+                            font.letterSpacing: -3
+                            
+                            // Efecto de brillo (Glow)
+                            layer.enabled: true
+                            layer.effect: MultiEffect {
+                                autoPaddingEnabled: true
+                                shadowEnabled: true
+                                shadowColor: window.themeAccent
+                                shadowBlur: 1.0
+                                shadowHorizontalOffset: 0
+                                shadowVerticalOffset: 0
+                                shadowOpacity: 0.4
+                            }
                         }
                         
                         Label {
@@ -227,24 +240,23 @@ Item {
                 Layout.leftMargin: 40
                 Layout.rightMargin: 40
                 spacing: 15
-                
-                StatCard {
-                    icon: "🚀"; label: tr("dash_stat_installed"); accentColor: "#4da6ff"
+                                StatCard {
+                    icon: "play"; label: tr("dash_stat_installed"); accentColor: window.themeAccent
                     value: (bridge && bridge.lib.dashboardStats) ? bridge.lib.dashboardStats.installed : 0
                     Layout.fillWidth: true
                 }
                 StatCard {
-                    icon: "🎮"; label: tr("dash_stat_roms"); accentColor: "#7c6ff7"
+                    icon: "library"; label: tr("dash_stat_roms"); accentColor: "#7c6ff7"
                     value: (bridge && bridge.lib.dashboardStats) ? bridge.lib.dashboardStats.totalRoms : 0
                     Layout.fillWidth: true
                 }
                 StatCard {
-                    icon: "y"; label: tr("dash_stat_consoles"); accentColor: "#4dc6a6"
+                    icon: "settings"; label: tr("dash_stat_consoles"); accentColor: "#4dc6a6"
                     value: (bridge && bridge.lib.dashboardStats) ? bridge.lib.dashboardStats.totalConsoles : 0
                     Layout.fillWidth: true
                 }
                 StatCard {
-                    icon: "⏳"; label: tr("dash_stat_hours"); accentColor: "#f0a040"
+                    icon: "library"; label: tr("dash_stat_hours"); accentColor: "#f0a040"
                     value: (bridge && bridge.lib.dashboardStats) ? bridge.lib.dashboardStats.totalHours : 0
                     textValue: (bridge && bridge.lib.dashboardStats) ? bridge.lib.dashboardStats.totalTimeDisplay : "0h"
                     Layout.fillWidth: true
@@ -266,7 +278,7 @@ Item {
                     }
                     Rectangle {
                         Layout.fillWidth: true; Layout.preferredHeight: actContent.implicitHeight + 30; radius: 28
-                        color: "#141621"; border.color: "#252835"; border.width: 1
+                        color: window.themeCardBg; border.color: window.themeBorder; border.width: 1
                         ColumnLayout {
                             id: actContent
                             anchors.fill: parent; anchors.margins: 15; spacing: 0
@@ -303,9 +315,12 @@ Item {
                                                 anchors.fill: parent; color: modelData.color; opacity: 0.1
                                                 visible: modelData.cover === ""
                                             }
-                                            Label { 
+                                            Icon { 
                                                 anchors.centerIn: parent
-                                                text: "🎮"; font.pixelSize: 18
+                                                name: "library"
+                                                size: 18
+                                                color: modelData.color
+                                                opacity: 0.5
                                                 visible: modelData.cover === "" || modelData.cover.status !== Image.Ready
                                             }
                                         }
@@ -349,10 +364,21 @@ Item {
                                     }
                                 }
                             }
-                            Label {
+                            ColumnLayout {
                                 visible: bridge ? bridge.lib.recentActivity.length === 0 : true
-                                text: tr("dash_empty_recent")
-                                color: "#4a4d63"; font.pixelSize: 16; Layout.alignment: Qt.AlignCenter; Layout.topMargin: 100
+                                Layout.alignment: Qt.AlignCenter
+                                Layout.topMargin: 100
+                                spacing: 20
+                                Icon {
+                                    name: "library"
+                                    size: 64
+                                    color: "#4a4d63"
+                                    Layout.alignment: Qt.AlignHCenter
+                                }
+                                Label {
+                                    text: tr("dash_empty_recent")
+                                    color: "#4a4d63"; font.pixelSize: 16; Layout.alignment: Qt.AlignHCenter
+                                }
                             }
                         }
                     }
@@ -365,13 +391,17 @@ Item {
                     // Card 1: System Paths
                     ColumnLayout {
                         spacing: 12; Layout.fillWidth: true
-                        Label {
-                            text: tr("dash_status_title_panel").toUpperCase()
-                            font.pixelSize: 11; font.bold: true; color: "#6e7282"; font.letterSpacing: 2; Layout.leftMargin: 5
+                        RowLayout {
+                            spacing: 8; Layout.leftMargin: 5
+                            Icon { name: "monitor"; size: 14; color: "#6e7282" }
+                            Label {
+                                text: tr("dash_status_title_panel").toUpperCase()
+                                font.pixelSize: 11; font.bold: true; color: "#6e7282"; font.letterSpacing: 2
+                            }
                         }
                         Rectangle {
                             Layout.fillWidth: true; implicitHeight: pathCol.implicitHeight + 40
-                            radius: 24; color: "#141621"; border.color: "#252835"; border.width: 1
+                            radius: 24; color: window.themeCardBg; border.color: window.themeBorder; border.width: 1
                             ColumnLayout {
                                 id: pathCol; anchors.left: parent.left; anchors.right: parent.right; anchors.top: parent.top; anchors.margins: 20; spacing: 18
                                 StatusRow {
@@ -396,7 +426,7 @@ Item {
                         }
                         Rectangle {
                             Layout.fillWidth: true; implicitHeight: emuCol.implicitHeight + 40
-                            radius: 24; color: "#141621"; border.color: "#252835"; border.width: 1
+                            radius: 24; color: window.themeCardBg; border.color: window.themeBorder; border.width: 1
                             ColumnLayout {
                                 id: emuCol; anchors.left: parent.left; anchors.right: parent.right; anchors.top: parent.top; anchors.margins: 20; spacing: 15
                                 Repeater {

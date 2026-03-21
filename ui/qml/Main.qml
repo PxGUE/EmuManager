@@ -11,6 +11,15 @@ ApplicationWindow {
     visible: true
     title: bridge ? (bridge.appName + " " + bridge.appVersion) : "EmuManager"
     
+    // --- PREMIUM THEME ---
+    property color themeBg: "#0e0f1a"
+    property color themeAccent: "#7c6ff7" // Púrpura brillante de la referencia
+    property color themeCardBg: Qt.rgba(1, 1, 1, 0.05)
+    property color themeBorder: Qt.rgba(1, 1, 1, 0.08)
+    property color themeTextMain: "#ffffff"
+    property color themeTextDim: "#9494a5"
+    property color themeSidebarBg: "#0a0b14"
+    
     // Sincronizar fullscreen mediante señal
     Connections {
         target: bridge
@@ -41,7 +50,7 @@ ApplicationWindow {
     // Fondo base
     Rectangle {
         anchors.fill: parent
-        color: "#0d0f17"
+        color: themeBg
     }
 
     RowLayout {
@@ -52,8 +61,13 @@ ApplicationWindow {
         Rectangle {
             id: sidebar
             Layout.fillHeight: parent
-            Layout.preferredWidth: 200
-            color: "#161922"
+            Layout.preferredWidth: 220
+            color: themeSidebarBg
+            
+            Rectangle {
+                anchors.right: parent.right; width: 1; height: parent.height
+                color: themeBorder
+            }
 
             ColumnLayout {
                 anchors.fill: parent
@@ -67,7 +81,7 @@ ApplicationWindow {
                     horizontalAlignment: Text.AlignHCenter
                     font.pixelSize: 15
                     font.weight: Font.Black
-                    color: "#4da6ff"
+                    color: themeAccent
                     Layout.topMargin: 24
                     Layout.bottomMargin: 8
                     renderType: Text.NativeRendering
@@ -76,7 +90,7 @@ ApplicationWindow {
                 Rectangle {
                     Layout.fillWidth: true
                     height: 1
-                    color: "#1a1c24"
+                    color: themeBorder
                     Layout.leftMargin: 16
                     Layout.rightMargin: 16
                 }
@@ -89,10 +103,10 @@ ApplicationWindow {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     model: ListModel {
-                        ListElement { name: "nav_home"; icon: "🏠"; index: 0 }
-                        ListElement { name: "nav_library"; icon: "📚"; index: 1 }
-                        ListElement { name: "nav_downloads"; icon: "📥"; index: 2 }
-                        ListElement { name: "nav_settings"; icon: "⚙️"; index: 3 }
+                        ListElement { name: "nav_home"; icon: "home"; index: 0 }
+                        ListElement { name: "nav_library"; icon: "library"; index: 1 }
+                        ListElement { name: "nav_downloads"; icon: "downloads"; index: 2 }
+                        ListElement { name: "nav_settings"; icon: "settings"; index: 3 }
                     }
                     currentIndex: 0
                     
@@ -107,18 +121,18 @@ ApplicationWindow {
                             anchors.rightMargin: 12
                             radius: 8
                             color: sidebarList.currentIndex === index ? "#2a2f45" : 
-                                   (mouseArea.containsMouse ? "#1c1f2b" : "transparent")
+                                   (mouseArea.containsMouse ? "#151726" : "transparent")
                             
                             Behavior on color { ColorAnimation { duration: 150 } }
 
+                            // Indicador activo (Línea vertical izquierda sutil)
                             Rectangle {
                                 anchors.left: parent.left
                                 anchors.verticalCenter: parent.verticalCenter
-                                width: 3
-                                height: 16
-                                radius: 2
-                                color: "#4da6ff"
+                                width: 3; height: 18; radius: 1.5
+                                color: themeAccent
                                 visible: sidebarList.currentIndex === index
+                                opacity: 0.8
                             }
                         }
 
@@ -127,19 +141,22 @@ ApplicationWindow {
                             anchors.leftMargin: 28
                             spacing: 12
 
-                            Text {
-                                text: model.icon
-                                font.pixelSize: 14
+                            Icon {
+                                name: model.icon
+                                size: 18
+                                color: sidebarList.currentIndex === index ? "white" : themeTextDim
                                 opacity: sidebarList.currentIndex === index ? 1.0 : 0.5
+                                Behavior on color { ColorAnimation { duration: 150 } }
                             }
 
                             Text {
                                 Layout.fillWidth: true
                                 text: tr(model.name)
-                                color: sidebarList.currentIndex === index ? "white" : "#888899"
+                                color: sidebarList.currentIndex === index ? "white" : themeTextDim
                                 verticalAlignment: Text.AlignVCenter
                                 font.pixelSize: 13
                                 font.bold: sidebarList.currentIndex === index
+                                font.letterSpacing: 0.5
                             }
                         }
 
@@ -274,7 +291,7 @@ ApplicationWindow {
         id: splashScreen
         anchors.fill: parent
         z: 10000 // Por encima de todo
-        color: "#0d0f17"
+        color: themeBg
         
         property real currentProgress: 0
         property bool isFinished: false
@@ -339,7 +356,7 @@ ApplicationWindow {
                     anchors.centerIn: parent
                     width: 130; height: 130; radius: 42
                     color: "#161922"
-                    border.color: "#4da6ff"
+                    border.color: themeAccent
                     border.width: 1
                     
                     Image { 
@@ -388,7 +405,7 @@ ApplicationWindow {
                 Layout.alignment: Qt.AlignHCenter
                 Rectangle {
                     id: progressFill
-                    height: parent.height; color: "#4da6ff"; radius: 1
+                    height: parent.height; color: themeAccent; radius: 1
                     width: parent.width * splashScreen.currentProgress
                 }
             }

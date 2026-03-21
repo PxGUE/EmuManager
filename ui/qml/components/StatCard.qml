@@ -4,7 +4,7 @@ import QtQuick.Controls
 
 Item {
     id: cardRoot
-    property string icon: "🎯"
+    property string icon: "library"
     property var value: 0
     property string textValue: ""
     property string label: "Stat"
@@ -50,11 +50,11 @@ Item {
         id: cardBody
         anchors.fill: parent
         radius: 20
-        color: "#141621"
-        border.color: "#252835"
+        color: window.themeCardBg
+        border.color: window.themeBorder
         border.width: 1
         
-        // Gradiente sutil constante para profundidad
+        // Efecto de brillo interior (Glassmorphism)
         Rectangle {
             anchors.fill: parent
             anchors.margins: 1
@@ -70,17 +70,18 @@ Item {
             anchors.margins: 18
             spacing: 15
 
-            Rectangle {
-                width: 48
-                height: 48
-                radius: 14
-                color: Qt.alpha(cardRoot.accentColor, 0.12)
-                Layout.alignment: Qt.AlignVCenter
+                Rectangle {
+                    width: 44
+                    height: 44
+                    radius: 12
+                    color: Qt.alpha(cardRoot.accentColor, 0.1)
+                    Layout.alignment: Qt.AlignVCenter
                 
-                Label {
+                Icon {
                     anchors.centerIn: parent
-                    text: cardRoot.icon
-                    font.pixelSize: 24
+                    name: cardRoot.icon
+                    size: 24
+                    color: cardRoot.accentColor
                 }
             }
 

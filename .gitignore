@@ -68,4 +68,4 @@ installer/
 tools/
 
 # --- Secretos de Desarrollador (COMPILACIÓN) ---
-core/_secrets.py
+core/security/_secrets.py   

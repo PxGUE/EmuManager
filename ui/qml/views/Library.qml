@@ -250,6 +250,9 @@ Item {
         if (libraryRoot.state === "collector" && libraryRoot.selectedGame) {
             return libraryRoot.selectedGame.background || ""
         }
+        if (libraryRoot.state === "grid" && libraryRoot.selectedGame) {
+            return libraryRoot.selectedGame.background || (carousel.currentItem ? carousel.currentItem.backgroundSource || "" : "")
+        }
         if (libraryRoot.state === "carousel" || libraryRoot.state === "grid") {
             return (carousel.currentItem) ? carousel.currentItem.backgroundSource || "" : ""
         }
@@ -913,7 +916,7 @@ Item {
                         cursorShape: Qt.PointingHandCursor
                         onEntered: {
                             if (gamesGrid) {
-                                gamesGrid.currentItemData = modelData
+                                libraryRoot.selectedGame = modelData
                             }
                         }
                         onClicked: (mouse) => { 
@@ -936,7 +939,7 @@ Item {
                             anchors.fill: parent
                             radius: 28
                             color: "transparent"
-                            border.color: currentAccentColor
+                            border.color: modelData.accentColor || libraryRoot.currentPlatformColor
                             border.width: isHovered ? 3 : 1
                             opacity: isHovered ? 1.0 : 0.2
                             Behavior on border.width { 
@@ -1003,8 +1006,8 @@ Item {
                             width: 38
                             height: 38
                             radius: 19
-                            color: infoBtnArea.containsMouse ? currentAccentColor : "#e00a0c14"
-                            border.color: currentAccentColor
+                            color: infoBtnArea.containsMouse ? (modelData.accentColor || libraryRoot.currentPlatformColor) : "#e00a0c14"
+                            border.color: modelData.accentColor || libraryRoot.currentPlatformColor
                             border.width: 1
                             visible: isHovered
                             Label { 
@@ -1029,7 +1032,7 @@ Item {
                             height: 38
                             radius: 19
                             color: favBtnArea.containsMouse ? "#ff4d4d" : (modelData.isFavorite ? "#33ff4d4d" : "#e00a0c14")
-                            border.color: modelData.isFavorite ? "#ff4d4d" : currentAccentColor
+                            border.color: modelData.isFavorite ? "#ff4d4d" : (modelData.accentColor || libraryRoot.currentPlatformColor)
                             border.width: 1
                             Label { 
                                 anchors.centerIn: parent

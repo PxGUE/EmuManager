@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
+import QtQuick.Effects
 import "../components"
 
 Item {
@@ -47,7 +48,11 @@ Item {
 
                 RowLayout {
                     spacing: 10
-                    Rectangle { width: 3; height: 16; radius: 1.5; color: window.themeAccent }
+                Rectangle {
+                    width: 3; height: 16; radius: 1.5; color: window.neonViolet
+                    layer.enabled: true
+                    layer.effect: MultiEffect { shadowEnabled: true; shadowColor: window.neonViolet; shadowBlur: 0.8; shadowOpacity: 0.7 }
+                }
                     Label {
                         text: tr("set_lang_lbl").toUpperCase()
                         font.pixelSize: 13; font.bold: true; color: "white"; font.letterSpacing: 1
@@ -57,13 +62,13 @@ Item {
                 Rectangle {
                     Layout.fillWidth: true
                     height: 80
-                    radius: 20
-                    color: window.themeCardBg
-                    border.color: window.themeBorder; border.width: 1
+                    radius: 22
+                    color: Qt.rgba(0.07, 0.04, 0.15, 0.72)
+                    border.color: Qt.rgba(window.neonViolet.r, window.neonViolet.g, window.neonViolet.b, 0.22); border.width: 1
 
                     SettingRow {
                         anchors.fill: parent
-                        icon: ""
+                        icon: "language"
                         title: tr("set_lang_title")
                         subtitle: tr("set_lang_sub")
 
@@ -141,10 +146,9 @@ Item {
                                 }
                             }
 
-                            background: Rectangle { 
-                                radius: 10; color: "#1a1c24"
-                                border.color: langCombo.hovered ? "#4da6ff" : "#33ffffff"
-                                border.width: 1 
+                            background: Rectangle { radius: 10; color: Qt.rgba(0.07, 0.04, 0.15, 0.9)
+                                border.color: langCombo.hovered ? window.neonViolet : Qt.rgba(window.neonViolet.r, window.neonViolet.g, window.neonViolet.b, 0.2)
+                                border.width: 1
                                 Behavior on border.color { ColorAnimation { duration: 150 } }
                             }
                         }
@@ -159,7 +163,11 @@ Item {
 
                 RowLayout {
                     spacing: 10
-                    Rectangle { width: 3; height: 16; radius: 1.5; color: window.themeAccent }
+                Rectangle {
+                    width: 3; height: 16; radius: 1.5; color: window.neonViolet
+                    layer.enabled: true
+                    layer.effect: MultiEffect { shadowEnabled: true; shadowColor: window.neonViolet; shadowBlur: 0.8; shadowOpacity: 0.7 }
+                }
                     Label {
                         text: tr("set_paths_section").toUpperCase()
                         font.pixelSize: 13; font.bold: true; color: "white"; font.letterSpacing: 1
@@ -169,9 +177,9 @@ Item {
                 Rectangle {
                     Layout.fillWidth: true
                     height: pathsCol.implicitHeight
-                    radius: 20
-                    color: window.themeCardBg
-                    border.color: window.themeBorder; border.width: 1
+                    radius: 22
+                    color: Qt.rgba(0.07, 0.04, 0.15, 0.72)
+                    border.color: Qt.rgba(window.neonViolet.r, window.neonViolet.g, window.neonViolet.b, 0.22); border.width: 1
 
                     ColumnLayout {
                         id: pathsCol
@@ -204,7 +212,11 @@ Item {
 
                 RowLayout {
                     spacing: 10
-                    Rectangle { width: 3; height: 16; radius: 1.5; color: window.themeAccent }
+                Rectangle {
+                    width: 3; height: 16; radius: 1.5; color: window.neonViolet
+                    layer.enabled: true
+                    layer.effect: MultiEffect { shadowEnabled: true; shadowColor: window.neonViolet; shadowBlur: 0.8; shadowOpacity: 0.7 }
+                }
                     Label {
                         text: tr("set_interface_section").toUpperCase()
                         font.pixelSize: 13; font.bold: true; color: "white"; font.letterSpacing: 1
@@ -214,9 +226,9 @@ Item {
                 Rectangle {
                     Layout.fillWidth: true
                     height: 80
-                    radius: 20
-                    color: window.themeCardBg
-                    border.color: window.themeBorder; border.width: 1
+                    radius: 22
+                    color: Qt.rgba(0.07, 0.04, 0.15, 0.72)
+                    border.color: Qt.rgba(window.neonViolet.r, window.neonViolet.g, window.neonViolet.b, 0.22); border.width: 1
 
                     SettingRow {
                         anchors.fill: parent
@@ -232,22 +244,15 @@ Item {
                             }
                             
                             indicator: Rectangle {
-                                implicitWidth: 48
-                                implicitHeight: 26
-                                radius: 13
-                                color: collectorSwitch.checked ? "#4da6ff" : "#2a2d3e"
-                                border.color: collectorSwitch.checked ? "#4da6ff" : "#33ffffff"
-
+                                implicitWidth: 48; implicitHeight: 26; radius: 13
+                                color: collectorSwitch.checked ? window.neonViolet : Qt.rgba(1,1,1,0.06)
+                                border.color: collectorSwitch.checked ? window.neonViolet : Qt.rgba(1,1,1,0.15)
+                                layer.enabled: collectorSwitch.checked
+                                layer.effect: MultiEffect { shadowEnabled: true; shadowColor: window.neonViolet; shadowBlur: 0.8; shadowOpacity: 0.7 }
                                 Rectangle {
                                     x: collectorSwitch.checked ? parent.width - width - 2 : 2
-                                    y: 2
-                                    width: 22
-                                    height: 22
-                                    radius: 11
-                                    color: "white"
-                                    Behavior on x {
-                                        NumberAnimation { duration: 200; easing.type: Easing.OutQuad }
-                                    }
+                                    y: 2; width: 22; height: 22; radius: 11; color: "white"
+                                    Behavior on x { NumberAnimation { duration: 200; easing.type: Easing.OutQuad } }
                                 }
                             }
                         }
@@ -272,9 +277,9 @@ Item {
                 Rectangle {
                     Layout.fillWidth: true
                     height: providersCol.implicitHeight
-                    radius: 20
-                    color: window.themeCardBg
-                    border.color: window.themeBorder; border.width: 1
+                    radius: 22
+                    color: Qt.rgba(0.07, 0.04, 0.15, 0.72)
+                    border.color: Qt.rgba(window.neonViolet.r, window.neonViolet.g, window.neonViolet.b, 0.22); border.width: 1
 
                     ColumnLayout {
                         id: providersCol
@@ -317,18 +322,16 @@ Item {
                 onClicked: aboutDialog.open()
                 
                 background: Rectangle {
-                    color: "transparent"
-                    radius: 12
-                    border.color: aboutBtn.hovered ? "#4da6ff" : "#2a2d3a"
+                    color: "transparent"; radius: 14
+                    border.color: aboutBtn.hovered ? window.neonViolet : Qt.rgba(window.neonViolet.r, window.neonViolet.g, window.neonViolet.b, 0.2)
                     border.width: 1
                     Behavior on border.color { ColorAnimation { duration: 200 } }
                 }
                 contentItem: Label {
                     text: aboutBtn.text
-                    color: aboutBtn.hovered ? "white" : "#888899"
-                    font.bold: true
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
+                    color: aboutBtn.hovered ? "#f0e8ff" : "#7e7a96"
+                    font.bold: true; font.letterSpacing: 0.5
+                    horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
                 }
             }
         }
@@ -363,10 +366,8 @@ Item {
         }
         
         background: Rectangle {
-            color: "#1a1c24"
-            radius: 20
-            border.color: "#303440"
-            border.width: 1
+            color: Qt.rgba(0.04, 0.02, 0.1, 0.97); radius: 22
+            border.color: Qt.rgba(window.neonViolet.r, window.neonViolet.g, window.neonViolet.b, 0.35); border.width: 1
         }
 
         ColumnLayout {
@@ -399,7 +400,7 @@ Item {
                         echoMode: configPopup.apiKeyVisible ? TextInput.Normal : TextInput.Password
                         color: "white"
                         rightPadding: 40
-                        background: Rectangle { color: "#0f111a"; radius: 8; border.color: parent.activeFocus ? "#4da6ff" : "#252830" }
+                        background: Rectangle { color: Qt.rgba(0.04, 0.02, 0.1, 0.9); radius: 10; border.color: parent.activeFocus ? window.neonViolet : Qt.rgba(window.neonViolet.r, window.neonViolet.g, window.neonViolet.b, 0.2); border.width: 1 }
 
                         Label {
                             anchors.right: parent.right
@@ -431,7 +432,7 @@ Item {
                             id: userField
                             Layout.fillWidth: true
                             color: "white"
-                            background: Rectangle { color: "#0f111a"; radius: 8; border.color: parent.activeFocus ? "#4da6ff" : "#252830" }
+                            background: Rectangle { color: Qt.rgba(0.04, 0.02, 0.1, 0.9); radius: 10; border.color: parent.activeFocus ? window.neonViolet : Qt.rgba(window.neonViolet.r, window.neonViolet.g, window.neonViolet.b, 0.2); border.width: 1 }
                         }
                     }
                     
@@ -445,7 +446,7 @@ Item {
                             echoMode: configPopup.passVisible ? TextInput.Normal : TextInput.Password
                             color: "white"
                             rightPadding: 40
-                            background: Rectangle { color: "#0f111a"; radius: 8; border.color: parent.activeFocus ? "#4da6ff" : "#252830" }
+                            background: Rectangle { color: Qt.rgba(0.04, 0.02, 0.1, 0.9); radius: 10; border.color: parent.activeFocus ? window.neonViolet : Qt.rgba(window.neonViolet.r, window.neonViolet.g, window.neonViolet.b, 0.2); border.width: 1 }
 
                             Label {
                                 anchors.right: parent.right
@@ -479,8 +480,8 @@ Item {
                         passField.text = ""
                         configPopup.close()
                     }
-                    background: Rectangle { color: "#252830"; radius: 10 }
-                    contentItem: Label { text: parent.text; color: "#ff4d4d"; font.bold: true; horizontalAlignment: Text.AlignHCenter }
+                    background: Rectangle { color: Qt.rgba(window.neonViolet.r, window.neonViolet.g, window.neonViolet.b, 0.15); radius: 12; border.color: window.neonViolet; border.width: 1 }
+                    contentItem: Label { text: parent.text; color: window.neonRed; font.bold: true; horizontalAlignment: Text.AlignHCenter }
                 }
 
                 Button {
@@ -497,8 +498,15 @@ Item {
                         }
                         configPopup.close()
                     }
-                    background: Rectangle { color: "#4da6ff"; radius: 10 }
-                    contentItem: Label { text: parent.text; color: "black"; font.bold: true; horizontalAlignment: Text.AlignHCenter }
+                    background: Rectangle {
+                            gradient: Gradient {
+                                orientation: Gradient.Horizontal
+                                GradientStop { position: 0.0; color: window.neonViolet }
+                                GradientStop { position: 1.0; color: window.neonMagenta }
+                            }
+                            radius: 12
+                        }
+                    contentItem: Label { text: parent.text; color: "#0a0520"; font.bold: true; horizontalAlignment: Text.AlignHCenter }
                 }
             }
         }
@@ -516,22 +524,16 @@ Item {
         
         background: Item {
             Rectangle {
-                id: dialogBg
-                anchors.fill: parent
-                color: "#161821"
-                radius: 40
-                border.color: "#303440"
-                border.width: 1
+                id: dialogBg; anchors.fill: parent
+                color: Qt.rgba(0.05, 0.03, 0.12, 0.97); radius: 40
+                border.color: Qt.rgba(window.neonViolet.r, window.neonViolet.g, window.neonViolet.b, 0.35); border.width: 1
             }
-
             Rectangle {
-                anchors.fill: parent
-                radius: 40
-                opacity: 0.12
+                anchors.fill: parent; radius: 40; opacity: 0.1
                 gradient: Gradient {
-                    GradientStop { position: 0.0; color: "#4da6ff" }
+                    GradientStop { position: 0.0; color: window.neonViolet }
                     GradientStop { position: 0.5; color: "transparent" }
-                    GradientStop { position: 1.0; color: "#7c6ff7" }
+                    GradientStop { position: 1.0; color: window.neonMagenta }
                 }
             }
         }
@@ -710,21 +712,17 @@ Item {
                     onClicked: aboutDialog.close()
                     
                     background: Rectangle {
-                        color: closeAboutBtn.pressed ? "white" : (closeAboutBtn.hovered ? "#4da6ff" : "transparent")
+                        color: closeAboutBtn.pressed ? "white" : (closeAboutBtn.hovered ? window.neonViolet : "transparent")
                         radius: 23
-                        border.color: closeAboutBtn.hovered ? "transparent" : "#2a2d3a"
+                        border.color: closeAboutBtn.hovered ? "transparent" : Qt.rgba(window.neonViolet.r, window.neonViolet.g, window.neonViolet.b, 0.4)
                         border.width: 1
                         Behavior on color { ColorAnimation { duration: 150 } }
                     }
-                    
                     contentItem: Label {
                         text: closeAboutBtn.text
-                        color: closeAboutBtn.hovered ? "black" : "white"
-                        font.bold: true
-                        font.pixelSize: 11
-                        font.letterSpacing: 2
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
+                        color: closeAboutBtn.hovered ? "#0a0520" : "#d0c0f0"
+                        font.bold: true; font.pixelSize: 11; font.letterSpacing: 2
+                        horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
                     }
                 }
             }

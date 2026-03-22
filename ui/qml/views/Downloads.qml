@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
+import QtQuick.Effects
 import "../components"
 
 Item {
@@ -60,9 +61,9 @@ Item {
                 }
                 
                 background: Rectangle {
-                    color: btnCheckUpdates.pressed ? "#161922" : (btnCheckUpdates.hovered ? "#1c1e2a" : "#13151d")
-                    radius: 12
-                    border.color: isCheckingUpdates ? "#ffaa00" : (btnCheckUpdates.hovered ? "#4da6ff" : "#252836")
+                    color: btnCheckUpdates.pressed ? Qt.rgba(0.12, 0.05, 0.22, 1.0) : (btnCheckUpdates.hovered ? Qt.rgba(0.08, 0.05, 0.18, 0.9) : "transparent")
+                    radius: 14
+                    border.color: isCheckingUpdates ? window.neonGold : (btnCheckUpdates.hovered ? window.neonViolet : Qt.rgba(window.neonViolet.r, window.neonViolet.g, window.neonViolet.b, 0.3))
                     border.width: 1
                     scale: btnCheckUpdates.pressed ? 0.98 : 1.0
                     Behavior on scale { NumberAnimation { duration: 100 } }
@@ -80,7 +81,7 @@ Item {
                     }
                     Label { 
                         text: isCheckingUpdates ? tr("maint_checking_updates").toUpperCase() : tr("maint_check_btn").toUpperCase()
-                        color: isCheckingUpdates ? "#ffaa00" : "white"
+                        color: isCheckingUpdates ? window.neonGold : "#f0e8ff"
                         font.pixelSize: 12; font.bold: true; font.letterSpacing: 0.5
                     }
                 }
@@ -99,30 +100,26 @@ Item {
                 text: tr("maint_checking_updates").toUpperCase()
                 font.pixelSize: 10
                 font.bold: true
-                color: "#ffaa00"
+                color: window.neonGold
                 font.letterSpacing: 1.2
                 Layout.alignment: Qt.AlignHCenter
             }
 
             Rectangle {
                 id: progressContainer
-                Layout.fillWidth: true
-                height: 2
-                color: "#1a1626"
-                clip: true 
-                
+                Layout.fillWidth: true; height: 3; radius: 2
+                color: Qt.rgba(1,1,1,0.06); clip: true
                 Rectangle {
                     id: indicator
-                    width: parent.width * 0.3
-                    height: parent.height
-                    color: "#ffaa00"
-                    
-                    NumberAnimation on x { 
-                        from: -indicator.width 
-                        to: progressContainer.width 
-                        duration: 1200 
-                        loops: Animation.Infinite 
-                        running: isCheckingUpdates 
+                    width: parent.width * 0.3; height: parent.height; radius: 2
+                    gradient: Gradient {
+                        orientation: Gradient.Horizontal
+                        GradientStop { position: 0.0; color: window.neonViolet }
+                        GradientStop { position: 1.0; color: window.neonMagenta }
+                    }
+                    NumberAnimation on x {
+                        from: -indicator.width; to: progressContainer.width
+                        duration: 1200; loops: Animation.Infinite; running: isCheckingUpdates
                     }
                 }
             }
@@ -132,14 +129,13 @@ Item {
             Layout.topMargin: 10
             spacing: 12
             Rectangle { 
-                width: 4; height: 24; radius: 2; color: "#4da6ff" 
+                width: 3; height: 22; radius: 2; color: window.neonViolet
+                layer.enabled: true
+                layer.effect: MultiEffect { shadowEnabled: true; shadowColor: window.neonViolet; shadowBlur: 0.8; shadowOpacity: 0.7 }
             }
             Label {
                 text: tr("dl_main_title")
-                font.pixelSize: 18
-                font.bold: true
-                color: "white"
-                font.letterSpacing: 1
+                font.pixelSize: 18; font.bold: true; color: "#f0e8ff"; font.letterSpacing: 0.5
             }
         }
 
@@ -248,8 +244,8 @@ Item {
                 topRightRadius: 15
                 bottomLeftRadius: scrapersExpanded ? 0 : 15
                 bottomRightRadius: scrapersExpanded ? 0 : 15
-                color: "#1a1626"
-                border.color: "#2a2838"
+                color: Qt.rgba(0.07, 0.04, 0.15, 0.9)
+                border.color: Qt.rgba(window.neonViolet.r, window.neonViolet.g, window.neonViolet.b, 0.22)
                 border.width: 1
 
                 RowLayout {
@@ -261,7 +257,7 @@ Item {
                     Label {
                         text: scrapersExpanded ? "▼" : "▶"
                         font.pixelSize: 12
-                        color: "#7c6ff7"
+                        color: window.neonViolet
                     }
 
                     Label {
@@ -288,8 +284,8 @@ Item {
                 Layout.fillWidth: true
                 Layout.preferredHeight: scrapersExpanded ? scrapLayout.implicitHeight + 50 : 0
                 clip: true
-                color: "#13111d"
-                border.color: "#2a2838"
+                color: Qt.rgba(0.05, 0.02, 0.1, 0.97)
+                border.color: Qt.rgba(window.neonViolet.r, window.neonViolet.g, window.neonViolet.b, 0.18)
                 border.width: 1
                 bottomLeftRadius: 15
                 bottomRightRadius: 15
@@ -316,7 +312,7 @@ Item {
                             spacing: 4
                             Label {
                                 text: tr("dl_scrap_dlg_q").toUpperCase()
-                                font.pixelSize: 12; font.bold: true; color: "#7c6ff7"; font.letterSpacing: 1.5
+                                font.pixelSize: 12; font.bold: true; color: window.neonViolet; font.letterSpacing: 1.5
                             }
                             Label {
                                 text: tr("dl_scrap_sub")
@@ -334,17 +330,15 @@ Item {
                             background: Rectangle {
                                 gradient: Gradient {
                                     orientation: Gradient.Horizontal
-                                    GradientStop { position: 0.0; color: "#4da6ff" }
-                                    GradientStop { position: 1.0; color: "#7c6ff7" }
+                                    GradientStop { position: 0.0; color: window.neonViolet }
+                                    GradientStop { position: 1.0; color: window.neonMagenta }
                                 }
-                                radius: 12
+                                radius: 14
                                 opacity: !scrapeBtn.enabled ? 0.3 : (scrapeBtn.hovered ? 1.0 : 0.9)
-                                
-                                // Brillo exterior premium
                                 Rectangle {
-                                    anchors.fill: parent; radius: 12
+                                    anchors.fill: parent; radius: 14
                                     color: "transparent"; border.color: "white"; border.width: 1
-                                    opacity: scrapeBtn.hovered ? 0.3 : 0
+                                    opacity: scrapeBtn.hovered ? 0.2 : 0
                                     Behavior on opacity { NumberAnimation { duration: 200 } }
                                 }
                             }
@@ -360,7 +354,7 @@ Item {
                         }
                     }
 
-                    Rectangle { Layout.fillWidth: true; height: 1; color: "#252835"; opacity: 0.5 }
+                    Rectangle { Layout.fillWidth: true; height: 1; color: Qt.rgba(window.neonViolet.r, window.neonViolet.g, window.neonViolet.b, 0.15); opacity: 0.7 }
 
                     // LISTA DE OPCIONES CREATIVA
                     ColumnLayout {
@@ -370,8 +364,9 @@ Item {
                         // Reusable delegate-like items for the list
                         // Artwork Item
                         Rectangle {
-                            Layout.fillWidth: true; height: 50; radius: 12; color: downloadArtwork ? "#1a1e2e" : "#0f111a"
-                            border.color: downloadArtwork ? "#4da6ff" : "#252835"; border.width: 1
+                            Layout.fillWidth: true; height: 52; radius: 16
+                            color: downloadArtwork ? Qt.rgba(window.neonViolet.r, window.neonViolet.g, window.neonViolet.b, 0.12) : Qt.rgba(1,1,1,0.03)
+                            border.color: downloadArtwork ? window.neonViolet : Qt.rgba(1,1,1,0.08); border.width: 1
                             Behavior on color { ColorAnimation { duration: 200 } }
                             
                             RowLayout {
@@ -391,8 +386,9 @@ Item {
 
                         // Metadata Item
                         Rectangle {
-                            Layout.fillWidth: true; height: 50; radius: 12; color: downloadMetadata ? "#1a1e2e" : "#0f111a"
-                            border.color: downloadMetadata ? "#4da6ff" : "#252835"; border.width: 1
+                            Layout.fillWidth: true; height: 52; radius: 16
+                            color: downloadMetadata ? Qt.rgba(window.neonViolet.r, window.neonViolet.g, window.neonViolet.b, 0.12) : Qt.rgba(1,1,1,0.03)
+                            border.color: downloadMetadata ? window.neonViolet : Qt.rgba(1,1,1,0.08); border.width: 1
                             Behavior on color { ColorAnimation { duration: 200 } }
                             
                             RowLayout {
@@ -452,19 +448,16 @@ Item {
 
                                 Rectangle {
                                     width: scanBar.visualPosition * parent.width
-                                    height: parent.height
-                                    radius: 4
+                                    height: parent.height; radius: 4
                                     gradient: Gradient {
                                         orientation: Gradient.Horizontal
-                                        GradientStop { position: 0.0; color: "#4da6ff" }
-                                        GradientStop { position: 1.0; color: "#7c6ff7" }
+                                        GradientStop { position: 0.0; color: window.neonViolet }
+                                        GradientStop { position: 1.0; color: window.neonMagenta }
                                     }
-                                    
-                                    // Glow effect
                                     layer.enabled: true
-                                    layer.effect: ShaderEffect {
-                                        // Simple glow can be added here if needed, 
-                                        // but for now a nice gradient is premium enough
+                                    layer.effect: MultiEffect {
+                                        shadowEnabled: true; shadowColor: window.neonViolet
+                                        shadowBlur: 0.8; shadowOpacity: 0.7
                                     }
                                 }
                             }

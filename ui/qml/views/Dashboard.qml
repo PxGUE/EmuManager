@@ -22,29 +22,28 @@ Item {
     // --- FONDO ATMOSFÉRICO ---
     Rectangle {
         anchors.fill: parent
-        color: "#161923"
+        color: window.themeBg
         z: -2
-        
-        // Glow ambiental animado
+
+        // Animated ambient orb
         Rectangle {
             id: backgroundBlur
             anchors.centerIn: parent
-            width: parent.width * 1.5
-            height: parent.height * 1.5
+            width: parent.width * 1.6
+            height: parent.height * 1.6
             radius: width / 2
-            opacity: 0.15 // Slightly higher opacity for neon reflection
-            
+            opacity: 0.1
+
             gradient: Gradient {
-                GradientStop { position: 0.0; color: currentAccentColor }
-                GradientStop { position: 0.3; color: window.neonPurple }
-                GradientStop { position: 0.8; color: "transparent" }
+                GradientStop { position: 0.0; color: window.neonViolet }
+                GradientStop { position: 0.4; color: window.neonMagenta }
+                GradientStop { position: 0.85; color: "transparent" }
             }
-            
-            SequentialAnimation on color {
+
+            SequentialAnimation on opacity {
                 loops: Animation.Infinite
-                ColorAnimation { from: window.neonCyan; to: window.neonPurple; duration: 10000; easing.type: Easing.InOutSine }
-                ColorAnimation { from: window.neonPurple; to: window.neonPink; duration: 10000; easing.type: Easing.InOutSine }
-                ColorAnimation { from: window.neonPink; to: window.neonCyan; duration: 10000; easing.type: Easing.InOutSine }
+                NumberAnimation { from: 0.08; to: 0.14; duration: 8000; easing.type: Easing.InOutSine }
+                NumberAnimation { from: 0.14; to: 0.08; duration: 8000; easing.type: Easing.InOutSine }
             }
         }
     }
@@ -53,68 +52,57 @@ Item {
     Rectangle {
         id: emptyState
         anchors.centerIn: parent
-        width: 480
-        height: 400
-        radius: 40
-        color: "#12141d"
-        border.color: "#252835"
+        width: 480; height: 420; radius: 44
+        color: Qt.rgba(0.08, 0.05, 0.18, 0.8)
+        border.color: Qt.rgba(window.neonViolet.r, window.neonViolet.g, window.neonViolet.b, 0.3)
         border.width: 1
         visible: isEmpty
         opacity: visible ? 1.0 : 0.0
         scale: visible ? 1.0 : 0.9
-
         Behavior on opacity { NumberAnimation { duration: 600; easing.type: Easing.OutCubic } }
         Behavior on scale { NumberAnimation { duration: 600; easing.type: Easing.OutBack } }
 
         ColumnLayout {
-            anchors.centerIn: parent
-            spacing: 32
+            anchors.centerIn: parent; spacing: 32
 
             Item {
-                Layout.preferredWidth: 140
-                Layout.preferredHeight: 140
+                Layout.preferredWidth: 140; Layout.preferredHeight: 140
                 Layout.alignment: Qt.AlignHCenter
-                
                 Image {
-                    anchors.fill: parent
-                    source: bridge ? bridge.logoPath : ""
-                    fillMode: Image.PreserveAspectFit
-                    smooth: true
+                    anchors.fill: parent; source: bridge ? bridge.logoPath : ""
+                    fillMode: Image.PreserveAspectFit; smooth: true
                 }
-                
                 Rectangle {
-                    anchors.centerIn: parent
-                    width: 160; height: 160; radius: 80
-                    color: currentAccentColor
-                    opacity: 0.1
-                    z: -1
-                    SequentialAnimation on scale {
+                    anchors.centerIn: parent; width: 170; height: 170; radius: 85
+                    opacity: 0.0; z: -1
+                    gradient: Gradient {
+                        GradientStop { position: 0.0; color: window.neonViolet }
+                        GradientStop { position: 1.0; color: window.neonMagenta }
+                    }
+                    SequentialAnimation on opacity {
                         loops: Animation.Infinite
-                        NumberAnimation { from: 1.0; to: 1.2; duration: 4000; easing.type: Easing.InOutSine }
-                        NumberAnimation { from: 1.2; to: 1.0; duration: 4000; easing.type: Easing.InOutSine }
+                        NumberAnimation { from: 0.06; to: 0.14; duration: 3500; easing.type: Easing.InOutSine }
+                        NumberAnimation { from: 0.14; to: 0.06; duration: 3500; easing.type: Easing.InOutSine }
                     }
                 }
             }
 
             ColumnLayout {
-                spacing: 8
-                Layout.alignment: Qt.AlignHCenter
-
+                spacing: 6; Layout.alignment: Qt.AlignHCenter
                 Label {
                     text: bridge ? bridge.appName : "EmuManager"
-                    font.pixelSize: 42
-                    font.weight: Font.Black
-                    color: "#ffffff"
+                    font.pixelSize: 40; font.weight: Font.Black; color: "#f0e8ff"
                     Layout.alignment: Qt.AlignHCenter
+                    layer.enabled: true
+                    layer.effect: MultiEffect {
+                        shadowEnabled: true; shadowColor: window.neonViolet
+                        shadowBlur: 0.8; shadowOpacity: 0.5
+                    }
                 }
-
                 Label {
                     text: bridge ? bridge.appVersion : "1.0"
-                    font.pixelSize: 12
-                    font.bold: true
-                    color: currentAccentColor
-                    font.letterSpacing: 4
-                    Layout.alignment: Qt.AlignHCenter
+                    font.pixelSize: 11; font.bold: true; color: window.neonViolet
+                    font.letterSpacing: 4; Layout.alignment: Qt.AlignHCenter
                 }
             }
         }
@@ -167,91 +155,140 @@ Item {
                         Layout.alignment: Qt.AlignVCenter
 
                         Rectangle {
-                            height: 28; width: childrenRect.width + 24; radius: 14
-                            color: Qt.alpha(currentAccentColor, 0.15)
-                            border.color: Qt.alpha(currentAccentColor, 0.3)
+                            height: 28; width: childrenRect.width + 28; radius: 14
+                            color: Qt.rgba(window.neonViolet.r, window.neonViolet.g, window.neonViolet.b, 0.15)
+                            border.color: Qt.rgba(window.neonViolet.r, window.neonViolet.g, window.neonViolet.b, 0.4)
+                            border.width: 1
                             Label {
-                                x: 12; anchors.verticalCenter: parent.verticalCenter
+                                x: 14; anchors.verticalCenter: parent.verticalCenter
                                 text: tr("dash_greeting").toUpperCase()
-                                font.pixelSize: 11; font.bold: true; color: currentAccentColor; font.letterSpacing: 2
+                                font.pixelSize: 11; font.bold: true
+                                color: window.neonViolet; font.letterSpacing: 2.5
                             }
                         }
 
                         Label {
                             text: bridge ? bridge.appName : "EmuManager"
-                            font.pixelSize: 84; font.weight: Font.Black; color: "#ffffff"
-                            font.letterSpacing: -3
-                            
-                            // Efecto de brillo (Glow neon intenso)
+                            font.pixelSize: 82; font.weight: Font.Black; color: "#f0e8ff"
+                            font.letterSpacing: -2.5
+
                             layer.enabled: true
                             layer.effect: MultiEffect {
                                 autoPaddingEnabled: true
                                 shadowEnabled: true
-                                shadowColor: window.neonPink
-                                shadowBlur: 1.8
+                                shadowColor: window.neonViolet
+                                shadowBlur: 1.5
                                 shadowHorizontalOffset: 0
                                 shadowVerticalOffset: 0
-                                shadowOpacity: 0.8
+                                shadowOpacity: 0.65
                             }
                         }
                         
                         Label {
                             text: tr("dash_tagline", (bridge ? bridge.appVersion : "1.0"))
-                            font.pixelSize: 18; color: "#9494a5"; font.weight: Font.Light
+                            font.pixelSize: 17; color: "#7e7a96"; font.weight: Font.Light
                         }
                     }
 
                     Item {
-                        Layout.preferredWidth: 160; Layout.preferredHeight: 160; Layout.alignment: Qt.AlignVCenter
-                        Rectangle {
-                            anchors.centerIn: parent
-                            width: 140; height: 140; radius: 45; opacity: 0.12
-                            gradient: Gradient {
-                                GradientStop { position: 0.0; color: currentAccentColor }
-                                GradientStop { position: 1.0; color: "transparent" }
-                            }
-                        }
-                        Rectangle {
-                            id: logoBox
-                            anchors.centerIn: parent
-                            width: 124; height: 124; radius: 40; color: "#161825"
-                            border.color: Qt.alpha(currentAccentColor, 0.4); border.width: 1
-                            Image {
-                                anchors.fill: parent; anchors.margins: 22
-                                source: bridge ? bridge.logoPath : ""; fillMode: Image.PreserveAspectFit; opacity: 0.95
-                            }
-                        }
-                        SequentialAnimation on anchors.verticalCenterOffset {
-                            loops: Animation.Infinite
-                            NumberAnimation { from: -10; to: 10; duration: 3500; easing.type: Easing.InOutQuad }
-                            NumberAnimation { from: 10; to: -10; duration: 3500; easing.type: Easing.InOutQuad }
-                        }
-                    }
+                        Layout.preferredWidth: 170; Layout.preferredHeight: 170; Layout.alignment: Qt.AlignVCenter
+                        // Outer pulsing ring — igual que el splash
+                         Rectangle {
+                             anchors.centerIn: parent; width: 175; height: 175; radius: 88
+                             color: "transparent"
+                             border.color: window.neonViolet
+                             border.width: 2
+                             opacity: 0.3
+                             z: -1
+                             SequentialAnimation on scale {
+                                 loops: Animation.Infinite
+                                 NumberAnimation { from: 1.0; to: 1.25; duration: 2200; easing.type: Easing.InOutSine }
+                                 NumberAnimation { from: 1.25; to: 1.0; duration: 2200; easing.type: Easing.InOutSine }
+                             }
+                         }
+                         // Second inner ring for depth
+                         Rectangle {
+                             anchors.centerIn: parent; width: 148; height: 148; radius: 74
+                             color: "transparent"
+                             border.color: window.neonMagenta
+                             border.width: 1
+                             opacity: 0.15
+                             z: -1
+                             SequentialAnimation on scale {
+                                 loops: Animation.Infinite
+                                 NumberAnimation { from: 1.08; to: 0.9; duration: 2800; easing.type: Easing.InOutSine }
+                                 NumberAnimation { from: 0.9; to: 1.08; duration: 2800; easing.type: Easing.InOutSine }
+                             }
+                         }
+                         // Glow orb — pulsa en opacidad
+                         Rectangle {
+                             anchors.centerIn: parent; width: 140; height: 140; radius: 70
+                             z: -1
+                             gradient: Gradient {
+                                 GradientStop { position: 0.0; color: window.neonViolet }
+                                 GradientStop { position: 1.0; color: window.neonMagenta }
+                             }
+                             SequentialAnimation on opacity {
+                                 loops: Animation.Infinite
+                                 NumberAnimation { from: 0.12; to: 0.28; duration: 2000; easing.type: Easing.InOutSine }
+                                 NumberAnimation { from: 0.28; to: 0.12; duration: 2000; easing.type: Easing.InOutSine }
+                             }
+                         }
+                         // Logo box — respira ligeramente en escala
+                         Rectangle {
+                             id: logoBox
+                             anchors.centerIn: parent
+                             width: 126; height: 126; radius: 42
+                             color: Qt.rgba(0.1, 0.07, 0.2, 0.9)
+                             border.color: Qt.rgba(window.neonViolet.r, window.neonViolet.g, window.neonViolet.b, 0.55)
+                             border.width: 1.5
+                             layer.enabled: true
+                             layer.effect: MultiEffect {
+                                 shadowEnabled: true; shadowColor: window.neonViolet
+                                 shadowBlur: 1.5; shadowOpacity: 0.65
+                             }
+                             Image {
+                                 anchors.fill: parent; anchors.margins: 22
+                                 source: bridge ? bridge.logoPath : ""
+                                 fillMode: Image.PreserveAspectFit; smooth: true; opacity: 0.95
+                             }
+                             SequentialAnimation on scale {
+                                 loops: Animation.Infinite
+                                 NumberAnimation { from: 1.0; to: 1.04; duration: 1800; easing.type: Easing.InOutSine }
+                                 NumberAnimation { from: 1.04; to: 1.0; duration: 1800; easing.type: Easing.InOutSine }
+                             }
+                         }
+                         SequentialAnimation on anchors.verticalCenterOffset {
+                             loops: Animation.Infinite
+                             NumberAnimation { from: -10; to: 10; duration: 3500; easing.type: Easing.InOutQuad }
+                             NumberAnimation { from: 10; to: -10; duration: 3500; easing.type: Easing.InOutQuad }
+                         }
+                     }
                 }
             }
-            // 2. STATS SECTION
+            // 2. STATS SECTION
             RowLayout {
                 Layout.fillWidth: true
                 Layout.leftMargin: 40
                 Layout.rightMargin: 40
                 spacing: 20
                                 StatCard {
-                    icon: "play"; label: tr("dash_stat_installed"); accentColor: window.neonCyan
+                    icon: "install"; label: tr("dash_stat_installed"); accentColor: window.neonViolet
                     value: (bridge && bridge.lib.dashboardStats) ? bridge.lib.dashboardStats.installed : 0
                     Layout.fillWidth: true
                 }
                 StatCard {
-                    icon: "library"; label: tr("dash_stat_roms"); accentColor: window.neonBlue
+                    icon: "games"; label: tr("dash_stat_roms"); accentColor: window.neonMagenta
                     value: (bridge && bridge.lib.dashboardStats) ? bridge.lib.dashboardStats.totalRoms : 0
                     Layout.fillWidth: true
                 }
                 StatCard {
-                    icon: "settings"; label: tr("dash_stat_consoles"); accentColor: window.neonPurple
+                    icon: "consoles"; label: tr("dash_stat_consoles"); accentColor: window.neonGold
                     value: (bridge && bridge.lib.dashboardStats) ? bridge.lib.dashboardStats.totalConsoles : 0
                     Layout.fillWidth: true
                 }
                 StatCard {
-                    icon: "library"; label: tr("dash_stat_hours"); accentColor: window.neonYellow
+                    icon: "clock"; label: tr("dash_stat_hours"); accentColor: window.neonGreen
                     value: (bridge && bridge.lib.dashboardStats) ? bridge.lib.dashboardStats.totalHours : 0
                     textValue: (bridge && bridge.lib.dashboardStats) ? bridge.lib.dashboardStats.totalTimeDisplay : "0h"
                     Layout.fillWidth: true
@@ -268,25 +305,26 @@ Item {
                     Layout.fillWidth: true; Layout.preferredWidth: 4; spacing: 15; Layout.alignment: Qt.AlignTop
                     Label {
                         text: tr("dash_recent_title").toUpperCase()
-                        font.pixelSize: 12; font.bold: true; color: "#6e7282"; font.letterSpacing: 2
-                        Layout.leftMargin: 5
+                        font.pixelSize: 11; font.bold: true
+                        color: Qt.rgba(window.neonViolet.r, window.neonViolet.g, window.neonViolet.b, 0.55)
+                        font.letterSpacing: 2.5; Layout.leftMargin: 5
                     }
                     Rectangle {
-                        Layout.fillWidth: true; Layout.preferredHeight: actContent.implicitHeight + 30; radius: 24
-                        color: window.themeCardBg; border.color: window.themeBorder; border.width: 1
+                        Layout.fillWidth: true; Layout.preferredHeight: actContent.implicitHeight + 30; radius: 26
+                        color: Qt.rgba(0.07, 0.04, 0.15, 0.72)
+                        border.color: Qt.rgba(window.neonViolet.r, window.neonViolet.g, window.neonViolet.b, 0.18)
+                        border.width: 1
 
-                        // Inner subtle glow
                         layer.enabled: true
                         layer.effect: MultiEffect {
-                            shadowEnabled: true; shadowColor: "black"
-                            shadowBlur: 1.0; shadowOpacity: 0.5
-                            shadowVerticalOffset: 4
+                            shadowEnabled: true; shadowColor: window.neonViolet
+                            shadowBlur: 0.8; shadowOpacity: 0.15; shadowVerticalOffset: 4
                         }
-                        
+
                         Rectangle {
-                            anchors.fill: parent; anchors.margins: 1; radius: 23
+                            anchors.fill: parent; anchors.margins: 1; radius: 25
                             color: "transparent"
-                            border.color: Qt.rgba(1,1,1,0.05); border.width: 1
+                            border.color: Qt.rgba(1,1,1,0.04); border.width: 1
                         }
 
                         ColumnLayout {
@@ -296,31 +334,44 @@ Item {
                                 model: bridge ? bridge.lib.recentActivity : []
                                 delegate: Item {
                                     Layout.fillWidth: true; height: 72
+                                    // Hover pill
                                     Rectangle {
-                                        anchors.fill: parent; anchors.margins: 2; radius: 14
-                                        color: Qt.alpha(modelData.color, 0.08)
+                                        anchors.fill: parent; anchors.margins: 2; radius: 16
+                                        color: Qt.rgba(modelData.color.r, modelData.color.g, modelData.color.b, 0.1)
                                         visible: mouseAreaAct.containsMouse
-                                        border.color: Qt.alpha(modelData.color, 0.15)
+                                        border.color: Qt.rgba(modelData.color.r, modelData.color.g, modelData.color.b, 0.2)
                                         border.width: 1
                                     }
+                                    // Left accent bar on hover
+                                    Rectangle {
+                                        anchors.left: parent.left; anchors.leftMargin: 6
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        width: 3; height: 28; radius: 2
+                                        color: modelData.color
+                                        visible: mouseAreaAct.containsMouse
+                                        layer.enabled: true
+                                        layer.effect: MultiEffect {
+                                            shadowEnabled: true; shadowColor: modelData.color
+                                            shadowBlur: 0.8; shadowOpacity: 0.7
+                                        }
+                                    }
                                     RowLayout {
-                                        anchors.fill: parent; anchors.leftMargin: 15; anchors.rightMargin: 15; spacing: 15
+                                        anchors.fill: parent; anchors.leftMargin: 18; anchors.rightMargin: 15; spacing: 15
                                         // Mini Carátula
                                         Rectangle {
-                                            width: 42; height: 54; radius: 8; color: "#1a1c2b"
+                                            width: 40; height: 52; radius: 10
+                                            color: Qt.rgba(0, 0, 0, 0.5)
                                             clip: true
-                                            border.color: mouseAreaAct.containsMouse ? modelData.color : "transparent"
+                                            border.color: mouseAreaAct.containsMouse ? modelData.color : Qt.rgba(1,1,1,0.08)
                                             border.width: 1
-                                            
-                                            // Soft ambient shadow for thumbnail
-                                            layer.enabled: true
+                                            Behavior on border.color { ColorAnimation { duration: 200 } }
+
+                                            layer.enabled: mouseAreaAct.containsMouse
                                             layer.effect: MultiEffect {
-                                                shadowEnabled: true
-                                                shadowColor: modelData.color
-                                                shadowBlur: mouseAreaAct.containsMouse ? 1.0 : 0.0
-                                                shadowOpacity: mouseAreaAct.containsMouse ? 0.8 : 0.0
+                                                shadowEnabled: true; shadowColor: modelData.color
+                                                shadowBlur: 1.0; shadowOpacity: 0.7
                                             }
-                                            
+
                                             Image {
                                                 anchors.fill: parent
                                                 source: modelData.cover
@@ -329,17 +380,13 @@ Item {
                                                 visible: modelData.cover !== ""
                                                 Behavior on opacity { NumberAnimation { duration: 200 } }
                                             }
-                                            
                                             Rectangle {
                                                 anchors.fill: parent; color: modelData.color; opacity: 0.1
                                                 visible: modelData.cover === ""
                                             }
-                                            Icon { 
-                                                anchors.centerIn: parent
-                                                name: "library"
-                                                size: 18
-                                                color: modelData.color
-                                                opacity: 0.5
+                                            Icon {
+                                                anchors.centerIn: parent; name: "library"; size: 18
+                                                color: modelData.color; opacity: 0.5
                                                 visible: modelData.cover === "" || modelData.cover.status !== Image.Ready
                                             }
                                         }
@@ -396,14 +443,13 @@ Item {
                                 }
                                 Label {
                                     text: tr("dash_empty_recent")
-                                    color: "#4a4d63"; font.pixelSize: 16; Layout.alignment: Qt.AlignHCenter
+                                    color: Qt.rgba(window.neonViolet.r, window.neonViolet.g, window.neonViolet.b, 0.4)
+                                    font.pixelSize: 16; Layout.alignment: Qt.AlignHCenter
                                 }
                             }
                         }
                     }
                 }
-
-                // Right Side: Multi-Card Column
                 ColumnLayout {
                     Layout.fillWidth: true; Layout.preferredWidth: 2; spacing: 30; Layout.alignment: Qt.AlignTop
                     
@@ -412,20 +458,25 @@ Item {
                         spacing: 12; Layout.fillWidth: true
                         RowLayout {
                             spacing: 8; Layout.leftMargin: 5
-                            Icon { name: "monitor"; size: 14; color: "#6e7282" }
+                            Icon { name: "monitor"; size: 14; color: Qt.rgba(window.neonViolet.r, window.neonViolet.g, window.neonViolet.b, 0.55) }
                             Label {
                                 text: tr("dash_status_title_panel").toUpperCase()
-                                font.pixelSize: 11; font.bold: true; color: "#6e7282"; font.letterSpacing: 2
+                                font.pixelSize: 11; font.bold: true
+                                color: Qt.rgba(window.neonViolet.r, window.neonViolet.g, window.neonViolet.b, 0.55)
+                                font.letterSpacing: 2.5
                             }
                         }
                         Rectangle {
                             Layout.fillWidth: true; implicitHeight: pathCol.implicitHeight + 40
-                            radius: 24; color: window.themeCardBg; border.color: window.themeBorder; border.width: 1
+                            radius: 26
+                            color: Qt.rgba(0.07, 0.04, 0.15, 0.72)
+                            border.color: Qt.rgba(window.neonViolet.r, window.neonViolet.g, window.neonViolet.b, 0.18)
+                            border.width: 1
                             layer.enabled: true
                             layer.effect: MultiEffect {
-                                shadowEnabled: true; shadowColor: "black"; shadowBlur: 1.0; shadowOpacity: 0.5; shadowVerticalOffset: 4
+                                shadowEnabled: true; shadowColor: window.neonViolet; shadowBlur: 0.6; shadowOpacity: 0.15; shadowVerticalOffset: 4
                             }
-                            Rectangle { anchors.fill: parent; anchors.margins: 1; radius: 23; color: "transparent"; border.color: Qt.rgba(1,1,1,0.05); border.width: 1 }
+                            Rectangle { anchors.fill: parent; anchors.margins: 1; radius: 25; color: "transparent"; border.color: Qt.rgba(1,1,1,0.04); border.width: 1 }
                             ColumnLayout {
                                 id: pathCol; anchors.left: parent.left; anchors.right: parent.right; anchors.top: parent.top; anchors.margins: 20; spacing: 18
                                 StatusRow {
@@ -446,36 +497,60 @@ Item {
                         spacing: 12; Layout.fillWidth: true
                         Label {
                             text: tr("dash_available_systems").toUpperCase()
-                            font.pixelSize: 11; font.bold: true; color: "#6e7282"; font.letterSpacing: 2; Layout.leftMargin: 5
+                            font.pixelSize: 11; font.bold: true
+                            color: Qt.rgba(window.neonViolet.r, window.neonViolet.g, window.neonViolet.b, 0.55)
+                            font.letterSpacing: 2.5; Layout.leftMargin: 5
                         }
                         Rectangle {
                             Layout.fillWidth: true; implicitHeight: emuCol.implicitHeight + 40
-                            radius: 24; color: window.themeCardBg; border.color: window.themeBorder; border.width: 1
+                            radius: 26
+                            color: Qt.rgba(0.07, 0.04, 0.15, 0.72)
+                            border.color: Qt.rgba(window.neonViolet.r, window.neonViolet.g, window.neonViolet.b, 0.18)
+                            border.width: 1
                             layer.enabled: true
                             layer.effect: MultiEffect {
-                                shadowEnabled: true; shadowColor: "black"; shadowBlur: 1.0; shadowOpacity: 0.5; shadowVerticalOffset: 4
+                                shadowEnabled: true; shadowColor: window.neonViolet; shadowBlur: 0.6; shadowOpacity: 0.15; shadowVerticalOffset: 4
                             }
-                            Rectangle { anchors.fill: parent; anchors.margins: 1; radius: 23; color: "transparent"; border.color: Qt.rgba(1,1,1,0.05); border.width: 1 }
+                            Rectangle { anchors.fill: parent; anchors.margins: 1; radius: 25; color: "transparent"; border.color: Qt.rgba(1,1,1,0.04); border.width: 1 }
                             ColumnLayout {
-                                id: emuCol; anchors.left: parent.left; anchors.right: parent.right; anchors.top: parent.top; anchors.margins: 20; spacing: 15
+                                id: emuCol; anchors.left: parent.left; anchors.right: parent.right; anchors.top: parent.top; anchors.margins: 20; spacing: 16
                                 Repeater {
                                     model: (bridge && bridge.systemStatus) ? bridge.systemStatus.installedEmus : []
                                     delegate: RowLayout {
-                                        Layout.fillWidth: true; spacing: 10
-                                        Rectangle { width: 8; height: 8; radius: 4; color: modelData.color; opacity: 0.8; Layout.alignment: Qt.AlignVCenter }
-                                        Label { 
-                                            text: modelData.name; color: "#e0e0e0"; font.pixelSize: 13; font.weight: Font.Medium; 
-                                            Layout.fillWidth: true; elide: Text.ElideRight 
+                                        Layout.fillWidth: true; spacing: 12
+                                        // Colored dot with glow
+                                        Rectangle {
+                                            width: 8; height: 8; radius: 4; color: modelData.color
+                                            Layout.alignment: Qt.AlignVCenter
+                                            layer.enabled: true
+                                            layer.effect: MultiEffect { shadowEnabled: true; shadowColor: modelData.color; shadowBlur: 0.8; shadowOpacity: 0.9 }
                                         }
-                                        Label { 
-                                            text: modelData.console.toUpperCase(); color: "#5a5e70"; font.pixelSize: 9; font.bold: true; 
-                                            Layout.alignment: Qt.AlignVCenter 
+                                        Label {
+                                            text: modelData.name; color: "#d0c8e8"
+                                            font.pixelSize: 13; font.weight: Font.Medium
+                                            Layout.fillWidth: true; elide: Text.ElideRight
+                                        }
+                                        // Console badge pill
+                                        Rectangle {
+                                            implicitWidth: consoleLbl.implicitWidth + 12; height: 20; radius: 10
+                                            color: Qt.rgba(modelData.color.r, modelData.color.g, modelData.color.b, 0.15)
+                                            border.color: Qt.rgba(modelData.color.r, modelData.color.g, modelData.color.b, 0.3)
+                                            border.width: 1
+                                            Layout.alignment: Qt.AlignVCenter
+                                            Label {
+                                                id: consoleLbl
+                                                anchors.centerIn: parent
+                                                text: modelData.console.toUpperCase()
+                                                color: modelData.color; font.pixelSize: 9; font.bold: true; font.letterSpacing: 0.5
+                                            }
                                         }
                                     }
                                 }
                                 Label {
                                     visible: !bridge || bridge.systemStatus.installedEmus.length === 0
                                     text: tr("dash_no_systems")
+                                    color: Qt.rgba(window.neonViolet.r, window.neonViolet.g, window.neonViolet.b, 0.4)
+                                    font.pixelSize: 13
                                 }
                             }
                         }

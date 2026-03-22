@@ -343,7 +343,7 @@ Item {
 
     Rectangle {
         anchors.fill: parent
-        color: "#0a0b12"
+        color: "#060711"
         z: 0
 
         Rectangle {
@@ -663,19 +663,31 @@ Item {
                     Item { Layout.fillHeight: true }
                     Rectangle {
                         Layout.alignment: Qt.AlignHCenter
-                        width: 180 * responsiveScale
+                        width: 190 * responsiveScale
                         height: 54 * responsiveScale
                         radius: height / 2
-                        color: isCurrent ? accentColor : "#1affffff"
-                        opacity: isCurrent ? 1.0 : 0.2
-                        border.color: isCurrent ? "white" : "transparent"
-                        border.width: isCurrent ? 1 : 0
+                        gradient: Gradient {
+                            orientation: Gradient.Horizontal
+                            GradientStop { position: 0.0; color: isCurrent ? accentColor : "transparent" }
+                            GradientStop { position: 1.0; color: isCurrent ? window.neonMagenta : "transparent" }
+                        }
+                        border.color: isCurrent ? "transparent" : Qt.rgba(accentColor.r, accentColor.g, accentColor.b, 0.3)
+                        border.width: 1
+                        opacity: isCurrent ? 1.0 : 0.3
+
+                        layer.enabled: isCurrent
+                        layer.effect: MultiEffect {
+                            shadowEnabled: true; shadowColor: accentColor
+                            shadowBlur: 1.0; shadowOpacity: 0.6
+                        }
+
                         Label { 
                             anchors.centerIn: parent
                             text: tr("lib_btn_explore").toUpperCase()
-                            font.bold: true
-                            color: isCurrent ? "black" : "white"
-                            font.pixelSize: 12 * responsiveScale 
+                            font.bold: true; font.weight: Font.Black
+                            color: isCurrent ? "#0a0520" : "white"
+                            font.pixelSize: 12 * responsiveScale
+                            font.letterSpacing: 1
                         }
                         MouseArea {
                             anchors.fill: parent
@@ -739,9 +751,10 @@ Item {
                     }
                     background: Rectangle { 
                         radius: 24
-                        color: btnBackGrid.hovered ? "#33ffffff" : "#11ffffff"
-                        border.color: "#22ffffff"
-                        border.width: 1 
+                        color: btnBackGrid.hovered ? Qt.rgba(window.neonViolet.r, window.neonViolet.g, window.neonViolet.b, 0.2) : Qt.rgba(1,1,1,0.06)
+                        border.color: btnBackGrid.hovered ? Qt.rgba(window.neonViolet.r, window.neonViolet.g, window.neonViolet.b, 0.5) : Qt.rgba(1,1,1,0.12)
+                        border.width: 1
+                        Behavior on color { ColorAnimation { duration: 150 } }
                     }
                     contentItem: Icon { 
                         name: "back"
@@ -779,13 +792,16 @@ Item {
                         }
                         background: Rectangle { 
                             radius: 22
-                            color: btnFavFilter.hovered ? "#22ffffff" : (libraryRoot.onlyFavorites ? "#33ffff00" : "#12ffffff")
-                            border.color: libraryRoot.onlyFavorites ? "#ffff00" : "transparent"
-                            border.width: 1 
+                            color: btnFavFilter.hovered ? Qt.rgba(1,1,1,0.1) : (libraryRoot.onlyFavorites ? Qt.rgba(window.neonGold.r, window.neonGold.g, window.neonGold.b, 0.15) : Qt.rgba(1,1,1,0.06))
+                            border.color: libraryRoot.onlyFavorites ? window.neonGold : Qt.rgba(1,1,1,0.12)
+                            border.width: 1
+                            Behavior on color { ColorAnimation { duration: 150 } }
+                            layer.enabled: libraryRoot.onlyFavorites
+                            layer.effect: MultiEffect { shadowEnabled: true; shadowColor: window.neonGold; shadowBlur: 0.8; shadowOpacity: 0.7 }
                         }
                         contentItem: Icon { 
                             name: libraryRoot.onlyFavorites ? "favorite_filled" : "favorite"
-                            color: libraryRoot.onlyFavorites ? "#ffff00" : "white"
+                            color: libraryRoot.onlyFavorites ? window.neonGold : "white"
                             size: 20
                             opacity: libraryRoot.onlyFavorites ? 1.0 : 0.4
                         }
@@ -801,9 +817,10 @@ Item {
                         }
                         background: Rectangle { 
                             radius: 22
-                            color: btnRefresh.hovered ? "#22ffffff" : "#12ffffff"
-                            border.color: "#1affffff"
-                            border.width: 1 
+                            color: btnRefresh.hovered ? Qt.rgba(window.neonViolet.r, window.neonViolet.g, window.neonViolet.b, 0.15) : Qt.rgba(1,1,1,0.06)
+                            border.color: btnRefresh.hovered ? Qt.rgba(window.neonViolet.r, window.neonViolet.g, window.neonViolet.b, 0.4) : Qt.rgba(1,1,1,0.12)
+                            border.width: 1
+                            Behavior on color { ColorAnimation { duration: 150 } }
                         }
                         contentItem: Icon { 
                             name: "refresh"
@@ -831,9 +848,10 @@ Item {
                         }
                         background: Rectangle { 
                             radius: 22
-                            color: btnSettings.hovered ? "#22ffffff" : "#12ffffff"
-                            border.color: "#1affffff"
-                            border.width: 1 
+                            color: btnSettings.hovered ? Qt.rgba(window.neonViolet.r, window.neonViolet.g, window.neonViolet.b, 0.15) : Qt.rgba(1,1,1,0.06)
+                            border.color: btnSettings.hovered ? Qt.rgba(window.neonViolet.r, window.neonViolet.g, window.neonViolet.b, 0.4) : Qt.rgba(1,1,1,0.12)
+                            border.width: 1
+                            Behavior on color { ColorAnimation { duration: 150 } }
                         }
                         contentItem: Icon { 
                             anchors.centerIn: parent
@@ -850,8 +868,12 @@ Item {
                         Layout.preferredWidth: 300
                         Layout.preferredHeight: 44
                         radius: 22
-                        color: "#18ffffff"
-                        border.color: "#1affffff"
+                        color: Qt.rgba(1,1,1,0.06)
+                        border.color: searchInput.activeFocus
+                            ? Qt.rgba(window.neonViolet.r, window.neonViolet.g, window.neonViolet.b, 0.5)
+                            : Qt.rgba(1,1,1,0.12)
+                        border.width: 1
+                        Behavior on border.color { ColorAnimation { duration: 200 } }
                         RowLayout { 
                             anchors.fill: parent
                             anchors.leftMargin: 15
@@ -901,15 +923,15 @@ Item {
                         running: false
                         PauseAnimation { duration: Math.min(index * 20, 300) }
                         ParallelAnimation { 
-                            NumberAnimation { target: cardBody; property: "opacity"; to: 1.0; duration: 500 }
-                            NumberAnimation { target: cardBody; property: "scale"; to: 1.0; duration: 600; easing.type: Easing.OutBack } 
+                            NumberAnimation { target: cardBody; property: "entranceOpacity"; to: 1.0; duration: 500 }
+                            NumberAnimation { target: cardBody; property: "entranceScale"; to: 1.0; duration: 600; easing.type: Easing.OutBack } 
                         } 
                     }
                     Connections { 
                         target: libraryRoot
                         function onGridEntranceTriggered() { 
-                            cardBody.opacity = 0
-                            cardBody.scale = 0.8
+                            cardBody.entranceOpacity = 0
+                            cardBody.entranceScale = 0.8
                             staggeredEntry.restart() 
                         } 
                     }
@@ -935,10 +957,17 @@ Item {
                         anchors.margins: 12
                         radius: 20
                         color: window.themeCardBg
-                        border.color: Qt.alpha(modelData.accentColor || neonCyan, isHovered ? 0.8 : 0.4)
+                        border.color: Qt.alpha(modelData.accentColor || window.neonCyan, isHovered ? 0.8 : 0.4)
                         border.width: 1
                         clip: true
-                        scale: isHovered ? 1.05 : 1.0
+
+                        // Propiedades de animación de entrada para evitar romper bindings
+                        property real entranceScale: 1.0
+                        property real entranceOpacity: 1.0
+
+                        scale: (isHovered ? 1.05 : 1.0) * entranceScale
+                        opacity: entranceOpacity
+
                         z: isHovered ? 10 : 1
                         Behavior on scale { NumberAnimation { duration: 350; easing.type: Easing.OutBack } }
                         
@@ -950,7 +979,7 @@ Item {
                             gradient: Gradient {
                                 GradientStop { position: 0.0; color: Qt.alpha("white", 0.1) }
                                 GradientStop { position: 0.4; color: "transparent" }
-                                GradientStop { position: 1.0; color: Qt.alpha(modelData.accentColor || neonCyan, 0.15) }
+                                GradientStop { position: 1.0; color: Qt.alpha(modelData.accentColor || window.neonCyan, 0.15) }
                             }
                         }
 
@@ -1028,7 +1057,7 @@ Item {
                             height: 38
                             radius: 19
                             color: infoBtnArea.containsMouse ? (modelData.accentColor || libraryRoot.currentPlatformColor) : "#e00a0c14"
-                            border.color: modelData.accentColor || neonCyan
+                            border.color: modelData.accentColor || window.neonCyan
                             border.width: 1
                             visible: isHovered
                             Icon { 
@@ -1053,7 +1082,7 @@ Item {
                             height: 38
                             radius: 19
                             color: favBtnArea.containsMouse ? "#ff4d4d" : (modelData.isFavorite ? "#33ff4d4d" : "#e00a0c14")
-                            border.color: modelData.isFavorite ? window.neonPink : (modelData.accentColor || neonCyan)
+                            border.color: modelData.isFavorite ? window.neonPink : (modelData.accentColor || window.neonCyan)
                             border.width: 1
                             Icon { 
                                 anchors.centerIn: parent

@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Layouts
 import QtQuick.Controls
+import QtQuick.Effects
 
 RowLayout {
     id: root
@@ -9,7 +10,7 @@ RowLayout {
     property bool exists: false
 
     spacing: 15
-    
+
     function tr(key, ...args) {
         if (!bridge) return key
         var _ = bridge.currentLanguage
@@ -17,17 +18,30 @@ RowLayout {
         return bridge.translate(key)
     }
 
+    // Status icon pill
     Rectangle {
-        width: 42; height: 42; radius: 12
-        color: root.exists ? Qt.alpha("#4dc6a6", 0.1) : (root.path ? Qt.alpha("#f0a040", 0.1) : Qt.alpha("#e05050", 0.1))
-        border.color: root.exists ? Qt.alpha("#4dc6a6", 0.2) : (root.path ? Qt.alpha("#f0a040", 0.2) : Qt.alpha("#e05050", 0.2))
+        width: 44; height: 44; radius: 14
+        color: root.exists
+            ? Qt.rgba(0.20, 0.83, 0.60, 0.12)
+            : (root.path ? Qt.rgba(0.98, 0.75, 0.14, 0.12) : Qt.rgba(0.97, 0.44, 0.44, 0.12))
+        border.color: root.exists
+            ? Qt.rgba(0.20, 0.83, 0.60, 0.35)
+            : (root.path ? Qt.rgba(0.98, 0.75, 0.14, 0.35) : Qt.rgba(0.97, 0.44, 0.44, 0.35))
         border.width: 1
-        
+
+        layer.enabled: root.exists
+        layer.effect: MultiEffect {
+            shadowEnabled: true
+            shadowColor: "#34d399"
+            shadowBlur: 1.0
+            shadowOpacity: 0.6
+        }
+
         Icon {
             anchors.centerIn: parent
             name: root.exists ? "check" : (root.path ? "warning" : "close")
             size: 18
-            color: root.exists ? "#4dc6a6" : (root.path ? "#f0a040" : "#e05050")
+            color: root.exists ? "#34d399" : (root.path ? "#fbbf24" : "#f87171")
         }
     }
 
@@ -35,14 +49,16 @@ RowLayout {
         spacing: 2
         Label {
             text: root.title.toUpperCase()
-            font.pixelSize: 10; font.bold: true; color: "#6e7282"; font.letterSpacing: 1.5
+            font.pixelSize: 10; font.bold: true
+            color: "#6e7282"; font.letterSpacing: 1.5
         }
         Label {
-            text: root.path ? root.path.split(/[\\/]/).pop() : tr("dash_missing")
-            font.pixelSize: 15; font.weight: Font.DemiBold; color: "#ffffff"
+            text: root.path ? root.path.split(/[\/\\]/).pop() : tr("dash_missing")
+            font.pixelSize: 15; font.weight: Font.DemiBold
+            color: root.exists ? "#f0e8ff" : "#b0b0c0"
             Layout.maximumWidth: 300; elide: Text.ElideRight
         }
     }
-    
+
     Item { Layout.fillWidth: true }
 }

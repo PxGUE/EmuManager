@@ -25,9 +25,9 @@ Popup {
     // El objeto 'bridge' debe ser accesible globalmente o pasado
 
     background: Rectangle {
-        color: window.themeCardBg
+        color: Qt.rgba(0.04, 0.02, 0.1, 0.97)
         radius: 24
-        border.color: Qt.rgba(1,1,1,0.15)
+        border.color: Qt.rgba(window.neonViolet.r, window.neonViolet.g, window.neonViolet.b, 0.35)
         border.width: 1
         
         layer.enabled: true
@@ -99,8 +99,8 @@ Popup {
                 width: tweakListView.width - (scrollBar.visible ? 18 : 0)
                 height: isVisible ? 100 : 0
                 radius: 20
-                color: "#252b3b"
-                border.color: highlighted ? root.accentColor : "#33ffffff"
+                color: Qt.rgba(0.07, 0.04, 0.15, 0.85)
+                border.color: highlighted ? root.accentColor : Qt.rgba(1,1,1,0.12)
                 border.width: highlighted ? 1.5 : 0.5
                 visible: isVisible
                 clip: true
@@ -172,7 +172,8 @@ Popup {
                         
                         // Estilo similar al resto de la app
                         background: Rectangle {
-                            color: "#1a202c"; radius: 10; border.color: "#4a5568"
+                            color: Qt.rgba(0.07, 0.04, 0.15, 0.9); radius: 10
+                            border.color: Qt.rgba(window.neonViolet.r, window.neonViolet.g, window.neonViolet.b, 0.25); border.width: 1
                         }
                     }
                 }
@@ -185,10 +186,17 @@ Popup {
             text: "LISTO"
             onClicked: root.close()
             background: Rectangle {
-                radius: 28; color: doneBtn.hovered ? "#33ffffff" : "#1affffff"
-                border.color: "#22ffffff"; border.width: 1
+                radius: 28
+                gradient: Gradient {
+                    orientation: Gradient.Horizontal
+                    GradientStop { position: 0.0; color: window.neonViolet }
+                    GradientStop { position: 1.0; color: window.neonMagenta }
+                }
+                opacity: doneBtn.hovered ? 1.0 : 0.9
+                layer.enabled: true
+                layer.effect: MultiEffect { shadowEnabled: true; shadowColor: window.neonViolet; shadowBlur: 0.8; shadowOpacity: 0.5 }
             }
-            contentItem: Label { text: parent.text; color: "white"; font.bold: true; font.letterSpacing: 2; horizontalAlignment: Text.AlignHCenter }
+            contentItem: Label { text: parent.text; color: "#0a0520"; font.bold: true; font.letterSpacing: 2; horizontalAlignment: Text.AlignHCenter }
         }
     }
 

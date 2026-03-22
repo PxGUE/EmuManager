@@ -36,9 +36,9 @@ Popup {
     }
 
     background: Rectangle {
-        color: window.themeCardBg
+        color: Qt.rgba(0.04, 0.02, 0.1, 0.97)
         radius: 30
-        border.color: Qt.rgba(1,1,1,0.15)
+        border.color: Qt.rgba(window.neonViolet.r, window.neonViolet.g, window.neonViolet.b, 0.35)
         border.width: 1
         
         layer.enabled: true
@@ -52,7 +52,7 @@ Popup {
             anchors.top: parent.top
             width: parent.width; height: 100; radius: 30; opacity: 0.15
             gradient: Gradient {
-                GradientStop { position: 0.0; color: window.themeAccent }
+                GradientStop { position: 0.0; color: window.neonViolet }
                 GradientStop { position: 1.0; color: "transparent" }
             }
         }
@@ -67,9 +67,11 @@ Popup {
         RowLayout {
             spacing: 15
             Rectangle {
-                width: 48; height: 48; radius: 14; color: window.themeCardBg
-                border.color: window.themeBorder; border.width: 1
-                Icon { anchors.centerIn: parent; name: "edit"; size: 20; color: "white" }
+                width: 48; height: 48; radius: 14; color: Qt.rgba(0.07, 0.04, 0.15, 0.9)
+                border.color: Qt.rgba(window.neonViolet.r, window.neonViolet.g, window.neonViolet.b, 0.35); border.width: 1
+                layer.enabled: true
+                layer.effect: MultiEffect { shadowEnabled: true; shadowColor: window.neonViolet; shadowBlur: 0.8; shadowOpacity: 0.5 }
+                Icon { anchors.centerIn: parent; name: "edit"; size: 20; color: window.neonViolet }
             }
             ColumnLayout {
                 spacing: 2
@@ -79,7 +81,7 @@ Popup {
                 }
                 Label {
                     text: tr("lib_status_processing").toUpperCase()
-                    font.pixelSize: 10; font.bold: true; color: "#4da6ff"; font.letterSpacing: 2
+                    font.pixelSize: 10; font.bold: true; color: window.neonViolet; font.letterSpacing: 2
                 }
             }
         }
@@ -147,7 +149,7 @@ Popup {
                             Layout.fillWidth: true; selectByMouse: true
                             placeholderText: "Nombre del juego..."
                             color: "white"
-                            background: Rectangle { color: "#0f111a"; radius: 10; border.color: parent.activeFocus ? window.themeAccent : window.themeBorder }
+                            background: Rectangle { color: Qt.rgba(0.04, 0.02, 0.1, 0.9); radius: 10; border.color: parent.activeFocus ? window.neonViolet : Qt.rgba(window.neonViolet.r, window.neonViolet.g, window.neonViolet.b, 0.2) }
                         }
                     }
 
@@ -165,7 +167,7 @@ Popup {
                                 Layout.fillWidth: true; selectByMouse: true
                                 placeholderText: "Ej: 1998"
                                 color: "white"
-                                background: Rectangle { color: "#0f111a"; radius: 10; border.color: parent.activeFocus ? window.themeAccent : window.themeBorder }
+                                background: Rectangle { color: Qt.rgba(0.04, 0.02, 0.1, 0.9); radius: 10; border.color: parent.activeFocus ? window.neonViolet : Qt.rgba(window.neonViolet.r, window.neonViolet.g, window.neonViolet.b, 0.2) }
                             }
                         }
 
@@ -177,7 +179,7 @@ Popup {
                                 Layout.fillWidth: true; selectByMouse: true
                                 placeholderText: "Ej: RPG"
                                 color: "white"
-                                background: Rectangle { color: "#0f111a"; radius: 10; border.color: parent.activeFocus ? window.themeAccent : window.themeBorder }
+                                background: Rectangle { color: Qt.rgba(0.04, 0.02, 0.1, 0.9); radius: 10; border.color: parent.activeFocus ? window.neonViolet : Qt.rgba(window.neonViolet.r, window.neonViolet.g, window.neonViolet.b, 0.2) }
                             }
                         }
 
@@ -188,7 +190,7 @@ Popup {
                                 id: devField
                                 Layout.fillWidth: true; selectByMouse: true
                                 color: "white"
-                                background: Rectangle { color: "#0f111a"; radius: 10; border.color: parent.activeFocus ? window.themeAccent : window.themeBorder }
+                                background: Rectangle { color: Qt.rgba(0.04, 0.02, 0.1, 0.9); radius: 10; border.color: parent.activeFocus ? window.neonViolet : Qt.rgba(window.neonViolet.r, window.neonViolet.g, window.neonViolet.b, 0.2) }
                             }
                         }
                     }
@@ -203,7 +205,7 @@ Popup {
                             wrapMode: TextEdit.WordWrap; selectByMouse: true
                             placeholderText: "Escribe la historia del juego..."
                             color: "white"
-                            background: Rectangle { color: "#0f111a"; radius: 10; border.color: parent.activeFocus ? window.themeAccent : window.themeBorder }
+                            background: Rectangle { color: Qt.rgba(0.04, 0.02, 0.1, 0.9); radius: 10; border.color: parent.activeFocus ? window.neonViolet : Qt.rgba(window.neonViolet.r, window.neonViolet.g, window.neonViolet.b, 0.2) }
                         }
                     }
                 }
@@ -220,8 +222,8 @@ Popup {
                 text: tr("set_btn_close")
                 Layout.preferredWidth: 120; Layout.preferredHeight: 44
                 onClicked: editorPopup.close()
-                background: Rectangle { color: "transparent"; radius: 12; border.color: btnCancel.hovered ? "#ff4d4d" : "#2a2d3a"; border.width: 1 }
-                contentItem: Label { text: parent.text; color: btnCancel.hovered ? "#ff4d4d" : "#888899"; font.bold: true; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                background: Rectangle { color: "transparent"; radius: 12; border.color: btnCancel.hovered ? window.neonRed : Qt.rgba(window.neonViolet.r, window.neonViolet.g, window.neonViolet.b, 0.25); border.width: 1 }
+                contentItem: Label { text: parent.text; color: btnCancel.hovered ? window.neonRed : "#7e7a96"; font.bold: true; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
             }
 
             Item { Layout.fillWidth: true }
@@ -246,20 +248,20 @@ Popup {
                     }
                 }
                 background: Rectangle {
-                    radius: 12
+                    radius: 14
                     gradient: Gradient {
                         orientation: Gradient.Horizontal
-                        GradientStop { position: 0.0; color: window.neonCyan }
-                        GradientStop { position: 1.0; color: window.neonPurple }
+                        GradientStop { position: 0.0; color: window.neonViolet }
+                        GradientStop { position: 1.0; color: window.neonMagenta }
                     }
                     opacity: btnSave.pressed ? 0.8 : 1.0
                     
                     layer.enabled: true
                     layer.effect: MultiEffect {
-                        shadowEnabled: true; shadowColor: window.neonCyan; shadowBlur: 0.8; shadowOpacity: 0.6
+                        shadowEnabled: true; shadowColor: window.neonViolet; shadowBlur: 0.8; shadowOpacity: 0.7
                     }
                 }
-                contentItem: Label { text: parent.text; color: "white"; font.bold: true; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+                contentItem: Label { text: parent.text; color: "#0a0520"; font.bold: true; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
             }
         }
     }

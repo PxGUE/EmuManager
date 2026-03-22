@@ -12,21 +12,27 @@ ApplicationWindow {
     visible: true
     title: bridge ? (bridge.appName + " " + bridge.appVersion) : "EmuManager"
     
-    // --- NEON GLASS THEME ---
-    property color themeBg: "#0d0f17"
-    property color themeAccent: "#6ff7d4" // Bright Cyan as new base accent
-    property color themeCardBg: Qt.rgba(0.06, 0.08, 0.12, 0.6) // Glassmorphism base
-    property color themeBorder: Qt.rgba(1, 1, 1, 0.15) // Thicker glass border
-    property color themeTextMain: "#ffffff"
-    property color themeTextDim: "#85889a"
-    property color themeSidebarBg: "#080a10"
-    
+    // --- CYBERPUNK NEON GLASS THEME ---
+    property color themeBg: "#060711"
+    property color themeAccent: "#c084fc"        // Violet primary accent
+    property color themeCardBg: Qt.rgba(0.07, 0.05, 0.14, 0.68)
+    property color themeBorder: Qt.rgba(0.75, 0.32, 0.98, 0.18)
+    property color themeTextMain: "#f0e8ff"
+    property color themeTextDim: "#7e7a96"
+    property color themeSidebarBg: "#040510"
+
     // --- NEON PALETTE ---
-    property color neonCyan: "#4dc6a6"
-    property color neonPurple: "#a56ff7" // Púrpura brillante de la referencia
-    property color neonPink: "#f76fbc"
-    property color neonYellow: "#f0d040"
-    property color neonBlue: "#4da6ff"
+    property color neonViolet: "#c084fc"         // Violet — main glow
+    property color neonMagenta: "#e879f9"        // Magenta — secondary glow
+    property color neonGold: "#fbbf24"           // Electric gold
+    property color neonBlue: "#60a5fa"           // Cool info blue
+    property color neonGreen: "#34d399"          // Success / installed
+    property color neonRed: "#f87171"            // Danger / error
+    // Compatibility aliases
+    property color neonCyan: "#818cf8"           // Indigo as cyan replacement
+    property color neonPurple: "#c084fc"
+    property color neonPink: "#e879f9"
+    property color neonYellow: "#fbbf24"
     
     // Sincronizar fullscreen mediante señal
     Connections {
@@ -40,7 +46,7 @@ ApplicationWindow {
             window.visibility = bridge.isFullScreen ? Window.FullScreen : Window.Windowed
         }
     }
-    color: "#0d0f17"
+    color: "#060711"
 
     Shortcut {
         sequence: "F11"
@@ -65,16 +71,21 @@ ApplicationWindow {
         anchors.fill: parent
         spacing: 0
 
-        // --- SIDEBAR ---
+        // --- SIDEBAR CYBERPUNK ---
         Rectangle {
             id: sidebar
-            Layout.fillHeight: parent
+            Layout.fillHeight: true
             Layout.preferredWidth: 220
             color: themeSidebarBg
-            
+
+            // Subtle right gradient border
             Rectangle {
                 anchors.right: parent.right; width: 1; height: parent.height
-                color: themeBorder
+                gradient: Gradient {
+                    GradientStop { position: 0.0; color: "transparent" }
+                    GradientStop { position: 0.4; color: Qt.rgba(neonViolet.r, neonViolet.g, neonViolet.b, 0.4) }
+                    GradientStop { position: 1.0; color: "transparent" }
+                }
             }
 
             ColumnLayout {
@@ -82,42 +93,64 @@ ApplicationWindow {
                 anchors.margins: 0
                 spacing: 0
 
-                // Logo/Nombre
-                Label {
-                    text: bridge ? bridge.appName : "EmuManager"
+                // ── Logo ──
+                Item {
                     Layout.fillWidth: true
-                    horizontalAlignment: Text.AlignHCenter
-                    font.pixelSize: 15
-                    font.weight: Font.Black
-                    color: neonPurple
-                    Layout.topMargin: 24
-                    Layout.bottomMargin: 8
-                    renderType: Text.NativeRendering
-                    
-                    layer.enabled: true
-                    layer.effect: MultiEffect {
-                        shadowEnabled: true
-                        shadowColor: neonPurple
-                        shadowBlur: 1.2
-                        shadowOpacity: 0.8
+                    Layout.preferredHeight: 72
+                    Layout.topMargin: 8
+
+                    ColumnLayout {
+                        anchors.centerIn: parent
+                        spacing: 2
+
+                        Label {
+                            text: bridge ? bridge.appName : "EmuManager"
+                            Layout.alignment: Qt.AlignHCenter
+                            font.pixelSize: 16
+                            font.weight: Font.Black
+                            font.letterSpacing: 1.5
+                            color: neonViolet
+                            renderType: Text.NativeRendering
+                            layer.enabled: true
+                            layer.effect: MultiEffect {
+                                shadowEnabled: true
+                                shadowColor: neonMagenta
+                                shadowBlur: 1.5
+                                shadowOpacity: 0.9
+                            }
+                        }
+                        Label {
+                            text: "EMULATION MANAGER"
+                            Layout.alignment: Qt.AlignHCenter
+                            font.pixelSize: 7
+                            font.bold: true
+                            font.letterSpacing: 3
+                            color: Qt.rgba(neonViolet.r, neonViolet.g, neonViolet.b, 0.45)
+                        }
                     }
                 }
 
+                // Divider
                 Rectangle {
                     Layout.fillWidth: true
                     height: 1
-                    color: themeBorder
-                    Layout.leftMargin: 16
-                    Layout.rightMargin: 16
+                    Layout.leftMargin: 20
+                    Layout.rightMargin: 20
+                    Layout.bottomMargin: 8
+                    gradient: Gradient {
+                        orientation: Gradient.Horizontal
+                        GradientStop { position: 0.0; color: "transparent" }
+                        GradientStop { position: 0.5; color: Qt.rgba(neonViolet.r, neonViolet.g, neonViolet.b, 0.35) }
+                        GradientStop { position: 1.0; color: "transparent" }
+                    }
                 }
 
-                Item { Layout.preferredHeight: 10 }
-
-                // Menú
+                // ── Nav Menu ──
                 ListView {
                     id: sidebarList
                     Layout.fillWidth: true
                     Layout.fillHeight: true
+                    Layout.topMargin: 6
                     model: ListModel {
                         ListElement { name: "nav_home"; icon: "home"; index: 0 }
                         ListElement { name: "nav_library"; icon: "library"; index: 1 }
@@ -125,105 +158,88 @@ ApplicationWindow {
                         ListElement { name: "nav_settings"; icon: "settings"; index: 3 }
                     }
                     currentIndex: 0
-                    
+
                     delegate: Item {
                         width: parent.width
-                        height: 50
-                        
+                        height: 52
+
+                        // Background pill
                         Rectangle {
                             id: highlightBg
                             anchors.fill: parent
-                            anchors.margins: 4
+                            anchors.topMargin: 3
+                            anchors.bottomMargin: 3
                             anchors.leftMargin: 12
                             anchors.rightMargin: 12
-                            radius: 12
-                            color: "transparent"
-                            
-                            Rectangle {
-                                id: mainHighlight
-                                anchors.fill: parent
-                                radius: 12
-                                opacity: sidebarList.currentIndex === index ? 0.8 : (mouseArea.containsMouse ? 0.2 : 0)
-                                gradient: Gradient {
-                                    orientation: Gradient.Horizontal
-                                    GradientStop { position: 0.0; color: sidebarList.currentIndex === index ? Qt.rgba(neonCyan.r, neonCyan.g, neonCyan.b, 0.4) : Qt.rgba(1,1,1,0.05) }
-                                    GradientStop { position: 1.0; color: sidebarList.currentIndex === index ? Qt.rgba(neonPurple.r, neonPurple.g, neonPurple.b, 0.1) : "transparent" }
-                                }
-                                Behavior on opacity { NumberAnimation { duration: 200 } }
-                            }
-                            
-                            // Glowing border for active item
-                            Rectangle {
-                                anchors.fill: parent
-                                radius: 12
-                                color: "transparent"
-                                border.color: Qt.rgba(neonCyan.r, neonCyan.g, neonCyan.b, 0.5)
-                                border.width: 1
-                                visible: sidebarList.currentIndex === index
-                                opacity: 0.6
-                                
-                                layer.enabled: true
-                                layer.effect: MultiEffect {
-                                    shadowEnabled: true
-                                    shadowColor: neonCyan
-                                    shadowBlur: 1.0
-                                    shadowOpacity: 0.8
-                                }
-                            }
+                            radius: 14
 
-                            // Indicador activo (Glow sutil)
-                            Rectangle {
-                                anchors.left: parent.left
-                                anchors.verticalCenter: parent.verticalCenter
-                                width: 4; height: 24; radius: 2
-                                color: neonCyan
-                                visible: sidebarList.currentIndex === index
-                                opacity: 0.9
-                                layer.enabled: true
-                                layer.effect: MultiEffect {
-                                    shadowEnabled: true
-                                    shadowColor: neonCyan
-                                    shadowBlur: 1.2
-                                    shadowOpacity: 0.6
+                            // Active gradient fill
+                            gradient: Gradient {
+                                orientation: Gradient.Horizontal
+                                GradientStop {
+                                    position: 0.0
+                                    color: sidebarList.currentIndex === index
+                                        ? Qt.rgba(neonViolet.r, neonViolet.g, neonViolet.b, 0.28)
+                                        : (mouseArea.containsMouse ? Qt.rgba(1,1,1,0.05) : "transparent")
                                 }
+                                GradientStop {
+                                    position: 1.0
+                                    color: sidebarList.currentIndex === index
+                                        ? Qt.rgba(neonMagenta.r, neonMagenta.g, neonMagenta.b, 0.08)
+                                        : "transparent"
+                                }
+                            }
+                            Behavior on color { ColorAnimation { duration: 200 } }
+
+                            // Glow border on active
+                            border.color: sidebarList.currentIndex === index
+                                ? Qt.rgba(neonViolet.r, neonViolet.g, neonViolet.b, 0.5)
+                                : (mouseArea.containsMouse ? Qt.rgba(1,1,1,0.08) : "transparent")
+                            border.width: 1
+                            Behavior on border.color { ColorAnimation { duration: 180 } }
+                        }
+
+                        // Left accent bar
+                        Rectangle {
+                            anchors.left: parent.left
+                            anchors.leftMargin: 12
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: 3; height: 22; radius: 2
+                            color: neonMagenta
+                            visible: sidebarList.currentIndex === index
+                            layer.enabled: true
+                            layer.effect: MultiEffect {
+                                shadowEnabled: true
+                                shadowColor: neonMagenta
+                                shadowBlur: 1.5
+                                shadowOpacity: 1.0
                             }
                         }
 
                         RowLayout {
                             anchors.fill: parent
-                            anchors.leftMargin: 28
-                            spacing: 12
+                            anchors.leftMargin: 30
+                            anchors.rightMargin: 16
+                            spacing: 13
 
                             Icon {
                                 name: model.icon
-                                size: 18
-                                color: sidebarList.currentIndex === index ? neonCyan : themeTextDim
-                                opacity: sidebarList.currentIndex === index ? 1.0 : 0.5
-                                Behavior on color { ColorAnimation { duration: 150 } }
-                                layer.enabled: sidebarList.currentIndex === index
-                                layer.effect: MultiEffect {
-                                    shadowEnabled: true
-                                    shadowColor: neonCyan
-                                    shadowBlur: 0.8
-                                    shadowOpacity: 0.8
-                                }
+                                size: 20
+                                color: sidebarList.currentIndex === index ? neonViolet : Qt.rgba(1,1,1,0.35)
+                                glow: sidebarList.currentIndex === index
+                                glowOpacity: 0.6
+                                Behavior on color { ColorAnimation { duration: 200 } }
                             }
 
                             Text {
                                 Layout.fillWidth: true
                                 text: tr(model.name)
-                                color: sidebarList.currentIndex === index ? "white" : themeTextDim
+                                color: sidebarList.currentIndex === index ? themeTextMain : themeTextDim
                                 verticalAlignment: Text.AlignVCenter
                                 font.pixelSize: 13
-                                font.bold: sidebarList.currentIndex === index
+                                font.weight: sidebarList.currentIndex === index ? Font.DemiBold : Font.Normal
                                 font.letterSpacing: 0.5
-                                layer.enabled: sidebarList.currentIndex === index
-                                layer.effect: MultiEffect {
-                                    shadowEnabled: true
-                                    shadowColor: "white"
-                                    shadowBlur: 0.4
-                                    shadowOpacity: 0.3
-                                }
+                                Behavior on color { ColorAnimation { duration: 200 } }
                             }
                         }
 
@@ -231,19 +247,21 @@ ApplicationWindow {
                             id: mouseArea
                             anchors.fill: parent
                             hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
                             onClicked: sidebarList.currentIndex = index
                         }
                     }
                 }
 
-                // Versión
+                // ── Version ──
                 Label {
                     text: bridge ? "v" + bridge.appVersion : ""
                     Layout.fillWidth: true
                     horizontalAlignment: Text.AlignHCenter
-                    color: "#333344"
+                    color: Qt.rgba(neonViolet.r, neonViolet.g, neonViolet.b, 0.2)
                     font.pixelSize: 10
-                    Layout.bottomMargin: 12
+                    font.letterSpacing: 1
+                    Layout.bottomMargin: 14
                 }
             }
         }
@@ -357,38 +375,44 @@ ApplicationWindow {
     Rectangle {
         id: splashScreen
         anchors.fill: parent
-        z: 10000 // Por encima de todo
+        z: 10000
         color: themeBg
-        
+
         property real currentProgress: 0
         property bool isFinished: false
-        
+
         visible: opacity > 0
         opacity: isFinished ? 0 : 1
-        
-        Behavior on opacity { 
-            NumberAnimation { duration: 600; easing.type: Easing.InOutQuad } 
+        Behavior on opacity { NumberAnimation { duration: 700; easing.type: Easing.InOutQuad } }
+
+        // Ambient orb glow
+        Rectangle {
+            anchors.centerIn: parent
+            width: 600; height: 600; radius: 300
+            opacity: 0.07
+            gradient: Gradient {
+                GradientStop { position: 0.0; color: neonViolet }
+                GradientStop { position: 0.5; color: neonMagenta }
+                GradientStop { position: 1.0; color: "transparent" }
+            }
+            SequentialAnimation on scale {
+                loops: Animation.Infinite
+                NumberAnimation { from: 1.0; to: 1.3; duration: 4000; easing.type: Easing.InOutSine }
+                NumberAnimation { from: 1.3; to: 1.0; duration: 4000; easing.type: Easing.InOutSine }
+            }
         }
 
-        // 1. Animación de carga inicial (hasta el 90%)
         NumberAnimation on currentProgress {
             id: loadingAnim
             from: 0; to: 0.85; duration: 5000; easing.type: Easing.OutCubic
             running: bridge ? !bridge.isReady : true
         }
-
-        // 2. Detectar cuando el bridge está listo para terminar la barra
         Connections {
             target: bridge
             function onIsReadyChanged() {
-                if (bridge && bridge.isReady) {
-                    loadingAnim.stop()
-                    finishAnim.start()
-                }
+                if (bridge && bridge.isReady) { loadingAnim.stop(); finishAnim.start() }
             }
         }
-
-        // 3. Animación de cierre (de donde esté al 100%)
         NumberAnimation on currentProgress {
             id: finishAnim
             to: 1.0; duration: 400; easing.type: Easing.OutQuad
@@ -398,82 +422,115 @@ ApplicationWindow {
 
         ColumnLayout {
             anchors.centerIn: parent
-            spacing: 40
-            
-            // Logo Oficial Animado
+            spacing: 44
+
+            // ── Logo ──
             Item {
                 Layout.alignment: Qt.AlignHCenter
                 width: 160; height: 160
-                
-                // Glow ambiental
+
+                // Outer pulsing ring
                 Rectangle {
                     anchors.centerIn: parent
-                    width: 180; height: 180; radius: 90
-                    color: "#4da6ff"
-                    opacity: 0.15
+                    width: 190; height: 190; radius: 95
+                    color: "transparent"
+                    border.color: neonViolet
+                    border.width: 2
+                    opacity: 0.3
                     z: -1
                     SequentialAnimation on scale {
                         loops: Animation.Infinite
-                        NumberAnimation { from: 1.0; to: 1.2; duration: 2000; easing.type: Easing.InOutSine }
-                        NumberAnimation { from: 1.2; to: 1.0; duration: 2000; easing.type: Easing.InOutSine }
+                        NumberAnimation { from: 1.0; to: 1.25; duration: 2200; easing.type: Easing.InOutSine }
+                        NumberAnimation { from: 1.25; to: 1.0; duration: 2200; easing.type: Easing.InOutSine }
                     }
                 }
-
+                // Glow orb
                 Rectangle {
                     anchors.centerIn: parent
-                    width: 130; height: 130; radius: 42
-                    color: "#161922"
-                    border.color: themeAccent
-                    border.width: 1
-                    
-                    Image { 
-                        anchors.fill: parent
-                        anchors.margins: 25
-                        source: bridge ? bridge.logoPath : ""
-                        fillMode: Image.PreserveAspectFit
-                        smooth: true
+                    width: 160; height: 160; radius: 80
+                    opacity: 0.18
+                    gradient: Gradient {
+                        GradientStop { position: 0.0; color: neonViolet }
+                        GradientStop { position: 1.0; color: neonMagenta }
                     }
-                    
+                    z: -1
+                    SequentialAnimation on opacity {
+                        loops: Animation.Infinite
+                        NumberAnimation { from: 0.12; to: 0.25; duration: 2000; easing.type: Easing.InOutSine }
+                        NumberAnimation { from: 0.25; to: 0.12; duration: 2000; easing.type: Easing.InOutSine }
+                    }
+                }
+                // Logo box
+                Rectangle {
+                    anchors.centerIn: parent
+                    width: 128; height: 128; radius: 42
+                    color: Qt.rgba(0.1, 0.07, 0.2, 0.9)
+                    border.color: Qt.rgba(neonViolet.r, neonViolet.g, neonViolet.b, 0.6)
+                    border.width: 1.5
+                    layer.enabled: true
+                    layer.effect: MultiEffect {
+                        shadowEnabled: true; shadowColor: neonViolet
+                        shadowBlur: 1.5; shadowOpacity: 0.6
+                    }
+                    Image {
+                        anchors.fill: parent; anchors.margins: 22
+                        source: bridge ? bridge.logoPath : ""
+                        fillMode: Image.PreserveAspectFit; smooth: true
+                    }
                     SequentialAnimation on scale {
                         loops: Animation.Infinite
-                        NumberAnimation { from: 1.0; to: 1.05; duration: 1500; easing.type: Easing.InOutSine }
-                        NumberAnimation { from: 1.05; to: 1.0; duration: 1500; easing.type: Easing.InOutSine }
+                        NumberAnimation { from: 1.0; to: 1.04; duration: 1800; easing.type: Easing.InOutSine }
+                        NumberAnimation { from: 1.04; to: 1.0; duration: 1800; easing.type: Easing.InOutSine }
                     }
                 }
             }
 
             ColumnLayout {
-                spacing: 0
+                spacing: 4
                 Layout.alignment: Qt.AlignHCenter
                 Label {
                     text: bridge ? bridge.appName : "EmuManager"
-                    font.pixelSize: 72
-                    font.weight: Font.Black
-                    color: "white"
-                    font.letterSpacing: -2
+                    font.pixelSize: 68; font.weight: Font.Black
+                    color: "white"; font.letterSpacing: -1.5
                     Layout.alignment: Qt.AlignHCenter
+                    layer.enabled: true
+                    layer.effect: MultiEffect {
+                        shadowEnabled: true; shadowColor: neonViolet
+                        shadowBlur: 1.2; shadowOpacity: 0.6
+                    }
                 }
                 Label {
                     text: bridge ? bridge.loadingMessage.toUpperCase() : ""
-                    font.pixelSize: 10
-                    font.bold: true
-                    color: "#4da6ff"
-                    font.letterSpacing: 2
-                    opacity: 0.8
+                    font.pixelSize: 10; font.bold: true
+                    color: neonMagenta; font.letterSpacing: 3
+                    opacity: 0.85
                     Layout.alignment: Qt.AlignHCenter
-                    Layout.topMargin: 10
+                    Layout.topMargin: 8
                 }
             }
 
-            // Barra de Carga Minimalista (Sincronizada)
-            Rectangle {
-                Layout.preferredWidth: 300; Layout.preferredHeight: 2
-                color: "#1a1c24"; radius: 1
+            // ── Progress Bar ──
+            Item {
+                Layout.preferredWidth: 320; Layout.preferredHeight: 6
                 Layout.alignment: Qt.AlignHCenter
                 Rectangle {
+                    anchors.fill: parent; radius: 3
+                    color: Qt.rgba(1,1,1,0.06)
+                }
+                Rectangle {
                     id: progressFill
-                    height: parent.height; color: themeAccent; radius: 1
+                    height: parent.height; radius: 3
                     width: parent.width * splashScreen.currentProgress
+                    gradient: Gradient {
+                        orientation: Gradient.Horizontal
+                        GradientStop { position: 0.0; color: neonViolet }
+                        GradientStop { position: 1.0; color: neonMagenta }
+                    }
+                    layer.enabled: true
+                    layer.effect: MultiEffect {
+                        shadowEnabled: true; shadowColor: neonViolet
+                        shadowBlur: 1.0; shadowOpacity: 0.8
+                    }
                 }
             }
         }

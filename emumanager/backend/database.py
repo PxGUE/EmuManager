@@ -6,9 +6,11 @@ from core.config import AppConfig
 class DatabaseManager:
     def __init__(self, db_path: Optional[Path] = None):
         if db_path is None:
-            # Fallback seguro inicial
-            db_path = Path("emumanager.db")
+            # Usamos la ruta centralizada definida en core/config.py
+            db_path = Path(AppConfig.get_database_path())
         self.db_path = db_path
+        # Asegurar que el directorio data/ existe
+        self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self._init_db()
 
     def get_connection(self) -> sqlite3.Connection:

@@ -1,78 +1,109 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
-import QtQuick.Effects
+import QtQuick.Controls.Material
+import EmuManager.Controllers 1.0
+import "../components"
 
 Item {
     id: dashboardRoot
     objectName: "dashboardView"
 
-    // Simulación de estado de datos
-    property bool hasData: false 
+    MainController { id: controller }
+    
+    // Propiedades de Estado Real
+    property int totalGames: controller.get_games_count()
+    property bool hasData: totalGames > 0
 
-    Rectangle {
-        anchors.fill: parent
-        color: "#050505"
-    }
+    anchors.fill: parent
 
-    // --- ESTADO VACÍO: SPLASH ESPECTACULAR ---
-    Item {
-        id: splashArea
-        anchors.fill: parent
+    // Fondo Profundo
+    Rectangle { anchors.fill: parent; color: "#050505" }
+
+    // --- 1. BIENVENIDA ESPECTACULAR (Si la app está vacía) ---
+    ColumnLayout {
+        anchors.centerIn: parent
+        spacing: 40
         visible: !hasData
-
-        ColumnLayout {
-            anchors.centerIn: parent
-            spacing: 20
-
-            // 1. LOGO CON GLOW (EmuManager)
-            Item {
-                Layout.preferredWidth: 400; Layout.preferredHeight: 150
-                Layout.alignment: Qt.AlignCenter
-
-                Text {
-                    id: logoMain
-                    anchors.centerIn: parent
-                    text: "EmuManager"
-                    color: "white"
-                    font.pixelSize: 64; font.bold: true; font.letterSpacing: 4
-                    opacity: 0.9
-                }
-
-                // Efecto de resplandor suave corregido
-                MultiEffect {
-                    source: logoMain
-                    anchors.fill: logoMain
-                    blurEnabled: true
-                    blur: 0.7
-                    shadowEnabled: true
-                    shadowColor: "#20ffffff" // Propiedad correcta corregida
-                    shadowBlur: 1.0
-                    shadowHorizontalOffset: 0
-                    shadowVerticalOffset: 0
-                }
+        
+        // El nuevo logo en grande con pulso
+        Image {
+            source: "../assets/logo.svg"
+            Layout.preferredWidth: 280; Layout.preferredHeight: 280
+            Layout.alignment: Qt.AlignCenter
+            opacity: 0.8
+            
+            SequentialAnimation on scale {
+                loops: Animation.Infinite
+                NumberAnimation { from: 1.0; to: 1.03; duration: 3000; easing.type: Easing.InOutQuad }
+                NumberAnimation { from: 1.03; to: 1.0; duration: 3000; easing.type: Easing.InOutQuad }
             }
+        }
 
-            // 2. TEXTO DE BIENVENIDA ANIMADO
+        Column {
+            Layout.alignment: Qt.AlignCenter; spacing: 10
+            Text {
+                text: "EMUMANAGER"
+                color: "white"; font.pixelSize: 48; font.bold: true
+                font.letterSpacing: 12; anchors.horizontalCenter: parent.horizontalCenter
+            }
             Text {
                 text: "TU PRÓXIMA AVENTURA COMIENZA AQUÍ"
-                color: "#44ffffff"
-                font.pixelSize: 14; font.bold: true; font.letterSpacing: 6
-                Layout.alignment: Qt.AlignCenter
-                
-                SequentialAnimation on opacity {
-                    loops: Animation.Infinite
-                    NumberAnimation { from: 0.3; to: 0.8; duration: 2500; easing.type: Easing.InOutQuad }
-                    NumberAnimation { from: 0.8; to: 0.3; duration: 2500; easing.type: Easing.InOutQuad }
-                }
+                color: "#44ffffff"; font.pixelSize: 12; font.bold: true
+                font.letterSpacing: 4; anchors.horizontalCenter: parent.horizontalCenter
+            }
+        }
+
+        Button {
+            text: "CONFIGURAR BIBLIOTECA"
+            Layout.alignment: Qt.AlignCenter
+            font.bold: true; font.letterSpacing: 1
+            Material.background: "#16a085"
+            onClicked: {
+                // Aquí podríamos navegar a Settings o abrir el selector de carpeta
+                console.log("Iniciando configuración desde Dashboard")
             }
         }
     }
 
-    // --- ESTADO CON DATOS ---
-    Item {
-        anchors.fill: parent
-        visible: hasData
-        Text { anchors.centerIn: parent; text: "Dashboard Activo"; color: "white" }
+    // --- 2. CONTENIDO REAL (Si ya hay juegos) ---
+    Flickable {
+        anchors.fill: parent; visible: hasData
+        contentWidth: width; contentHeight: dashboardLayout.height
+        clip: true; ScrollBar.vertical: ScrollBar {}
+
+        ColumnLayout {
+            id: dashboardLayout
+            width: parent.width; anchors.margins: 40
+            spacing: 35
+            
+            // Header con Stats
+            RowLayout {
+                Layout.fillWidth: true; spacing: 20
+                Column {
+                    Layout.fillWidth: true; spacing: 5
+                    Text { text: "BIENVENIDO DE NUEVO"; color: "#66ffffff"; font.pixelSize: 12; font.bold: true; font.letterSpacing: 2 }
+                    Text { text: "Resumen de tu Colección"; color: "white"; font.pixelSize: 28; font.bold: true }
+                }
+                
+                // Card de Stats Rápido
+                Rectangle {
+                    width: 180; height: 80; radius: 16; color: "#0a0a0c"; border.color: "#16a085"; border.width: 1
+                    Column {
+                        anchors.centerIn: parent; spacing: 2
+                        Text { text: totalGames.toString(); color: "white"; font.pixelSize: 24; font.bold: true; anchors.horizontalCenter: parent.horizontalCenter }
+                        Text { text: "JUEGOS TOTALES"; color: "#66ffffff"; font.pixelSize: 9; font.bold: true; font.letterSpacing: 1; anchors.horizontalCenter: parent.horizontalCenter }
+                    }
+                }
+            }
+
+            // Aquí irán los widgets de descubrimiento y últimas partidas
+            Text { text: "DESCUBRIENDO..."; color: "#22ffffff"; font.pixelSize: 12; font.bold: true; Layout.topMargin: 50 }
+        }
+    }
+
+    // Auto-update al entrar en la vista
+    Component.onCompleted: {
+        totalGames = controller.get_games_count()
     }
 }

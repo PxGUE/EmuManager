@@ -1,0 +1,2 @@
+DEV_ID = ""
+DEV_PASSWORD = ""

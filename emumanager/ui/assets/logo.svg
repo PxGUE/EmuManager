@@ -1,0 +1,40 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Paleta Gamers Premium: Esmeralda, Púrpura, Cian -->
+    <linearGradient id="primaryGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#16a085;stop-opacity:1" /> <!-- Esmeralda -->
+      <stop offset="50%" style="stop-color:#8e44ad;stop-opacity:1" /> <!-- Púrpura -->
+      <stop offset="100%" style="stop-color:#3498db;stop-opacity:1" /> <!-- Cian -->
+    </linearGradient>
+    
+    <filter id="glowEffect" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="10" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Cuerpo del Logo (Forma de Cartucho/Chip Redondeado) -->
+  <rect x="80" y="80" width="352" height="352" rx="80" fill="#0A0A0C" stroke="url(#primaryGrad)" stroke-width="15" />
+  
+  <!-- Símbolo Monograma E + M (Fundidos) -->
+  <g filter="url(#glowEffect)">
+    <!-- Barra vertical de la E (Izquierda) -->
+    <rect x="156" y="166" width="30" height="180" rx="15" fill="url(#primaryGrad)" />
+    
+    <!-- Las 3 Barras horizontales que forman la E y se funden en la M -->
+    <!-- Barra Superior -->
+    <path d="M156 166H220L256 220L292 166H356" stroke="url(#primaryGrad)" stroke-width="30" stroke-linecap="round" stroke-linejoin="round" fill="none" />
+    <!-- Barra Media (Conexión Central) -->
+    <path d="M156 256H256" stroke="url(#primaryGrad)" stroke-width="30" stroke-linecap="round" fill="none" />
+    <!-- Barra Inferior -->
+    <path d="M156 346H356" stroke="url(#primaryGrad)" stroke-width="30" stroke-linecap="round" fill="none" />
+    
+    <!-- Patas de la M que bajan desde la superior -->
+    <rect x="241" y="220" width="30" height="126" rx="15" fill="url(#primaryGrad)" />
+    <rect x="326" y="166" width="30" height="180" rx="15" fill="url(#primaryGrad)" />
+  </g>
+
+  <!-- Micro-Detalles de Consola (Botones/LEDS) -->
+  <circle cx="256" cy="115" r="8" fill="#16a085" />
+  <circle cx="256" cy="397" r="8" fill="#3498db" />
+</svg>

@@ -22,7 +22,9 @@ trigger: always_on
    - **Biblioteca:** Cuadrícula de juegos (Lazy loading) con panel lateral de detalles.
    - **Descargas:** Gestor no intrusivo en segundo plano.
    - **Configuración:** Gestión de rutas, APIs y temas.
-3. **Gestión de Emuladores:** Descarga de cores de Libretro para consolas clásicas; orquestación del OS (Flatpak/winget) para emuladores standalone modernos.
+3. **Modularidad y Componentes:** Se debe priorizar la creación de componentes reusables en `ui/components/` (EmuButton, ConsoleCard, RomItem, etc.) para mantener un código limpio y evitar la duplicidad de lógica visual.
+4. **Gestión de Emuladores:** Descarga de cores de Libretro para consolas clásicas; orquestación del OS (Flatpak/winget) para emuladores standalone modernos.
+5. **Soporte Multi-idioma (i18n):** Todo texto visible en la interfaz debe estar desacoplado del código QML a través de un sistema de traducción dinámico (Español/Inglés inicialmente).
 
 ## Estilo de Diseño
 - Tema Oscuro (Dark Mode), bordes redondeados, tipografía moderna y transiciones fluidas.

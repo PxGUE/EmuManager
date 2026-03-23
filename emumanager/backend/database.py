@@ -6,7 +6,8 @@ from core.config import AppConfig
 class DatabaseManager:
     def __init__(self, db_path: Optional[Path] = None):
         if db_path is None:
-            db_path = AppConfig.get_database_path()
+            # Fallback seguro inicial
+            db_path = Path("emumanager.db")
         self.db_path = db_path
         self._init_db()
 
@@ -19,7 +20,7 @@ class DatabaseManager:
         return conn
 
     def _init_db(self):
-        """Inicializa la base de datos con las tablas de EmuManager."""
+        """Inicializa la base de datos completa de EmuManager."""
         with self.get_connection() as conn:
             cursor = conn.cursor()
             

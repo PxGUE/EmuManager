@@ -81,8 +81,9 @@ Item {
 
             ConsoleCard {
                 anchors.centerIn: parent
-                title: model.title; iconEmoji: model.iconEmoji; accentColor: model.accentColor
+                title: model.title; fullName: model.fullName; iconEmoji: model.iconEmoji; accentColor: model.accentColor
                 gameCount: model.gameCount; playTime: model.playTime
+                emulatorName: model.emulatorName; hasCore: model.hasCore
                 isSelected: delegateRoot.PathView.isCurrentItem; minimalMode: libraryRoot.showGames 
                 onClicked: {
                     if (index === consoleCarousel.currentIndex) {
@@ -192,10 +193,11 @@ Item {
         Behavior on opacity { NumberAnimation { duration: 500 } }
     }
 
-    // --- BOTÓN VOLVER ---
+    // --- BOTÓN VOLVER (Reubicado para no estorbar) ---
     EmuFloatingButton {
         icon: "⟲"; accentColor: "#16a085"; size: 54; visible: showGames
-        anchors.bottom: parent.bottom; anchors.bottomMargin: 30; anchors.horizontalCenter: parent.horizontalCenter
+        anchors.bottom: parent.bottom; anchors.bottomMargin: 40
+        anchors.right: parent.right; anchors.rightMargin: 40
         onClicked: showGames = false
     }
 }

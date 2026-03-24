@@ -38,7 +38,7 @@ Following a strict **MVC Pattern**, EmuManager decouples logic from visuals:
 - **`emumanager/ui/`**: QML views and reusable components.
 - **`emumanager/backend/`**: Database manager, Libretro logic, and the M.A.N.G.O (Rust) binary engine.
 - **`emumanager/controllers/`**: PySide6 slots and signals bridging UI and logic.
-- **`core_scanner/`**: Rust source for the M.A.N.G.O native acceleration core.
+- **`mango_engine/`**: Rust source for the M.A.N.G.O native acceleration core.
 
 ---
 
@@ -50,9 +50,9 @@ Following a strict **MVC Pattern**, EmuManager decouples logic from visuals:
 - `pip install -r requirements.txt`
 
 ### Build Native Engine (MANGO)
-The core scanner must be compiled for your specific Python version:
+The core engine must be compiled for your specific Python version:
 ```bash
-cd core_scanner
+cd mango_engine
 maturin build --release
 ```
 Then, deploy the resulting `.pyd` (Windows) or `.so` (Linux) to `emumanager/backend/`.

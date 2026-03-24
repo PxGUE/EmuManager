@@ -6,172 +6,248 @@ import QtQuick.Controls.Material
 Rectangle {
     id: consoleCard
     
-    // Propiedades de la Tarjeta
-    property string title: "" // Título para la vista de biblioteca
-    property string consoleName: title // Alias para compatibilidad
-    property string emulatorName: ""
+    property string title: "Console"
+    property string fullName: "Full Console Name"
+    property string emulatorName: "Emulator"
     property string gameCount: "0"
     property string playTime: "0h"
     property string iconEmoji: "🎮"
     property color accentColor: "#16a085"
     property bool isSelected: false
-    property bool isFocused: isSelected || mouseArea.containsMouse
-    property bool minimalMode: true // Por defecto para el carrusel superior
-    property bool hasCore: true // Indica si el emulador/core está instalado
+    property bool isFocused: isSelected || mainMA.containsMouse
+    property bool minimalMode: true 
+    property bool hasCore: true 
 
     width: minimalMode ? 240 : 380
-    height: minimalMode ? 80 : 480
-    radius: minimalMode ? 16 : 32
+    height: minimalMode ? 60 : 440
+    radius: minimalMode ? 16 : 28
     
-    Behavior on width { NumberAnimation { duration: 500; easing.type: Easing.OutQuint } }
-    Behavior on height { NumberAnimation { duration: 500; easing.type: Easing.OutQuint } }
-    Behavior on radius { NumberAnimation { duration: 500 } }
+    Behavior on width { NumberAnimation { duration: 400; easing.type: Easing.OutQuint } }
+    Behavior on height { NumberAnimation { duration: 400; easing.type: Easing.OutQuint } }
+    Behavior on radius { NumberAnimation { duration: 400; easing.type: Easing.OutQuint } }
 
-    // Fondo Glassmorphism (Atenuado si no hay core)
-    color: isSelected ? Qt.rgba(accentColor.r, accentColor.g, accentColor.b, 0.2) : "#121216"
-    opacity: hasCore ? 0.95 : 0.4
-    Behavior on opacity { NumberAnimation { duration: 400 } }
-    
-    border.color: isFocused ? accentColor : "#25252b"
+    color: "#0d0d12"
+    border.color: isFocused ? accentColor : "#1a1a24"
     border.width: isFocused ? 2 : 1
-    clip: true
-    
-    // Efecto de Brillo Interior (Glow)
-    Rectangle {
-        anchors.fill: parent; radius: parent.radius
-        color: "transparent"
-        border.color: "white"
-        border.width: 1
-        opacity: isFocused ? 0.15 : 0.05
-    }
+    clip: false
+    antialiasing: true
 
     signal clicked()
 
-    Behavior on color { ColorAnimation { duration: 300 } }
-    Behavior on border.color { ColorAnimation { duration: 300 } }
-    Behavior on scale { NumberAnimation { duration: 400; easing.type: Easing.OutBack } }
-
-    // --- GRADIENTE DE FONDO SUTIL ---
+    // --- RESPLANDOR NEÓN EXTERIOR ---
     Rectangle {
-        anchors.fill: parent; radius: parent.radius; opacity: 0.3
-        gradient: Gradient {
-            GradientStop { position: 0.0; color: isSelected ? accentColor : "transparent" }
-            GradientStop { position: 1.0; color: "transparent" }
-        }
-    }
-
-    // --- DISEÑO MINIMALISTA (CARRUSEL SUPERIOR / BIBLIOTECA) ---
-    Item {
         anchors.fill: parent
-        opacity: minimalMode ? 1 : 0
-        Behavior on opacity { NumberAnimation { duration: 400 } }
-        visible: opacity > 0
+        anchors.margins: -4
+        radius: parent.radius + 4
+        color: "transparent"
+        border.color: accentColor
+        border.width: 1
+        opacity: isFocused ? 0.4 : 0
+        visible: isFocused
+        antialiasing: true
+        Behavior on opacity { NumberAnimation { duration: 300 } }
+    }
 
-        ColumnLayout {
-            anchors.centerIn: parent
-            spacing: 2
-            
-            Text {
-                text: iconEmoji
-                font.pixelSize: 32
-                Layout.alignment: Qt.AlignHCenter
-                opacity: isFocused ? 1.0 : 0.6
-                Behavior on opacity { NumberAnimation { duration: 300 } }
-            }
-            
-            Text {
-                text: title.toUpperCase()
-                color: isSelected ? "white" : "#88ffffff"
-                font.pixelSize: 11
-                font.bold: true
-                font.letterSpacing: 2
-                Layout.alignment: Qt.AlignHCenter
-            }
+    // --- MOUSE AREA PARA HOVER GLOBAL ---
+    MouseArea {
+        id: mainMA; anchors.fill: parent; hoverEnabled: true; z: -1
+    }
 
-            Text {
-                text: "SIN NÚCLEO"
-                visible: !hasCore
-                color: "#ff416c"
-                font.pixelSize: 8
-                font.bold: true
-                Layout.alignment: Qt.AlignHCenter
+    // --- FONDO PREMIUM ---
+    Rectangle {
+        anchors.fill: parent
+        radius: parent.radius
+        color: "#0a0a0f"
+        antialiasing: true
+        
+        Rectangle {
+            anchors.fill: parent
+            radius: parent.radius
+            antialiasing: true
+            gradient: Gradient {
+                orientation: Gradient.Vertical
+                GradientStop { position: 0.0; color: Qt.rgba(accentColor.r, accentColor.g, accentColor.b, 0.1) }
+                GradientStop { position: 0.5; color: "transparent" }
+                GradientStop { position: 1.0; color: Qt.rgba(accentColor.r, accentColor.g, accentColor.b, 0.05) }
+            }
+        }
+        
+        Rectangle {
+            anchors.fill: parent
+            radius: parent.radius
+            opacity: isSelected ? 0.2 : 0.05
+            antialiasing: true
+            gradient: Gradient {
+                GradientStop { position: 0.0; color: accentColor }
+                GradientStop { position: 1.0; color: "transparent" }
             }
         }
     }
 
-    // --- DISEÑO PREMIUM (DASHBOARD / NAV 3D) ---
-    Item {
-        anchors.fill: parent; anchors.margins: 25
-        opacity: !minimalMode ? 1 : 0
-        Behavior on opacity { NumberAnimation { duration: 400 } }
-        visible: opacity > 0
+    // --- DISEÑO COMPACTO (MINIMAL MODE) ---
+    RowLayout {
+        anchors.fill: parent
+        anchors.margins: 12
+        visible: minimalMode
+        spacing: 15
 
+        Rectangle {
+            width: 36; height: 36; radius: 18
+            color: Qt.rgba(accentColor.r, accentColor.g, accentColor.b, 0.2)
+            border.color: accentColor; border.width: 1; antialiasing: true
+            Text { text: iconEmoji; anchors.centerIn: parent; font.pixelSize: 18 }
+        }
+
+        Text {
+            text: title.toUpperCase()
+            color: "white"; font.pixelSize: 14; font.bold: true; font.letterSpacing: 2
+            Layout.fillWidth: true
+        }
+    }
+
+    // --- DISEÑO COMPLETO (FULL MODE) ---
+    ColumnLayout {
+        anchors.fill: parent
+        anchors.margins: 32
+        spacing: 18
+        visible: !minimalMode
+
+        // ICONO (Centrado)
+        RowLayout {
+            Layout.fillWidth: true
+            Item { Layout.fillWidth: true }
+            Rectangle {
+                width: 110; height: width; radius: width/2
+                color: Qt.rgba(accentColor.r, accentColor.g, accentColor.b, 0.15)
+                border.color: Qt.rgba(accentColor.r, accentColor.g, accentColor.b, 0.3)
+                border.width: 2; antialiasing: true
+                Text { text: iconEmoji; anchors.centerIn: parent; font.pixelSize: 56 }
+            }
+            Item { Layout.fillWidth: true }
+        }
+
+        // TEXTO (Centrado)
         ColumnLayout {
-            anchors.fill: parent; spacing: 10
-            
-            // 1. Icono Gigante
+            Layout.fillWidth: true; spacing: 4
             Text {
-                text: iconEmoji
-                font.pixelSize: 100
-                Layout.alignment: Qt.AlignCenter
-                opacity: isFocused ? 1.0 : 0.5
-                Behavior on opacity { NumberAnimation { duration: 400 } }
+                text: fullName.toUpperCase()
+                color: "white"; font.pixelSize: 24; font.bold: true
+                font.letterSpacing: 4; elide: Text.ElideRight; Layout.fillWidth: true
+                horizontalAlignment: Text.AlignHCenter
             }
-            
-            // 2. Nombre de Consola
-            Text {
-                text: title.toUpperCase()
-                color: "white"; font.pixelSize: 28; font.bold: true
-                font.letterSpacing: 3; Layout.alignment: Qt.AlignHCenter
-            }
+        }
 
-            // 3. Nombre del Emulador o Aviso de Falta de Core
-            Text {
-                text: !hasCore ? "NÚCLEO NO INSTALADO" : (emulatorName ? emulatorName.toUpperCase() : "RETROARCH / LIBRETRO")
-                color: !hasCore ? "#ff416c" : accentColor
-                font.pixelSize: 11; font.bold: true
-                font.letterSpacing: 2; Layout.alignment: Qt.AlignHCenter
-                opacity: 0.8
-            }
+        // EMULADORES
+        ColumnLayout {
+            Layout.fillWidth: true; Layout.fillHeight: true; spacing: 12
             
-            Rectangle { 
-                Layout.preferredWidth: 40; Layout.preferredHeight: 2; radius: 1; color: "#33ffffff"
-                Layout.alignment: Qt.AlignHCenter; Layout.topMargin: 5; Layout.bottomMargin: 5
-            }
-            
-            // 4. Tiempo Jugado
             RowLayout {
-                Layout.alignment: Qt.AlignHCenter; spacing: 8
-                Text { text: "⏱️"; font.pixelSize: 12; opacity: 0.6 }
-                Text { text: playTime; color: "white"; font.pixelSize: 14; font.bold: true }
+                Layout.fillWidth: true; spacing: 10
+                Text {
+                    text: "EMULADORES INSTALADOS"
+                    color: accentColor; font.pixelSize: 8; font.bold: true; font.letterSpacing: 2; opacity: 0.8
+                }
+                Rectangle { 
+                    Layout.fillWidth: true; height: 1; opacity: 0.2
+                    gradient: Gradient { 
+                        orientation: Gradient.Horizontal
+                        GradientStop { position: 0.0; color: accentColor }
+                        GradientStop { position: 1.0; color: "transparent" } 
+                    } 
+                }
             }
+            
+            Column {
+                spacing: 6; Layout.fillWidth: true; Layout.topMargin: 5
+                Repeater {
+                    model: hasCore ? emulatorName.split(", ") : []
+                    delegate: Item {
+                        id: emuItem
+                        width: parent.width; height: 38
+                        property bool rowHovered: emuMA.containsMouse || cnfMA.containsMouse || delMA.containsMouse
+                        Rectangle {
+                            anchors.fill: parent; radius: 10; opacity: rowHovered ? 0.12 : 0; antialiasing: true
+                            gradient: Gradient { 
+                                orientation: Gradient.Horizontal
+                                GradientStop { position: 0.0; color: accentColor }
+                                GradientStop { position: 1.0; color: "transparent" } 
+                            }
+                            Behavior on opacity { NumberAnimation { duration: 250 } }
+                        }
+                        MouseArea { id: emuMA; anchors.fill: parent; hoverEnabled: true; z: -1 }
+                        RowLayout {
+                            anchors.fill: parent; anchors.leftMargin: 12; anchors.rightMargin: 12; spacing: 12
+                            Text { text: "✦"; color: accentColor; font.pixelSize: 11; opacity: rowHovered ? 1.0 : 0.4 }
+                            Text { text: modelData; color: "white"; font.pixelSize: 13; font.bold: true; Layout.fillWidth: true }
+                            Row {
+                                spacing: 10; opacity: rowHovered ? 1.0 : 0; visible: rowHovered
+                                Rectangle {
+                                    width: 30; height: 30; radius: 8; color: cnfMA.containsMouse ? Qt.rgba(1,1,1,0.15) : "transparent"
+                                    Text { text: "⚙️"; anchors.centerIn: parent; font.pixelSize: 16; opacity: cnfMA.containsMouse ? 1.0 : 0.7 }
+                                    MouseArea { id: cnfMA; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor }
+                                    Rectangle {
+                                        visible: cnfMA.containsMouse; z: 100
+                                        anchors.bottom: parent.top; anchors.bottomMargin: 10; anchors.horizontalCenter: parent.horizontalCenter
+                                        width: 90; height: 22; radius: 6; color: "#111"; border.color: accentColor; border.width: 1
+                                        Text { text: "CONFIGURAR"; color: "white"; anchors.centerIn: parent; font.pixelSize: 8; font.bold: true; font.letterSpacing: 1 }
+                                    }
+                                }
+                                Rectangle {
+                                    width: 30; height: 30; radius: 8; color: delMA.containsMouse ? Qt.rgba(1,0,0,0.15) : "transparent"
+                                    Text { text: "❌"; anchors.centerIn: parent; font.pixelSize: 14; opacity: delMA.containsMouse ? 1.0 : 0.7 }
+                                    MouseArea { id: delMA; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor }
+                                    Rectangle {
+                                        visible: delMA.containsMouse; z: 100
+                                        anchors.bottom: parent.top; anchors.bottomMargin: 10; anchors.horizontalCenter: parent.horizontalCenter
+                                        width: 90; height: 22; radius: 6; color: "#111"; border.color: "#ff416c"; border.width: 1
+                                        Text { text: "ELIMINAR"; color: "white"; anchors.centerIn: parent; font.pixelSize: 8; font.bold: true; font.letterSpacing: 1 }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                Text {
+                    text: "Sin emuladores instalados."
+                    visible: !hasCore; color: "#44ffffff"; font.pixelSize: 11; font.italic: true
+                    horizontalAlignment: Text.AlignHCenter; Layout.fillWidth: true
+                }
+            }
+        }
 
-            // 5. Total de Juegos
-            RowLayout {
-                Layout.alignment: Qt.AlignHCenter; spacing: 8
-                Text { text: "📚"; font.pixelSize: 12; opacity: 0.6 }
+        Item { Layout.fillHeight: true }
+
+        // STATS
+        Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; opacity: 0.1; color: "white" }
+
+        RowLayout {
+            Layout.fillWidth: true; spacing: 20
+            Column {
+                spacing: 4
+                Text { text: "BIBLIOTECA"; color: "#555"; font.pixelSize: 8; font.bold: true; font.letterSpacing: 2 }
                 Text { text: gameCount + " JUEGOS"; color: "white"; font.pixelSize: 14; font.bold: true }
             }
-
-            // 6. Botón de Acción / Aviso
-            Button {
-                text: "DESCARGAR NÚCLEO"
-                visible: !hasCore
-                Layout.alignment: Qt.AlignCenter
-                Material.background: "#ff416c"
-                font.bold: true
-                onClicked: console.log("Ir a descargas para esta consola")
+            Column {
+                spacing: 4
+                Text { text: "TIEMPO TOTAL"; color: "#555"; font.pixelSize: 8; font.bold: true; font.letterSpacing: 2 }
+                Text { text: playTime; color: "white"; font.pixelSize: 14; font.bold: true }
             }
-
-            Item { Layout.fillHeight: true }
+            Item { Layout.fillWidth: true }
+            Rectangle {
+                Layout.preferredWidth: 130; Layout.preferredHeight: 38; radius: 12
+                color: expMA.containsMouse ? accentColor : "transparent"
+                border.color: accentColor; border.width: 2; antialiasing: true
+                Text {
+                    text: "EXPLORAR"
+                    anchors.centerIn: parent
+                    color: expMA.containsMouse ? "black" : "white"
+                    font.pixelSize: 11; font.bold: true; font.letterSpacing: 2
+                }
+                MouseArea {
+                    id: expMA; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                    onClicked: consoleCard.clicked()
+                }
+            }
         }
-    }
-
-    MouseArea {
-        id: mouseArea
-        anchors.fill: parent
-        hoverEnabled: true
-        cursorShape: Qt.PointingHandCursor
-        onClicked: consoleCard.clicked()
     }
 }

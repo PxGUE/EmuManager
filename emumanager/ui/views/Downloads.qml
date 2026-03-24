@@ -108,7 +108,7 @@ Item {
         
         ColumnLayout {
             anchors.fill: parent; anchors.margins: 15; spacing: 10
-            Text { text: "SELECCIONAR CORE"; color: "#16a085"; font.bold: true; font.pixelSize: 14 }
+            Text { text: "SELECCIONAR EMULADOR"; color: "#16a085"; font.bold: true; font.pixelSize: 14 }
             
             ListView {
                 id: coresListView
@@ -119,7 +119,7 @@ Item {
                     border.width: 1; border.color: "#33ffffff"; radius: 5
                     RowLayout {
                         anchors.fill: parent; anchors.margins: 10
-                        Text { text: modelData; color: "white"; font.pixelSize: 12 }
+                        Text { text: modelData.name; color: "white"; font.pixelSize: 12 }
                     }
                     MouseArea {
                         anchors.fill: parent
@@ -129,8 +129,8 @@ Item {
                         onExited: parent.color = "transparent"
                         onClicked: {
                             coresPopup.close()
-                            registerCoreTask(modelData)
-                            controller.start_core_download(modelData)
+                            registerCoreTask(modelData.name)
+                            controller.start_core_download(modelData.id)
                         }
                     }
                 }
@@ -361,9 +361,9 @@ Item {
                     Text { text: "🧩"; font.pixelSize: 32; opacity: coresMA.containsMouse ? 1.0 : 0.7 }
                     ColumnLayout {
                         spacing: 2
-                        Text { text: "NÚCLEOS"; color: "#16a085"; font.pixelSize: 9; font.bold: true; font.letterSpacing: 1.5 }
-                        Text { text: "Emu-Hub"; color: "white"; font.pixelSize: 14; font.bold: true }
-                        Text { text: "Motores de emulación"; color: "#66ffffff"; font.pixelSize: 9 }
+                        Text { text: "EMULADORES"; color: "#16a085"; font.pixelSize: 9; font.bold: true; font.letterSpacing: 1.5 }
+                        Text { text: "Catálogo"; color: "white"; font.pixelSize: 14; font.bold: true }
+                        Text { text: "Descargar motores de consola"; color: "#66ffffff"; font.pixelSize: 9 }
                     }
                 }
             }

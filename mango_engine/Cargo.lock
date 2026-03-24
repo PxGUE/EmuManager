@@ -944,6 +944,7 @@ dependencies = [
  "futures-util",
  "fuzzy-matcher",
  "md5",
+ "once_cell",
  "pyo3",
  "rayon",
  "reqwest",

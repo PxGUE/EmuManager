@@ -1,4 +1,4 @@
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Any
 from pathlib import Path
 
 try:
@@ -8,53 +8,126 @@ except ImportError:
 
 from core.logger import EmuLog
 
+# Base de datos de mapeo: Plataforma -> Lista de cores (id_interno, nombre_amigable)
+CORE_DATABASE = {
+    "snes": [
+        ("snes9x", "Snes9x (SNES - Recomendado)"),
+        ("bsnes", "bsnes (SNES - Precisión)"),
+        ("mesen-s", "Mesen-S (SNES - Calidad)")
+    ],
+    "nes": [
+        ("fceumm", "FCEUmm (NES - Recomendado)"),
+        ("nestopia", "Nestopia (NES - Compatibilidad)"),
+        ("mesen", "Mesen (NES - Precisión)")
+    ],
+    "gba": [
+        ("mgba", "mGBA (GBA - Recomendado)"),
+        ("vba_next", "VBA-Next (GBA - Rendimiento)")
+    ],
+    "n64": [
+        ("mupen64plus_next", "Mupen64Plus-Next (N64 - Recomendado)"),
+        ("parallel_n64", "ParaLLEl N64 (N64)")
+    ],
+    "ps1": [
+        ("beetle_psx_hw", "Beetle PSX HW (PS1 - Recomendado)"),
+        ("pcsx_rearmed", "PCSX ReARMed (PS1 - Low-end)")
+    ],
+    "ps2": [("pcsx2", "PCSX2 (PS2 - Alpha)")],
+    "psp": [("ppsspp", "PPSSPP (PSP)")],
+    "ds": [
+        ("desmume", "DeSmuME (DS)"),
+        ("melonds", "melonDS (DS)")
+    ],
+    "gc": [("dolphin", "Dolphin (GameCube/Wii)")],
+    "wii": [("dolphin", "Dolphin (GameCube/Wii)")],
+    "megadrive": [
+        ("genesis_plus_gx", "Genesis Plus GX (Mega Drive)"),
+        ("picodrive", "PicoDrive (Mega Drive/32X)")
+    ],
+    "dreamcast": [("flycast", "Flycast (Dreamcast)")],
+    "gb": [("gambatte", "Gambatte (Game Boy)")],
+    "gbc": [("gambatte", "Gambatte (Game Boy Color)")]
+}
+
 class LibretroManager:
     """Gestiona cores y configuraciones de Libretro para la emulación."""
     def __init__(self, cores_path: Path):
         self.cores_path = cores_path
 
     def list_installed_cores(self) -> List[str]:
-        """Devuelve una lista de los cores .dll/.so instalados."""
+        """Devuelve una lista de los cores .dll/.so instalados (recursivo)."""
         if not self.cores_path.exists():
             return []
-        return [f.stem for f in self.cores_path.glob("*_libretro.*")]
+        return [f.stem for f in self.cores_path.rglob("*_libretro.*")]
 
     def get_core_for_platform(self, platform: str) -> Optional[str]:
-        """Mapea plataformas a cores sugeridos de libretro."""
-        platform_map = {
-            "snes": "snes9x",
-            "nes": "fceumm",
-            "gba": "mgba",
-            "gb": "gambatte",
-            "gbc": "gambatte",
-            "n64": "mupen64plus_next",
-            "ps1": "beetle_psx_hw",
-            "ps2": "pcsx2",
-            "psp": "ppsspp",
-            "ds": "desmume",
-            "megadrive": "genesis_plus_gx",
-            "dreamcast": "flycast"
-        }
-        return platform_map.get(platform.lower())
+        """Obtiene el ID del core sugerido para una plataforma."""
+        cores = CORE_DATABASE.get(platform.lower(), [])
+        return cores[0][0] if cores else None
 
-    def fetch_available_cores(self) -> List[str]:
-        """Obtiene la lista de cores disponibles en el buildbot usando M.A.N.G.O (Rust)."""
+    def fetch_filtered_cores(self, active_platforms: List[str]) -> List[Dict[str, str]]:
+        """
+        Obtiene la lista de cores disponibles, pero los filtra para mostrar solo los
+        que corresponden a consolas que el usuario tiene juegos (active_platforms).
+        Retorna una lista de dicts: {'id': 'snes9x', 'name': 'Snes9x (SNES)'}
+        """
         if not mango_engine:
-            EmuLog.warning("M.A.N.G.O engine no está disponible para fetch_available_cores")
             return []
+            
         try:
-            return mango_engine.fetch_cores()
+            available_raw = mango_engine.fetch_cores()
+            filtered_results = []
+            
+            # Buscamos en nuestra base de datos para las plataformas activas
+            for platform in active_platforms:
+                suggestions = CORE_DATABASE.get(platform.lower(), [])
+                for core_id, display_name in suggestions:
+                    # El core_id de Libretro suele terminar en _libretro en el buildbot
+                    search_id = f"{core_id}_libretro"
+                    if search_id in available_raw:
+                        filtered_results.append({
+                            "id": search_id,
+                            "name": display_name
+                        })
+            
+            # Eliminar duplicados si una plataforma comparte cores (ej. GB y GBC)
+            seen = set()
+            unique_results = []
+            for item in filtered_results:
+                if item["id"] not in seen:
+                    seen.add(item["id"])
+                    unique_results.append(item)
+                    
+            return unique_results
+            
         except Exception as e:
-            EmuLog.error(f"Error fetching cores: {e}")
+            EmuLog.error(f"Error filtrando cores: {e}")
             return []
+
+    def _get_platform_for_core(self, core_id: str) -> str:
+        """Busca a qué plataforma pertenece un core_id (limpio o con _libretro)."""
+        clean_id = core_id.replace("_libretro", "")
+        for platform, cores in CORE_DATABASE.items():
+            if any(c[0] == clean_id for c in cores):
+                return platform
+        return "unknown"
 
     def download_core(self, core_name: str, progress_callback=None) -> Optional[str]:
-        """Descarga e instala un core usando M.A.N.G.O (Rust). El callback recibe el progreso (0.0 a 1.0)."""
+        """
+        Descarga e instala un core usando M.A.N.G.O (Rust). 
+        Ahora lo organiza en subcarpetas por consola.
+        """
         if not mango_engine:
-            EmuLog.warning("M.A.N.G.O engine no está disponible para download_core")
             return None
+            
         try:
-            return mango_engine.download_core(core_name, str(self.cores_path), progress_callback)
+            # Determinar subcarpeta basada en la plataforma
+            platform = self._get_platform_for_core(core_name)
+            target_dir = self.cores_path / platform
+            target_dir.mkdir(parents=True, exist_ok=True)
+            
+            EmuLog.info(f"M.A.N.G.O: Instalando core {core_name} en {target_dir}")
+            return mango_engine.download_core(core_name, str(target_dir), progress_callback)
         except Exception as e:
             EmuLog.error(f"Error downloading core {core_name}: {e}")
             return None

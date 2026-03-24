@@ -10,46 +10,53 @@ use zip::ZipArchive;
 
 /// Configuración de la URL del Buildbot de Libretro
 #[cfg(target_os = "windows")]
-const BUILDBOT_URL: &str = "https://buildbot.libretro.com/nightly/windows/x86_64/latest/";
+const BUILDBOT_URL: &str = "http://buildbot.libretro.com/nightly/windows/x86_64/latest/";
 
 #[cfg(target_os = "linux")]
-const BUILDBOT_URL: &str = "https://buildbot.libretro.com/nightly/linux/x86_64/latest/";
+const BUILDBOT_URL: &str = "http://buildbot.libretro.com/nightly/linux/x86_64/latest/";
 
 #[cfg(target_os = "macos")]
-const BUILDBOT_URL: &str = "https://buildbot.libretro.com/nightly/apple/osx/x86_64/latest/";
+const BUILDBOT_URL: &str = "http://buildbot.libretro.com/nightly/apple/osx/x86_64/latest/";
 
 
 /// Retorna la lista de cores disponibles (parseando el HTML del index de libretro)
 pub async fn fetch_available_cores_async() -> Result<Vec<String>, anyhow::Error> {
     let client = Client::builder()
         .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+        .timeout(std::time::Duration::from_secs(15))
         .build()?;
         
+    // Intentamos obtener el contenido. 
     let response = client.get(BUILDBOT_URL).send().await?.text().await?;
     
-    // Parseo más flexible para el Buildbot de Libretro
     let mut cores = Vec::new();
-    for line in response.lines() {
-        // Buscamos cualquier enlace que contenga _libretro y termine en extensión de compresión
-        if line.contains("_libretro") && (line.contains(".zip") || line.contains(".7z")) {
-            // Extraer el contenido entre href="..."
-            if let Some(href_start) = line.find("href=\"") {
-                let s = &line[href_start + 6..];
-                if let Some(href_end) = s.find("\"") {
-                    let full_name = &s[..href_end];
+    let mut offset = 0;
+
+    // Búsqueda robusta secuencial de todos los enlaces href en el documento
+    while let Some(start_pos) = response[offset..].find("href=\"") {
+        let link_start = offset + start_pos + 6;
+        if let Some(end_offset) = response[link_start..].find("\"") {
+            let link_end = link_start + end_offset;
+            let full_link = &response[link_start..link_end];
+            
+            // Verificamos si es un enlace de core compatible
+            if full_link.contains("_libretro") && full_link.ends_with(".zip") {
+                if let Some(filename) = full_link.split('/').last() {
+                    let clean_name = filename
+                        .replace(".zip", "")
+                        .replace(".7z", "")
+                        .replace(".dll", "")
+                        .replace(".so", "")
+                        .replace(".dylib", "");
                     
-                    // Solo nos interesan los binarios dinámicos
-                    if full_name.contains(".dll") || full_name.contains(".so") || full_name.contains(".dylib") {
-                        let clean_name = full_name
-                            .replace(".zip", "")
-                            .replace(".7z", "")
-                            .replace(".dll", "")
-                            .replace(".so", "")
-                            .replace(".dylib", "");
+                    if !clean_name.is_empty() {
                         cores.push(clean_name);
                     }
                 }
             }
+            offset = link_end;
+        } else {
+            break;
         }
     }
     
@@ -57,7 +64,7 @@ pub async fn fetch_available_cores_async() -> Result<Vec<String>, anyhow::Error>
     cores.dedup();
     
     if cores.is_empty() {
-        return Err(anyhow::anyhow!("No se encontraron núcleos en la URL del Buildbot. Verifica la conexión."));
+        return Err(anyhow::anyhow!("No se detectaron núcleos válidos. Respuesta del servidor (fragmento): {}", if response.len() > 100 { &response[..100] } else { &response }));
     }
     
     Ok(cores)
@@ -79,7 +86,7 @@ pub async fn download_core_async(
     let ext = ".dylib.zip";
     
     #[cfg(not(any(target_os = "windows", target_os = "linux", target_os = "macos")))]
-    let ext = ".so.zip"; // Fallback
+    let ext = ".zip"; // Fallback genérico
     
     let filename = format!("{}{}", core_name, ext);
     let url = format!("{}{}", BUILDBOT_URL, filename);

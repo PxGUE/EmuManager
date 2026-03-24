@@ -59,7 +59,11 @@ class AppConfig:
     @classmethod
     def get_cores_path(cls) -> str:
         config = cls._load_config()
-        return config.get("cores_path", "")
+        default_path = str(cls.get_app_data_dir() / "cores")
+        path = config.get("cores_path", default_path)
+        # Aseguramos que el directorio exista
+        Path(path).mkdir(parents=True, exist_ok=True)
+        return path
 
     @classmethod
     def set_cores_path(cls, path: str):

@@ -106,7 +106,7 @@ class CoreDownloadWorker(QObject):
             self.status.emit("Error en la instalación.")
             self.finished.emit("")
 
-from backend.libretro import LibretroManager
+from backend.libretro import LibretroManager, CORE_DATABASE
 
 @QmlElement
 class MainController(QObject):
@@ -145,8 +145,12 @@ class MainController(QObject):
             self._core_worker = None
             self._cached_summary = None 
             self._is_precharged = False # Flag para evitar re-carga redundante
+        except (ImportError, ModuleNotFoundError) as e:
+            EmuLog.error(f"Error de dependencia en MainController: No se pudo importar un módulo crítico: {e}")
+        except PermissionError as e:
+            EmuLog.error(f"Error de permisos al inicializar el backend: No se puede acceder a la base de datos o directorios: {e}")
         except Exception as e:
-            EmuLog.error(f"Fallo crítico al inicializar el backend de MainController: {e}")
+            EmuLog.error(f"Fallo crítico inesperado al inicializar el backend de MainController: {e}")
 
     @Slot()
     def proactive_background_load(self):
@@ -160,10 +164,19 @@ class MainController(QObject):
             db_path = AppConfig.get_database_path()
             EmuLog.info(f"M.A.N.G.O: Inicializando puente con backend en {db_path}")
             
-            # Verificación del motor nativo
+            # Verificación del motor nativo e inicialización de logs
             try:
                 import mango_engine
-                EmuLog.info("M.A.N.G.O: Motor nativo Rust detectado y operativo.")
+                
+                # BRIDGE DE LOGS: Redirigir logs de Rust a EmuLog de Python
+                def _mango_log_bridge(level, msg):
+                    if level == "INFO": EmuLog.info(f"M.A.N.G.O: {msg}")
+                    elif level == "ERROR": EmuLog.error(f"M.A.N.G.O: {msg}")
+                    elif level == "WARN": EmuLog.warning(f"M.A.N.G.O: {msg}")
+                    else: EmuLog.debug(f"M.A.N.G.O: {msg}")
+                
+                mango_engine.set_log_callback(_mango_log_bridge)
+                EmuLog.info("M.A.N.G.O: Motor nativo Rust y sistema de logs sincronizado.")
             except ImportError:
                 EmuLog.warning("M.A.N.G.O: Motor Rust no encontrado. Operando en modo degradado (Python-only).")
 
@@ -175,8 +188,10 @@ class MainController(QObject):
             
             self._is_precharged = True
             EmuLog.info("M.A.N.G.O: Pre-carga completada con éxito.")
+        except ImportError:
+            EmuLog.warning("M.A.N.G.O: Motor Rust (mango_engine) no encontrado en el sistema. Operando en modo degradado (Python-only).")
         except Exception as e:
-            EmuLog.error(f"Error durante la carga proactiva de M.A.N.G.O: {e}")
+            EmuLog.error(f"Error inesperado durante la carga proactiva de M.A.N.G.O: {str(e)}")
 
     # --- Gestión de Credenciales ---
     @Slot(str, str)
@@ -206,6 +221,7 @@ class MainController(QObject):
         if directory:
             AppConfig.set_cores_path(directory)
             EmuLog.info(f"Configurada nueva ruta de Cores: {directory}")
+            self.libretro.cores_path = Path(directory)
             return directory
         return AppConfig.get_cores_path()
 
@@ -388,9 +404,18 @@ class MainController(QObject):
 
     @Slot(result="QVariantList")
     def fetch_available_cores(self):
-        """Obtiene la lista de cores disponibles desde el Buildbot de Libretro."""
-        EmuLog.info("M.A.N.G.O: Consultando catálogo de núcleos en Libretro Buildbot...")
-        return self.libretro.fetch_available_cores()
+        """
+        Obtiene la lista de cores filtrados por las consolas que el usuario 
+        realmente tiene en su biblioteca. Solo muestra nombres amigables.
+        """
+        EmuLog.info("M.A.N.G.O: Consultando catálogo de núcleos relevantes para tu biblioteca...")
+        
+        # 1. Obtener plataformas que tienen juegos
+        summary = self.get_consoles_summary(use_cache=True)
+        active_platforms = [p['platform'] for p in summary if p['platform'] != "all"]
+        
+        # 2. Obtener cores filtrados y amigables
+        return self.libretro.fetch_filtered_cores(active_platforms)
 
     @Slot(str, result=bool)
     def start_core_download(self, core_name: str):
@@ -421,6 +446,10 @@ class MainController(QObject):
             self.coreDownloadStatusChanged.emit(f"Instalación completada: {Path(path).name}")
             self.coreDownloadProgressChanged.emit(1.0)
             self.coreDownloadFinished.emit(path)
+            
+            # Forzar actualización de UI para mostrar el nuevo core
+            self._cached_summary = None
+            self.gamesUpdated.emit()
         else:
             self.coreDownloadStatusChanged.emit("Fallo en la descarga.")
             self.coreDownloadProgressChanged.emit(0.0)
@@ -444,8 +473,11 @@ class MainController(QObject):
                 cursor.execute("SELECT COUNT(*) FROM games")
                 count = cursor.fetchone()[0]
                 return count
+        except sqlite3.Error as e:
+            EmuLog.error(f"Error de SQLite al contar juegos: {e}")
+            return 0
         except Exception as e:
-            EmuLog.error(f"Error al contar juegos: {e}")
+            EmuLog.error(f"Error inesperado al contar juegos: {e}")
             return 0
 
     @Slot(result="QVariantList")
@@ -455,20 +487,23 @@ class MainController(QObject):
         if use_cache and self._cached_summary:
             return self._cached_summary
 
+        # Sincronizar ruta de cores antes de listar
+        self.libretro.cores_path = Path(AppConfig.get_cores_path())
+
         base_platforms = [
-            {"title": "SNES", "platform": "snes", "icon": "🕹️", "color": "#ff4b2b"},
-            {"title": "NES", "platform": "nes", "icon": "📺", "color": "#ff416c"},
-            {"title": "GBA", "platform": "gba", "icon": "📱", "color": "#9d50bb"},
-            {"title": "N64", "platform": "n64", "icon": "🏰", "color": "#3a7bd5"},
-            {"title": "PS1", "platform": "ps1", "icon": "💿", "color": "#00d2ff"},
-            {"title": "PS2", "platform": "ps2", "icon": "🚀", "color": "#00d2ff"},
-            {"title": "PSP", "platform": "psp", "icon": "🔋", "color": "#00d2ff"},
-            {"title": "DS", "platform": "ds", "icon": "📖", "color": "#16a085"},
-            {"title": "GAMECUBE", "platform": "gc", "icon": "🧊", "color": "#8e44ad"},
-            {"title": "WII", "platform": "wii", "icon": "🎾", "color": "#ffffff"},
-            {"title": "MEGADRIVE", "platform": "megadrive", "icon": "🌀", "color": "#2c3e50"},
-            {"title": "DREAMCAST", "platform": "dreamcast", "icon": "🍥", "color": "#e67e22"},
-            {"title": "OTROS", "platform": "unknown", "icon": "❓", "color": "#95a5a6"}
+            {"title": "SNES", "fullName": "Super Nintendo", "platform": "snes", "icon": "🕹️", "color": "#ff4b2b"},
+            {"title": "NES", "fullName": "Nintendo Entertainment System", "platform": "nes", "icon": "📺", "color": "#ff416c"},
+            {"title": "GBA", "fullName": "Game Boy Advance", "platform": "gba", "icon": "📱", "color": "#9d50bb"},
+            {"title": "N64", "fullName": "Nintendo 64", "platform": "n64", "icon": "🏰", "color": "#3a7bd5"},
+            {"title": "PS1", "fullName": "PlayStation 1", "platform": "ps1", "icon": "💿", "color": "#00d2ff"},
+            {"title": "PS2", "fullName": "PlayStation 2", "platform": "ps2", "icon": "🚀", "color": "#00d2ff"},
+            {"title": "PSP", "fullName": "PlayStation Portable", "platform": "psp", "icon": "🔋", "color": "#00d2ff"},
+            {"title": "DS", "fullName": "Nintendo DS", "platform": "ds", "icon": "📖", "color": "#16a085"},
+            {"title": "GAMECUBE", "fullName": "Nintendo GameCube", "platform": "gc", "icon": "🧊", "color": "#8e44ad"},
+            {"title": "WII", "fullName": "Nintendo Wii", "platform": "wii", "icon": "🎾", "color": "#ffffff"},
+            {"title": "MEGADRIVE", "fullName": "Sega Mega Drive", "platform": "megadrive", "icon": "🌀", "color": "#2c3e50"},
+            {"title": "DREAMCAST", "fullName": "Sega Dreamcast", "platform": "dreamcast", "icon": "🍥", "color": "#e67e22"},
+            {"title": "OTROS", "fullName": "Misceláneo", "platform": "unknown", "icon": "❓", "color": "#95a5a6"}
         ]
         
         summary = []
@@ -486,11 +521,16 @@ class MainController(QObject):
                     cursor.execute(q_count, params)
                     count = cursor.fetchone()[0]
                     
-                    # 2. Verificar Nucleo (Core)
-                    has_core = True
-                    if p["platform"] != "all":
-                        suggested_core = self.libretro.get_core_for_platform(p["platform"])
-                        has_core = suggested_core in installed_cores
+                    # 2. Verificar Nucleos Instalados (Cores)
+                    # Ahora buscamos TODOS los cores instalados que correspondan a esta plataforma
+                    platform_cores = CORE_DATABASE.get(p["platform"], [])
+                    installed_for_platform = []
+                    for cid, cname in platform_cores:
+                        if f"{cid}_libretro" in installed_cores:
+                            installed_for_platform.append(cname.split('(')[0].strip()) # Guardamos solo el nombre del emu
+                    
+                    has_core = len(installed_for_platform) > 0
+                    emu_text = ", ".join(installed_for_platform) if has_core else "Sin emuladores"
 
                     # 3. Calcular Tiempo
                     time_h = "0h"
@@ -510,12 +550,14 @@ class MainController(QObject):
                     if count > 0 or (p["platform"] == "all" and total_at_all > 0):
                         summary.append({
                             "title": p["title"],
+                            "fullName": p.get("fullName", p["title"]),
                             "platform": p["platform"],
                             "iconEmoji": p["icon"],
                             "accentColor": p["color"],
                             "gameCount": str(count),
                             "playTime": time_h,
-                            "hasCore": has_core
+                            "hasCore": has_core,
+                            "emulatorName": emu_text
                         })
         except Exception as e:
             EmuLog.error(f"Error al generar resumen de consolas: {e}")

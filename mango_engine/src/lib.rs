@@ -1,3 +1,6 @@
+/// Engine M.A.N.G.O (Multithreaded Asynchronous Native Game Orchestrator)
+/// Puente principal entre el core de Rust y la interfaz de Python/QML.
+
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
 use std::path::Path;
@@ -16,6 +19,8 @@ pub mod batch_scraper;
 pub mod searcher;
 pub mod tools;
 
+/// Calcula hashes MD5 y CRC32 de un archivo de forma eficiente mediante buffering.
+/// Retorna una tupla (MD5, CRC32, Size).
 fn calculate_hashes(path: &str) -> (String, String, u64) {
     let file = match File::open(path) {
         Ok(f) => f,
@@ -49,7 +54,12 @@ fn calculate_hashes(path: &str) -> (String, String, u64) {
     )
 }
 
-/// Escanea un directorio y devuelve una lista de diccionarios con metadatos de archivos
+/// Escanea un directorio recursivamente en búsqueda de ROMs.
+/// Utiliza procesamiento en PARALELO para calcular hashes (MD5 y CRC32) de forma síncrona pero masiva.
+/// 
+/// # Argumentos
+/// * `path`: Ruta raíz del escaneo.
+/// * `extensions`: Lista de extensiones permitidas para filtrar archivos.
 #[pyfunction]
 fn scan_directory(py: Python<'_>, path: String, extensions: Vec<String>) -> PyResult<Vec<PyObject>> {
     let base_path = Path::new(&path);
@@ -97,6 +107,12 @@ fn scan_directory(py: Python<'_>, path: String, extensions: Vec<String>) -> PyRe
     Ok(py_results)
 }
 
+/// Realiza una consulta asíncrona a ScreenScraper para obtener metadatos y portadas de un juego.
+/// 
+/// # Argumentos
+/// * `md5`, `crc`: Identificadores únicos del archivo.
+/// * `media_dir_base`: Directorio donde se guardarán las imágenes descargadas.
+/// * `interrupt_flag`: Flag de Python para cancelar la operación desde la UI.
 #[pyfunction]
 fn scrape_game_metadata(
     _py: Python<'_>,
@@ -131,6 +147,7 @@ fn scrape_game_metadata(
     Ok("{}".to_string())
 }
 
+/// Ejecuta una tarea de scraping masivo sobre la base de datos de juegos registrados.
 #[pyfunction]
 fn start_batch_scrape(
     py: Python<'_>,
@@ -146,6 +163,7 @@ fn start_batch_scrape(
     batch_scraper::run_batch_scrape(py, db_path, ss_id, ss_pass, dev_id, dev_pass, media_dir_base, progress_callback, interrupt_flag)
 }
 
+/// Consulta el catálogo de núcleos (cores) disponibles en el servidor de Libretro.
 #[pyfunction]
 fn fetch_cores(py: Python<'_>) -> PyResult<Vec<String>> {
     let rt = Runtime::new().unwrap();
@@ -160,6 +178,7 @@ fn fetch_cores(py: Python<'_>) -> PyResult<Vec<String>> {
     }
 }
 
+/// Descarga e instala un núcleo (core) de Libretro desde el Buildbot oficial.
 #[pyfunction]
 fn download_core(
     core_name: String,
@@ -179,11 +198,14 @@ fn download_core(
     }
 }
 
+/// Realiza una búsqueda "fuzzymatch" eficiente sobre la base de datos de juegos.
+/// Retorna objetos compatibles con el modelo de Python.
 #[pyfunction]
 fn search_games(py: Python<'_>, db_path: String, query: String, platform_filter: String) -> PyResult<Vec<PyObject>> {
     searcher::search_games(py, &db_path, &query, &platform_filter)
 }
 
+/// Definición del módulo nativo mango_engine.
 #[pymodule]
 fn mango_engine(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(scan_directory, m)?)?;
@@ -192,5 +214,6 @@ fn mango_engine(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(download_core, m)?)?;
     m.add_function(wrap_pyfunction!(start_batch_scrape, m)?)?;
     m.add_function(wrap_pyfunction!(search_games, m)?)?;
+    m.add_function(wrap_pyfunction!(tools::logging::set_log_callback, m)?)?;
     Ok(())
 }

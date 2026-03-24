@@ -58,32 +58,35 @@ class GameListModel(QAbstractListModel):
     @Slot()
     def update_games(self):
         """Carga o refresca todos los juegos de la base de datos."""
-        self.beginResetModel()
-        self._all_games = []
-        
-        with self.db.get_connection() as conn:
-            cursor = conn.cursor()
-            # Unimos las tablas juegos y metadata para tenerlo todo
-            cursor.execute('''
-                SELECT g.file_hash, g.file_path, g.platform, m.title, m.cover_2d_path, m.cover_3d_path
-                FROM games g
-                JOIN game_metadata m ON g.id = m.game_id
-            ''')
-            rows = cursor.fetchall()
-            for row in rows:
-                self._all_games.append(dict(row))
-        
-        self._games = list(self._all_games)
-        self.endResetModel()
-        self.countChanged.emit()
+        self.search_games("", "all")
 
     @Slot(str)
     def filter_by_platform(self, platform):
         """Filtra la lista de juegos por plataforma (p.ej. 'snes', 'ps1' o 'all')."""
+        self.search_games("", platform)
+
+    @Slot(str, str)
+    def search_games(self, query: str, platform: str):
+        """Delega la búsqueda en lotes a M.A.N.G.O con Fuzzymatch y filtros."""
+        from core.config import AppConfig
+        
+        try:
+            import mango_engine
+        except ImportError:
+            mango_engine = None
+            
+        if not mango_engine:
+            from core.logger import EmuLog
+            EmuLog.warning("M.A.N.G.O (Rust) no disponible. Búsqueda Desactivada.")
+            return
+            
         self.beginResetModel()
-        if platform.lower() == "all":
-            self._games = list(self._all_games)
-        else:
-            self._games = [g for g in self._all_games if g["platform"].lower() == platform.lower()]
+        try:
+            db_path = str(AppConfig.get_database_path())
+            self._games = mango_engine.search_games(db_path, query, platform)
+        except Exception as e:
+            from core.logger import EmuLog
+            EmuLog.error(f"Error fatal en búsqueda fuzzymatch: {e}")
+            self._games = []
         self.endResetModel()
         self.countChanged.emit()

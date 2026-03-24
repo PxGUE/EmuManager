@@ -40,12 +40,11 @@ ApplicationWindow {
         }
     }
 
-    MainController { 
-        id: controller 
-        onScanProgressChanged: (p) => { scanProgressVal = p }
-        onScanStatusChanged: (s) => { scanStatusText = s.toUpperCase() }
-        onScanFinished: (n) => { isScanning = false; scanProgressVal = 1.0 }
-    }
+
+    
+    // Alias para compatibilidad con las vistas hijas
+    // Referencia para compatibilidad con las vistas hijas
+    property QtObject controller: mainController
 
     ListModel {
         id: navModel

@@ -3,4 +3,6 @@ __pycache__/
 *.so
 *.pyd
 emumanager/core/secrets.py
+.env
 /data
+!/data/.gitkeep

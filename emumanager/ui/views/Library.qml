@@ -11,7 +11,7 @@ Item {
     objectName: "libraryView"
     anchors.fill: parent
 
-    MainController { id: controller }
+    // MainController { id: controller } // USAR EL HEREDADO DE MAIN.QML
     GameListModel { id: gamesModel } 
 
     property bool showGames: false
@@ -28,7 +28,8 @@ Item {
 
     function refreshConsoles() {
         consoleModel.clear()
-        var summary = controller.get_consoles_summary()
+        var summary = mainController.get_consoles_summary()
+        console.log("M.A.N.G.O (UI): Cargando " + summary.length + " sistemas en la biblioteca.")
         for (var i = 0; i < summary.length; i++) {
             consoleModel.append(summary[i])
         }
@@ -41,8 +42,9 @@ Item {
     }
 
     Connections {
-        target: controller
+        target: mainController
         function onScanFinished(count) { refreshConsoles() }
+        function onGamesUpdated() { refreshConsoles() }
     }
 
     Connections {
@@ -62,6 +64,7 @@ Item {
         z: 11; anchors.left: parent.left; anchors.right: parent.right
         height: showGames ? 150 : parent.height; y: 0
         opacity: consoleModel.count > 0 ? (showGames ? 1 : 1) : 0
+        visible: consoleModel.count > 0
         Behavior on opacity { NumberAnimation { duration: 800 } }
         Behavior on height { NumberAnimation { duration: 600; easing.type: Easing.OutQuint } }
 
@@ -107,11 +110,78 @@ Item {
         }
     }
 
+    // --- ESTADO VACÍO (Si no hay sistemas) ---
+    ColumnLayout {
+        id: emptyView
+        anchors.centerIn: parent; spacing: 20
+        visible: consoleModel.count === 0 && window.isLoaded
+        
+        Text {
+            text: "📡"
+            font.pixelSize: 64; Layout.alignment: Qt.AlignHCenter
+            opacity: 0.5
+        }
+        
+        ColumnLayout {
+            spacing: 5
+            Text {
+                text: "BIBLIOTECA VACÍA"
+                color: "white"; font.pixelSize: 18; font.bold: true; font.letterSpacing: 2; Layout.alignment: Qt.AlignHCenter
+            }
+            Text {
+                text: "No se han detectado juegos todavía.\\nVe a Configuración para añadir rutas de escaneo."
+                color: "#66ffffff"; font.pixelSize: 12; horizontalAlignment: Text.AlignHCenter; Layout.alignment: Qt.AlignHCenter
+            }
+        }
+        
+        Button {
+            text: "CONFIGURAR RUTAS"
+            Layout.alignment: Qt.AlignHCenter
+            Material.background: "#16a085"; font.bold: true
+            onClicked: activeViewId = "settingsView" 
+        }
+    }
+
+    // --- BARRA DE BÚSQUEDA (M.A.N.G.O FUZZYMATCH) ---
+    Rectangle {
+        id: searchContainer
+        anchors.top: consoleCarousel.bottom
+        anchors.left: parent.left; anchors.right: parent.right
+        anchors.leftMargin: 40; anchors.rightMargin: 40
+        height: showGames ? 60 : 0
+        visible: showGames
+        opacity: showGames ? 1 : 0
+        color: "transparent"
+        Behavior on height { NumberAnimation { duration: 400; easing.type: Easing.OutQuint } }
+        Behavior on opacity { NumberAnimation { duration: 400 } }
+
+        Rectangle {
+            anchors.verticalCenter: parent.verticalCenter
+            width: parent.width; height: 44; radius: 10
+            color: "#0a0a0d"; border.color: searchInput.focus ? "#16a085" : "#33ffffff"; border.width: 1
+            Behavior on border.color { ColorAnimation { duration: 200 } }
+            
+            RowLayout {
+                anchors.fill: parent; anchors.leftMargin: 15; anchors.rightMargin: 10; spacing: 15
+                Text { text: "🔍"; color: searchInput.focus ? "#16a085" : "#66ffffff"; font.pixelSize: 16 }
+                TextField {
+                    id: searchInput
+                    Layout.fillWidth: true
+                    color: "white"
+                    placeholderText: "Búsqueda instantánea..."
+                    background: Item {} // Remover el subrayado por defecto
+                    font.pixelSize: 14; font.letterSpacing: 1
+                    onTextEdited: gamesModel.search_games(text, activePlatform)
+                }
+            }
+        }
+    }
+
     // --- GALERÍA DE JUEGOS ---
     GridView {
         id: romGallery
-        anchors.top: consoleCarousel.bottom; anchors.bottom: parent.bottom
-        anchors.left: parent.left; anchors.right: parent.right; anchors.margins: 40; anchors.topMargin: 20
+        anchors.top: searchContainer.bottom; anchors.bottom: parent.bottom
+        anchors.left: parent.left; anchors.right: parent.right; anchors.margins: 40; anchors.topMargin: 10
         cellWidth: 220; cellHeight: 300; clip: true; visible: showGames; opacity: showGames ? 1 : 0
         model: gamesModel
         delegate: RomCard {

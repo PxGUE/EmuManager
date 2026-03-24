@@ -1,6 +1,13 @@
 from typing import List, Dict, Optional
 from pathlib import Path
 
+try:
+    import mango_engine
+except ImportError:
+    mango_engine = None
+
+from core.logger import EmuLog
+
 class LibretroManager:
     """Gestiona cores y configuraciones de Libretro para la emulación."""
     def __init__(self, cores_path: Path):
@@ -29,3 +36,25 @@ class LibretroManager:
             "dreamcast": "flycast"
         }
         return platform_map.get(platform.lower())
+
+    def fetch_available_cores(self) -> List[str]:
+        """Obtiene la lista de cores disponibles en el buildbot usando M.A.N.G.O (Rust)."""
+        if not mango_engine:
+            EmuLog.warning("M.A.N.G.O engine no está disponible para fetch_available_cores")
+            return []
+        try:
+            return mango_engine.fetch_cores()
+        except Exception as e:
+            EmuLog.error(f"Error fetching cores: {e}")
+            return []
+
+    def download_core(self, core_name: str, progress_callback=None) -> Optional[str]:
+        """Descarga e instala un core usando M.A.N.G.O (Rust). El callback recibe el progreso (0.0 a 1.0)."""
+        if not mango_engine:
+            EmuLog.warning("M.A.N.G.O engine no está disponible para download_core")
+            return None
+        try:
+            return mango_engine.download_core(core_name, str(self.cores_path), progress_callback)
+        except Exception as e:
+            EmuLog.error(f"Error downloading core {core_name}: {e}")
+            return None

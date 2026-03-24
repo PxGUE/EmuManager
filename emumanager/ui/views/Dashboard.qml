@@ -10,20 +10,23 @@ Item {
     id: dashboardRoot
     objectName: "dashboardView"
 
-    MainController { 
-        id: mainCtrl 
-        onScanProgressChanged: (p) => { 
+    Connections { 
+        target: mainController
+        function onScanProgressChanged(p) { 
             mangoMonitor.scanProgressVal = p
             mangoMonitor.isEngineBusy = (p > 0 && p < 1.0)
         }
-        onScanStatusChanged: (s) => { 
+        function onScanStatusChanged(s) { 
             mangoMonitor.engineStatusText = s.toUpperCase()
         }
-        onGamesUpdated: {
+        function onGamesUpdated() {
             // Refrescar el contador de juegos cuando la DB cambie
             dashboardRoot.updateStats()
         }
     }
+    
+    // Referencia para compatibilidad local
+    property QtObject mainCtrl: mainController
 
     property int totalGames: 0
     function updateStats() {

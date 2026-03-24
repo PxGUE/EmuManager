@@ -8,10 +8,14 @@ use rayon::prelude::*;
 use md5;
 use crc32fast::Hasher;
 use serde_json; // Added for scrape_game_metadata
+use tokio::runtime::Runtime;
 
-mod scraper; // Added as per instruction
+pub mod scraper;
+pub mod core_manager;
+pub mod batch_scraper;
+pub mod searcher;
+pub mod tools;
 
-/// Calcula MD5 y CRC32 de un archivo de forma eficiente
 fn calculate_hashes(path: &str) -> (String, String, u64) {
     let file = match File::open(path) {
         Ok(f) => f,
@@ -95,22 +99,31 @@ fn scan_directory(py: Python<'_>, path: String, extensions: Vec<String>) -> PyRe
 
 #[pyfunction]
 fn scrape_game_metadata(
-    py: Python<'_>,
+    _py: Python<'_>,
     md5: &str,
     crc: &str,
     filename: &str,
+    platform: &str,
     system_id: &str,
     ss_id: &str,
     ss_pass: &str,
+    dev_id: &str,
+    dev_pass: &str,
     media_dir_base: &str,
     interrupt_flag: Bound<'_, pyo3::types::PyBool>, 
 ) -> PyResult<String> {
-    // Check interruption BEFORE starting
     if interrupt_flag.is_true() {
         return Ok("{}".to_string());
     }
+    
+    let interrupt_arc = std::sync::atomic::AtomicBool::new(false);
+    let rt = Runtime::new().unwrap();
 
-    if let Some(meta) = scraper::scrape_game(md5, crc, filename, system_id, ss_id, ss_pass, media_dir_base, &interrupt_flag) {
+    let meta_opt = rt.block_on(async {
+        scraper::scrape_game(md5, crc, filename, platform, system_id, ss_id, ss_pass, dev_id, dev_pass, media_dir_base, &interrupt_arc).await
+    });
+
+    if let Some(meta) = meta_opt {
         if let Ok(json_str) = serde_json::to_string(&meta) {
             return Ok(json_str);
         }
@@ -118,9 +131,66 @@ fn scrape_game_metadata(
     Ok("{}".to_string())
 }
 
+#[pyfunction]
+fn start_batch_scrape(
+    py: Python<'_>,
+    db_path: &str,
+    ss_id: &str,
+    ss_pass: &str,
+    dev_id: &str,
+    dev_pass: &str,
+    media_dir_base: &str,
+    progress_callback: Option<PyObject>,
+    interrupt_flag: Option<PyObject>,
+) -> PyResult<usize> {
+    batch_scraper::run_batch_scrape(py, db_path, ss_id, ss_pass, dev_id, dev_pass, media_dir_base, progress_callback, interrupt_flag)
+}
+
+#[pyfunction]
+fn fetch_cores(py: Python<'_>) -> PyResult<Vec<String>> {
+    let rt = Runtime::new().unwrap();
+    // allow_threads evita bloquear el intérprete de Python durante el I/O
+    let res = py.allow_threads(|| {
+        rt.block_on(core_manager::fetch_available_cores_async())
+    });
+    
+    match res {
+        Ok(cores) => Ok(cores),
+        Err(e) => Err(pyo3::exceptions::PyRuntimeError::new_err(e.to_string())),
+    }
+}
+
+#[pyfunction]
+fn download_core(
+    core_name: String,
+    dest_dir: String,
+    progress_callback: Option<PyObject>
+) -> PyResult<String> {
+    let rt = Runtime::new().unwrap();
+    let res = Python::with_gil(|py| {
+        py.allow_threads(|| {
+            rt.block_on(core_manager::download_core_async(core_name, dest_dir, progress_callback))
+        })
+    });
+    
+    match res {
+        Ok(path) => Ok(path),
+        Err(e) => Err(pyo3::exceptions::PyRuntimeError::new_err(e.to_string())),
+    }
+}
+
+#[pyfunction]
+fn search_games(py: Python<'_>, db_path: String, query: String, platform_filter: String) -> PyResult<Vec<PyObject>> {
+    searcher::search_games(py, &db_path, &query, &platform_filter)
+}
+
 #[pymodule]
 fn mango_engine(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(scan_directory, m)?)?;
     m.add_function(wrap_pyfunction!(scrape_game_metadata, m)?)?;
+    m.add_function(wrap_pyfunction!(fetch_cores, m)?)?;
+    m.add_function(wrap_pyfunction!(download_core, m)?)?;
+    m.add_function(wrap_pyfunction!(start_batch_scrape, m)?)?;
+    m.add_function(wrap_pyfunction!(search_games, m)?)?;
     Ok(())
 }

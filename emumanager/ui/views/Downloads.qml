@@ -9,9 +9,40 @@ Item {
     id: downloadsRoot
     objectName: "downloadsView"
 
-    MainController { 
-        id: controller 
-        onScrapeProgressChanged: (p) => {
+    Connections { 
+        target: mainController
+        function onScanProgressChanged(p) {
+            for(var i=0; i < downloadsModel.count; i++) {
+                if(downloadsModel.get(i).type === "SCAN") {
+                    downloadsModel.setProperty(i, "progress", p)
+                    if (p >= 1.0) {
+                        downloadsModel.setProperty(i, "status", "Completado")
+                        isScanning = false
+                    }
+                    break
+                }
+            }
+        }
+        function onScanStatusChanged(s) {
+            for(var i=0; i < downloadsModel.count; i++) {
+                if(downloadsModel.get(i).type === "SCAN") {
+                    downloadsModel.setProperty(i, "status", "Escaneando")
+                    downloadsModel.setProperty(i, "log", s)
+                    break
+                }
+            }
+        }
+        function onScanFinished(n) {
+            for(var i=0; i < downloadsModel.count; i++) {
+                if(downloadsModel.get(i).type === "SCAN") {
+                    downloadsModel.setProperty(i, "progress", 1.0)
+                    downloadsModel.setProperty(i, "status", "Completado: " + n + " juegos")
+                    isScanning = false
+                    break
+                }
+            }
+        }
+        function onScrapeProgressChanged(p) {
             scrapeVal = p
             // Actualizar la tarea en el modelo de descargas
             for(var i=0; i < downloadsModel.count; i++) {
@@ -25,7 +56,7 @@ Item {
                 }
             }
         }
-        onScrapeStatusChanged: (s) => {
+        function onScrapeStatusChanged(s) {
             scrapeStatus = s.toUpperCase()
             for(var i=0; i < downloadsModel.count; i++) {
                 if(downloadsModel.get(i).type === "MEDIA") {
@@ -35,8 +66,75 @@ Item {
                 }
             }
         }
-        onGamesUpdated: {
+        function onGamesUpdated() {
             // Refrescar si es necesario
+        }
+        function onCoreDownloadProgressChanged(p) {
+            for(var i=0; i < downloadsModel.count; i++) {
+                if(downloadsModel.get(i).type === "CORE") {
+                    downloadsModel.setProperty(i, "progress", p)
+                    if (p >= 1.0) {
+                        downloadsModel.setProperty(i, "status", "Completado")
+                    }
+                    break
+                }
+            }
+        }
+        function onCoreDownloadStatusChanged(s) {
+            for(var i=0; i < downloadsModel.count; i++) {
+                if(downloadsModel.get(i).type === "CORE") {
+                    if (downloadsModel.get(i).progress < 1.0) {
+                        downloadsModel.setProperty(i, "status", "Descargando")
+                    }
+                    downloadsModel.setProperty(i, "log", s)
+                    break
+                }
+            }
+        }
+    }
+    
+    // Referencia para compatibilidad local
+    property QtObject controller: mainController
+
+    // Popup para seleccionar Cores disponibles
+    Popup {
+        id: coresPopup
+        x: Math.round((parent.width - width) / 2)
+        y: Math.round((parent.height - height) / 2)
+        width: 300; height: 400
+        modal: true; focus: true
+        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+        background: Rectangle { color: "#0d0d10"; radius: 10; border.color: "#16a085"; border.width: 1 }
+        
+        ColumnLayout {
+            anchors.fill: parent; anchors.margins: 15; spacing: 10
+            Text { text: "SELECCIONAR CORE"; color: "#16a085"; font.bold: true; font.pixelSize: 14 }
+            
+            ListView {
+                id: coresListView
+                Layout.fillWidth: true; Layout.fillHeight: true; clip: true
+                model: []
+                delegate: Rectangle {
+                    width: coresListView.width; height: 40; color: "transparent"
+                    border.width: 1; border.color: "#33ffffff"; radius: 5
+                    RowLayout {
+                        anchors.fill: parent; anchors.margins: 10
+                        Text { text: modelData; color: "white"; font.pixelSize: 12 }
+                    }
+                    MouseArea {
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onEntered: parent.color = "#16a085"
+                        onExited: parent.color = "transparent"
+                        onClicked: {
+                            coresPopup.close()
+                            registerCoreTask(modelData)
+                            controller.start_core_download(modelData)
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -68,6 +166,26 @@ Item {
         }
     }
 
+    function registerScanTask() {
+        // Evitar duplicados
+        for(var i=0; i < downloadsModel.count; i++) {
+            if(downloadsModel.get(i).type === "SCAN" && downloadsModel.get(i).progress < 1.0) return;
+        }
+        
+        downloadsModel.insert(0, {
+            name: "Sincronización de Biblioteca",
+            type: "SCAN",
+            platform: "LOCAL",
+            progress: 0.0,
+            size: "--",
+            status: "Iniciando radar...",
+            speed: "--",
+            accent: "#2ecc71",
+            eta: "--",
+            log: "Buscando archivos en directorios..."
+        })
+    }
+
     function registerMangoTask() {
         // Evitar duplicados
         for(var i=0; i < downloadsModel.count; i++) {
@@ -88,21 +206,39 @@ Item {
         })
     }
 
-    // Modelo de Prueba mejorado con datos técnicos
+    function registerCoreTask(coreName) {
+        // Evitar duplicados
+        for(var i=0; i < downloadsModel.count; i++) {
+            if(downloadsModel.get(i).name === coreName) return;
+        }
+        
+        downloadsModel.insert(0, {
+            name: coreName,
+            type: "CORE",
+            platform: "MIX",
+            progress: 0.0,
+            size: "--",
+            status: "Inicializando...",
+            speed: "--",
+            accent: "#16a085",
+            eta: "--",
+            log: "Conectando al Libretro Buildbot..."
+        })
+    }
+
+    // Modelo de Descargas dinámico
     ListModel {
         id: downloadsModel
-        ListElement { name: "Mupen64Plus_Next"; type: "CORE"; platform: "N64"; progress: 0.65; size: "15.4 MB"; status: "Descargando"; speed: "1.2 MB/s"; accent: "#16a085"; eta: "00:12s"; log: "Writing core binary to disk..." }
-        ListElement { name: "Dolphin Standalone"; type: "EMULATOR"; platform: "GC"; progress: 0.20; size: "142 MB"; status: "Descargando"; speed: "4.5 MB/s"; accent: "#8e44ad"; eta: "01:05m"; log: "Connecting to GitHub mirror..." }
-        ListElement { name: "Beetle PSX HW"; type: "CORE"; platform: "PS1"; progress: 1.0; size: "8.2 MB"; status: "Completado"; speed: "0 KB/s"; accent: "#2980b9"; eta: "00:00s"; log: "Installation verified." }
-        ListElement { name: "Media Sync (Mango)"; type: "MEDIA"; platform: "ALL"; progress: 0.45; size: "1.2 GB"; status: "Scrapeando"; speed: "850 KB/s"; accent: "#f39c12"; eta: "15:20m"; log: "Fetching 3D covers from ScreenScraper API..." }
     }
     
     // Estados
     property bool isScraping: false
+    property bool isScanning: false
     property bool isInstallingCores: false
     property bool isUpdatingSystem: false
     property real scrapeVal: 0.0
     property string scrapeStatus: "LISTO"
+    property string scanStatus: "ESPERANDO"
 
     Rectangle { anchors.fill: parent; color: "#050505" }
 
@@ -114,18 +250,55 @@ Item {
             Layout.fillWidth: true
             ColumnLayout {
                 spacing: 4
-                Text { text: "GESTOR DE DESCARGAS"; color: "white"; font.pixelSize: 28; font.bold: true; font.letterSpacing: 2 }
-                Text { text: "Núcleos, emuladores y soporte de medios"; color: "#66ffffff"; font.pixelSize: 14; font.bold: true }
+                Text { text: "CENTRO DE SINCRONIZACIÓN"; color: "white"; font.pixelSize: 28; font.bold: true; font.letterSpacing: 2 }
+                Text { text: "Gestiona tu biblioteca, medios y emuladores desde un solo lugar"; color: "#66ffffff"; font.pixelSize: 14; font.bold: true }
             }
-        }        // 2. PANEL DE SERVICIOS COMPACTO (Slim Design - Fixed Height)
+        }
+        // 2. PANEL DE OPERACIONES (Control Maestro)
         RowLayout {
-            Layout.fillWidth: true; Layout.preferredHeight: 110; Layout.maximumHeight: 110; spacing: 15
+            Layout.fillWidth: true; Layout.preferredHeight: 120; Layout.maximumHeight: 120; spacing: 15
             
-            // Tarjeta 1: Mango Media Sync
+            // Tarjeta 1: Escanear Biblioteca (Radar)
+            Rectangle {
+                id: scanCard
+                Layout.fillWidth: true; Layout.fillHeight: true; radius: 16
+                color: scanMA.containsMouse ? "#1a2a20" : "#0d0d10"
+                border.color: scanMA.containsMouse ? "#2ecc71" : "#332ecc71"
+                border.width: scanMA.containsMouse ? 2 : 1
+                
+                scale: scanMA.pressed ? 0.98 : 1.0
+                y: scanMA.containsMouse ? -3 : 0
+                Behavior on color { ColorAnimation { duration: 200 } }
+                Behavior on border.color { ColorAnimation { duration: 200 } }
+                Behavior on y { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
+                Behavior on scale { NumberAnimation { duration: 100 } }
+
+                MouseArea { 
+                    id: scanMA; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor 
+                    onClicked: {
+                        registerScanTask()
+                        isScanning = true
+                        controller.scan_directories()
+                    }
+                }
+
+                RowLayout {
+                    anchors.fill: parent; anchors.margins: 15; spacing: 15
+                    Text { text: "📡"; font.pixelSize: 32; opacity: scanMA.containsMouse ? 1.0 : 0.7 }
+                    ColumnLayout {
+                        spacing: 2
+                        Text { text: "BIBLIOTECA"; color: "#2ecc71"; font.pixelSize: 9; font.bold: true; font.letterSpacing: 1.5 }
+                        Text { text: "Sincronizar ROMs"; color: "white"; font.pixelSize: 14; font.bold: true }
+                        Text { text: "Escanear directorios locales"; color: "#66ffffff"; font.pixelSize: 9 }
+                    }
+                }
+            }
+
+            // Tarjeta 2: Mango Media Sync (El Scraping Modular)
             Rectangle {
                 id: mangoCard
                 Layout.fillWidth: true; Layout.fillHeight: true; radius: 16
-                color: mangoMA.containsMouse ? "#1a1a20" : "#0d0d10"
+                color: mangoMA.containsMouse ? "#2a1a10" : "#0d0d10"
                 border.color: mangoMA.containsMouse ? "#f39c12" : "#33f39c12"
                 border.width: mangoMA.containsMouse ? 2 : 1
                 
@@ -138,30 +311,30 @@ Item {
 
                 MouseArea { 
                     id: mangoMA; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor 
-                    onClicked: { 
+                    onClicked: {
                         registerMangoTask()
                         isScraping = true
-                        controller.start_scraping() 
-                    } 
+                        controller.start_scraping()
+                    }
                 }
 
                 RowLayout {
                     anchors.fill: parent; anchors.margins: 15; spacing: 15
-                    Text { text: "🥭"; font.pixelSize: 28; opacity: mangoMA.containsMouse ? 1.0 : 0.7 }
+                    Text { text: "🥭"; font.pixelSize: 32; opacity: mangoMA.containsMouse ? 1.0 : 0.7 }
                     ColumnLayout {
                         spacing: 2
-                        Text { text: "MEDIA SYNC"; color: "#f39c12"; font.pixelSize: 9; font.bold: true; font.letterSpacing: 1.5 }
-                        Text { text: "Motor Mango"; color: "white"; font.pixelSize: 13; font.bold: true }
-                        Text { text: "Sincronizar portadas"; color: "#66ffffff"; font.pixelSize: 9 }
+                        Text { text: "M.A.N.G.O SCRAPER"; color: "#f39c12"; font.pixelSize: 9; font.bold: true; font.letterSpacing: 1.5 }
+                        Text { text: "Metadatos y Arte"; color: "white"; font.pixelSize: 14; font.bold: true }
+                        Text { text: "ScreenScraper + Libretro"; color: "#66ffffff"; font.pixelSize: 9 }
                     }
                 }
             }
 
-            // Tarjeta 2: Libretro Cores
+            // Tarjeta 3: Libretro Cores (Hub)
             Rectangle {
                 id: coresCard
                 Layout.fillWidth: true; Layout.fillHeight: true; radius: 16
-                color: coresMA.containsMouse ? "#1a1a20" : "#0d0d10"
+                color: coresMA.containsMouse ? "#1a2a25" : "#0d0d10"
                 border.color: coresMA.containsMouse ? "#16a085" : "#3316a085"
                 border.width: coresMA.containsMouse ? 2 : 1
                 
@@ -172,45 +345,25 @@ Item {
                 Behavior on y { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
                 Behavior on scale { NumberAnimation { duration: 100 } }
 
-                MouseArea { id: coresMA; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor }
+                MouseArea { 
+                    id: coresMA; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor 
+                    onClicked: {
+                        let cores = controller.fetch_available_cores()
+                        if (cores && cores.length > 0) {
+                            coresListView.model = cores
+                            coresPopup.open()
+                        }
+                    }
+                }
 
                 RowLayout {
                     anchors.fill: parent; anchors.margins: 15; spacing: 15
-                    Text { text: "🧩"; font.pixelSize: 28; opacity: coresMA.containsMouse ? 1.0 : 0.7 }
+                    Text { text: "🧩"; font.pixelSize: 32; opacity: coresMA.containsMouse ? 1.0 : 0.7 }
                     ColumnLayout {
                         spacing: 2
                         Text { text: "NÚCLEOS"; color: "#16a085"; font.pixelSize: 9; font.bold: true; font.letterSpacing: 1.5 }
-                        Text { text: "Libretro Hub"; color: "white"; font.pixelSize: 13; font.bold: true }
-                        Text { text: "Instalar emuladores"; color: "#66ffffff"; font.pixelSize: 9 }
-                    }
-                }
-            }
-
-            // Tarjeta 3: System Update
-            Rectangle {
-                id: systemCard
-                Layout.fillWidth: true; Layout.fillHeight: true; radius: 16
-                color: systemMA.containsMouse ? "#1a1a20" : "#0d0d10"
-                border.color: systemMA.containsMouse ? "#8e44ad" : "#338e44ad"
-                border.width: systemMA.containsMouse ? 2 : 1
-                
-                scale: systemMA.pressed ? 0.98 : 1.0
-                y: systemMA.containsMouse ? -3 : 0
-                Behavior on color { ColorAnimation { duration: 200 } }
-                Behavior on border.color { ColorAnimation { duration: 200 } }
-                Behavior on y { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
-                Behavior on scale { NumberAnimation { duration: 100 } }
-
-                MouseArea { id: systemMA; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor }
-
-                RowLayout {
-                    anchors.fill: parent; anchors.margins: 15; spacing: 15
-                    Text { text: "🚀"; font.pixelSize: 28; opacity: systemMA.containsMouse ? 1.0 : 0.7 }
-                    ColumnLayout {
-                        spacing: 2
-                        Text { text: "SISTEMA"; color: "#8e44ad"; font.pixelSize: 9; font.bold: true; font.letterSpacing: 1.5 }
-                        Text { text: "Update Center"; color: "white"; font.pixelSize: 13; font.bold: true }
-                        Text { text: "Actualizar app"; color: "#66ffffff"; font.pixelSize: 9 }
+                        Text { text: "Emu-Hub"; color: "white"; font.pixelSize: 14; font.bold: true }
+                        Text { text: "Motores de emulación"; color: "#66ffffff"; font.pixelSize: 9 }
                     }
                 }
             }

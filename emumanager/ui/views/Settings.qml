@@ -10,47 +10,34 @@ Item {
     objectName: "settingsView"
 
     // --- LOGICA DE CONTROLADOR ---
-    MainController { 
-        id: controller 
-        onScanProgressChanged: (p) => { settingsRoot.scanProgressVal = p }
-        onScanStatusChanged: (s) => { settingsRoot.scanStatusText = s.toUpperCase() }
-        onScanFinished: (n) => { 
-            settingsRoot.isScanning = false // RESET INMEDIATO DEL BOTON
-            settingsRoot.scanStatusText = "ESCANEO COMPLETADO: " + n + " JUEGOS"
-            settingsRoot.scanProgressVal = 1.0
-            resetTimer.start()
-        }
+    Connections { 
+        target: mainController
+        function onGamesUpdated() { updateGamesCount() }
     }
-
-    Timer {
-        id: resetTimer
-        interval: 4000
-        onTriggered: {
-            settingsRoot.scanStatusText = "LISTO"
-            settingsRoot.scanProgressVal = 0.0
-        }
-    }
+    
+    property QtObject controller: mainController
 
     property string currentRomsPath: "Cargando..."
     property string currentCoresPath: "Cores..."
-    property bool isScanning: false
-    property real scanProgressVal: 0.0
-    property string scanStatusText: "LISTO"
+    property int gamesCount: 0
     property int activeTab: 0
+ 
+    function updateGamesCount() {
+        gamesCount = controller.get_games_count()
+    }
 
     Component.onCompleted: {
         currentRomsPath = controller.get_roms_path()
         currentCoresPath = controller.get_cores_path()
+        updateGamesCount()
     }
 
-    // FONDO BASE (Garantiza opacidad inicial)
     Rectangle {
         anchors.fill: parent
         color: "#050505"
         visible: true
     }
 
-    // --- 1. SIDEBAR (Anclado a la izquierda) ---
     Item {
         id: sidebarArea
         width: 250
@@ -62,14 +49,8 @@ Item {
         Column {
             anchors.fill: parent
             spacing: 10
-
-            Text { 
-                text: "CONFIGURACIÓN"
-                color: "white"; font.pixelSize: 22; font.bold: true; font.letterSpacing: 2
-            }
-
-            Item { width: 1; height: 30 } // Espaciador
-
+            Text { text: "CONFIGURACIÓN"; color: "white"; font.pixelSize: 22; font.bold: true; font.letterSpacing: 2 }
+            Item { width: 1; height: 30 }
             Repeater {
                 model: navModel
                 delegate: Rectangle {
@@ -77,7 +58,6 @@ Item {
                     color: activeTab === index ? "#1a1a1f" : "transparent"
                     border.color: activeTab === index ? "#16a085" : "transparent"
                     border.width: activeTab === index ? 1 : 0
-                    
                     Row {
                         anchors.fill: parent; anchors.margins: 12; spacing: 15
                         Text { text: model.iconEmoji; font.pixelSize: 16; opacity: activeTab === index ? 1.0 : 0.4 }
@@ -103,31 +83,28 @@ Item {
         ListElement { title: "Acerca de"; iconEmoji: "ℹ️" }
     }
 
-    // --- 2. CONTENIDO (Anclado al resto del espacio) ---
-    Item {
+    StackLayout {
         id: contentArea
         anchors.left: sidebarArea.right
         anchors.right: parent.right
         anchors.top: parent.top
         anchors.bottom: parent.bottom
-        anchors.margins: 40
-        anchors.leftMargin: 20
+        anchors.margins: 40; anchors.leftMargin: 20
+        currentIndex: activeTab
 
-        // PANELES INDIVIDUALES (Simulación de StackLayout manual para estabilidad)
-        
-        // --- PANEL: GENERAL ---
+        // --- PANEL 0: GENERAL ---
         Column {
-            anchors.fill: parent; spacing: 25; visible: activeTab === 0
+            Layout.fillWidth: true; Layout.fillHeight: true; spacing: 25
             Text { text: "PREFERENCIAS DE SISTEMA"; color: "#16a085"; font.pixelSize: 10; font.bold: true; font.letterSpacing: 2 }
             SettingsItem { width: parent.width; title: "Idioma Global"; description: "Interfaz en tu idioma"; controlArea: ComboBox { model: ["Español", "English"]; width: 120 } }
             SettingsItem { width: parent.width; title: "Tema Automático"; description: "Sincronizar luz/oscuridad"; controlArea: Switch { checked: true; Material.accent: "#16a085" } }
+            Item { Layout.fillHeight: true }
         }
 
-        // --- PANEL: BIBLIOTECA ---
+        // --- PANEL 1: BIBLIOTECA ---
         Column {
-            anchors.fill: parent; spacing: 25; visible: activeTab === 1
+            Layout.fillWidth: true; Layout.fillHeight: true; spacing: 25
             Text { text: "RUTAS Y ESCANEO"; color: "#16a085"; font.pixelSize: 10; font.bold: true; font.letterSpacing: 2 }
-            
             Rectangle {
                 width: parent.width; height: 180; radius: 16; color: "#0a0a0c"; border.color: "#33ffffff"; border.width: 1
                 Column {
@@ -147,180 +124,103 @@ Item {
                     }
                 }
             }
-
-            Button {
-                width: parent.width; height: 50
-                text: settingsRoot.isScanning ? "DETENER ESCANEO" : "SINCRONIZAR BIBLIOTECA"
-                enabled: !settingsRoot.isScanning // Por ahora deshabilitar si ya escanea
-                Material.background: settingsRoot.isScanning ? "#111" : "#16a085"
-                onClicked: { 
-                    settingsRoot.isScanning = true
-                    settingsRoot.scanStatusText = "INICIANDO..."
-                    controller.start_full_scan() 
-                }
+            Text { text: "INFO DE COLECCIÓN"; color: "#16a085"; font.pixelSize: 10; font.bold: true; font.letterSpacing: 2; topPadding: 15 }
+            Text { 
+                text: "Tienes " + gamesCount + " juegos registrados."; 
+                color: "#66ffffff"; font.pixelSize: 11 
             }
-
-            Column {
-                width: parent.width; spacing: 8
-                opacity: (settingsRoot.isScanning || settingsRoot.scanProgressVal > 0) ? 1 : 0
-                Behavior on opacity { NumberAnimation { duration: 600 } }
-                
-                ProgressBar { 
-                    width: parent.width; height: 4; value: settingsRoot.scanProgressVal
-                    Material.accent: "#16a085" 
-                }
-                
-                Text {
-                    width: parent.width; horizontalAlignment: Text.AlignHCenter
-                    text: settingsRoot.scanStatusText
-                    color: "#66ffffff"; font.pixelSize: 9; font.bold: true; font.letterSpacing: 1
-                    elide: Text.ElideRight
-                }
+            Text { 
+                text: "Para actualizar tu biblioteca o descargar medios, dirígete a la sección de DESCARGAS."; 
+                color: "#33ffffff"; font.pixelSize: 10; font.italic: true; width: parent.width; wrapMode: Text.WordWrap
             }
+            Item { Layout.fillHeight: true }
         }
 
-        // --- PANEL: SERVICIOS ---
+        // --- PANEL 2: SERVICIOS ---
         Column {
-            anchors.fill: parent; spacing: 25; visible: activeTab === 2
+            Layout.fillWidth: true; Layout.fillHeight: true; spacing: 25
             Text { text: "RECURSOS EXTERNOS"; color: "#16a085"; font.pixelSize: 10; font.bold: true; font.letterSpacing: 2 }
             Rectangle {
-                width: parent.width; height: 180; radius: 16; color: "#0a0a0c"; border.color: "#33ffffff"
+                width: parent.width; height: 260; radius: 16; color: "#0a0a0c"; border.color: "#33ffffff"
                 Column {
-                    anchors.fill: parent; anchors.margins: 20; spacing: 10
+                    anchors.fill: parent; anchors.margins: 20; spacing: 15
                     Text { text: "SCREEN SCRAPER API"; color: "white"; font.bold: true }
-                    TextField { placeholderText: "Usuario"; width: parent.width; onEditingFinished: controller.set_api_credential("screenscraper_user", text) }
-                    TextField { placeholderText: "Contraseña"; echoMode: TextInput.Password; width: parent.width; onEditingFinished: controller.set_api_credential("screenscraper_pass", text) }
+                    Text { 
+                        text: "Introduce tus credenciales de ScreenScraper.fr para descargar portadas y metadatos automáticamente."; 
+                        color: "#66ffffff"; font.pixelSize: 11; width: parent.width - 40; wrapMode: Text.WordWrap 
+                    }
+                    TextField { 
+                        id: userField; placeholderText: "Usuario"; width: parent.width; 
+                        text: controller.get_api_credential("screenscraper_user")
+                        onEditingFinished: controller.set_api_credential("screenscraper_user", text) 
+                    }
+                    TextField { 
+                        id: passField; placeholderText: "Contraseña"; echoMode: TextInput.Password; width: parent.width; 
+                        text: controller.get_api_credential("screenscraper_pass")
+                        onEditingFinished: controller.set_api_credential("screenscraper_pass", text) 
+                    }
                 }
             }
+            Text { 
+                text: "Configuración de API guardada. El motor M.A.N.G.O usará estas credenciales al iniciar una sincronización desde la sección de DESCARGAS."; 
+                color: "#33ffffff"; font.pixelSize: 10; font.italic: true; width: parent.width; wrapMode: Text.WordWrap
+            }
+            Item { Layout.fillHeight: true }
         }
 
-        // --- PANEL: AVANZADO (M.A.N.G.O Settings) ---
+        // --- PANEL 3: AVANZADO ---
         Column {
-            anchors.fill: parent; spacing: 25; visible: activeTab === 3
+            Layout.fillWidth: true; Layout.fillHeight: true; spacing: 25
             Text { text: "MOTOR M.A.N.G.O (RUST CORE)"; color: "#16a085"; font.pixelSize: 10; font.bold: true; font.letterSpacing: 2 }
-            
             Column {
                 width: parent.width; spacing: 20
-                
-                SettingsItem { 
-                    width: parent.width; title: "Optimización Multinúcleo"
-                    description: "Usa todos los hilos del CPU para el hashing (MD5/CRC32)"
-                    controlArea: Switch { checked: true; Material.accent: "#16a085" } 
-                }
-                
-                SettingsItem { 
-                    width: parent.width; title: "Verificación de Integridad"
-                    description: "Comprobar archivos corruptos durante el escaneo"
-                    controlArea: Switch { checked: false; Material.accent: "#16a085" } 
-                }
-
-                SettingsItem { 
-                    width: parent.width; title: "Modo Ultra-Baja Latencia"
-                    description: "Scraping asíncrono optimizado por RUST"
-                    controlArea: Switch { checked: true; Material.accent: "#16a085" } 
-                }
-
+                SettingsItem { width: parent.width; title: "Optimización Multinúcleo"; description: "Usa todos los hilos del CPU para el hashing"; controlArea: Switch { checked: true; Material.accent: "#16a085" } }
+                SettingsItem { width: parent.width; title: "Verificación de Integridad"; description: "Comprobar archivos corruptos durante el escaneo"; controlArea: Switch { checked: false; Material.accent: "#16a085" } }
+                SettingsItem { width: parent.width; title: "Modo Ultra-Baja Latencia"; description: "Scraping asíncrono optimizado por RUST"; controlArea: Switch { checked: true; Material.accent: "#16a085" } }
                 Item { width: 1; height: 10 }
-                
-                Button { 
-                    text: "PURGAR CACHÉ DEL MOTOR"
-                    flat: true; highlighted: true
-                    onClicked: console.log("Purgando caché M.A.N.G.O...")
-                }
+                Button { text: "PURGAR CACHÉ DEL MOTOR"; flat: true; highlighted: true; onClicked: console.log("Purgando caché M.A.N.G.O...") }
             }
+            Item { Layout.fillHeight: true }
         }
-        // --- PANEL: ACERCA DE (REDESIGN UNIFICADO) ---
+
+        // --- PANEL 4: ACERCA DE ---
         Flickable {
-            anchors.fill: parent; visible: activeTab === 4
+            Layout.fillWidth: true; Layout.fillHeight: true
             contentHeight: aboutColumn.height + 100; clip: true
             ScrollBar.vertical: ScrollBar { }
-            
             Column {
                 id: aboutColumn; width: parent.width; spacing: 40; anchors.horizontalCenter: parent.horizontalCenter
-                
-                // 1. HEADER UNIFICADO (El Logo del Ecosistema)
                 Column {
                     width: parent.width; spacing: 15
-                    Row {
-                        anchors.horizontalCenter: parent.horizontalCenter; spacing: 25
+                    Row { 
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        spacing: 25
                         Image { source: "../assets/logo.svg"; width: 70; height: 70 }
-                        Text { text: "🥭"; font.pixelSize: 45; anchors.verticalCenter: parent.verticalCenter; opacity: 0.9 }
+                        Text { text: "🥭"; font.pixelSize: 45; anchors.verticalCenter: parent.verticalCenter; opacity: 0.9 } 
                     }
-                    Column {
-                        width: parent.width; spacing: 5
-                        Text { 
-                            text: "EMUMANAGER ECOSYSTEM"; color: "white"; font.pixelSize: 22; font.bold: true; font.letterSpacing: 6
-                            anchors.horizontalCenter: parent.horizontalCenter
-                        }
-                        Text { 
-                            text: "v0.1.0-alpha | Powered by MANGO Native Core"; color: "#16a085"; font.pixelSize: 10; font.bold: true; font.letterSpacing: 1
-                            anchors.horizontalCenter: parent.horizontalCenter
-                        }
-                    }
+                    Text { text: "EMUMANAGER ECOSYSTEM"; color: "white"; font.pixelSize: 22; font.bold: true; font.letterSpacing: 6; anchors.horizontalCenter: parent.horizontalCenter }
                 }
-
-                // 2. DESCRIPCIÓN TÉCNICA (Informativa, no promocional)
-                Column {
-                    width: parent.width * 0.85; spacing: 10; anchors.horizontalCenter: parent.horizontalCenter
-                    Text { 
-                        text: "¿QUÉ ES EMUMANAGER?"; color: "#16a085"; font.pixelSize: 10; font.bold: true; font.letterSpacing: 2
-                        anchors.horizontalCenter: parent.horizontalCenter 
-                    }
-                    Text { 
-                        width: parent.width; wrapMode: Text.WordWrap; horizontalAlignment: Text.AlignHCenter
-                        color: "#ccffffff"; font.pixelSize: 12; lineHeight: 1.4
-                        text: "EmuManager es una interfaz de código abierto diseñada para centralizar y organizar bibliotecas locales de videojuegos. El sistema utiliza <b>M.A.N.G.O Engine</b> para realizar tareas pesadas como el cálculo de hashes (MD5/CRC32), la sincronización de archivos y la descarga de metadatos vía API. Todo el proceso está enfocado en la estabilidad del ecosistema local del usuario."
-                    }
+                Text { 
+                    width: parent.width * 0.85; wrapMode: Text.WordWrap; horizontalAlignment: Text.AlignHCenter; color: "#ccffffff"; font.pixelSize: 12; lineHeight: 1.4; anchors.horizontalCenter: parent.horizontalCenter
+                    text: "EmuManager es una interfaz de código abierto diseñada para centralizar y organizar bibliotecas locales de videojuegos. El sistema utiliza <b>M.A.N.G.O Engine</b> para realizar tareas pesadas..."
                 }
-
-                // Separador Sutil
-                Rectangle { 
-                    width: parent.width * 0.6; height: 1; opacity: 0.1
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    gradient: Gradient {
-                        orientation: Gradient.Horizontal
-                        GradientStop { position: 0.0; color: "transparent" }
-                        GradientStop { position: 0.5; color: "white" }
-                        GradientStop { position: 1.0; color: "transparent" }
-                    }
-                }
-
-                // 3. COMPROMISO LEGAL Y PRIVACIDAD (Vertical para mejor lectura)
                 Column {
                     width: parent.width * 0.8; spacing: 25; anchors.horizontalCenter: parent.horizontalCenter
-                    
-                    Column {
-                        width: parent.width; spacing: 5
-                        Text { text: "LOCAL-FIRST PRIVACY"; color: "#16a085"; font.pixelSize: 9; font.bold: true; font.letterSpacing: 1 }
-                        Text { 
-                            width: parent.width; wrapMode: Text.WordWrap; color: "#99ffffff"; font.pixelSize: 11; lineHeight: 1.3
-                            text: "Tus datos son tuyos. El motor M.A.N.G.O procesa todo localmente. No hay telemetría ni rastreo. La transparencia es nuestro pilar fundamental."
-                        }
+                    Column { 
+                        width: parent.width
+                        spacing: 5
+                        Text { text: "LOCAL-FIRST PRIVACY"; color: "#16a085"; font.pixelSize: 9; font.bold: true }
+                        Text { width: parent.width; wrapMode: Text.WordWrap; color: "#99ffffff"; font.pixelSize: 11; text: "Tus datos son tuyos. El motor M.A.N.G.O procesa todo localmente." } 
                     }
-
-                    Column {
-                        width: parent.width; spacing: 5
-                        Text { text: "SOFTWARE LIBRE"; color: "#16a085"; font.pixelSize: 9; font.bold: true; font.letterSpacing: 1 }
-                        Text { 
-                            width: parent.width; wrapMode: Text.WordWrap; color: "#99ffffff"; font.pixelSize: 11; lineHeight: 1.3
-                            text: "Distribuido bajo la Licencia MIT. EmuManager es y será siempre gratuito, abierto a la comunidad para su mejora y auditoría."
-                        }
+                    Column { 
+                        width: parent.width
+                        spacing: 5
+                        Text { text: "SOFTWARE LIBRE"; color: "#16a085"; font.pixelSize: 9; font.bold: true } 
+                        Text { width: parent.width; wrapMode: Text.WordWrap; color: "#99ffffff"; font.pixelSize: 11; text: "Distribuido bajo la Licencia MIT. EmuManager es y será siempre gratuito." } 
                     }
                 }
-
-                Item { width: 1; height: 40 }
-
-                // 4. FOOTER FINAL
                 Column {
-                    width: parent.width; spacing: 5
-                    Text { 
-                        text: "© 2026 PAIDEX | EMUMANAGER TEAM"; color: "#44ffffff"; font.pixelSize: 10; font.bold: true; font.letterSpacing: 2
-                        anchors.horizontalCenter: parent.horizontalCenter
-                    }
-                    Text { 
-                        text: "Crafted with passion for the Retro Community"; color: "#22ffffff"; font.pixelSize: 9; font.italic: true
-                        anchors.horizontalCenter: parent.horizontalCenter
-                    }
+                    width: parent.width; spacing: 5; Text { text: "© 2026 PAIDEX | EMUMANAGER TEAM"; color: "#44ffffff"; font.pixelSize: 10; font.bold: true; anchors.horizontalCenter: parent.horizontalCenter }
                 }
             }
         }

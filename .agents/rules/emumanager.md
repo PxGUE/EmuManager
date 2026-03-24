@@ -12,7 +12,8 @@ trigger: always_on
 ## Stack Tecnológico
 - **Frontend (UI):** Exclusivamente `QML` (Qt Quick) para la vista, orquestado por `PySide6` (Controlador/Modelo).
 - **Backend (Lógica):** Python (3.12+). Uso estricto de `pathlib` para compatibilidad nativa Linux/Windows.
-- **Core (Rendimiento):** Rust (Edición 2024, vía `PyO3`) para escaneo de archivos y hashing MD5/CRC32.
+- **Core (Rendimiento):** Rust (Edición 2024, vía `PyO3`) para escaneo de archivos y hashing MD5/CRC32. **M.A.N.G.O.** (Multithreaded Asynchronous Native Game Orchestrator) es el motor principal para tareas pesadas; todo proceso que maneje miles de elementos o cálculos complejos debe hacerse aquí para liberar a Python de carga y asegurar una UI fluida.
+
 - **Base de Datos:** SQLite3 local.
 
 ## Arquitectura y Navegación

@@ -61,17 +61,50 @@ class ScrapeWorker(QObject):
     @Slot()
     def run(self):
         try:
-            # Sincronizado con la nueva firma en scanner.py
-            # delegamos el control atómico pasándole nuestra flag _is_active
+            # Nuevo callback que recibe (progreso, status_text) desde Rust
+            def _handle_progress(p, s=None):
+                self.progress.emit(p)
+                if s: self.status.emit(s)
+
             count = self.scanner.scrape_missing_metadata(
                 self._is_active, 
-                progress_callback=self.progress.emit,
+                progress_callback=_handle_progress,
                 status_callback=self.status.emit
             )
             self.finished.emit(count)
         except Exception as e:
             EmuLog.error(f"Error fatal en hilo de scraping: {e}")
             self.finished.emit(0)
+
+class CoreDownloadWorker(QObject):
+    finished = Signal(str)
+    progress = Signal(float)
+    status = Signal(str)
+
+    def __init__(self, libretro_manager, core_name: str):
+        super().__init__()
+        self.libretro = libretro_manager
+        self.core_name = core_name
+
+    @Slot()
+    def run(self):
+        try:
+            self.status.emit(f"Descargando {self.core_name} usando M.A.N.G.O (Rust)...")
+            # El progress callback llamará self.progress.emit(p)
+            def progress_cb(p: float):
+                self.progress.emit(p)
+                
+            path = self.libretro.download_core(self.core_name, progress_cb)
+            if path:
+                self.status.emit("¡Core instalado!")
+                self.finished.emit(path)
+            else:
+                self.status.emit("Fallo en la descarga.")
+                self.finished.emit("")
+        except Exception as e:
+            EmuLog.error(f"Error fatal descargando core: {e}")
+            self.status.emit("Error en la instalación.")
+            self.finished.emit("")
 
 from backend.libretro import LibretroManager
 
@@ -85,6 +118,12 @@ class MainController(QObject):
     scrapeStatusChanged = Signal(str)     # "Scrapeando..." "Listo"
     scrapeFinished = Signal(int)         # Descargas realizadas
     gamesUpdated = Signal()               # Emitir cuando se agreguen/actualicen juegos
+    gamesCountChanged = Signal()          # Notificar cuando cambie el total de juegos
+    
+    # Señales para descarga de Cores
+    coreDownloadProgressChanged = Signal(float)
+    coreDownloadStatusChanged = Signal(str)
+    coreDownloadFinished = Signal(str)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -94,7 +133,6 @@ class MainController(QObject):
         if str(backend_dir) not in sys.path:
             sys.path.insert(0, str(backend_dir))
             
-        EmuLog.info(f"EmuManager Iniciando: Cargando componentes en {backend_dir}")
         try:
             self.db = DatabaseManager()
             self.scanner = ScannerManager(self.db)
@@ -103,21 +141,42 @@ class MainController(QObject):
             self._scan_worker = None
             self._scrape_thread = None
             self._scrape_worker = None
-            self._cached_summary = None # Cache para evitar recálculos pesados
-            EmuLog.info(f"Base de Datos Conectada en {AppConfig.get_database_path()}")
+            self._core_thread = None
+            self._core_worker = None
+            self._cached_summary = None 
+            self._is_precharged = False # Flag para evitar re-carga redundante
         except Exception as e:
-            EmuLog.error(f"Fallo crítico al inicializar el backend: {e}")
+            EmuLog.error(f"Fallo crítico al inicializar el backend de MainController: {e}")
 
     @Slot()
     def proactive_background_load(self):
         """
-        Carga proactiva para ejecutar durante el Splash.
-        Pre-calienta la DB y prepara el resumen de consolas.
+        Carga proactiva inteligente. Sólo se ejecuta una vez.
         """
-        EmuLog.info("M.A.N.G.O: Iniciando pre-carga proactiva de datos...")
-        self._cached_summary = self.get_consoles_summary(use_cache=False)
-        self.gamesUpdated.emit()
-        EmuLog.info("M.A.N.G.O: Datos de biblioteca pre-cargados con éxito.")
+        if self._is_precharged:
+            return
+            
+        try:
+            db_path = AppConfig.get_database_path()
+            EmuLog.info(f"M.A.N.G.O: Inicializando puente con backend en {db_path}")
+            
+            # Verificación del motor nativo
+            try:
+                import mango_engine
+                EmuLog.info("M.A.N.G.O: Motor nativo Rust detectado y operativo.")
+            except ImportError:
+                EmuLog.warning("M.A.N.G.O: Motor Rust no encontrado. Operando en modo degradado (Python-only).")
+
+            EmuLog.info("M.A.N.G.O: Generando caché de consolas...")
+            self._cached_summary = self.get_consoles_summary(use_cache=False)
+            
+            # Notificar que los juegos están listos
+            self.gamesUpdated.emit()
+            
+            self._is_precharged = True
+            EmuLog.info("M.A.N.G.O: Pre-carga completada con éxito.")
+        except Exception as e:
+            EmuLog.error(f"Error durante la carga proactiva de M.A.N.G.O: {e}")
 
     # --- Gestión de Credenciales ---
     @Slot(str, str)
@@ -152,13 +211,9 @@ class MainController(QObject):
 
     @Slot()
     def stop_scraping(self):
-        """Detiene inmediatamente el proceso de scraping de M.A.N.G.O."""
-        EmuLog.info("M.A.N.G.O: Solicitud de detención del motor...")
-        if self._scrape_worker:
-            self._scrape_worker.stop()
-        if self._scrape_thread and self._scrape_thread.isRunning():
-            self._scrape_thread.quit()
-        self.scrapeStatusChanged.emit("DETENIDO POR EL USUARIO")
+        """Mantiene la integridad del motor de scraping permitiendo que termine en segundo plano."""
+        EmuLog.info("M.A.N.G.O: Tarea ocultada. El motor terminará el proceso actual de forma segura.")
+        self.scrapeStatusChanged.emit("FINALIZANDO EN SEGUNDO PLANO")
 
     @Slot()
     def shutdown(self):
@@ -176,17 +231,23 @@ class MainController(QObject):
                 self._scrape_worker.progress.disconnect()
                 self._scrape_worker.status.disconnect()
                 self._scrape_worker.finished.disconnect()
+            if self._core_worker:
+                self._core_worker.progress.disconnect()
+                self._core_worker.status.disconnect()
+                self._core_worker.finished.disconnect()
         except (RuntimeError, Exception):
             pass 
 
         # 2. SEÑALIZAR CIERRE A LOS TRABAJADORES
         if self._scan_worker: self._scan_worker.stop()
         if self._scrape_worker: self._scrape_worker.stop()
+        # _core_worker no tiene flag de parada manual todavía por ir amarrado al runtime directo de Rust
         
         # 3. DETENER HILOS CON TIMEOUT AGRESIVO (MAX 500ms)
         hilos = []
         if self._scan_thread and self._scan_thread.isRunning(): hilos.append(self._scan_thread)
         if self._scrape_thread and self._scrape_thread.isRunning(): hilos.append(self._scrape_thread)
+        if self._core_thread and self._core_thread.isRunning(): hilos.append(self._core_thread)
         
         for t in hilos:
             t.quit()
@@ -204,6 +265,11 @@ class MainController(QObject):
     @Slot(result=str)
     def get_cores_path(self):
         return AppConfig.get_cores_path() or "No configurado"
+
+    @Slot(result=bool)
+    def scan_directories(self):
+        """Puente para iniciar el escaneo desde QML (Downloads Center)."""
+        return self.start_full_scan()
 
     @Slot(result=bool)
     def start_full_scan(self):
@@ -240,14 +306,18 @@ class MainController(QObject):
 
         self._scan_thread.start()
         return True
-
     def _clear_thread_reference(self):
-        """Limpia la referencia al hilo una vez finalizado."""
-        # Hilos en background
-        self._scan_thread = None
-        self._scan_worker = None
-        self._scrape_thread = None
-        self._scrape_worker = None
+        """Limpia la referencia al hilo de escaneo."""
+        # IMPORTANTE: No limpiar si el hilo sigue vivo
+        if self._scan_thread and not self._scan_thread.isRunning():
+            self._scan_thread = None
+            self._scan_worker = None
+
+    def _clear_scrape_thread(self):
+        """Limpia la referencia al hilo de scraping."""
+        if self._scrape_thread and not self._scrape_thread.isRunning():
+            self._scrape_thread = None
+            self._scrape_worker = None
 
     @Slot(str, result=str)
     def get_api_credential(self, service: str) -> str:
@@ -300,10 +370,61 @@ class MainController(QObject):
         self._scrape_thread.start()
         return True
 
+    @Slot()
+    def stop_scraping(self):
+        """Mantiene la integridad del motor permitiendo que termine los juegos actuales de forma segura."""
+        EmuLog.info("M.A.N.G.O: Tarea ocultada. El motor terminará el proceso actual en segundo plano para evitar corrupción.")
+        self.scrapeStatusChanged.emit("FINALIZANDO EN SEGUNDO PLANO")
+
     def _clear_scrape_thread(self):
         """Limpia la referencia al hilo de scraping."""
         self._scrape_thread = None
         self._scrape_worker = None
+
+    def _clear_core_thread(self):
+        """Limpia la referencia al hilo de cores."""
+        self._core_thread = None
+        self._core_worker = None
+
+    @Slot(result="QVariantList")
+    def fetch_available_cores(self):
+        """Obtiene la lista de cores disponibles desde el Buildbot de Libretro."""
+        EmuLog.info("M.A.N.G.O: Consultando catálogo de núcleos en Libretro Buildbot...")
+        return self.libretro.fetch_available_cores()
+
+    @Slot(str, result=bool)
+    def start_core_download(self, core_name: str):
+        if self._core_thread and self._core_thread.isRunning():
+            EmuLog.warning("Ya hay una descarga de core en curso.")
+            return False
+
+        self.coreDownloadStatusChanged.emit(f"Iniciando descarga de {core_name}...")
+        self.coreDownloadProgressChanged.emit(0.0)
+
+        self._core_thread = QThread()
+        self._core_worker = CoreDownloadWorker(self.libretro, core_name)
+        self._core_worker.moveToThread(self._core_thread)
+
+        self._core_thread.started.connect(self._core_worker.run)
+        self._core_worker.progress.connect(self.coreDownloadProgressChanged.emit)
+        self._core_worker.status.connect(self.coreDownloadStatusChanged.emit)
+        self._core_worker.finished.connect(self._on_core_download_finished)
+        self._core_worker.finished.connect(lambda x: self._core_thread.quit())
+        self._core_thread.finished.connect(self._core_thread.deleteLater)
+        self._core_thread.finished.connect(self._clear_core_thread)
+
+        self._core_thread.start()
+        return True
+
+    def _on_core_download_finished(self, path: str):
+        if path:
+            self.coreDownloadStatusChanged.emit(f"Instalación completada: {Path(path).name}")
+            self.coreDownloadProgressChanged.emit(1.0)
+            self.coreDownloadFinished.emit(path)
+        else:
+            self.coreDownloadStatusChanged.emit("Fallo en la descarga.")
+            self.coreDownloadProgressChanged.emit(0.0)
+            self.coreDownloadFinished.emit("")
 
     def _on_scrape_finished(self, count):
         EmuLog.info(f"Scraping M.A.N.G.O completado: {count} descargas.")
@@ -323,7 +444,8 @@ class MainController(QObject):
                 cursor.execute("SELECT COUNT(*) FROM games")
                 count = cursor.fetchone()[0]
                 return count
-        except Exception:
+        except Exception as e:
+            EmuLog.error(f"Error al contar juegos: {e}")
             return 0
 
     @Slot(result="QVariantList")
@@ -382,7 +504,10 @@ class MainController(QObject):
                         time_h = f"{seconds // 3600}h"
                     except Exception: pass
 
-                    if count > 0 or p["platform"] == "all":
+                    # Mostramos ÚNICAMENTE las plataformas que tengan juegos.
+                    # Excepción: la opción 'all' si hay al menos un juego de cualquier tipo.
+                    total_at_all = self.get_games_count()
+                    if count > 0 or (p["platform"] == "all" and total_at_all > 0):
                         summary.append({
                             "title": p["title"],
                             "platform": p["platform"],

@@ -3,6 +3,10 @@ import os
 from pathlib import Path
 from PySide6.QtWidgets import QApplication
 from PySide6.QtQml import QQmlApplicationEngine
+from dotenv import load_dotenv
+
+# --- CARGAR SECRETOS (SS_DEV_ID, SS_DEV_PASS) ---
+load_dotenv()
 
 # Modificamos el import path para resolver módulos desde la raíz emumanager
 current_dir = Path(__file__).resolve().parent
@@ -25,6 +29,14 @@ def main():
     app = QApplication(sys.argv)
     engine = QQmlApplicationEngine()
     
+    # --- REGISTRAR CONTROLADOR GLOBAL ---
+    # Esto evita que cada vista QML cree su propio motor, limpiando los logs y ahorrando RAM
+    main_controller = MainController()
+    engine.rootContext().setContextProperty("mainController", main_controller)
+    
+    # También registramos los modelos para que QML los vea globalmente si se desea
+    # (En este caso los seguiremos instanciando en QML pero vinculados al controlador global)
+    
     qml_file = current_dir / "ui" / "main.qml"
     
     # Cargamos la interfaz principal
@@ -33,17 +45,8 @@ def main():
     if not engine.rootObjects():
         sys.exit(-1)
 
-    # Obtenemos la instancia del controlador creada en QML (si se usa MainController {} en QML)
-    # O mejor, conectamos la señal de cierre para que limpie hilos
-    def cleanup():
-        # Intentar encontrar el componente MainController para apagarlo
-        for obj in engine.rootObjects():
-            controller = obj.findChild(MainController)
-            if controller:
-                controller.shutdown()
-                break
-
-    app.aboutToQuit.connect(cleanup)
+    # El cierre limpio es fundamental para los hilos de Rust
+    app.aboutToQuit.connect(main_controller.shutdown)
         
     sys.exit(app.exec())
 

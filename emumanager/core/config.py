@@ -79,13 +79,32 @@ class AppConfig:
 
     @classmethod
     def get_screenscraper_pass(cls) -> str:
-        return cls._load_config().get("ss_pass", "")
+        """
+        Recupera la contraseña desde el almacén seguro del SO (Keyring)
+        Evita almacenar contraseñas en texto plano en config.json
+        """
+        from core.security import CredentialsManager
+        user = cls.get_screenscraper_user()
+        if not user:
+            return ""
+        return CredentialsManager.get_user_password("screenscraper", user) or ""
 
     @classmethod
     def set_screenscraper_pass(cls, pwd: str):
-        config = cls._load_config()
-        config["ss_pass"] = str(pwd)
-        cls._save_config()
+        """
+        Guarda la contraseña en el almacén seguro del SO (Keyring)
+        Elimina cualquier rastro anterior del JSON plano.
+        """
+        from core.security import CredentialsManager
+        user = cls.get_screenscraper_user()
+        if user and pwd:
+            CredentialsManager.save_user_password("screenscraper", user, pwd)
+            
+            # Limpieza: Aseguramos que NO exista en el JSON
+            config = cls._load_config()
+            if "ss_pass" in config:
+                del config["ss_pass"]
+                cls._save_config()
 
     @classmethod
     def get_database_path(cls) -> Path:

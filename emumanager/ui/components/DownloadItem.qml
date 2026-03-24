@@ -94,13 +94,15 @@ Rectangle {
                 RowLayout {
                     spacing: 8
                     Text {
-                        text: isPaused ? "PAUSADO" : (progressValue >= 1.0 ? "✓ COMPLETADO" : (statusText + " • " + downloadSpeed))
+                        property bool isSystemTask: itemType === "SCAN" || itemType === "MEDIA"
+                        text: isPaused ? "PAUSADO" : (progressValue >= 1.0 ? "✓ COMPLETADO" : (isSystemTask ? statusText : (statusText + " • " + downloadSpeed)))
                         color: isPaused ? "#f1c40f" : (progressValue >= 1.0 ? "#16a085" : "#66ffffff")
                         font.pixelSize: 10; font.bold: true
                     }
                     Text {
                         text: "ETA: " + eta
-                        color: "#33ffffff"; font.pixelSize: 9; visible: progressValue > 0 && progressValue < 1.0 && !isPaused
+                        color: "#33ffffff"; font.pixelSize: 9
+                        visible: progressValue > 0 && progressValue < 1.0 && !isPaused && (itemType !== "SCAN" && itemType !== "MEDIA")
                     }
                 }
             }
@@ -111,7 +113,7 @@ Rectangle {
                 
                 // Botón Acción Primaria (Pausa/Resumen)
                 Button {
-                    visible: progressValue < 1.0
+                    visible: progressValue < 1.0 && (itemType !== "SCAN" && itemType !== "MEDIA")
                     flat: true; Layout.preferredWidth: 36; Layout.preferredHeight: 36
                     contentItem: Text { 
                         text: isPaused ? "▶" : "⏸"; color: isPaused ? "#16a085" : "white"
@@ -126,7 +128,7 @@ Rectangle {
 
                 // Botón Cancelar
                 Button {
-                    visible: progressValue < 1.0
+                    visible: progressValue < 1.0 && (itemType !== "SCAN" && itemType !== "MEDIA")
                     flat: true; Layout.preferredWidth: 36; Layout.preferredHeight: 36
                     contentItem: Text { 
                         text: "✕"; color: "#e74c3c"

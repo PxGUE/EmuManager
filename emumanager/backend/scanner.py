@@ -186,80 +186,44 @@ class ScannerManager:
             EmuLog.error("El motor M.A.N.G.O. no está disponible para el scraping.")
             return 0
             
-        with self.db.get_connection() as conn:
-            cursor = conn.cursor()
-            # Obtenemos juegos sin portada 2d
-            cursor.execute('''
-                SELECT g.id, g.file_hash, g.platform, g.file_path, g.file_size, m.title
-                FROM games g
-                JOIN game_metadata m ON g.id = m.game_id
-                WHERE m.cover_2d_path IS NULL OR m.cover_2d_path = ''
-            ''')
-            pending = cursor.fetchall()
-            
-        if not pending:
-            EmuLog.info("Todos los juegos tienen todos sus metadatos al día.")
-            return 0
-            
-        total = len(pending)
-        success_count = 0
-        
         ss_id = AppConfig.get_screenscraper_user()
         ss_pass = AppConfig.get_screenscraper_pass()
         
-        import json
+        db_path = str(AppConfig.get_database_path())
+        roms_path = AppConfig.get_roms_path()
+        if not roms_path:
+            return 0
+            
+        # El búnker de datos oficial de EmuManager: Proyecto / data / media
+        project_root = Path(__file__).parent.parent.parent # f:/.../EmuManager
+        media_base = str(project_root / "data" / "media")
         
-        for index, row in enumerate(pending):
-            game_id = row["id"]
-            md5_hash = row["file_hash"]
-            file_path = row["file_path"]
-            platform = row["platform"]
-            original_title = row["title"]
-            
-            # Map platform to ScreenScraper System ID (Principales)
-            sys_id_map = {
-                "gba": "12", "snes": "4", "nes": "3", "n64": "14", 
-                "gb": "9", "gbc": "10", "megadrive": "1", "mastersystem": "2",
-                "gamegear": "21", "ps1": "57", "ps2": "58", "psp": "61", 
-                "gc": "38", "wii": "5", "ds": "15", "dreamcast": "16"
-            }
-            system_id = sys_id_map.get(platform.lower(), "")
-            filename = Path(file_path).name
-            media_dir = str(AppConfig.get_media_dir(platform, ""))
-            
-            if status_callback: status_callback(f"Buscando portadas para: {original_title}")
-            
-            try:
-                # El motor de Rust ahora recibe el 'interrupt_flag' directamente
-                json_str = mango_engine.scrape_game_metadata(
-                    interrupt_flag, md5_hash, "", filename, system_id, ss_id, ss_pass, media_dir
-                )
+        if status_callback: status_callback("Iniciando M.A.N.G.O Batch Scraper...")
+        
+        try:
+            def _interrupt_check():
+                return interrupt_flag() if callable(interrupt_flag) else bool(interrupt_flag)
                 
-                if json_str and json_str != "{}" and json_str != "null":
-                    meta = json.loads(json_str)
-                    title = meta.get("title") or original_title
-                    
-                    with self.db.get_connection() as conn:
-                        c = conn.cursor()
-                        c.execute('''
-                            UPDATE game_metadata SET
-                                title = ?, developer = ?, publisher = ?,
-                                release_date = ?, genre = ?, description = ?,
-                                cover_2d_path = ?, cover_3d_path = ?
-                            WHERE game_id = ?
-                        ''', (title, meta.get("developer"), meta.get("publisher"), 
-                              meta.get("release_date"), meta.get("genre"), meta.get("description"), 
-                              meta.get("cover_2d_path"), meta.get("cover_3d_path"), game_id))
-                        conn.commit()
-                        
-                    success_count += 1
-                    EmuLog.info(f"[MANGO] Scrapeado: {title}")
-                else:
-                    if interrupt_flag: EmuLog.info(f"[MANGO] Operación abortada o sin resultados para: {original_title}")
-            except Exception as e:
-                EmuLog.error(f"[MANGO] Error scraping {original_title}: {e}")
+            # Extraer claves de desarrollador SECRETAS de entorno (Cargadas de .env en app.py)
+            import os
+            dev_id = os.getenv("SS_DEV_ID", "")
+            dev_pass = os.getenv("SS_DEV_PASS", "")
+
+            success_count = mango_engine.start_batch_scrape(
+                db_path,
+                ss_id,
+                ss_pass,
+                dev_id,
+                dev_pass,
+                media_base,
+                progress_callback,
+                _interrupt_check
+            )
+            
+            if status_callback:
+                status_callback("Scrapeado completado con éxito.")
                 
-            if progress_callback:
-                progress_callback( (index + 1) / float(total) )
-                
-        return success_count
+            return success_count
+        except Exception as e:
+            EmuLog.error(f"[MANGO] Error fatal en Batch Scraper: {e}")
+            return 0

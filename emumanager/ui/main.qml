@@ -8,8 +8,7 @@ import "components"
 ApplicationWindow {
     id: window
     visible: true
-    width: 1280
-    height: 800
+    width: 1280; height: 800
     title: "EmuManager"
     
     Material.theme: Material.Dark
@@ -22,23 +21,31 @@ ApplicationWindow {
     property string startupStatus: "INICIALIZANDO..."
 
     Timer {
-        id: startupFlow
-        interval: 100; running: true; repeat: true
+        id: startupFlow; interval: 80; running: true; repeat: true
         onTriggered: {
             if (startupProgress < 1.0) {
                 startupProgress += 0.02
-                if (startupProgress < 0.3) startupStatus = "Cargando motor de escaneo..."
-                else if (startupProgress < 0.6) startupStatus = "Conectando base de datos..."
-                else if (startupProgress < 0.9) startupStatus = "Precargando motor de UI..."
-                else startupStatus = "Listo para iniciar"
+                if (startupProgress >= 0.18 && startupProgress < 0.22) {
+                    startupStatus = "Pre-cargando biblioteca..."
+                    controller.proactive_background_load()
+                }
+                else if (startupProgress < 0.2) startupStatus = "Cargando motor de escaneo..."
+                else if (startupProgress < 0.4) startupStatus = "Verificando M.A.N.G.O Native Engine (RUST)..."
+                else if (startupProgress < 0.6) startupStatus = "Conectando base de datos activa..."
+                else if (startupProgress < 0.8) startupStatus = "Sincronizando modelos de interfaz..."
+                else startupStatus = "Listo para iniciar operaciones"
             } else {
-                startupFlow.stop()
-                isLoaded = true
+                startupFlow.stop(); startupStatus = "Listo"; isLoaded = true
             }
         }
     }
 
-    MainController { id: controller }
+    MainController { 
+        id: controller 
+        onScanProgressChanged: (p) => { scanProgressVal = p }
+        onScanStatusChanged: (s) => { scanStatusText = s.toUpperCase() }
+        onScanFinished: (n) => { isScanning = false; scanProgressVal = 1.0 }
+    }
 
     ListModel {
         id: navModel
@@ -48,26 +55,19 @@ ApplicationWindow {
         ListElement { name: "CONFIGURACIÓN"; icon: "⚙️"; file: "views/Settings.qml"; viewId: "settingsView" }
     }
 
-    // --- 1. PANTALLA DE CARGA DINÁMICA ---
-    EmuSplash {
-        id: splashScreen
-        isLoaded: window.isLoaded
-        progress: window.startupProgress
-        statusText: window.startupStatus
-    }
+    // --- 1. PANTALLA DE CARGA (Modular + Logo Herencia) ---
+    EmuSplash { id: splashScreen; isLoaded: window.isLoaded; progress: window.startupProgress; statusText: window.startupStatus }
 
-    // --- 2. ESTRUCTURA PRINCIPAL (Flicker-Free) ---
+    // --- 2. ESTRUCTURA PRINCIPAL (Animación Premium) ---
     RowLayout {
         anchors.fill: parent; spacing: 0
-        opacity: isLoaded ? 1 : 0
-        scale: isLoaded ? 1 : 0.98
+        opacity: isLoaded ? 1 : 0; scale: isLoaded ? 1.0 : 0.98
         Behavior on opacity { NumberAnimation { duration: 800; easing.type: Easing.OutCubic } }
-        Behavior on scale { NumberAnimation { duration: 1000; easing.type: Easing.OutCubic } }
+        Behavior on scale { NumberAnimation { duration: 1000; easing.type: Easing.OutBack } }
 
+        // Sidebar
         Rectangle {
-            id: sidebar
-            Layout.preferredWidth: 240; Layout.fillHeight: true; color: "#0a0a0c"
-            
+            id: sidebar; Layout.preferredWidth: 240; Layout.fillHeight: true; color: "#0a0a0c"
             x: isLoaded ? 0 : -50
             Behavior on x { 
                 SequentialAnimation { 
@@ -79,7 +79,6 @@ ApplicationWindow {
             ColumnLayout {
                 anchors.fill: parent; anchors.margins: 20; spacing: 10
                 Item { Layout.preferredHeight: 40 }
-
                 Repeater {
                     model: navModel
                     delegate: Button {
@@ -88,7 +87,7 @@ ApplicationWindow {
                         contentItem: RowLayout {
                             spacing: 15
                             Text { text: model.icon; font.pixelSize: 18; opacity: highlighted ? 1.0 : 0.5 }
-                            Text { text: model.name.toUpperCase(); color: highlighted ? "white" : "#66ffffff"; font.pixelSize: 11; font.bold: highlighted; font.letterSpacing: 2 }
+                            Text { text: model.name; color: highlighted ? "white" : "#66ffffff"; font.pixelSize: 11; font.bold: highlighted; font.letterSpacing: 2 }
                         }
                         onClicked: activeViewId = model.viewId
                     }
@@ -98,26 +97,15 @@ ApplicationWindow {
             }
         }
 
-        // --- MOTOR DE NAVEGACIÓN INSTANTÁNEA (PRECARGA TOTAL) ---
+        // Área Central (Precarga MEMORIA)
         Item {
             Layout.fillWidth: true; Layout.fillHeight: true; clip: true
-
             Repeater {
                 model: navModel
                 delegate: Loader {
-                    anchors.fill: parent
-                    asynchronous: true 
-                    active: true // FORZAMOS la carga en memoria aunque no sea visible
-                    source: model.file
-                    
-                    // Solo es visible si es la sección activa
-                    visible: activeViewId === model.viewId
-                    opacity: visible ? 1 : 0
-                    
-                    // Aseguramos que el contenido escalado esté listo
-                    scale: visible ? 1 : 0.99
-                    
-                    Behavior on opacity { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
+                    anchors.fill: parent; asynchronous: true; active: true; source: model.file; visible: activeViewId === model.viewId
+                    opacity: visible ? 1 : 0; scale: visible ? 1 : 0.99
+                    Behavior on opacity { NumberAnimation { duration: 250; easing.type: Easing.OutCubic } }
                     Behavior on scale { NumberAnimation { duration: 400; easing.type: Easing.OutCubic } }
                 }
             }

@@ -2,115 +2,181 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Controls.Material
+import Qt5Compat.GraphicalEffects
 
 Rectangle {
     id: downloadItem
     
+    property int itemIndex: -1
     property string itemName: ""
-    property string itemType: "" // CORE, EMULATOR, ASSET
+    property string itemType: "" // CORE, EMULATOR, ASSET, MEDIA
     property string platform: ""
     property real progressValue: 0.0
     property string totalSize: ""
     property string statusText: ""
     property string downloadSpeed: ""
-    property color accentColor: "#4f319b"
+    property color accentColor: "#16a085"
+    property string eta: "Calculando..."
+    property string lastLog: ""
+    property bool isPaused: statusText === "Pausado"
 
-    height: 90
-    radius: 16
-    color: "#16161a"
-    border.color: progressValue > 0 && progressValue < 1 ? Qt.alpha(accentColor, 0.3) : "#25252b"
+    signal pauseRequested(int index)
+    signal resumeRequested(int index)
+    signal cancelRequested(int index)
+    signal openFolderRequested(int index)
+
+    height: 110
+    radius: 20
+    color: "#0a0a0c"
+    border.color: progressValue > 0 && progressValue < 1 ? Qt.rgba(accentColor.r, accentColor.g, accentColor.b, 0.2) : "#1a1a1f"
     border.width: 1
     clip: true
 
-    // Efecto de Brillo Sutil al completar
+    // --- EFECTO GLASSMORPHISM DE FONDO ---
     Rectangle {
         anchors.fill: parent
-        visible: progressValue >= 1.0
-        opacity: 0.05
-        color: accentColor
+        color: progressValue >= 1.0 ? Qt.rgba(accentColor.r, accentColor.g, accentColor.b, 0.03) : "transparent"
+        Behavior on color { ColorAnimation { duration: 500 } }
     }
 
-    RowLayout {
+    // --- CONTENIDO PRINCIPAL ---
+    ColumnLayout {
         anchors.fill: parent
-        anchors.leftMargin: 25; anchors.rightMargin: 25
-        spacing: 20
+        anchors.margins: 20
+        spacing: 12
 
-        // 1. Icono de Estado Adaptativo
-        Rectangle {
-            width: 45; height: 45; radius: 12
-            color: "#1a1a20"
-            border.color: "#333"; border.width: 1
-            
-            Text {
-                anchors.centerIn: parent
-                text: itemType === "CORE" ? "🧩" : (itemType === "EMULATOR" ? "🖥️" : "📦")
-                font.pixelSize: 22
-                opacity: progressValue >= 1.0 ? 1.0 : 0.6
-            }
-        }
-
-        // 2. Info Principal
-        ColumnLayout {
-            Layout.fillWidth: true; spacing: 2
-            
-            RowLayout {
-                spacing: 12
-                Text {
-                    text: itemName
-                    color: "white"; font.pixelSize: 16; font.bold: true
-                }
-                Rectangle {
-                    width: 45; height: 16; radius: 4; color: "#222"
-                    Text { anchors.centerIn: parent; text: platform; color: accentColor; font.pixelSize: 9; font.bold: true }
-                }
-            }
-            
-            Text {
-                text: statusText === "Downloading" ? (downloadSpeed + " • " + Math.floor(progressValue * 100) + "% de " + totalSize) : statusText
-                color: "#66ffffff"; font.pixelSize: 11; font.bold: true
-            }
-        }
-
-        // 3. Botones de Acción Rápidos
         RowLayout {
-            spacing: 10
-            visible: progressValue < 1.0
+            Layout.fillWidth: true
+            spacing: 18
+
+            // 1. Icono de Estado con Brillo
+            Rectangle {
+                width: 50; height: 50; radius: 14
+                color: "#16161a"
+                border.color: "#25252b"; border.width: 1
+                
+                Text {
+                    anchors.centerIn: parent
+                    text: {
+                        if (itemType === "CORE") return "🧩"
+                        if (itemType === "EMULATOR") return "🖥️"
+                        if (itemType === "MEDIA") return "🖼️"
+                        return "📦"
+                    }
+                    font.pixelSize: 24
+                    opacity: progressValue >= 1.0 ? 1.0 : 0.7
+                }
+
+                Rectangle {
+                    anchors.fill: parent; radius: 14; opacity: 0.1
+                    color: isPaused ? "#f1c40f" : accentColor
+                    visible: progressValue > 0 && progressValue < 1.0
+                }
+            }
+
+            // 2. Info de Tarea
+            ColumnLayout {
+                Layout.fillWidth: true; spacing: 2
+                
+                RowLayout {
+                    spacing: 10
+                    Text {
+                        text: itemName.toUpperCase()
+                        color: "white"; font.pixelSize: 14; font.bold: true; font.letterSpacing: 1
+                    }
+                    Rectangle {
+                        width: 40; height: 16; radius: 4; color: "#1a1a1f"
+                        Text { anchors.centerIn: parent; text: platform; color: accentColor; font.pixelSize: 8; font.bold: true }
+                        visible: platform !== "" && platform !== "ALL"
+                    }
+                }
+                
+                RowLayout {
+                    spacing: 8
+                    Text {
+                        text: isPaused ? "PAUSADO" : (progressValue >= 1.0 ? "✓ COMPLETADO" : (statusText + " • " + downloadSpeed))
+                        color: isPaused ? "#f1c40f" : (progressValue >= 1.0 ? "#16a085" : "#66ffffff")
+                        font.pixelSize: 10; font.bold: true
+                    }
+                    Text {
+                        text: "ETA: " + eta
+                        color: "#33ffffff"; font.pixelSize: 9; visible: progressValue > 0 && progressValue < 1.0 && !isPaused
+                    }
+                }
+            }
+
+            // 3. CONTROLES DE INTERACCIÓN REAL
+            RowLayout {
+                spacing: 2
+                
+                // Botón Acción Primaria (Pausa/Resumen)
+                Button {
+                    visible: progressValue < 1.0
+                    flat: true; Layout.preferredWidth: 36; Layout.preferredHeight: 36
+                    contentItem: Text { 
+                        text: isPaused ? "▶" : "⏸"; color: isPaused ? "#16a085" : "white"
+                        font.pixelSize: 14; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
+                        opacity: 0.8
+                    }
+                    onClicked: {
+                        if (isPaused) resumeRequested(itemIndex)
+                        else pauseRequested(itemIndex)
+                    }
+                }
+
+                // Botón Cancelar
+                Button {
+                    visible: progressValue < 1.0
+                    flat: true; Layout.preferredWidth: 36; Layout.preferredHeight: 36
+                    contentItem: Text { 
+                        text: "✕"; color: "#e74c3c"
+                        font.pixelSize: 14; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
+                        opacity: 0.5
+                    }
+                    onClicked: cancelRequested(itemIndex)
+                }
+
+                // Botón Carpeta (Solo al completar)
+                Button {
+                    visible: progressValue >= 1.0
+                    flat: true; Layout.preferredWidth: 100; Layout.preferredHeight: 36
+                    contentItem: RowLayout {
+                        spacing: 8; anchors.centerIn: parent
+                        Text { text: "📁"; font.pixelSize: 12 }
+                        Text { text: "VER CARPETA"; color: "white"; font.pixelSize: 9; font.bold: true; font.letterSpacing: 1; opacity: 0.6 }
+                    }
+                    onClicked: openFolderRequested(itemIndex)
+                }
+            }
+        }
+
+        // 4. BARRA DE PROGRESO "NEON"
+        ColumnLayout {
+            Layout.fillWidth: true; spacing: 6
             
-            ToolButton {
-                icon.name: statusText === "Paused" ? "play" : "pause"
-                Material.foreground: "white"
-                opacity: 0.5
-            }
-            ToolButton {
-                icon.name: "close"
-                Material.foreground: "#e74c3c"
-                opacity: 0.5
-            }
-        }
+            Rectangle {
+                Layout.fillWidth: true; height: 4; radius: 2; color: "#1a1a1f"
+                
+                Rectangle {
+                    id: progressFill
+                    width: parent.width * progressValue; height: parent.height; radius: 2
+                    color: isPaused ? "#f1c40f" : accentColor
+                    
+                    Behavior on width { NumberAnimation { duration: 400; easing.type: Easing.OutCubic } }
 
-        // Check de Completado
-        Text {
-            visible: progressValue >= 1.0
-            text: "✓"
-            color: "#16a085"; font.pixelSize: 24; font.bold: true
-        }
-    }
+                    layer.enabled: true
+                    layer.effect: DropShadow {
+                        transparentBorder: true
+                        color: isPaused ? "#f1c40f" : accentColor; samples: 20; radius: 8
+                    }
+                }
+            }
 
-    // 4. Barra de Progreso Minimalista (1px en la base)
-    Rectangle {
-        anchors.bottom: parent.bottom; anchors.left: parent.left
-        height: 3; width: parent.width * progressValue
-        color: accentColor
-        opacity: progressValue >= 1.0 ? 0 : 0.8
-        
-        Behavior on width { NumberAnimation { duration: 500; easing.type: Easing.OutCubic } }
-        
-        // Brillo de la punta de carga
-        Rectangle {
-            anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
-            width: 10; height: 6; radius: 3; color: "white"
-            visible: progressValue > 0 && progressValue < 1.0
-            opacity: 0.8
+            Text {
+                text: isPaused ? "ENGINE: Motor en espera por el usuario." : (lastLog !== "" ? ("ENGINE: " + lastLog) : (itemType + " " + totalSize + " REGISTERED"))
+                color: isPaused ? "#44f1c40f" : "#22ffffff"; font.pixelSize: 9; font.family: "Consolas"
+                Layout.fillWidth: true; elide: Text.ElideRight
+            }
         }
     }
 }

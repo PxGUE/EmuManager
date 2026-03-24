@@ -7,6 +7,9 @@ use walkdir::WalkDir;
 use rayon::prelude::*;
 use md5;
 use crc32fast::Hasher;
+use serde_json; // Added for scrape_game_metadata
+
+mod scraper; // Added as per instruction
 
 /// Calcula MD5 y CRC32 de un archivo de forma eficiente
 fn calculate_hashes(path: &str) -> (String, String, u64) {
@@ -50,8 +53,9 @@ fn scan_directory(py: Python<'_>, path: String, extensions: Vec<String>) -> PyRe
         return Ok(vec![]);
     }
 
-    // Recolectar archivos (I/O serie pero rápido)
+    // Recolectar archivos con seguimiento de enlaces simbólicos activado
     let files: Vec<_> = WalkDir::new(base_path)
+        .follow_links(true)
         .into_iter()
         .filter_map(Result::ok)
         .filter(|e| e.file_type().is_file())
@@ -63,7 +67,9 @@ fn scan_directory(py: Python<'_>, path: String, extensions: Vec<String>) -> PyRe
             let p = entry.path();
             if let Some(ext) = p.extension().and_then(|e| e.to_str()) {
                 let ext_lower = ext.to_lowercase();
-                if extensions.is_empty() || extensions.iter().any(|e| e.to_lowercase() == ext_lower) {
+                
+                // Normalizar la lista de extensiones recibida para ser insensible a mayúsculas
+                if extensions.is_empty() || extensions.iter().any(|e| e.to_lowercase().trim_start_matches('.').to_string() == ext_lower) {
                     let path_str = p.to_string_lossy().into_owned();
                     let (md5_h, crc_h, size) = calculate_hashes(&path_str);
                     return Some((path_str, md5_h, crc_h, size));
@@ -87,8 +93,34 @@ fn scan_directory(py: Python<'_>, path: String, extensions: Vec<String>) -> PyRe
     Ok(py_results)
 }
 
+#[pyfunction]
+fn scrape_game_metadata(
+    py: Python<'_>,
+    md5: &str,
+    crc: &str,
+    filename: &str,
+    system_id: &str,
+    ss_id: &str,
+    ss_pass: &str,
+    media_dir_base: &str,
+    interrupt_flag: Bound<'_, pyo3::types::PyBool>, 
+) -> PyResult<String> {
+    // Check interruption BEFORE starting
+    if interrupt_flag.is_true() {
+        return Ok("{}".to_string());
+    }
+
+    if let Some(meta) = scraper::scrape_game(md5, crc, filename, system_id, ss_id, ss_pass, media_dir_base, &interrupt_flag) {
+        if let Ok(json_str) = serde_json::to_string(&meta) {
+            return Ok(json_str);
+        }
+    }
+    Ok("{}".to_string())
+}
+
 #[pymodule]
-fn core_scanner(m: &Bound<'_, PyModule>) -> PyResult<()> {
+fn mango_engine(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(scan_directory, m)?)?;
+    m.add_function(wrap_pyfunction!(scrape_game_metadata, m)?)?;
     Ok(())
 }

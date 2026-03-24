@@ -15,9 +15,17 @@ class LibretroManager:
     def get_core_for_platform(self, platform: str) -> Optional[str]:
         """Mapea plataformas a cores sugeridos de libretro."""
         platform_map = {
-            "N64": "mupen64plus_next",
-            "SNES": "snes9x",
-            "PS1": "beetle_psx_hw",
-            "GC": "dolphin"
+            "snes": "snes9x",
+            "nes": "fceumm",
+            "gba": "mgba",
+            "gb": "gambatte",
+            "gbc": "gambatte",
+            "n64": "mupen64plus_next",
+            "ps1": "beetle_psx_hw",
+            "ps2": "pcsx2",
+            "psp": "ppsspp",
+            "ds": "desmume",
+            "megadrive": "genesis_plus_gx",
+            "dreamcast": "flycast"
         }
-        return platform_map.get(platform)
+        return platform_map.get(platform.lower())

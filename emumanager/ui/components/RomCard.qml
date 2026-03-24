@@ -6,19 +6,19 @@ import QtQuick.Controls.Material
 Rectangle {
     id: romCard
     
-    // Propiedades de Datos (Consumidas desde el Modelo)
+    // Propiedades de Datos (Roles del Modelo)
     property string title: ""
     property string platform: ""
-    property string coverPath: ""
+    property string cover2d: ""
+    property string cover3d: ""
     property color accentColor: "#16a085"
     
     // Estados Visuales
     property bool isHovered: mouseArea.containsMouse
+    property bool has3d: cover3d !== ""
     property bool carouselMode: false 
 
-    width: carouselMode ? 320 : 180
-    height: carouselMode ? 460 : 260
-    radius: carouselMode ? 20 : 12
+    width: 200; height: 260; radius: 12
     color: "#1a1a1f"
     border.color: isHovered ? accentColor : "#25252b"
     border.width: isHovered ? 2 : 1
@@ -31,44 +31,43 @@ Rectangle {
     scale: isHovered ? 1.05 : 1.0
 
     // --- 1. CONTENEDOR DE CARÁTULA ---
-    Rectangle {
+    Item {
         id: coverContainer
         anchors.top: parent.top; anchors.left: parent.left; anchors.right: parent.right
-        height: carouselMode ? (parent.height * 0.7) : (parent.height - 70)
-        color: "#141417"
+        height: parent.height - 70
+        clip: true
         
-        // Imagen Real (Si existe) o Gradiente de Placeholder
+        // --- CAPA 1: PORTADA 2D (Base) ---
         Image {
             anchors.fill: parent
-            source: coverPath ? "file:///" + coverPath : ""
+            source: cover2d ? "file:///" + cover2d : ""
             fillMode: Image.PreserveAspectCrop
-            visible: coverPath !== ""
+            visible: cover2d !== ""
             asynchronous: true
+            opacity: (has3d && isHovered) ? 0 : 1
+            Behavior on opacity { NumberAnimation { duration: 400 } }
         }
 
+        // --- CAPA 2: PORTADA 3D (Hover) ---
+        Image {
+            anchors.fill: parent
+            source: cover3d ? "file:///" + cover3d : ""
+            fillMode: Image.PreserveAspectCrop
+            visible: has3d
+            asynchronous: true
+            opacity: isHovered ? 1 : 0
+            scale: isHovered ? 1.1 : 1.0
+            Behavior on opacity { NumberAnimation { duration: 450 } }
+            Behavior on scale { NumberAnimation { duration: 1000; easing.type: Easing.OutBack } }
+        }
+
+        // Placeholder si no hay nada
         Rectangle {
             anchors.fill: parent
-            visible: coverPath === ""
-            gradient: Gradient {
-                GradientStop { position: 0.0; color: Qt.rgba(accentColor.r, accentColor.g, accentColor.b, 0.1) }
-                GradientStop { position: 1.0; color: Qt.rgba(accentColor.r, accentColor.g, accentColor.b, 0.3) }
-            }
+            visible: cover2d === "" && cover3d === ""
+            color: "#141417"
             Text {
-                anchors.centerIn: parent
-                text: "🎮"
-                font.pixelSize: carouselMode ? 90 : 45
-                opacity: 0.25
-            }
-        }
-        
-        // Etiqueta de Plataforma (Flotante)
-        Rectangle {
-            anchors.top: parent.top; anchors.right: parent.right; anchors.margins: 8
-            width: 45; height: 18; radius: 4; color: "#cc000000"
-            border.color: "#33ffffff"; border.width: 1
-            Text { 
-                anchors.centerIn: parent; text: platform.toUpperCase(); color: "white"
-                font.pixelSize: 8; font.bold: true; font.letterSpacing: 1 
+                anchors.centerIn: parent; text: "🎮"; font.pixelSize: 45; opacity: 0.2
             }
         }
     }
@@ -80,27 +79,19 @@ Rectangle {
         spacing: 2
 
         Text {
-            width: parent.width
-            text: title
-            color: "white"; font.pixelSize: 13; font.bold: true
-            elide: Text.ElideRight
+            width: parent.width; text: title
+            color: "white"; font.pixelSize: 13; font.bold: true; elide: Text.ElideRight
         }
 
         Text {
-            width: parent.width
-            text: "LANZAR JUEGO"
+            width: parent.width; text: "LANZAR JUEGO"
             color: isHovered ? accentColor : "#66ffffff"
-            font.pixelSize: 9; font.bold: true; font.letterSpacing: 1
-            opacity: isHovered ? 1 : 0.6
-            Behavior on color { ColorAnimation { duration: 200 } }
+            font.pixelSize: 9; font.bold: true; font.letterSpacing: 1; opacity: isHovered ? 1 : 0.6
         }
     }
 
     MouseArea {
-        id: mouseArea
-        anchors.fill: parent
-        hoverEnabled: true
-        cursorShape: Qt.PointingHandCursor
-        onClicked: romCard.clicked()
+        id: mouseArea; anchors.fill: parent; hoverEnabled: true
+        cursorShape: Qt.PointingHandCursor; onClicked: romCard.clicked()
     }
 }

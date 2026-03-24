@@ -28,3 +28,6 @@ trigger: always_on
 
 ## Estilo de Diseño
 - Tema Oscuro (Dark Mode), bordes redondeados, tipografía moderna y transiciones fluidas.
+
+##Modularidad
+- La app es modular, por tanto intenta separar los que mas se pueda la interfaz por componentes que se puedan reusar para mantener el codigo legible, los componentes se ubicaran en ui/components.

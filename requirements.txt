@@ -1,3 +1,4 @@
-PySide6
-Nuitka
-keyring
+PySide6>=6.6.0
+maturin>=1.0.0
+keyring>=24.0.0
+Nuitka>=2.0.0

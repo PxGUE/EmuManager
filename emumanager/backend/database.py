@@ -57,10 +57,18 @@ class DatabaseManager:
                     release_date TEXT,
                     genre TEXT,
                     description TEXT,
-                    cover_image_path TEXT,
+                    cover_2d_path TEXT,
+                    cover_3d_path TEXT,
                     FOREIGN KEY (game_id) REFERENCES games (id) ON DELETE CASCADE
                 )
             ''')
+            
+            # Migración automática para la versión M.A.N.G.O (añade columnas si venimos de versiones anteriores)
+            try:
+                cursor.execute("ALTER TABLE game_metadata ADD COLUMN cover_2d_path TEXT")
+                cursor.execute("ALTER TABLE game_metadata ADD COLUMN cover_3d_path TEXT")
+            except sqlite3.OperationalError:
+                pass # Las columnas ya existen
             
             # Tabla: play_stats (Telemetría pura local)
             cursor.execute('''

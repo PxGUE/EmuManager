@@ -68,11 +68,36 @@ class AppConfig:
         cls._save_config()
 
     @classmethod
+    def get_screenscraper_user(cls) -> str:
+        return cls._load_config().get("ss_user", "")
+
+    @classmethod
+    def set_screenscraper_user(cls, user: str):
+        config = cls._load_config()
+        config["ss_user"] = str(user)
+        cls._save_config()
+
+    @classmethod
+    def get_screenscraper_pass(cls) -> str:
+        return cls._load_config().get("ss_pass", "")
+
+    @classmethod
+    def set_screenscraper_pass(cls, pwd: str):
+        config = cls._load_config()
+        config["ss_pass"] = str(pwd)
+        cls._save_config()
+
+    @classmethod
     def get_database_path(cls) -> Path:
+
         return cls.get_app_data_dir() / "emumanager.db"
 
     @classmethod
-    def get_covers_dir(cls) -> Path:
-        covers_dir = cls.get_app_data_dir() / "covers"
-        covers_dir.mkdir(parents=True, exist_ok=True)
-        return covers_dir
+    def get_media_dir(cls, platform: str, media_type: str) -> Path:
+        """
+        Retorna y asegura la existencia del directorio de medios dinámico.
+        Ejemplo: data/media/gba/covers/2d
+        """
+        media_dir = cls.get_app_data_dir() / "media" / platform.lower() / media_type
+        media_dir.mkdir(parents=True, exist_ok=True)
+        return media_dir

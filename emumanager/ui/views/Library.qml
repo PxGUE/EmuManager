@@ -9,137 +9,123 @@ import "../components"
 Item {
     id: libraryRoot
     objectName: "libraryView"
+    anchors.fill: parent
 
-    // --- MODELOS DE DATOS REALES ---
-    GameListModel { id: gamesModel }
-    MainController { 
-        id: controller 
-    }
+    MainController { id: controller }
+    GameListModel { id: gamesModel } 
 
-    // Estados de la vista
-    property string selectedConsole: "all"
-    property int totalGames: 0
-    property bool isEmpty: totalGames === 0
-    property bool isScanning: false
-    property real scanProgress: 0.0
-    property string scanStatusText: "Iniciando escaneo..."
+    property bool showGames: false
+    property string activePlatform: "all"
 
-    // Conexión con las señales reales del backend
-    Connections {
-        target: controller
-        function onScanProgressChanged(p) { scanProgress = p }
-        function onScanStatusChanged(s) { scanStatusText = s }
-    }
-
-    Component.onCompleted: {
-        refreshLibrary()
-    }
-
-    function refreshLibrary() {
-        gamesModel.update_games()
-        totalGames = controller.get_games_count()
-    }
-
-    // Fondo
     Rectangle { anchors.fill: parent; color: "#050505" }
 
-    // --- 1. CABECERA DE FILTROS ---
-    Item {
-        id: consoleFilterArea
-        anchors.top: parent.top; anchors.left: parent.left; anchors.right: parent.right
-        height: 150; clip: true; visible: !isEmpty && !isScanning
-        
-        ScrollView {
-            anchors.fill: parent; ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
-            Row {
-                anchors.verticalCenter: parent.verticalCenter
-                leftPadding: 40; rightPadding: 40; spacing: 15
-                ConsoleCard { title: "TODO"; iconEmoji: "🎮"; isSelected: selectedConsole === "all"; onClicked: { selectedConsole = "all"; gamesModel.filter_by_platform("all") } }
-                ConsoleCard { title: "SNES"; iconEmoji: "🕹️"; isSelected: selectedConsole === "snes"; onClicked: { selectedConsole = "snes"; gamesModel.filter_by_platform("snes") } }
-                ConsoleCard { title: "NES"; iconEmoji: "📺"; isSelected: selectedConsole === "nes"; onClicked: { selectedConsole = "nes"; gamesModel.filter_by_platform("nes") } }
-                ConsoleCard { title: "PS1"; iconEmoji: "💿"; isSelected: selectedConsole === "ps1"; onClicked: { selectedConsole = "ps1"; gamesModel.filter_by_platform("ps1") } }
-                ConsoleCard { title: "GBA"; iconEmoji: "📱"; isSelected: selectedConsole === "gba"; onClicked: { selectedConsole = "gba"; gamesModel.filter_by_platform("gba") } }
+    function selectConsole(platform, index) {
+        activePlatform = platform
+        gamesModel.update_games()
+        gamesModel.filter_by_platform(platform)
+        showGames = true
+    }
+
+    function refreshConsoles() {
+        consoleModel.clear()
+        var summary = controller.get_consoles_summary()
+        for (var i = 0; i < summary.length; i++) {
+            consoleModel.append(summary[i])
+        }
+    }
+
+    // No cargar inmediatamente al completar componente para evitar lag inicial
+    // Dejamos que el Splash lo dispare cuando el motor esté listo
+    Component.onCompleted: {
+        if (window.isLoaded) refreshConsoles()
+    }
+
+    Connections {
+        target: controller
+        function onScanFinished(count) { refreshConsoles() }
+    }
+
+    Connections {
+        target: window
+        function onIsLoadedChanged() {
+            if (window.isLoaded) {
+                refreshConsoles()
             }
         }
     }
 
-    // --- 2. GRID DE JUEGOS ---
-    Flickable {
-        id: libraryScroll
-        anchors.top: consoleFilterArea.bottom; anchors.bottom: parent.bottom; anchors.left: parent.left; anchors.right: parent.right
-        anchors.margins: 40; anchors.topMargin: 10
-        visible: !isEmpty && !isScanning; contentWidth: width; contentHeight: libraryGrid.height
-        clip: true; ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
+    ListModel { id: consoleModel }
 
-        GridLayout {
-            id: libraryGrid
-            width: parent.width; columns: Math.max(1, Math.floor(width / 220)); rowSpacing: 25; columnSpacing: 25
-            Repeater {
-                model: gamesModel
-                delegate: RomCard {
-                    title: model.title; platform: model.platform; coverPath: model.coverPath
-                    onClicked: { console.log("Seleccionado: " + model.title) }
-                }
-            }
-        }
-    }
+    // --- CAROUSEL 3D ---
+    PathView {
+        id: consoleCarousel
+        z: 11; anchors.left: parent.left; anchors.right: parent.right
+        height: showGames ? 150 : parent.height; y: 0
+        opacity: consoleModel.count > 0 ? (showGames ? 1 : 1) : 0
+        Behavior on opacity { NumberAnimation { duration: 800 } }
+        Behavior on height { NumberAnimation { duration: 600; easing.type: Easing.OutQuint } }
 
-    // --- 3. ESTADO DE ESCANEO ACTIVO ---
-    Item {
-        anchors.fill: parent; visible: isScanning
-        ColumnLayout {
-            anchors.centerIn: parent; spacing: 25; width: 400
-            
-            Text { 
-                text: "ESCANEANDO BIBLIOTECA"; color: "white"; font.pixelSize: 18; font.bold: true; font.letterSpacing: 2
-                Layout.alignment: Qt.AlignCenter 
-            }
-            
-            ProgressBar {
-                value: scanProgress; Layout.fillWidth: true; Material.accent: "#16a085"
-                Behavior on value { NumberAnimation { duration: 200 } }
-            }
-            
-            Text { 
-                text: scanStatusText.toUpperCase(); color: "#66ffffff"; font.pixelSize: 10; font.bold: true; font.letterSpacing: 1
-                Layout.alignment: Qt.AlignCenter; elide: Text.ElideRight; Layout.preferredWidth: 350; horizontalAlignment: Text.AlignHCenter
-            }
-        }
-    }
+        model: consoleModel; pathItemCount: 5; preferredHighlightBegin: 0.5; preferredHighlightEnd: 0.5; focus: true
+        highlightRangeMode: PathView.StrictlyEnforceRange; snapMode: PathView.SnapToItem
 
-    // --- 4. ESTADO VACÍO (Splash de bienvenida) ---
-    Item {
-        anchors.fill: parent; visible: isEmpty && !isScanning
-        ColumnLayout {
-            anchors.centerIn: parent; spacing: 30
-            Rectangle { 
-                Layout.preferredWidth: 100; Layout.preferredHeight: 100; radius: 50; color: "#0a0a0c"
-                border.color: "#16a085"; border.width: 1; opacity: 0.4
-                Text { anchors.centerIn: parent; text: "📂"; font.pixelSize: 40 }
-            }
-            Column {
-                Layout.alignment: Qt.AlignCenter; spacing: 10
-                Text { text: "BIBLIOTECA VACÍA"; color: "white"; font.pixelSize: 22; font.bold: true; font.letterSpacing: 2; anchors.horizontalCenter: parent.horizontalCenter }
-                Text { text: "No hemos encontrado juegos en tus carpetas configuradas."; color: "#66ffffff"; font.pixelSize: 13; anchors.horizontalCenter: parent.horizontalCenter }
-            }
-            Button {
-                text: "INICIAR ESCANEO"; flat: true; font.bold: true; font.letterSpacing: 1; Material.accent: "#16a085"
-                Layout.alignment: Qt.AlignCenter
+        delegate: Item {
+            id: delegateRoot; width: libraryRoot.showGames ? 220 : 380; height: libraryRoot.showGames ? 80 : 480
+            
+            // Atributos de Path manuales para evitar errores de sintaxis
+            scale: libraryRoot.showGames ? 1.0 : (delegateRoot.PathView.iconScale || 1.0)
+            opacity: delegateRoot.PathView.iconOpacity !== undefined ? delegateRoot.PathView.iconOpacity : 1.0
+            z: delegateRoot.PathView.iconZ !== undefined ? delegateRoot.PathView.iconZ : 0
+
+            ConsoleCard {
+                anchors.centerIn: parent
+                title: model.title; iconEmoji: model.iconEmoji; accentColor: model.accentColor
+                gameCount: model.gameCount; playTime: model.playTime
+                isSelected: delegateRoot.PathView.isCurrentItem; minimalMode: libraryRoot.showGames 
                 onClicked: {
-                    isScanning = true
-                    // Usamos un pequeño delay opcional para que la UI cambie de estado visual antes de bloquearse
-                    startScanTimer.start()
+                    if (index === consoleCarousel.currentIndex) {
+                        libraryRoot.selectConsole(model.platform, index)
+                    } else {
+                        consoleCarousel.currentIndex = index
+                    }
                 }
             }
         }
+
+        path: Path {
+            startX: -200; startY: consoleCarousel.height / 2
+            PathAttribute { name: "iconScale"; value: 0.4 }
+            PathAttribute { name: "iconOpacity"; value: 0.0 }
+            PathAttribute { name: "iconZ"; value: -20 }
+            PathLine { x: consoleCarousel.width / 2; y: consoleCarousel.height / 2 }
+            PathAttribute { name: "iconScale"; value: 1.15 }
+            PathAttribute { name: "iconOpacity"; value: 1.0 }
+            PathAttribute { name: "iconZ"; value: 100 }
+            PathLine { x: consoleCarousel.width + 200; y: consoleCarousel.height / 2 }
+            PathAttribute { name: "iconScale"; value: 0.4 }
+            PathAttribute { name: "iconOpacity"; value: 0.0 }
+            PathAttribute { name: "iconZ"; value: -20 }
+        }
     }
 
-    Timer {
-        id: startScanTimer; interval: 100; running: false; repeat: false
-        onTriggered: {
-            controller.start_full_scan()
-            isScanning = false
-            refreshLibrary()
+    // --- GALERÍA DE JUEGOS ---
+    GridView {
+        id: romGallery
+        anchors.top: consoleCarousel.bottom; anchors.bottom: parent.bottom
+        anchors.left: parent.left; anchors.right: parent.right; anchors.margins: 40; anchors.topMargin: 20
+        cellWidth: 220; cellHeight: 300; clip: true; visible: showGames; opacity: showGames ? 1 : 0
+        model: gamesModel
+        delegate: RomCard {
+            title: model.title; platform: model.platform
+            cover2d: model.cover2dPath; cover3d: model.cover3dPath
+            onClicked: console.log("Lanzando " + model.title)
         }
+        Behavior on opacity { NumberAnimation { duration: 500 } }
+    }
+
+    // --- BOTÓN VOLVER ---
+    EmuFloatingButton {
+        icon: "⟲"; accentColor: "#16a085"; size: 54; visible: showGames
+        anchors.bottom: parent.bottom; anchors.bottomMargin: 30; anchors.horizontalCenter: parent.horizontalCenter
+        onClicked: showGames = false
     }
 }

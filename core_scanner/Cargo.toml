@@ -1,10 +1,10 @@
 [package]
-name = "core_scanner"
+name = "mango_engine"
 version = "0.1.0"
 edition = "2021"
 
 [lib]
-name = "core_scanner"
+name = "mango_engine"
 crate-type = ["cdylib"]
 
 [dependencies]
@@ -13,3 +13,6 @@ walkdir = "2.4.0"
 rayon = "1.8.1"
 md5 = "0.7.0"
 crc32fast = "1.3.2"
+reqwest = { version = "0.12", features = ["blocking", "json"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"

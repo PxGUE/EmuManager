@@ -1,6 +1,6 @@
-# EmuManager: Multithreaded Asynchronous Native Game Orchestrator
+# EmuManager v0.2.1 - alpha
 
-![License: FOSS](https://img.shields.io/badge/License-FOSS-green.svg)
+![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
 ![Frontend: QML](https://img.shields.io/badge/Frontend-QML%20(Qt%20Quick)-41CD52.svg)
 ![Backend: PySide6](https://img.shields.io/badge/Backend-PySide6%20(Python)-3776AB.svg)
 ![Engine: Rust](https://img.shields.io/badge/Engine-Rust%20(MANGO)-DEA584.svg)
@@ -10,7 +10,7 @@
 
 ## 🚀 Key Features
 
-- **M.A.N.G.O. Engine (Rust Native Core)**: High-speed multithreaded file scanning and MD5/CRC32 hashing for precise game identification.
+- **M.A.N.G.O (Multithreaded Asynchronous Native Game Orchestrator)**: High-speed native Rust core for ultra-fast scanning and MD5/CRC32 hashing for precise game identification.
 - **Premium 3D UI**: Fluid interface built with QML (Qt Quick), featuring a dynamic 3D console carousel with glassmorphism and smooth transitions.
 - **Ultra-Fast Scraping**: Native integration with ScreenScraper API for metadata and high-quality 2D/3D cover art box-sets.
 - **Libretro Ready**: Automatic orchestration and management of Libretro cores for the most popular retro consoles.
@@ -73,4 +73,4 @@ EmuManager respects your library. It reads and indexes your ROMs using absolute 
 EmuManager is an open-source project. Contributions are welcome, whether it's through code, UI design, or bug reports!
 
 ---
-*Created by the EmuManager Team. Optimized by Antigravity AI.*
+*Created by the EmuManager Team.*

@@ -14,7 +14,7 @@ Item {
 
     // Funciones de navegación y actualización
     function updateRepositories() {
-        var repos = controller.get_emulator_repositories()
+        var repos = mainController.get_emulator_repositories()
         emulatorsModel.clear()
         for(var i=0; i < repos.length; i++) {
             emulatorsModel.append(repos[i])
@@ -92,7 +92,7 @@ Item {
                     enabled: !isScanning
                     onClicked: {
                         isScanning = true
-                        controller.scan_directories()
+                        mainController.scan_directories()
                     }
                 }
 
@@ -141,7 +141,7 @@ Item {
                     enabled: !isScraping
                     onClicked: {
                         isScraping = true
-                        controller.start_scraping()
+                        mainController.start_scraping()
                     }
                 }
 
@@ -191,10 +191,7 @@ Item {
                     emuId: model.id
                     name: model.name; consoleName: model.fullName
                     description: model.description; icon: model.icon
-                    accent: model.accent; downloadUrl: {
-                        if (Qt.platform.os === "linux") return model.download.linux
-                        return model.download.windows
-                    }
+                    accent: model.accent; downloadUrl: model.downloadUrl
                     executable: model.executable; isInstalled: model.isInstalled
                     hasUpdate: model.hasUpdate !== undefined ? model.hasUpdate : false
                     
@@ -233,10 +230,18 @@ Item {
         // Señales de Core (Actualización de ambos modelos)
         function onCoreDownloadStatusChanged(emu_id, s) {
             if (emu_id === "all") {
-                // Simular que encontramos una actualización para demostrar el 4º estado
+                // Simular actualizaciones si es necesario
                 for(var i=0; i < emulatorsModel.count; i++) {
                     if (emulatorsModel.get(i).isInstalled) {
                         emulatorsModel.setProperty(i, "hasUpdate", true)
+                    }
+                }
+            } else {
+                // Actualización masiva de estado para un ID específico
+                for(var i=0; i < emulatorsModel.count; i++) {
+                    if(emulatorsModel.get(i).id === emu_id) {
+                        emulatorsModel.setProperty(i, "statusText", s)
+                        break
                     }
                 }
             }
@@ -255,14 +260,7 @@ Item {
         }
 
         function onCoreDownloadFinished(emu_id, path) {
-            // Actualizar Galería
-            for(var i=0; i < emulatorsModel.count; i++) {
-                if(emulatorsModel.get(i).id === emu_id) {
-                    emulatorsModel.setProperty(i, "progress", 1.0)
-                    break
-                }
-            }
-            // Actualizar Cores en el módulo
+            updateRepositories() 
             retroArchPopup.markFinished(emu_id)
         }
 

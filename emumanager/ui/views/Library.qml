@@ -187,15 +187,73 @@ Item {
             cover2d: model.cover2dPath; cover3d: model.cover3dPath
             accentColor: libraryRoot.activeAccentColor
             onClicked: mainController.launch_game_by_id(model.gameId)
+            
+            onInfoClicked: {
+                libraryRoot.openGameDetails({
+                    gameId: model.gameId,
+                    title: model.title,
+                    platform: model.platform,
+                    developer: model.developer,
+                    genre: model.genre,
+                    releaseDate: model.releaseDate,
+                    description: model.description,
+                    cover2d: model.cover2dPath,
+                    cover3d: model.cover3dPath
+                })
+            }
         }
         Behavior on opacity { NumberAnimation { duration: 500 } }
     }
 
     // --- BOTÓN VOLVER (Reubicado para no estorbar) ---
     EmuFloatingButton {
-        icon: "⟲"; accentColor: "#16a085"; size: 54; visible: showGames
+        icon: "⟲"; accentColor: "#16a085"; size: 54; visible: showGames && detailsLoader.status !== Loader.Ready
         anchors.bottom: parent.bottom; anchors.bottomMargin: 40
         anchors.right: parent.right; anchors.rightMargin: 40
         onClicked: showGames = false
+    }
+
+    // --- LOADER DEL PANEL DE DETALLES (Showcase) ---
+    Loader {
+        id: detailsLoader
+        anchors.fill: parent
+        active: false
+        z: 10000 // Máxima prioridad sobre la galería y el carrusel
+        asynchronous: true
+        source: "GameDetailsView.qml"
+        
+        property var pendingData: null
+        
+        onLoaded: {
+            item.closed.connect(function() { detailsLoader.active = false })
+            if (pendingData) {
+                applyDetails(pendingData)
+                pendingData = null
+            }
+        }
+    }
+
+    function openGameDetails(gameData) {
+        if (detailsLoader.status === Loader.Ready) {
+            applyDetails(gameData)
+        } else {
+            detailsLoader.pendingData = gameData
+        }
+        detailsLoader.active = true
+    }
+
+    function applyDetails(gameData) {
+        var itm = detailsLoader.item
+        if (!itm) return;
+        itm.gameId = gameData.gameId
+        itm.title = gameData.title
+        itm.platform = gameData.platform
+        itm.developer = gameData.developer
+        itm.genre = gameData.genre
+        itm.releaseDate = gameData.releaseDate
+        itm.description = gameData.description
+        itm.cover2d = gameData.cover2d
+        itm.cover3d = gameData.cover3d
+        itm.accentColor = libraryRoot.activeAccentColor
     }
 }

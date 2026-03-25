@@ -16,18 +16,19 @@ Item {
     property color accentColor: "#8e44ad"
     
     // --- ESTADOS ---
-    property bool isHovered: mouseArea.containsMouse
+    property bool isHovered: mouseArea.containsMouse || infoMA.containsMouse
     property bool has3d: cover3d !== ""
     property bool has2d: cover2d !== ""
     
     // Propiedades internas para el TILT (Inclinación sutil)
-    property real tiltX: isHovered ? (mouseArea.mouseY - height/2) / (height/2) * -10 : 0
-    property real tiltY: isHovered ? (mouseArea.mouseX - width/2) / (width/2) * 10 : 0
+    property real tiltX: isHovered ? (mouseArea.mouseY - height/2) / (height/2) * -12 : 0
+    property real tiltY: isHovered ? (mouseArea.mouseX - width/2) / (width/2) * 12 : 0
 
     // --- DIMENSIONES ---
     width: 210; height: 320 
     
     signal clicked()
+    signal infoClicked()
 
     // --- CAPA DE EFECTOS (GLOW) ---
     DropShadow {
@@ -130,5 +131,33 @@ Item {
     MouseArea {
         id: mouseArea; anchors.fill: parent; hoverEnabled: true
         cursorShape: Qt.PointingHandCursor; onClicked: romCardRoot.clicked()
+    }
+
+    // --- BOTÓN DE INFORMACIÓN (ⓘ) ---
+    Rectangle {
+        id: infoBtn
+        anchors.top: parent.top; anchors.right: parent.right; anchors.margins: 12
+        width: 32; height: 32; radius: 16
+        color: infoMA.containsMouse ? accentColor : "#25ffffff"
+        opacity: isHovered ? 1 : 0
+        visible: opacity > 0
+        z: 50
+        
+        Text {
+            text: "ⓘ"; anchors.centerIn: parent; color: infoMA.containsMouse ? "black" : "white"
+            font.pixelSize: 14; font.bold: true
+        }
+        
+        Behavior on opacity { NumberAnimation { duration: 250 } }
+        Behavior on color { ColorAnimation { duration: 150 } }
+
+        MouseArea {
+            id: infoMA; anchors.fill: parent; hoverEnabled: true; propagateComposedEvents: false
+            cursorShape: Qt.PointingHandCursor
+            onClicked: (mouse) => {
+                mouse.accepted = true
+                romCardRoot.infoClicked()
+            }
+        }
     }
 }

@@ -85,8 +85,10 @@ class CoreDownloadWorker(QObject):
             # El progress callback llamará self.progress.emit(p)
             def progress_cb(p: float):
                 self.progress.emit(self.core_name, p)
+            def status_cb(s: str):
+                self.status.emit(self.core_name, s)
                 
-            path = self.libretro.download_core(self.core_name, progress_cb)
+            path = self.libretro.download_core(self.core_name, progress_cb, status_cb)
             if path:
                 EmuLog.info(f"Instalación exitosa del core '{self.core_name}' en {path}")
                 self.status.emit(self.core_name, "¡Core instalado!")
@@ -101,14 +103,15 @@ class CoreDownloadWorker(QObject):
 
 
 class EmulatorInstallWorker(QObject):
-    """Trabajador genérico para descargar e instalar emuladores independientes."""
+    """Trabajador inteligente para instalar emuladores mediante orquestación nativa."""
     finished = Signal(str, str)
     progress = Signal(str, float)
     status = Signal(str, str)
 
-    def __init__(self, emu_id: str, url: str, dest_dir: str, executable: str):
+    def __init__(self, emu_id: str, system_id: str, url: str, dest_dir: str, executable: str):
         super().__init__()
         self.emu_id = emu_id
+        self.system_id = system_id
         self.url = url
         self.dest_dir = dest_dir
         self.executable = executable
@@ -119,20 +122,30 @@ class EmulatorInstallWorker(QObject):
             import mango_engine
             def progress_cb(p: float):
                 self.progress.emit(self.emu_id, p)
+            def status_cb(s: str):
+                self.status.emit(self.emu_id, s)
             
-            self.status.emit(self.emu_id, f"Descargando {self.emu_id}...")
-            EmuLog.info(f"Iniciando instalación del emulador '{self.emu_id}' desde {self.url}...")
-            path = mango_engine.download_emulator(self.url, self.dest_dir, self.executable, progress_cb)
+            EmuLog.info(f"M.A.N.G.O Orchestra: Instalando '{self.emu_id}' (System: {self.system_id or 'N/A'})")
+            
+            path = mango_engine.install_emulator_orchestra(
+                self.emu_id, 
+                self.system_id or "", 
+                self.url or "", 
+                self.dest_dir, 
+                self.executable, 
+                progress_cb,
+                status_cb
+            )
             
             if path:
-                EmuLog.info(f"Instalación exitosa del emulador '{self.emu_id}' en {path}")
-                self.status.emit(self.emu_id, f"✓ {self.emu_id} instalado correctamente.")
+                EmuLog.info(f"Éxito en orquestación de '{self.emu_id}' -> {path}")
+                self.status.emit(self.emu_id, "✓ Instalación completada.")
                 self.finished.emit(self.emu_id, path)
             else:
-                self.status.emit(self.emu_id, "Error en la descarga.")
+                self.status.emit(self.emu_id, "Fallo en la orquestación.")
                 self.finished.emit(self.emu_id, "")
         except Exception as e:
-            EmuLog.error(f"Error crítico en EmulatorInstallWorker: {e}")
+            EmuLog.error(f"Error en M.A.N.G.O Orchestra: {e}")
             self.status.emit(self.emu_id, f"Fallo: {str(e)}")
             self.finished.emit(self.emu_id, "")
 
@@ -193,39 +206,7 @@ class StartupWorker(QObject):
             self.finished.emit()
 
 
-class EmulatorUpdateWorker(QObject):
-    """Trabajador para actualizar emuladores con backup gestionado por Rust."""
-    finished = Signal(str, str)
-    progress = Signal(str, float)
-    status = Signal(str, str)
-
-    def __init__(self, emu_id: str, url: str, dest_dir: str, executable: str):
-        super().__init__()
-        self.emu_id = emu_id
-        self.url = url
-        self.dest_dir = dest_dir
-        self.executable = executable
-
-    @Slot()
-    def run(self):
-        try:
-            import mango_engine
-            def progress_cb(p: float):
-                self.progress.emit(self.emu_id, p)
-            
-            self.status.emit(self.emu_id, f"Actualizando {self.emu_id}...")
-            path = mango_engine.update_emulator(self.url, self.dest_dir, self.executable, progress_cb)
-            
-            if path:
-                self.status.emit(self.emu_id, f"✓ {self.emu_id} actualizado.")
-                self.finished.emit(self.emu_id, path)
-            else:
-                self.status.emit(self.emu_id, "Error en actualización.")
-                self.finished.emit(self.emu_id, "")
-        except Exception as e:
-            EmuLog.error(f"Error crítico en EmulatorUpdateWorker: {e}")
-            self.status.emit(self.emu_id, f"Error: {e}")
-            self.finished.emit(self.emu_id, "")
+# EmulatorUpdateWorker ELIMINADO: La lógica está unificada en EmulatorInstallWorker (Orchestra).
 
 
 class LaunchWorker(QObject):

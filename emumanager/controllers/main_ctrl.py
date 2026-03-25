@@ -15,7 +15,7 @@ QML_IMPORT_MAJOR_VERSION = 1
 
 from controllers.workers import (
     ScanWorker, ScrapeWorker, CoreDownloadWorker, 
-    EmulatorInstallWorker, EmulatorUpdateWorker, 
+    EmulatorInstallWorker,
     LaunchWorker, StartupWorker
 )
 from backend.libretro import LibretroManager, CORE_DATABASE
@@ -54,7 +54,7 @@ class MainController(QObject):
         try:
             self.db = DatabaseManager()
             self.scanner = ScannerManager(self.db)
-            self.libretro = LibretroManager(Path(AppConfig.get_emulators_path() or ".") / "retroarch" / "cores")
+            self.libretro = LibretroManager(Path(AppConfig.get_emulators_path() or "."))
             self._scan_thread = None
             self._scan_worker = None
             self._scrape_thread = None
@@ -168,9 +168,8 @@ class MainController(QObject):
     # --- NUEVA GESTIÓN DE REPOSITORIOS ---
     @Slot(result='QVariantList')
     def get_emulator_repositories(self):
-        """Lee el manifiesto de emuladores y verifica su estado local."""
+        """Lee el manifiesto de emuladores y verifica su estado local y de sistema."""
         import json
-        # El manifiesto ahora vive en recursos internos protegidos
         repo_path = Path(__file__).resolve().parent.parent / "resources" / "repositories.json"
         
         if not repo_path.exists():
@@ -181,110 +180,63 @@ class MainController(QObject):
             with open(repo_path, 'r', encoding='utf-8') as f:
                 data = json.load(f)
             
-            # Verificar si cada emulador está instalado
             import platform
             os_name = platform.system().lower()
             base_path = Path(AppConfig.get_emulators_path())
             
+            try:
+                import mango_engine
+            except ImportError:
+                mango_engine = None
+
             for emu in data.get("emulators", []):
                 emu_id = emu.get("id", "")
+                orchestra = emu.get("orchestration", {})
                 
-                # Resolver el ejecutable según el OS
+                # 1. Resolver IDs y URLs según OS
+                os_orchestra = orchestra.get(os_name, {})
+                system_id = os_orchestra.get("id", "")
+                
+                portable_config = orchestra.get("portable", {})
+                portable_url = portable_config.get(os_name, "")
+                
+                # 2. Resolver Ejecutable
                 exe_config = emu.get("executable", {})
-                if isinstance(exe_config, dict):
-                    executable_name = exe_config.get(os_name, "")
-                else:
-                    executable_name = exe_config # Fallback por si acaso
+                executable_name = exe_config.get(os_name, "")
                 
-                emu["executable"] = executable_name # Aplanar para QML
-                executable_path = base_path / emu_id / executable_name
+                emu["systemId"] = system_id
+                emu["downloadUrl"] = portable_url
+                emu["executable"] = executable_name
                 
-                emu["isInstalled"] = executable_path.exists()
-                emu["localPath"] = str(executable_path) if executable_path.exists() else ""
+                # 3. Verificar Instalación (Local or System)
+                local_path = base_path / emu_id / executable_name
+                is_installed = local_path.exists()
+                
+                # Check sistémico si no está local
+                if not is_installed and mango_engine and system_id:
+                    try:
+                        is_installed = mango_engine.check_system_installed(system_id)
+                    except:
+                        pass
+                
+                emu["isInstalled"] = is_installed
+                emu["localPath"] = str(local_path) if is_installed else ""
+                
+                # Inicializar estados de progreso para la UI
+                emu["progress"] = 0.0
+                emu["statusText"] = "Listo" if is_installed else "Disponible para instalar"
+                
+                if is_installed:
+                    EmuLog.debug(f"M.A.N.G.O (Check): {emu_id} detectado en {local_path}")
             
             return data.get("emulators", [])
         except Exception as e:
             EmuLog.error(f"Error cargando repositories.json: {e}")
             return []
 
-    @Slot(str, str, str)
-    @Slot(str, str, str)
-    def install_emulator(self, emu_id: str, url: str, executable: str):
-        """Inicia el flujo de descarga de un emulador independiente."""
-        if self._emu_thread and self._emu_thread.isRunning():
-            EmuLog.warning(f"Ignorando instalación de {emu_id}: Ya hay otra instalación activa.")
-            return
 
-        # Creamos una subcarpeta específica para el emulador dentro de la ruta global de emuladores
-        base_install_path = Path(AppConfig.get_emulators_path())
-        dest_dir = base_install_path / emu_id
-        
-        # Lógica especial para RetroArch: Preparar entorno zero-config
-        if emu_id == "retroarch":
-            dest_dir.mkdir(parents=True, exist_ok=True)
-            # 1. Carpeta para Cores
-            cores_dir = dest_dir / "cores"
-            cores_dir.mkdir(parents=True, exist_ok=True)
-            # 2. Inyectar retroarch.cfg básico
-            cfg_path = dest_dir / "retroarch.cfg"
-            if not cfg_path.exists():
-                try:
-                    # Usamos forward slashes para RetroArch incluso en Windows
-                    cores_dir_str = str(cores_dir).replace('\\', '/')
-                    with open(cfg_path, 'w', encoding='utf-8') as f:
-                        f.write(f'libretro_directory = "{cores_dir_str}"\n')
-                        f.write(f'core_assets_directory = "{cores_dir_str}"\n')
-                        f.write('menu_driver = "xmb"\n') # Interfaz clásica amigable
-                    EmuLog.info(f"M.A.N.G.O Config: Inyectado retroarch.cfg en {cfg_path}")
-                except Exception as e:
-                    EmuLog.error(f"No se pudo inyectar configuración de RetroArch: {e}")
+    @Slot(str, result=bool)
 
-        self._emu_thread = QThread()
-        self._emu_worker = EmulatorInstallWorker(emu_id, url, str(dest_dir), executable)
-        self._emu_worker.moveToThread(self._emu_thread)
-        
-        # Conectar señales para la UI
-        self._emu_worker.progress.connect(self.coreDownloadProgressChanged.emit)
-        self._emu_worker.status.connect(self.coreDownloadStatusChanged.emit)
-        self._emu_worker.finished.connect(self._on_install_finished)
-        self._emu_worker.finished.connect(self._emu_thread.quit)
-        
-        self._emu_thread.finished.connect(self._emu_thread.deleteLater)
-        self._emu_thread.finished.connect(self._clear_emu_thread)
-        self._emu_thread.started.connect(self._emu_worker.run)
-        self._emu_thread.start()
-
-    def _clear_emu_thread(self):
-        """Limpieza segura de las referencias de Python al terminar el hilo."""
-        self._emu_thread = None
-        self._emu_worker = None
-
-    @Slot(str, str, str)
-    def update_emulator(self, emu_id: str, url: str, executable: str):
-        """Inicia el flujo de actualización segura (Rust-side backup)."""
-        # Protegemos contra ejecuciones concurrentes y objetos ya eliminados
-        try:
-            if self._emu_thread and self._emu_thread.isRunning():
-                EmuLog.warning("Otra tarea de emulador está en curso.")
-                return
-        except RuntimeError:
-            self._emu_thread = None
-
-        # Creamos una subcarpeta específica para el emulador (ej: emulators/retroarch/)
-        dest_dir = str(Path(AppConfig.get_emulators_path()) / emu_id)
-        self._emu_thread = QThread()
-        self._emu_worker = EmulatorUpdateWorker(emu_id, url, dest_dir, executable)
-        self._emu_worker.moveToThread(self._emu_thread)
-        
-        self._emu_worker.progress.connect(self.coreDownloadProgressChanged.emit)
-        self._emu_worker.status.connect(self.coreDownloadStatusChanged.emit)
-        self._emu_worker.finished.connect(self._on_install_finished)
-        self._emu_worker.finished.connect(self._emu_thread.quit)
-        
-        self._emu_thread.finished.connect(self._emu_thread.deleteLater)
-        self._emu_thread.finished.connect(self._clear_emu_thread)
-        self._emu_thread.started.connect(self._emu_worker.run)
-        self._emu_thread.start()
 
     @Slot()
     def check_for_updates(self):
@@ -300,28 +252,42 @@ class MainController(QObject):
 
     @Slot(str, result=bool)
     def is_emulator_installed(self, emu_id: str) -> bool:
-        """Verifica si un emulador está instalado físicamente."""
+        """Verifica si un emulador está instalado físicamente (Búsqueda Inteligente M.A.N.G.O)."""
         emu_dir = Path(AppConfig.get_emulators_path()) / emu_id
         if not emu_dir.exists():
             return False
             
         import platform as py_platform
         is_win = py_platform.system() == "Windows"
+        exe_name = "retroarch.exe" if emu_id.lower() == "retroarch" and is_win else None
         
-        # Mapeo de ejecutables por sistema
-        executables = {
-            "retroarch": "retroarch.exe" if is_win else "RetroArch.AppImage",
-            "dolphin": "Dolphin.exe" if is_win else "Dolphin.AppImage",
-            "pcsx2": "pcsx2-qt.exe" if is_win else "PCSX2.AppImage",
-            "ppsspp": "PPSSPPWindows64.exe" if is_win else "PPSSPP.AppImage"
-        }
-        
-        exe_name = executables.get(emu_id.lower())
+        # Mapeo por defecto
         if not exe_name:
-            # Si no está mapeado, buscamos cualquier archivo ejecutable en el root de la carpeta
+            executables = {
+                "retroarch": "retroarch.exe" if is_win else "RetroArch.AppImage",
+                "dolphin": "Dolphin.exe" if is_win else "Dolphin.AppImage",
+                "pcsx2": "pcsx2-qt.exe" if is_win else "PCSX2.AppImage",
+                "ppsspp": "PPSSPPWindows64.exe" if is_win else "PPSSPP.AppImage"
+            }
+            exe_name = executables.get(emu_id.lower())
+
+        if not exe_name:
+            # Fallback a búsqueda genérica si no hay mapeo
             return any(emu_dir.glob("*.exe")) if is_win else any(emu_dir.glob("*.AppImage"))
             
-        return (emu_dir / exe_name).exists()
+        # 1. ¿Está en la raíz?
+        if (emu_dir / exe_name).exists():
+            return True
+            
+        # 2. ¿Está en una subcarpeta? (Ej: RetroArch-Win64)
+        try:
+            for sub in emu_dir.iterdir():
+                if sub.is_dir() and (sub / exe_name).exists():
+                    return True
+        except Exception:
+            pass
+            
+        return False
 
     @Slot(str)
     def uninstall_emulator(self, emu_id: str):
@@ -381,19 +347,43 @@ class MainController(QObject):
                 else:
                     EmuLog.warning(f"Core sugerido {core_id} no está en {core_file}. Intentando lanzar sin core...")
 
-            # 3. Detectar el ejecutable de RetroArch
+            # 3. Detectar el ejecutable de RetroArch (Búsqueda Inteligente M.A.N.G.O)
             emu_base = Path(AppConfig.get_emulators_path()) / "retroarch"
             exe_name = "retroarch.exe" if is_win else "RetroArch.AppImage"
-            runner = str(emu_base / exe_name)
             
-            if not Path(runner).exists():
-                EmuLog.error(f"No se pudo iniciar el emulador: {runner} no existe.")
+            # Intento 1: Ruta directa
+            runner = emu_base / exe_name
+            
+            # Intento 2: Búsqueda en un nivel de profundidad (ej: RetroArch-Win64/retroarch.exe)
+            if not runner.exists() and emu_base.exists():
+                for sub in emu_base.iterdir():
+                    if sub.is_dir() and (sub / exe_name).exists():
+                        runner = sub / exe_name
+                        break
+            
+            # Intento 3: Rutas de instalación del sistema
+            if not runner.exists():
+                backups = [
+                    Path("C:/RetroArch-Win64") / exe_name,
+                    Path("C:/RetroArch") / exe_name,
+                    Path("C:/Program Files/RetroArch") / exe_name
+                ]
+                for b in backups:
+                    if b.exists():
+                        runner = b
+                        EmuLog.info(f"M.A.N.G.O: Detectada instalación oficial en {runner}")
+                        break
+
+            if not runner.exists():
+                EmuLog.error(f"No se pudo iniciar el emulador: {exe_name} no se encuentra en ninguna ubicación conocida.")
                 return
+
+            runner_str = str(runner)
 
             EmuLog.info(f"M.A.N.G.O Launch: Preparando {game_path} con {exe_name}...")
             
             self._launch_thread = QThread()
-            self._launch_worker = LaunchWorker(runner, game_path, core_path)
+            self._launch_worker = LaunchWorker(runner_str, game_path, core_path)
             self._launch_worker.moveToThread(self._launch_thread)
             self._launch_thread.started.connect(self._launch_worker.run)
             
@@ -597,6 +587,86 @@ class MainController(QObject):
         """Limpia la referencia al hilo de cores."""
         self._core_thread = None
         self._core_worker = None
+    @Slot(str, str, str, result=bool)
+    def install_emulator(self, emu_id: str, url: str = "", executable: str = ""):
+        """Instalación orquestada: Decide entre Winget/Flatpak o Direct Download."""
+        if self._emu_thread and self._emu_thread.isRunning():
+            EmuLog.warning(f"Ya hay una tarea de emulador en curso ({emu_id}).")
+            return False
+
+        # Si no se pasan URL/Executable, los buscamos en el manifest (Nueva API simplificada)
+        system_id = ""
+        if not url or not executable:
+            manifest = self.get_emulator_repositories()
+            for emu in manifest:
+                if emu["id"] == emu_id:
+                    url = emu.get("downloadUrl", "")
+                    executable = emu.get("executable", "")
+                    system_id = emu.get("systemId", "")
+                    break
+
+        dest_dir = Path(AppConfig.get_emulators_path()) / emu_id
+        
+        # 🧪 Pre-configuraciones especiales
+        if emu_id == "retroarch":
+            dest_dir.mkdir(parents=True, exist_ok=True)
+            (dest_dir / "cores").mkdir(parents=True, exist_ok=True)
+
+        EmuLog.info(f"M.A.N.G.O Orchestra: Iniciando misión para {emu_id}...")
+        
+        self._emu_thread = QThread()
+        self._emu_worker = EmulatorInstallWorker(emu_id, system_id, url, str(dest_dir), executable)
+        self._emu_worker.moveToThread(self._emu_thread)
+
+        self._emu_thread.started.connect(self._emu_worker.run)
+        self._emu_worker.progress.connect(lambda id, p: self.coreDownloadProgressChanged.emit(id, p))
+        self._emu_worker.status.connect(lambda id, s: self.coreDownloadStatusChanged.emit(id, s))
+        self._emu_worker.finished.connect(self._on_emu_install_finished)
+        self._emu_worker.finished.connect(self._emu_thread.quit)
+        self._emu_thread.finished.connect(self._emu_thread.deleteLater)
+        self._emu_thread.finished.connect(self._clear_emu_thread)
+
+        self._emu_thread.start()
+        return True
+
+    @Slot(str, str, str, result=bool)
+    def update_emulator(self, emu_id: str, url: str = "", executable: str = ""):
+        """Alias de install_emulator para compatibilidad con QML (El orquestador maneja el flujo)."""
+        return self.install_emulator(emu_id, url, executable)
+
+    @Slot(str, result=bool)
+    def uninstall_emulator(self, emu_id: str):
+        """Elimina por completo la carpeta y binarios de un emulador local."""
+        dest_dir = str(Path(AppConfig.get_emulators_path()) / emu_id)
+        if Path(dest_dir).exists():
+            EmuLog.info(f"M.A.N.G.O: Desinstalando emulador local {emu_id}...")
+            # Aquí podríamos llamar a una función nativa de limpieza o simplemente a shutil
+            import shutil
+            try:
+                shutil.rmtree(dest_dir)
+                EmuLog.info(f"✓ {emu_id} desinstalado correctamente.")
+                self._cached_summary = None 
+                self.gamesUpdated.emit()
+                return True
+            except Exception as e:
+                EmuLog.error(f"Fallo al desinstalar {emu_id}: {e}")
+        return False
+
+    def _on_emu_install_finished(self, emu_id: str, path: str):
+        if path:
+            EmuLog.info(f"✓ La misión de instalación de {emu_id} ha sido un éxito en {path}")
+            self.coreDownloadStatusChanged.emit(emu_id, "✓ Instalación exitosa")
+            self.coreDownloadFinished.emit(emu_id, path)
+            self._cached_summary = None 
+            self.gamesUpdated.emit()
+        else:
+            EmuLog.error(f"La misión de instalación de {emu_id} ha fallado estrepitosamente.")
+            self.coreDownloadStatusChanged.emit(emu_id, "✘ Error")
+            self.coreDownloadFinished.emit(emu_id, "")
+
+    def _clear_emu_thread(self):
+        self._emu_thread = None
+        self._emu_worker = None
 
     @Slot(result="QVariantList")
     def fetch_available_cores(self):
@@ -734,21 +804,6 @@ class MainController(QObject):
                     "emulatorName": item["emulatorName"]
                 })
             
-            # Caso especial: Total general "VER TODOS"
-            total_games = self.get_games_count()
-            if total_games > 0:
-                summary.insert(0, {
-                    "title": "TODOS",
-                    "fullName": "Toda la Colección",
-                    "platform": "all",
-                    "iconEmoji": "📂",
-                    "accentColor": "#16a085",
-                    "gameCount": str(total_games),
-                    "playTime": "--",
-                    "hasCore": True,
-                    "emulatorName": "Varios Emuladores"
-                })
-
             self._cached_summary = summary
             return summary
             

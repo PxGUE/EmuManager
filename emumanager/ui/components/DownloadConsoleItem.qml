@@ -92,7 +92,7 @@ Rectangle {
                 color: isInstalling ? "#20f1c40f" : (isInstalled ? "#202ecc71" : "#10ffffff")
                 Text {
                     id: badgeText; anchors.centerIn: parent
-                    text: isInstalling ? "DESCARGANDO..." : (isInstalled ? "LISTO PARA JUGAR" : "DISPONIBLE")
+                    text: isInstalling ? (root.statusText ? root.statusText : "PROCESANDO...") : (isInstalled ? "INSTALADO" : "DISPONIBLE")
                     color: isInstalling ? "#f1c40f" : (isInstalled ? "#2ecc71" : "#66ffffff")
                     font.pixelSize: 8; font.bold: true; font.letterSpacing: 1
                 }
@@ -103,13 +103,21 @@ Rectangle {
         ColumnLayout {
             Layout.preferredWidth: 150; spacing: 8
             
-            // Barra de Progreso Minimalista (Interior)
-            Rectangle {
-                Layout.fillWidth: true; height: 2; radius: 1; color: "#1a1a1f"
+            // Barra de Progreso Minimalista con Texto de Estado
+            ColumnLayout {
+                Layout.fillWidth: true; spacing: 4
                 visible: isInstalling
+                
+                Text {
+                    text: root.statusText; color: accent; font.pixelSize: 8; font.bold: true; opacity: 0.8
+                }
+                
                 Rectangle {
-                    width: parent.width * progress; height: parent.height; color: accent; radius: 1
-                    Behavior on width { NumberAnimation { duration: 300 } }
+                    Layout.fillWidth: true; height: 3; radius: 1.5; color: "#1a1a1f"
+                    Rectangle {
+                        width: parent.width * progress; height: parent.height; color: accent; radius: 1.5
+                        Behavior on width { NumberAnimation { duration: 300 } }
+                    }
                 }
             }
 
@@ -149,10 +157,8 @@ Rectangle {
                     if (isInstalling) return
                     
                     if (!isInstalled) {
-                        root.progress = 0.01 
                         mainController.install_emulator(root.emuId, root.downloadUrl, root.executable)
                     } else if (hasUpdate) {
-                        root.progress = 0.01
                         mainController.update_emulator(root.emuId, root.downloadUrl, root.executable)
                     } else {
                         mainController.uninstall_emulator(root.emuId)

@@ -7,15 +7,17 @@
             "description": "El frontend definitivo para emulación. Permite gestionar cientos de cores desde una sola interfaz con soporte para shaders y guardado en la nube.",
             "icon": "📦",
             "accent": "#FF4E11",
+            "orchestration": {
+                "linux": { "type": "flatpak", "id": "org.libretro.RetroArch" },
+                "portable": {
+                    "linux": "https://github.com/hizzlekizzle/RetroArch-AppImage/releases/download/Linux_LTS_Nightlies/RetroArch-Linux-x86_64-Nightly.AppImage",
+                    "windows": "https://buildbot.libretro.com/stable/1.19.1/windows/x86_64/RetroArch.7z"
+                }
+            },
             "executable": {
                 "linux": "RetroArch.AppImage",
-                "windows": "retroarch.exe"
-            },
-            "download": {
-                "linux": "https://github.com/hizzlekizzle/RetroArch-AppImage/releases/download/Linux_LTS_Nightlies/RetroArch-Linux-x86_64-Nightly.AppImage",
-                "windows": "https://buildbot.libretro.com/stable/1.19.1/windows/x86_64/RetroArch.7z"
-            },
-            "isInstalled": false
+                "windows": "RetroArch-Win64/retroarch.exe"
+            }
         },
         {
             "id": "dolphin",
@@ -24,15 +26,17 @@
             "description": "Potente emulador con soporte para alta resolución (4K), juego online y compatibilidad casi perfecta con el catálogo de Nintendo Wii y GameCube.",
             "icon": "🐬",
             "accent": "#3498db",
+            "orchestration": {
+                "linux": { "type": "flatpak", "id": "org.DolphinEmu.dolphin-emu" },
+                "portable": {
+                    "linux": "https://github.com/pkgforge-dev/Dolphin-emu-AppImage/releases/download/Dolphin-5.0-20412/Dolphin-5.0-20412-x86_64.AppImage",
+                    "windows": "https://dl.dolphin-emu.org/releases/5.0/dolphin-x64-5.0.exe"
+                }
+            },
             "executable": {
                 "linux": "Dolphin-x86_64.AppImage",
                 "windows": "Dolphin.exe"
-            },
-            "download": {
-                "linux": "https://github.com/pkgforge-dev/Dolphin-emu-AppImage/releases/download/Dolphin-5.0-20412/Dolphin-5.0-20412-x86_64.AppImage",
-                "windows": "https://dl.dolphin-emu.org/releases/5.0/dolphin-x64-5.0.exe"
-            },
-            "isInstalled": false
+            }
         },
         {
             "id": "ppsspp",
@@ -41,15 +45,17 @@
             "description": "Corre tus juegos de PSP en HD con texturas mejoradas. Soporta guardado rápido, multijugador asíncrono y mapeado de controles avanzado.",
             "icon": "🌀",
             "accent": "#2196F3",
+            "orchestration": {
+                "linux": { "type": "flatpak", "id": "org.ppsspp.PPSSPP" },
+                "portable": {
+                    "linux": "https://github.com/pkgforge-dev/PPSSPP-AppImage/releases/download/PPSSPP-1.17.1-15/PPSSPP-1.17.1-15-x86_64.AppImage",
+                    "windows": "https://www.ppsspp.org/files/1_17_1/ppsspp_win.zip"
+                }
+            },
             "executable": {
                 "linux": "PPSSPP-x86_64.AppImage",
                 "windows": "PPSSPPWindows64.exe"
-            },
-            "download": {
-                "linux": "https://github.com/pkgforge-dev/PPSSPP-AppImage/releases/download/PPSSPP-1.17.1-15/PPSSPP-1.17.1-15-x86_64.AppImage",
-                "windows": "https://www.ppsspp.org/files/1_17_1/ppsspp_win.zip"
-            },
-            "isInstalled": false
+            }
         },
         {
             "id": "pcsx2",
@@ -58,15 +64,17 @@
             "description": "El estándar de oro para emulación de PS2. Soporta miles de juegos, mejoras gráficas mediante Vulkan y soporte para DualShock nativo.",
             "icon": "🎮",
             "accent": "#003791",
+            "orchestration": {
+                "linux": { "type": "flatpak", "id": "net.pcsx2.PCSX2" },
+                "portable": {
+                    "linux": "https://github.com/PCSX2/pcsx2/releases/download/v1.7.5614/pcsx2-v1.7.5614-linux-appimage-x64-Qt.AppImage",
+                    "windows": "https://github.com/PCSX2/pcsx2/releases/download/v1.7.5843/pcsx2-v1.7.5843-windows-x64-Qt.7z"
+                }
+            },
             "executable": {
                 "linux": "pcsx2-qt.AppImage",
                 "windows": "pcsx2-qt.exe"
-            },
-            "download": {
-                "linux": "https://github.com/PCSX2/pcsx2/releases/download/v1.7.5614/pcsx2-v1.7.5614-linux-appimage-x64-Qt.AppImage",
-                "windows": "https://pcsx2.net/downloads/"
-            },
-            "isInstalled": false
+            }
         },
         {
             "id": "rpcs3",
@@ -75,32 +83,17 @@
             "description": "Emulador experimental de código abierto que permite jugar títulos de PS3 en PC. Requiere hardware potente y el firmware original de Sony.",
             "icon": "🕹️",
             "accent": "#ff2424",
+            "orchestration": {
+                "linux": { "type": "flatpak", "id": "net.rpcs3.RPCS3" },
+                "portable": {
+                    "linux": "https://github.com/RPCS3/rpcs3-binaries-linux/releases/download/build-48c5b0df1454659b854af900669af6e50774a38f/rpcs3-v0.0.31-16212-48c5b0df_linux64.AppImage",
+                    "windows": "https://rpcs3.net/latestbt/windows"
+                }
+            },
             "executable": {
                 "linux": "rpcs3.AppImage",
                 "windows": "rpcs3.exe"
-            },
-            "download": {
-                "linux": "https://github.com/RPCS3/rpcs3-binaries-linux/releases/download/build-48c5b0df1454659b854af900669af6e50774a38f/rpcs3-v0.0.31-16212-48c5b0df_linux64.AppImage",
-                "windows": "https://rpcs3.net/download"
-            },
-            "isInstalled": false
-        },
-        {
-            "id": "ryujinx",
-            "name": "Ryujinx",
-            "fullName": "Emulador de Nintendo Switch",
-            "description": "Emulador de Switch enfocado en la precisión y compatibilidad. Escrito en C#, ofrece una experiencia estable para los títulos más recientes.",
-            "icon": "🏮",
-            "accent": "#e60012",
-            "executable": {
-                "linux": "Ryujinx.AppImage",
-                "windows": "Ryujinx.exe"
-            },
-            "download": {
-                "linux": "https://github.com/pkgforge-dev/Ryujinx-AppImage/releases/download/Ryujinx-1.1.1345/Ryujinx-1.1.1345-x86_64.AppImage",
-                "windows": "https://ryujinx.org/download"
-            },
-            "isInstalled": false
+            }
         },
         {
             "id": "duckstation",
@@ -109,32 +102,17 @@
             "description": "Increíble emulador de PSX enfocado en la jugabilidad, velocidad y mantenibilidad a largo plazo. Incluye corrección de perspectiva de texturas.",
             "icon": "🦆",
             "accent": "#f1c40f",
+            "orchestration": {
+                "linux": { "type": "flatpak", "id": "org.duckstation.DuckStation" },
+                "portable": {
+                    "linux": "https://github.com/stenzek/duckstation/releases/download/latest/duckstation-qt-x64.AppImage",
+                    "windows": "https://github.com/stenzek/duckstation/releases/download/latest/duckstation-windows-x64-release.zip"
+                }
+            },
             "executable": {
                 "linux": "duckstation-qt-x64.AppImage",
                 "windows": "duckstation-qt-x64-release.exe"
-            },
-            "download": {
-                "linux": "https://github.com/stenzek/duckstation/releases/download/latest/duckstation-qt-x64.AppImage",
-                "windows": "https://github.com/stenzek/duckstation/releases/download/latest/duckstation-windows-x64-release.zip"
-            },
-            "isInstalled": false
-        },
-        {
-            "id": "vita3k",
-            "name": "Vita3K",
-            "fullName": "Emulador de PlayStation Vita",
-            "description": "El primer emulador funcional de PS Vita del mundo. Capaz de ejecutar juegos comerciales con un rendimiento sorprendente en hardware moderno.",
-            "icon": "💎",
-            "accent": "#9b59b6",
-            "executable": {
-                "linux": "Vita3K",
-                "windows": "Vita3K.exe"
-            },
-            "download": {
-                "linux": "https://github.com/Vita3K/Vita3K/releases/download/continuous/Vita3K-linux.tar.gz",
-                "windows": "https://vita3k.org/download.html"
-            },
-            "isInstalled": false
+            }
         }
     ]
 }

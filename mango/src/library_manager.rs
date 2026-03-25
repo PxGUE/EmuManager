@@ -1,8 +1,12 @@
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
 use rusqlite::{Connection, Result};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::collections::HashMap;
+use std::fs::{self, File};
+use walkdir::WalkDir;
+use rayon::prelude::*;
+use md5;
 
 /// Estructura de mapeo plataforma -> núcleos
 fn get_core_map() -> HashMap<&'static str, Vec<(&'static str, &'static str)>> {
@@ -159,4 +163,61 @@ pub fn get_consoles_summary_native(
     }
 
     Ok(results)
+}
+
+/// Escanea un directorio buscando juegos y calcula sus hashes en paralelo.
+pub fn scan_directory(
+    py: Python<'_>,
+    root_path: &str,
+    extensions: Vec<String>
+) -> PyResult<Vec<PyObject>> {
+    let root = Path::new(root_path);
+    if !root.exists() {
+        return Ok(Vec::new());
+    }
+
+    // 1. Recolectar archivos válidos
+    let files: Vec<PathBuf> = WalkDir::new(root)
+        .into_iter()
+        .filter_map(|e| e.ok())
+        .filter(|e| e.file_type().is_file())
+        .map(|e| e.path().to_path_buf())
+        .filter(|p| {
+            if let Some(ext) = p.extension() {
+                let ext_str = ext.to_string_lossy().to_lowercase();
+                extensions.iter().any(|e| e.to_lowercase() == ext_str)
+            } else {
+                false
+            }
+        })
+        .collect();
+
+    // 2. Procesar en PARALELO usando Rayon
+    let results: Vec<(String, String, u64)> = files.into_par_iter()
+        .filter_map(|p| {
+            let path_str = p.to_string_lossy().to_string();
+            let size = fs::metadata(&p).ok()?.len();
+            
+            let mut file = File::open(&p).ok()?;
+            let mut hasher = md5::Context::new();
+            if std::io::copy(&mut file, &mut hasher).is_ok() {
+                let m = format!("{:x}", hasher.compute());
+                Some((path_str, m, size))
+            } else {
+                None
+            }
+        })
+        .collect();
+
+    // 3. Empaquetar para Python
+    let mut py_results = Vec::with_capacity(results.len());
+    for (path, md5_hex, size) in results {
+        let dict = PyDict::new(py);
+        dict.set_item("path", path)?;
+        dict.set_item("md5", md5_hex)?;
+        dict.set_item("size", size)?;
+        py_results.push(dict.into_any().unbind());
+    }
+
+    Ok(py_results)
 }

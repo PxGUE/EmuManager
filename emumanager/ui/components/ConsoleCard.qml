@@ -61,6 +61,7 @@ Item {
     // Área de ratón global (fondo)
     MouseArea { 
         id: mainMA; anchors.fill: parent; hoverEnabled: true; z: 1
+        cursorShape: Qt.PointingHandCursor
         onClicked: consoleCardRoot.clicked() 
     }
 
@@ -134,69 +135,26 @@ Item {
             }
         }
 
-        // 2. BLOQUE DE ESTADÍSTICAS
+        // 2. BLOQUE DE ESTADÍSTICAS (Re-anclado al fondo para mayor equilibrio)
         Item {
-            anchors.bottom: explorBtn.top; anchors.bottomMargin: 35
-            width: parent.width; height: 50
+            anchors.bottom: parent.bottom; anchors.bottomMargin: 60
+            width: parent.width; height: 60
 
             Column {
-                anchors.left: parent.left; width: parent.width/2; spacing: 5
-                Text { width: parent.width; text: "BIBLIOTECA"; color: "#66ffffff"; font.pixelSize: 9; horizontalAlignment: Text.AlignHCenter; font.bold: true }
-                Text { width: parent.width; text: gameCount + " JUEGOS"; color: "white"; font.pixelSize: 22; horizontalAlignment: Text.AlignHCenter; font.bold: true }
+                anchors.left: parent.left; width: parent.width/2; spacing: 8
+                Text { width: parent.width; text: "BIBLIOTECA"; color: "#66ffffff"; font.pixelSize: 10; horizontalAlignment: Text.AlignHCenter; font.bold: true; font.letterSpacing: 2 }
+                Text { width: parent.width; text: gameCount + " JX"; color: "white"; font.pixelSize: 24; horizontalAlignment: Text.AlignHCenter; font.bold: true }
             }
-            Rectangle { anchors.centerIn: parent; width: 2; height: 40; color: "white"; opacity: 0.15 }
-            Column {
-                anchors.right: parent.right; width: parent.width/2; spacing: 5
-                Text { width: parent.width; text: "USO TOTAL"; color: "#66ffffff"; font.pixelSize: 9; horizontalAlignment: Text.AlignHCenter; font.bold: true }
-                Text { width: parent.width; text: playTime; color: "white"; font.pixelSize: 22; horizontalAlignment: Text.AlignHCenter; font.bold: true }
-            }
-        }
-
-        // 3. BOTÓN DE ACCIÓN (Totalmente Interactivo)
-        Button {
-            id: explorBtn
-            anchors.bottom: parent.bottom; anchors.bottomMargin: 45
-            anchors.horizontalCenter: parent.horizontalCenter
-            width: 300; height: 56; z: 10
-            flat: true
             
-            property bool isBtnHovered: false
-
-            background: Rectangle {
-                radius: 28; color: explorBtn.isBtnHovered ? accentColor : "#1c1c28"
-                border.color: accentColor; border.width: 2.5
-                antialiasing: true
-                
-                // Efecto de press (escala sutil)
-                scale: btnMA.pressed ? 0.96 : 1.0
-                Behavior on scale { NumberAnimation { duration: 120 } }
-                Behavior on color { ColorAnimation { duration: 250 } }
-                
-                layer.enabled: explorBtn.isBtnHovered
-                layer.effect: DropShadow { radius: 15; samples: 10; color: accentColor; transparentBorder: true }
+            Rectangle { 
+                anchors.centerIn: parent; width: 1.5; height: 45; color: accentColor; opacity: 0.4
+                visible: !minimalMode
             }
 
-            contentItem: Text {
-                text: "EXPLORAR COLECCIÓN"; font.bold: true; font.pixelSize: 13; font.letterSpacing: 2.5
-                color: explorBtn.isBtnHovered ? "#000000" : "white"
-                horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
-                // Ajustamos escala del texto también
-                scale: btnMA.pressed ? 0.96 : 1.0
-                Behavior on scale { NumberAnimation { duration: 120 } }
-                Behavior on color { ColorAnimation { duration: 250 } }
-            }
-
-            // MouseArea (Controlador de Acción Principal)
-            MouseArea {
-                id: btnMA
-                anchors.fill: parent; hoverEnabled: true
-                cursorShape: Qt.PointingHandCursor
-                
-                // LANZA EL EVENTO CORRECTO DE LA TARJETA
-                onClicked: consoleCardRoot.clicked()
-                
-                onEntered: explorBtn.isBtnHovered = true
-                onExited: explorBtn.isBtnHovered = false
+            Column {
+                anchors.right: parent.right; width: parent.width/2; spacing: 8
+                Text { width: parent.width; text: "TIEMPO"; color: "#66ffffff"; font.pixelSize: 10; horizontalAlignment: Text.AlignHCenter; font.bold: true; font.letterSpacing: 2 }
+                Text { width: parent.width; text: playTime; color: "white"; font.pixelSize: 24; horizontalAlignment: Text.AlignHCenter; font.bold: true }
             }
         }
     }

@@ -15,6 +15,11 @@ class GameListModel(QAbstractListModel):
     Cover2dRole = Qt.UserRole + 5
     Cover3dRole = Qt.UserRole + 6
     IdRole = Qt.UserRole + 7
+    DeveloperRole = Qt.UserRole + 8
+    PublisherRole = Qt.UserRole + 9
+    ReleaseDateRole = Qt.UserRole + 10
+    GenreRole = Qt.UserRole + 11
+    DescriptionRole = Qt.UserRole + 12
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -36,7 +41,12 @@ class GameListModel(QAbstractListModel):
             self.PlatformRole: b"platform",
             self.Cover2dRole: b"cover2dPath",
             self.Cover3dRole: b"cover3dPath",
-            self.IdRole: b"gameId"
+            self.IdRole: b"gameId",
+            self.DeveloperRole: b"developer",
+            self.PublisherRole: b"publisher",
+            self.ReleaseDateRole: b"releaseDate",
+            self.GenreRole: b"genre",
+            self.DescriptionRole: b"description"
         }
 
     def rowCount(self, parent=QModelIndex()):
@@ -55,6 +65,11 @@ class GameListModel(QAbstractListModel):
         if role == self.Cover2dRole: return game.get("cover_2d_path", "") or ""
         if role == self.Cover3dRole: return game.get("cover_3d_path", "") or ""
         if role == self.IdRole: return game.get("id", 0)
+        if role == self.DeveloperRole: return game.get("developer", "") or ""
+        if role == self.PublisherRole: return game.get("publisher", "") or ""
+        if role == self.ReleaseDateRole: return game.get("release_date", "") or ""
+        if role == self.GenreRole: return game.get("genre", "") or ""
+        if role == self.DescriptionRole: return game.get("description", "") or "Sin descripción disponible."
         
         return None
 

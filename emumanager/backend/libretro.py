@@ -1,5 +1,6 @@
-from typing import List, Dict, Optional, Any
+from typing import List, Dict, Optional, Any, Callable
 from pathlib import Path
+import os
 
 try:
     import mango_engine
@@ -51,8 +52,16 @@ CORE_DATABASE = {
 
 class LibretroManager:
     """Gestiona cores y configuraciones de Libretro para la emulación."""
-    def __init__(self, cores_path: Path):
-        self.cores_path = cores_path
+    def __init__(self, emus_base_path: Path):
+        self.base_emulators_path = emus_base_path
+        self.retroarch_base_path = emus_base_path / "retroarch"
+
+    @property
+    def cores_path(self) -> Path:
+        """Ruta global de cores compartida por todos los emuladores."""
+        path = self.base_emulators_path / "cores"
+        path.mkdir(parents=True, exist_ok=True)
+        return path
 
     def list_installed_cores(self) -> List[str]:
         """Devuelve una lista de los cores .dll/.so instalados (recursivo)."""
@@ -125,7 +134,7 @@ class LibretroManager:
                 return platform
         return "unknown"
 
-    def download_core(self, core_name: str, progress_callback=None) -> Optional[str]:
+    def download_core(self, core_name: str, progress_callback=None, status_callback=None) -> Optional[str]:
         """
         Descarga e instala un core usando M.A.N.G.O (Rust). 
         Ahora lo organiza en subcarpetas por consola.
@@ -140,7 +149,7 @@ class LibretroManager:
             target_dir.mkdir(parents=True, exist_ok=True)
             
             EmuLog.info(f"M.A.N.G.O: Instalando core {core_name} en {target_dir}")
-            return mango_engine.download_core(core_name, str(target_dir), progress_callback)
+            return mango_engine.download_core(core_name, str(target_dir), progress_callback, status_callback)
         except Exception as e:
             EmuLog.error(f"Error downloading core {core_name}: {e}")
             return None

@@ -18,8 +18,7 @@ Item {
     property QtObject controller: mainController
 
     property string currentRomsPath: "Cargando..."
-    property string currentCoresPath: "Cores..."
-    property string currentRunnerPath: "Runner..."
+    property string currentEmulatorsPath: "Emuladores..."
     property int gamesCount: 0
     property int activeTab: 0
  
@@ -30,8 +29,7 @@ Item {
     Component.onCompleted: {
         if (controller) {
             currentRomsPath = controller.get_roms_path()
-            currentCoresPath = controller.get_cores_path()
-            currentRunnerPath = controller.get_runner_path()
+            currentEmulatorsPath = controller.get_emulators_path()
             updateGamesCount()
         }
     }
@@ -122,16 +120,9 @@ Item {
                     Rectangle { width: parent.width; height: 1; color: "#1a1a1f" }
                     Row {
                         width: parent.width; spacing: 10
-                        Text { text: "CORES:"; color: "white"; font.bold: true; width: 60; anchors.verticalCenter: parent.verticalCenter }
-                        Text { text: currentCoresPath; color: "#16a085"; font.pixelSize: 11; width: parent.width - 160; wrapMode: Text.WrapAnywhere; anchors.verticalCenter: parent.verticalCenter }
-                        Button { text: "CAMBIAR"; flat: true; highlighted: true; onClicked: currentCoresPath = controller.select_cores_directory() }
-                    }
-                    Rectangle { width: parent.width; height: 1; color: "#1a1a1f" }
-                    Row {
-                        width: parent.width; spacing: 10
-                        Text { text: "RUNNER:"; color: "white"; font.bold: true; width: 60; anchors.verticalCenter: parent.verticalCenter }
-                        Text { text: currentRunnerPath; color: "#16a085"; font.pixelSize: 11; width: parent.width - 160; wrapMode: Text.WrapAnywhere; anchors.verticalCenter: parent.verticalCenter }
-                        Button { text: "CAMBIAR"; flat: true; highlighted: true; onClicked: currentRunnerPath = controller.select_runner_executable() }
+                        Text { text: "EMULADORES:"; color: "white"; font.bold: true; width: 60; anchors.verticalCenter: parent.verticalCenter }
+                        Text { text: currentEmulatorsPath; color: "#16a085"; font.pixelSize: 11; width: parent.width - 160; wrapMode: Text.WrapAnywhere; anchors.verticalCenter: parent.verticalCenter }
+                        Button { text: "CAMBIAR"; flat: true; highlighted: true; onClicked: currentEmulatorsPath = controller.select_cores_directory() }
                     }
                 }
             }

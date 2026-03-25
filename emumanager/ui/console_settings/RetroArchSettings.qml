@@ -11,6 +11,7 @@ Popup {
 
     // Referencia al controlador de la Main UI
     property var controller: null
+    property bool isRetroArchInstalled: false
 
     // Señales recibidas desde el Connections global (se vinculan externamente)
     function updateProgress(core_id, p) {
@@ -43,7 +44,11 @@ Popup {
                 Layout.fillWidth: true
                 ColumnLayout {
                     Text { text: "AJUSTES: RETROARCH"; color: "white"; font.pixelSize: 18; font.bold: true; font.letterSpacing: 1.5 }
-                    Text { text: "Gestión avanzada de núcleos y dependencias de sistema"; color: "#16a085"; font.pixelSize: 9; font.bold: true }
+                    Text { 
+                        text: isRetroArchInstalled ? "Gestión avanzada de núcleos" : "⚠️ RETROARCH NO DETECTADO"
+                        color: isRetroArchInstalled ? "#16a085" : "#e74c3c"
+                        font.pixelSize: 9; font.bold: true 
+                    }
                 }
                 Item { Layout.fillWidth: true }
                 Button {
@@ -53,9 +58,25 @@ Popup {
 
             Rectangle { Layout.fillWidth: true; height: 1; color: "#1a1a1f" }
 
+            // Warning Banner
+            Rectangle {
+                Layout.fillWidth: true; Layout.preferredHeight: 40; radius: 10
+                color: "#20e74c3c"; border.color: "#33e74c3c"; visible: !isRetroArchInstalled
+                RowLayout {
+                    anchors.fill: parent; anchors.leftMargin: 15; spacing: 10
+                    Text { text: "ℹ️"; font.pixelSize: 14 }
+                    Text { 
+                        text: "Debes instalar RetroArch desde el panel principal antes de descargar núcleos."; 
+                        color: "#e74c3c"; font.pixelSize: 10; font.bold: true 
+                    }
+                }
+            }
+
             ListView {
                 id: coresList; Layout.fillWidth: true; Layout.fillHeight: true; clip: true; spacing: 10
                 model: ListModel { id: coresModel }
+                opacity: isRetroArchInstalled ? 1.0 : 0.4
+                enabled: isRetroArchInstalled
 
                 delegate: Rectangle {
                     width: coresList.width - 10; height: 75; radius: 15; color: "#16161c"
@@ -70,7 +91,10 @@ Popup {
                         ColumnLayout {
                             Layout.fillWidth: true; spacing: 2
                             Text { text: model.name; color: "white"; font.pixelSize: 13; font.bold: true }
-                            Text { text: "Listo para jugar a " + model.name.split(' ')[0]; color: "#66ffffff"; font.pixelSize: 9 }
+                            Text { 
+                                text: model.isInstalled ? "Núcleo listo para usar" : "Disponible para descarga"
+                                color: "#66ffffff"; font.pixelSize: 9 
+                            }
                             
                             // Barra de progreso individual
                             Rectangle {
@@ -80,15 +104,38 @@ Popup {
                         }
 
                         Button {
+                            id: actionBtn
                             implicitWidth: 100; implicitHeight: 32
-                            text: model.isInstalled ? "LISTO ✓" : (model.isDownloading ? "..." : "DESCARGAR")
-                            enabled: !model.isDownloading && !model.isInstalled
-                            Material.background: model.isInstalled ? "transparent" : "#16a085"
-                            Material.foreground: model.isInstalled ? "#16a085" : "white"
-                            font.pixelSize: 9; font.bold: true
+                            text: {
+                                if (model.isDownloading) return "..."
+                                if (model.isInstalled) return "BORRAR"
+                                return "INSTALAR"
+                            }
+                            
+                            enabled: !model.isDownloading
+                            
+                            background: Rectangle {
+                                color: {
+                                    if (model.isInstalled) return actionBtn.hovered ? "#33e74c3c" : "transparent"
+                                    return "#16a085"
+                                }
+                                border.color: model.isInstalled ? "#e74c3c" : "#16a085"
+                                border.width: 1; radius: 10
+                            }
+                            
+                            contentItem: Text {
+                                text: actionBtn.text; color: "white"; font.pixelSize: 9; font.bold: true
+                                horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
+                            }
+
                             onClicked: {
-                                model.isDownloading = true
-                                root.controller.start_core_download(model.id)
+                                if (model.isInstalled) {
+                                    root.controller.uninstall_core(model.id)
+                                    model.isInstalled = false
+                                } else {
+                                    model.isDownloading = true
+                                    root.controller.start_core_download(model.id)
+                                }
                             }
                         }
                     }
@@ -100,6 +147,7 @@ Popup {
     onOpened: {
         coresModel.clear()
         if (root.controller) {
+            isRetroArchInstalled = root.controller.is_emulator_installed("retroarch")
             var clist = root.controller.fetch_available_cores()
             for(var i=0; i < clist.length; i++) {
                 coresModel.append({
@@ -107,7 +155,7 @@ Popup {
                     "name": clist[i].name,
                     "progress": 0.0,
                     "isDownloading": false,
-                    "isInstalled": false 
+                    "isInstalled": clist[i].isInstalled 
                 })
             }
         }

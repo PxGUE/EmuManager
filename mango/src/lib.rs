@@ -18,6 +18,7 @@ pub mod core_manager;
 pub mod batch_scraper;
 pub mod searcher;
 pub mod tools;
+pub mod library_manager;
 
 /// Calcula hashes MD5 y CRC32 de un archivo de forma eficiente mediante buffering.
 /// Retorna una tupla (MD5, CRC32, Size).
@@ -272,6 +273,16 @@ fn launch_game(emulator_path: String, game_path: String, core_path: Option<Strin
     }
 }
 
+/// Genera el resumen de consolas consultando la BD de forma nativa.
+#[pyfunction]
+fn fetch_consoles_summary(
+    py: Python<'_>,
+    db_path: String,
+    emulators_path: String,
+) -> PyResult<Vec<PyObject>> {
+    library_manager::get_consoles_summary_native(py, &db_path, &emulators_path)
+}
+
 /// Definición del módulo nativo mango_engine.
 #[pymodule]
 fn mango_engine(m: &Bound<'_, PyModule>) -> PyResult<()> {
@@ -285,6 +296,7 @@ fn mango_engine(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(start_batch_scrape, m)?)?;
     m.add_function(wrap_pyfunction!(search_games, m)?)?;
     m.add_function(wrap_pyfunction!(launch_game, m)?)?;
+    m.add_function(wrap_pyfunction!(fetch_consoles_summary, m)?)?;
     m.add_function(wrap_pyfunction!(tools::logging::set_log_callback, m)?)?;
     Ok(())
 }

@@ -31,7 +31,7 @@ class AppConfig:
             config_file = cls._get_config_file()
             if config_file.exists():
                 try:
-                    with open(config_file, 'r') as f:
+                    with open(config_file, 'r', encoding='utf-8') as f:
                         cls._config_cache = json.load(f)
                 except Exception:
                     cls._config_cache = {}
@@ -42,7 +42,7 @@ class AppConfig:
     @classmethod
     def _save_config(cls):
         config_file = cls._get_config_file()
-        with open(config_file, 'w') as f:
+        with open(config_file, 'w', encoding='utf-8') as f:
             json.dump(cls._config_cache, f, indent=4)
 
     @classmethod
@@ -57,31 +57,20 @@ class AppConfig:
         cls._save_config()
 
     @classmethod
-    def get_cores_path(cls) -> str:
+    def get_emulators_path(cls) -> str:
         config = cls._load_config()
-        default_path = str(cls.get_app_data_dir() / "cores")
-        path = config.get("cores_path", default_path)
+        default_path = str(cls.get_app_data_dir() / "emulators")
+        path = config.get("emulators_path", default_path)
         # Aseguramos que el directorio exista
         Path(path).mkdir(parents=True, exist_ok=True)
         return path
 
     @classmethod
-    def set_cores_path(cls, path: str):
+    def set_emulators_path(cls, path: str):
         config = cls._load_config()
-        config["cores_path"] = str(path)
+        config["emulators_path"] = str(path)
         cls._save_config()
 
-    @classmethod
-    def get_runner_path(cls) -> str:
-        """Retorna la ruta del ejecutable de RetroArch o el emulador global."""
-        config = cls._load_config()
-        return config.get("runner_path", "retroarch") # Por defecto asume que está en el PATH
-
-    @classmethod
-    def set_runner_path(cls, path: str):
-        config = cls._load_config()
-        config["runner_path"] = str(path)
-        cls._save_config()
 
     @classmethod
     def get_screenscraper_user(cls) -> str:

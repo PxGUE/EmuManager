@@ -16,11 +16,13 @@ Item {
 
     property bool showGames: false
     property string activePlatform: "all"
+    property color activeAccentColor: "#16a085"
 
     Rectangle { anchors.fill: parent; color: "#050505" }
 
-    function selectConsole(platform, index) {
+    function selectConsole(platform, index, color) {
         activePlatform = platform
+        activeAccentColor = color || "#16a085"
         gamesModel.update_games()
         gamesModel.filter_by_platform(platform)
         showGames = true
@@ -37,7 +39,7 @@ Item {
     }
 
     // No cargar inmediatamente al completar componente para evitar lag inicial
-    // Dejamos que el Splash lo dispare cuando el motor esté listo
+    // Dejamos que el controlador la cargue cuando la DB esté lista (gamesUpdated)
     Component.onCompleted: {
         if (window.isLoaded) refreshConsoles()
     }
@@ -46,15 +48,6 @@ Item {
         target: mainController
         function onScanFinished(count) { refreshConsoles() }
         function onGamesUpdated() { refreshConsoles() }
-    }
-
-    Connections {
-        target: window
-        function onIsLoadedChanged() {
-            if (window.isLoaded) {
-                refreshConsoles()
-            }
-        }
     }
 
     ListModel { id: consoleModel }
@@ -88,7 +81,7 @@ Item {
                 isSelected: delegateRoot.PathView.isCurrentItem; minimalMode: libraryRoot.showGames 
                 onClicked: {
                     if (index === consoleCarousel.currentIndex) {
-                        libraryRoot.selectConsole(model.platform, index)
+                        libraryRoot.selectConsole(model.platform, index, model.accentColor)
                     } else {
                         consoleCarousel.currentIndex = index
                     }
@@ -183,12 +176,16 @@ Item {
     GridView {
         id: romGallery
         anchors.top: searchContainer.bottom; anchors.bottom: parent.bottom
-        anchors.left: parent.left; anchors.right: parent.right; anchors.margins: 40; anchors.topMargin: 10
-        cellWidth: 220; cellHeight: 300; clip: true; visible: showGames; opacity: showGames ? 1 : 0
+        anchors.left: parent.left; anchors.right: parent.right; anchors.margins: 30; anchors.topMargin: 20
+        cellWidth: 240; cellHeight: 360; clip: true; visible: showGames; opacity: showGames ? 1 : 0
         model: gamesModel
+        cacheBuffer: 1000 
+        
         delegate: RomCard {
             title: model.title; platform: model.platform
+            gameId: model.gameId 
             cover2d: model.cover2dPath; cover3d: model.cover3dPath
+            accentColor: libraryRoot.activeAccentColor
             onClicked: mainController.launch_game_by_id(model.gameId)
         }
         Behavior on opacity { NumberAnimation { duration: 500 } }

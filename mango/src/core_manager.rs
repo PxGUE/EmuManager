@@ -7,6 +7,7 @@ use std::io::{Read, Write};
 use tokio::runtime::Runtime;
 use futures_util::StreamExt;
 use zip::ZipArchive;
+use crate::{mango_info, mango_error};
 
 /// Configuración de la URL del Buildbot de Libretro
 #[cfg(target_os = "windows")]
@@ -138,6 +139,7 @@ pub async fn download_core_async(
     for i in 0..archive.len() {
         let mut file = archive.by_index(i)?;
         let filename_in_zip = file.name().to_string();
+        mango_info!("[MANGO] Extrayendo: {}", &filename_in_zip);
         let outpath = dest_path.join(file.mangled_name());
         
         if (&*file.name()).ends_with('/') {
@@ -182,6 +184,7 @@ pub async fn download_emulator_async(
     if !dest_path.exists() {
         fs::create_dir_all(&dest_path)?;
     }
+    mango_info!("[MANGO] Iniciando descarga de: {}", &url);
     
     // Determinar nombre temporal para la descarga
     let temp_name = url.split('/').last().unwrap_or("download.tmp");

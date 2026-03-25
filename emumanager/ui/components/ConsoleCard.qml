@@ -2,226 +2,201 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Controls.Material
+import Qt5Compat.GraphicalEffects
 
-Rectangle {
-    id: consoleCard
+Item {
+    id: consoleCardRoot
     
+    // --- DATOS ---
     property string title: "Console"
     property string fullName: "Full Console Name"
     property string emulatorName: "Emulator"
     property string gameCount: "0"
     property string playTime: "0h"
     property string iconEmoji: "🎮"
-    property color accentColor: "#16a085"
+    property color accentColor: "#8e44ad"
+    
+    // --- ESTADOS ---
     property bool isSelected: false
     property bool isFocused: isSelected || mainMA.containsMouse
     property bool minimalMode: true 
     property bool hasCore: true 
 
-    width: minimalMode ? 240 : 380
-    height: minimalMode ? 60 : 440
-    radius: minimalMode ? 16 : 28
+    // --- DIMENSIONES ---
+    width: minimalMode ? 260 : 420 
+    height: minimalMode ? 65 : 540
     
-    Behavior on width { NumberAnimation { duration: 400; easing.type: Easing.OutQuint } }
-    Behavior on height { NumberAnimation { duration: 400; easing.type: Easing.OutQuint } }
-    Behavior on radius { NumberAnimation { duration: 400; easing.type: Easing.OutQuint } }
-
-    color: "#0d0d12"
-    border.color: isFocused ? accentColor : "#1a1a24"
-    border.width: isFocused ? 2 : 1
-    clip: false
-    antialiasing: true
+    Behavior on width { NumberAnimation { duration: 400; easing.type: Easing.OutCubic } }
+    Behavior on height { NumberAnimation { duration: 400; easing.type: Easing.OutCubic } }
 
     signal clicked()
 
-    // --- RESPLANDOR NEÓN EXTERIOR ---
-    Rectangle {
-        anchors.fill: parent
-        anchors.margins: -4
-        radius: parent.radius + 4
-        color: "transparent"
-        border.color: accentColor
-        border.width: 1
-        opacity: isFocused ? 0.4 : 0
-        visible: isFocused
-        antialiasing: true
-        Behavior on opacity { NumberAnimation { duration: 300 } }
+    // --- CAPA DE EFECTOS ---
+    DropShadow {
+        id: externalGlow
+        anchors.fill: body; radius: isFocused ? 24 : 10; samples: 14
+        color: Qt.rgba(accentColor.r, accentColor.g, accentColor.b, isFocused ? 0.6 : 0.15)
+        source: body; visible: true; z: -1; transparentBorder: true
     }
 
-    // --- MOUSE AREA PARA HOVER GLOBAL ---
-    MouseArea {
-        id: mainMA; anchors.fill: parent; hoverEnabled: true; z: -1
-    }
-
-    // --- FONDO PREMIUM ---
+    // --- CUERPO ---
     Rectangle {
-        anchors.fill: parent
-        radius: parent.radius
-        color: "#0a0a0f"
-        antialiasing: true
+        id: body
+        anchors.fill: parent; radius: minimalMode ? 18 : 34
+        color: isFocused ? "#1a1a26" : "#0d0d12"
+        border.color: isFocused ? accentColor : "#252535"
+        border.width: isFocused ? 2 : 1
+        z: 0
         
         Rectangle {
-            anchors.fill: parent
-            radius: parent.radius
-            antialiasing: true
+            anchors.fill: parent; radius: parent.radius; opacity: isFocused ? 0.35 : 0.12
             gradient: Gradient {
                 orientation: Gradient.Vertical
-                GradientStop { position: 0.0; color: Qt.rgba(accentColor.r, accentColor.g, accentColor.b, 0.1) }
-                GradientStop { position: 0.5; color: "transparent" }
-                GradientStop { position: 1.0; color: Qt.rgba(accentColor.r, accentColor.g, accentColor.b, 0.05) }
-            }
-        }
-        
-        Rectangle {
-            anchors.fill: parent
-            radius: parent.radius
-            opacity: isSelected ? 0.2 : 0.05
-            antialiasing: true
-            gradient: Gradient {
                 GradientStop { position: 0.0; color: accentColor }
-                GradientStop { position: 1.0; color: "transparent" }
+                GradientStop { position: 0.5; color: "transparent" }
             }
         }
     }
 
-    // --- DISEÑO COMPACTO (MINIMAL MODE) ---
-    RowLayout {
-        anchors.fill: parent
-        anchors.margins: 12
-        visible: minimalMode
-        spacing: 15
+    // Área de ratón global (fondo)
+    MouseArea { 
+        id: mainMA; anchors.fill: parent; hoverEnabled: true; z: 1
+        onClicked: consoleCardRoot.clicked() 
+    }
+
+    // --- CONTENIDO: MODALIDAD MÍNIMA ---
+    Row {
+        anchors.fill: parent; anchors.margins: 12; visible: minimalMode; spacing: 18; z: 5
 
         Rectangle {
-            width: 36; height: 36; radius: 18
-            color: Qt.rgba(accentColor.r, accentColor.g, accentColor.b, 0.2)
-            border.color: accentColor; border.width: 1; antialiasing: true
-            Text { text: iconEmoji; anchors.centerIn: parent; font.pixelSize: 18 }
+            width: 38; height: 38; radius: 10; color: Qt.rgba(accentColor.r, accentColor.g, accentColor.b, 0.2)
+            border.color: accentColor; border.width: 1; anchors.verticalCenter: parent.verticalCenter
+            Text { text: iconEmoji; anchors.centerIn: parent; font.pixelSize: 20 }
         }
 
-        Text {
-            text: title.toUpperCase()
-            color: "white"; font.pixelSize: 14; font.bold: true; font.letterSpacing: 2
-            Layout.fillWidth: true
+        Column {
+            anchors.verticalCenter: parent.verticalCenter; spacing: 0
+            Text { text: title.toUpperCase(); color: "white"; font.pixelSize: 13; font.bold: true; font.letterSpacing: 2 }
+            Text { text: gameCount + " JUEGOS"; color: "#66ffffff"; font.pixelSize: 9; font.bold: true }
         }
     }
 
-    // --- DISEÑO COMPLETO (FULL MODE) ---
-    ColumnLayout {
-        anchors.fill: parent
-        anchors.margins: 32
-        spacing: 18
-        visible: !minimalMode
+    // --- CONTENIDO: MODALIDAD COMPLETA ---
+    Item {
+        anchors.fill: parent; visible: !minimalMode; z: 5
 
-        // ICONO (Centrado)
-        RowLayout {
-            Layout.fillWidth: true
-            Item { Layout.fillWidth: true }
+        // 1. BLOQUE SUPERIOR
+        Column {
+            anchors.top: parent.top; anchors.topMargin: 40
+            anchors.left: parent.left; anchors.right: parent.right
+            spacing: 25
+
             Rectangle {
-                width: 110; height: width; radius: width/2
-                color: Qt.rgba(accentColor.r, accentColor.g, accentColor.b, 0.15)
-                border.color: Qt.rgba(accentColor.r, accentColor.g, accentColor.b, 0.3)
-                border.width: 2; antialiasing: true
-                Text { text: iconEmoji; anchors.centerIn: parent; font.pixelSize: 56 }
-            }
-            Item { Layout.fillWidth: true }
-        }
-
-        // TEXTO (Centrado)
-        ColumnLayout {
-            Layout.fillWidth: true; spacing: 4
-            Text {
-                text: fullName.toUpperCase()
-                color: "white"; font.pixelSize: 24; font.bold: true
-                font.letterSpacing: 4; elide: Text.ElideRight; Layout.fillWidth: true
-                horizontalAlignment: Text.AlignHCenter
-            }
-        }
-
-        // EMULADORES
-        ColumnLayout {
-            Layout.fillWidth: true; Layout.fillHeight: true; spacing: 12
-            
-            RowLayout {
-                Layout.fillWidth: true; spacing: 10
-                Text {
-                    text: "EMULADORES INSTALADOS"
-                    color: accentColor; font.pixelSize: 8; font.bold: true; font.letterSpacing: 2; opacity: 0.8
-                }
-                Rectangle { 
-                    Layout.fillWidth: true; height: 1; opacity: 0.2
-                    gradient: Gradient { 
-                        orientation: Gradient.Horizontal
-                        GradientStop { position: 0.0; color: accentColor }
-                        GradientStop { position: 1.0; color: "transparent" } 
-                    } 
+                anchors.horizontalCenter: parent.horizontalCenter; width: 130; height: 130; radius: 65
+                color: "#16161c"; border.width: 2.2; border.color: Qt.rgba(accentColor.r, accentColor.g, accentColor.b, 0.45)
+                Text { text: iconEmoji; anchors.centerIn: parent; font.pixelSize: 68 }
+                
+                Rectangle {
+                    anchors.fill: parent; radius: 65; color: accentColor; opacity: isFocused ? 0.12 : 0
+                    layer.enabled: isFocused && !minimalMode; layer.effect: FastBlur { radius: 25 }
+                    visible: isFocused 
                 }
             }
-            
+
             Column {
-                spacing: 6; Layout.fillWidth: true; Layout.topMargin: 5
-                Repeater {
-                    model: hasCore ? emulatorName.split(", ") : []
-                    delegate: Item {
-                        id: emuItem
-                        width: parent.width; height: 38
-                        property bool rowHovered: emuMA.containsMouse
-                        Rectangle {
-                            anchors.fill: parent; radius: 10; opacity: rowHovered ? 0.12 : 0; antialiasing: true
-                            gradient: Gradient { 
-                                orientation: Gradient.Horizontal
-                                GradientStop { position: 0.0; color: accentColor }
-                                GradientStop { position: 1.0; color: "transparent" } 
+                width: parent.width; spacing: 10
+                Text {
+                    width: parent.width; text: fullName.toUpperCase(); color: "white"
+                    font.pixelSize: 26; font.bold: true; horizontalAlignment: Text.AlignHCenter; font.letterSpacing: 4
+                }
+                Rectangle {
+                    anchors.horizontalCenter: parent.horizontalCenter; width: 60; height: 3; radius: 1.5; color: accentColor
+                }
+            }
+
+            Item {
+                width: parent.width; height: 35
+                Row {
+                    anchors.horizontalCenter: parent.horizontalCenter; spacing: 12
+                    Repeater {
+                        model: hasCore ? emulatorName.split(" | ") : []
+                        delegate: Rectangle {
+                            height: 32; radius: 16; implicitWidth: emuText.width + 42
+                            color: "#18ffffff"; border.color: "#30ffffff"; border.width: 1
+                            Row {
+                                anchors.centerIn: parent; spacing: 10
+                                Rectangle { width: 8; height: 8; radius: 4; color: accentColor; anchors.verticalCenter: parent.verticalCenter }
+                                Text { id: emuText; text: modelData; color: "white"; font.pixelSize: 11; font.bold: true }
                             }
-                            Behavior on opacity { NumberAnimation { duration: 250 } }
-                        }
-                        MouseArea { id: emuMA; anchors.fill: parent; hoverEnabled: true; z: -1 }
-                        RowLayout {
-                            anchors.fill: parent; anchors.leftMargin: 12; anchors.rightMargin: 12; spacing: 12
-                            Text { text: "✦"; color: accentColor; font.pixelSize: 11; opacity: rowHovered ? 1.0 : 0.4 }
-                            Text { text: modelData; color: "white"; font.pixelSize: 13; font.bold: true; Layout.fillWidth: true }
                         }
                     }
                 }
-                Text {
-                    text: "Sin emuladores instalados."
-                    visible: !hasCore; color: "#44ffffff"; font.pixelSize: 11; font.italic: true
-                    horizontalAlignment: Text.AlignHCenter; Layout.fillWidth: true
-                }
             }
         }
 
-        Item { Layout.fillHeight: true }
+        // 2. BLOQUE DE ESTADÍSTICAS
+        Item {
+            anchors.bottom: explorBtn.top; anchors.bottomMargin: 35
+            width: parent.width; height: 50
 
-        // STATS
-        Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; opacity: 0.1; color: "white" }
+            Column {
+                anchors.left: parent.left; width: parent.width/2; spacing: 5
+                Text { width: parent.width; text: "BIBLIOTECA"; color: "#66ffffff"; font.pixelSize: 9; horizontalAlignment: Text.AlignHCenter; font.bold: true }
+                Text { width: parent.width; text: gameCount + " JUEGOS"; color: "white"; font.pixelSize: 22; horizontalAlignment: Text.AlignHCenter; font.bold: true }
+            }
+            Rectangle { anchors.centerIn: parent; width: 2; height: 40; color: "white"; opacity: 0.15 }
+            Column {
+                anchors.right: parent.right; width: parent.width/2; spacing: 5
+                Text { width: parent.width; text: "USO TOTAL"; color: "#66ffffff"; font.pixelSize: 9; horizontalAlignment: Text.AlignHCenter; font.bold: true }
+                Text { width: parent.width; text: playTime; color: "white"; font.pixelSize: 22; horizontalAlignment: Text.AlignHCenter; font.bold: true }
+            }
+        }
 
-        RowLayout {
-            Layout.fillWidth: true; spacing: 20
-            Column {
-                spacing: 4
-                Text { text: "BIBLIOTECA"; color: "#555"; font.pixelSize: 8; font.bold: true; font.letterSpacing: 2 }
-                Text { text: gameCount + " JUEGOS"; color: "white"; font.pixelSize: 14; font.bold: true }
+        // 3. BOTÓN DE ACCIÓN (Totalmente Interactivo)
+        Button {
+            id: explorBtn
+            anchors.bottom: parent.bottom; anchors.bottomMargin: 45
+            anchors.horizontalCenter: parent.horizontalCenter
+            width: 300; height: 56; z: 10
+            flat: true
+            
+            property bool isBtnHovered: false
+
+            background: Rectangle {
+                radius: 28; color: explorBtn.isBtnHovered ? accentColor : "#1c1c28"
+                border.color: accentColor; border.width: 2.5
+                antialiasing: true
+                
+                // Efecto de press (escala sutil)
+                scale: btnMA.pressed ? 0.96 : 1.0
+                Behavior on scale { NumberAnimation { duration: 120 } }
+                Behavior on color { ColorAnimation { duration: 250 } }
+                
+                layer.enabled: explorBtn.isBtnHovered
+                layer.effect: DropShadow { radius: 15; samples: 10; color: accentColor; transparentBorder: true }
             }
-            Column {
-                spacing: 4
-                Text { text: "TIEMPO TOTAL"; color: "#555"; font.pixelSize: 8; font.bold: true; font.letterSpacing: 2 }
-                Text { text: playTime; color: "white"; font.pixelSize: 14; font.bold: true }
+
+            contentItem: Text {
+                text: "EXPLORAR COLECCIÓN"; font.bold: true; font.pixelSize: 13; font.letterSpacing: 2.5
+                color: explorBtn.isBtnHovered ? "#000000" : "white"
+                horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
+                // Ajustamos escala del texto también
+                scale: btnMA.pressed ? 0.96 : 1.0
+                Behavior on scale { NumberAnimation { duration: 120 } }
+                Behavior on color { ColorAnimation { duration: 250 } }
             }
-            Item { Layout.fillWidth: true }
-            Rectangle {
-                Layout.preferredWidth: 130; Layout.preferredHeight: 38; radius: 12
-                color: expMA.containsMouse ? accentColor : "transparent"
-                border.color: accentColor; border.width: 2; antialiasing: true
-                Text {
-                    text: "EXPLORAR"
-                    anchors.centerIn: parent
-                    color: expMA.containsMouse ? "black" : "white"
-                    font.pixelSize: 11; font.bold: true; font.letterSpacing: 2
-                }
-                MouseArea {
-                    id: expMA; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
-                    onClicked: consoleCard.clicked()
-                }
+
+            // MouseArea (Controlador de Acción Principal)
+            MouseArea {
+                id: btnMA
+                anchors.fill: parent; hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                
+                // LANZA EL EVENTO CORRECTO DE LA TARJETA
+                onClicked: consoleCardRoot.clicked()
+                
+                onEntered: explorBtn.isBtnHovered = true
+                onExited: explorBtn.isBtnHovered = false
             }
         }
     }

@@ -41,7 +41,7 @@ Instala y configura tus motores de juego sin salir de la app.
 | **Vista (UI)** | `emumanager/ui/` | Componentes QML, temas y animaciones de hardware acelerado. |
 | **Controlador** | `emumanager/controllers/` | Puentes PySide6 (Python) que orquestan la lógica y la UI. |
 | **Backend** | `emumanager/backend/` | Acceso a SQLite, lógica de Libretro y el binario nativo de MANGO. |
-| **Core (Rust)** | `mango_engine/` | Código fuente nativo para potencia de cálculo bruta vía PyO3. |
+| **Core (Rust)** | `mango/` | Código fuente nativo para potencia de cálculo bruta vía PyO3. |
 
 ---
 
@@ -53,10 +53,23 @@ Instala y configura tus motores de juego sin salir de la app.
 *   `pip install -r requirements.txt`
 
 ### 2. Compilación del Motor (M.A.N.G.O)
-Si deseas compilar el núcleo nativo tú mismo:
+Si deseas compilar el núcleo nativo de forma automática para tu OS actual:
+
+**Para Windows (PowerShell):**
+```powershell
+./mango/scripts/build_windows.ps1
+```
+
+**Para Linux (Bash):**
 ```bash
-cd mango_engine
-maturin build --release
+chmod +x ./mango/scripts/build_linux.sh
+./mango/scripts/build_linux.sh
+```
+
+O si prefieres hacerlo manualmente con maturin:
+```bash
+cd mango
+python -m maturin build --release --out bin/windows
 ```
 
 ### 3. Lanzamiento

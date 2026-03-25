@@ -24,7 +24,7 @@ if str(backend_dir) not in sys.path:
 # AGREGAR MOTOR NATIVO BINARIO (Linux/Windows)
 import platform
 os_name = platform.system().lower()
-bin_path = current_dir.parent / "mango_engine" / "bin" / os_name
+bin_path = current_dir.parent / "mango" / "bin" / os_name
 if bin_path.exists() and str(bin_path) not in sys.path:
     sys.path.insert(0, str(bin_path))
 
@@ -33,6 +33,10 @@ from controllers.main_ctrl import MainController
 from controllers.game_model import GameListModel
 
 def main():
+    # Registrar info del sistema al iniciar
+    from core.logger import log_system_info
+    log_system_info()
+    
     # Setup de UI application env params
     os.environ["QT_QUICK_CONTROLS_STYLE"] = "Material"
     

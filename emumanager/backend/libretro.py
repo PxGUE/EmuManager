@@ -58,7 +58,10 @@ class LibretroManager:
         """Devuelve una lista de los cores .dll/.so instalados (recursivo)."""
         if not self.cores_path.exists():
             return []
-        return [f.stem for f in self.cores_path.rglob("*_libretro.*")]
+        
+        import platform
+        ext = ".dll" if platform.system() == "Windows" else ".so"
+        return [f.stem for f in self.cores_path.rglob(f"*_libretro{ext}")]
 
     def get_core_for_platform(self, platform: str) -> Optional[str]:
         """Obtiene el ID del core sugerido para una plataforma."""
@@ -78,6 +81,11 @@ class LibretroManager:
             available_raw = mango_engine.fetch_cores()
             filtered_results = []
             
+            # Determinar extensión local
+            import platform as py_platform
+            is_win = py_platform.system() == "Windows"
+            core_ext = ".dll" if is_win else ".so"
+            
             # Buscamos en nuestra base de datos para las plataformas activas
             for platform in active_platforms:
                 suggestions = CORE_DATABASE.get(platform.lower(), [])
@@ -85,9 +93,14 @@ class LibretroManager:
                     # El core_id de Libretro suele terminar en _libretro en el buildbot
                     search_id = f"{core_id}_libretro"
                     if search_id in available_raw:
+                        # Comprobar si ya existe físicamente en cores/PLATFORMA/arch_libretro.ext
+                        core_file = self.cores_path / platform.lower() / f"{search_id}{core_ext}"
+                        
                         filtered_results.append({
                             "id": search_id,
-                            "name": display_name
+                            "name": display_name,
+                            "platform": platform,
+                            "isInstalled": core_file.exists()
                         })
             
             # Eliminar duplicados si una plataforma comparte cores (ej. GB y GBC)
@@ -131,3 +144,22 @@ class LibretroManager:
         except Exception as e:
             EmuLog.error(f"Error downloading core {core_name}: {e}")
             return None
+
+    def uninstall_core(self, core_name: str) -> bool:
+        """Elimina el archivo del core del disco."""
+        try:
+            import platform as py_platform
+            is_win = py_platform.system() == "Windows"
+            core_ext = ".dll" if is_win else ".so"
+            
+            platform_id = self._get_platform_for_core(core_name)
+            target_file = self.cores_path / platform_id / f"{core_name}{core_ext}"
+            
+            if target_file.exists():
+                target_file.unlink()
+                EmuLog.info(f"Core eliminado del disco: {target_file.name}")
+                return True
+            return False
+        except Exception as e:
+            EmuLog.error(f"Error al eliminar core {core_name}: {e}")
+            return False

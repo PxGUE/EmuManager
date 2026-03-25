@@ -13,251 +13,11 @@ import os
 QML_IMPORT_NAME = "EmuManager.Controllers"
 QML_IMPORT_MAJOR_VERSION = 1
 
-class ScanWorker(QObject):
-    """Trabajador que ejecuta el escaneo en un hilo separado."""
-    finished = Signal(int)
-    progress = Signal(float)
-    status = Signal(str)
-
-    def __init__(self, scanner_manager, directory: str):
-        super().__init__()
-        self.scanner = scanner_manager
-        self.directory = directory
-        self._is_active = True
-
-    @Slot()
-    def stop(self):
-        self._is_active = False
-
-    @Slot()
-    def run(self):
-        try:
-            count = self.scanner.scan_and_register(
-                self.directory,
-                progress_callback=self.progress.emit,
-                status_callback=self.status.emit,
-                is_active_check=lambda: self._is_active
-            )
-            self.finished.emit(count)
-        except Exception as e:
-            EmuLog.error(f"Error fatal en hilo de escaneo: {e}")
-            self.finished.emit(0)
-
-
-class ScrapeWorker(QObject):
-    finished = Signal(int)
-    progress = Signal(float)
-    status = Signal(str)
-
-    def __init__(self, scanner_manager):
-        super().__init__()
-        self.scanner = scanner_manager
-        self._is_active = True
-
-    @Slot()
-    def stop(self):
-        self._is_active = False
-
-    @Slot()
-    def run(self):
-        try:
-            # Nuevo callback que recibe (progreso, status_text) desde Rust
-            def _handle_progress(p, s=None):
-                self.progress.emit(p)
-                if s: self.status.emit(s)
-
-            count = self.scanner.scrape_missing_metadata(
-                self._is_active, 
-                progress_callback=_handle_progress,
-                status_callback=self.status.emit
-            )
-            self.finished.emit(count)
-        except Exception as e:
-            EmuLog.error(f"Error fatal en hilo de scraping: {e}")
-            self.finished.emit(0)
-
-class CoreDownloadWorker(QObject):
-    finished = Signal(str, str)
-    progress = Signal(str, float)
-    status = Signal(str, str)
-
-    def __init__(self, libretro_manager, core_name: str):
-        super().__init__()
-        self.libretro = libretro_manager
-        self.core_name = core_name
-
-    @Slot()
-    def run(self):
-        try:
-            self.status.emit(self.core_name, f"Descargando {self.core_name} usando M.A.N.G.O (Rust)...")
-            # El progress callback llamará self.progress.emit(p)
-            def progress_cb(p: float):
-                self.progress.emit(self.core_name, p)
-                
-            path = self.libretro.download_core(self.core_name, progress_cb)
-            if path:
-                self.status.emit(self.core_name, "¡Core instalado!")
-                self.finished.emit(self.core_name, path)
-            else:
-                self.status.emit(self.core_name, "Error")
-                self.finished.emit(self.core_name, "")
-        except Exception as e:
-            EmuLog.error(f"Error mortal en CoreDownloadWorker: {e}")
-            self.status.emit(self.core_name, "Error en la instalación.")
-            self.finished.emit(self.core_name, "")
-
-
-class EmulatorInstallWorker(QObject):
-    """Trabajador genérico para descargar e instalar emuladores independientes."""
-    finished = Signal(str, str)
-    progress = Signal(str, float)
-    status = Signal(str, str)
-
-    def __init__(self, emu_id: str, url: str, dest_dir: str, executable: str):
-        super().__init__()
-        self.emu_id = emu_id
-        self.url = url
-        self.dest_dir = dest_dir
-        self.executable = executable
-
-    @Slot()
-    def run(self):
-        try:
-            import mango_engine
-            def progress_cb(p: float):
-                self.progress.emit(self.emu_id, p)
-            
-            self.status.emit(self.emu_id, f"Descargando {self.emu_id}...")
-            path = mango_engine.download_emulator(self.url, self.dest_dir, self.executable, progress_cb)
-            
-            if path:
-                self.status.emit(self.emu_id, f"✓ {self.emu_id} instalado correctamente.")
-                self.finished.emit(self.emu_id, path)
-            else:
-                self.status.emit(self.emu_id, "Error en la descarga.")
-                self.finished.emit(self.emu_id, "")
-        except Exception as e:
-            EmuLog.error(f"Error crítico en EmulatorInstallWorker: {e}")
-            self.status.emit(self.emu_id, f"Fallo: {str(e)}")
-            self.finished.emit(self.emu_id, "")
-
-
-class StartupWorker(QObject):
-    """Orquestador del flujo de arranque real de EmuManager."""
-    progress = Signal(float)
-    status = Signal(str)
-    finished = Signal()
-
-    def __init__(self, controller):
-        super().__init__()
-        self.ctrl = controller
-
-    @Slot()
-    def run(self):
-        try:
-            import time
-            from pathlib import Path
-            
-            # 1. Motor Nativo (20%)
-            self.status.emit("Engranando motor nativo M.A.N.G.O (Rust)...")
-            time.sleep(0.4) 
-            self.ctrl._is_precharged = False
-            self.ctrl.proactive_background_load()
-            self.progress.emit(0.25)
-            
-            # 2. Base de Datos (50%)
-            self.status.emit("Verificando integridad de la biblioteca...")
-            time.sleep(0.3)
-            # Podríamos disparar un scan rápido aquí si quisiéramos
-            self.progress.emit(0.55)
-            
-            # 3. Preparación de Assets (80%)
-            self.status.emit("Optimizando caché de medios y carátulas...")
-            try:
-                import os
-                # Pedimos los juegos a la DB para conocer sus rutas de carátula
-                games = self.ctrl.db.get_all_games()
-                # Calentamos solo las primeras 50 (las que el usuario verá primero)
-                count = 0
-                for game in games:
-                    if count > 50: break
-                    cover_path = game.get('media_path')
-                    if cover_path and os.path.exists(cover_path):
-                        # "Tocamos" el archivo leyéndolo mínimamente para que entre en la caché del OS
-                        with open(cover_path, 'rb') as f:
-                            f.read(1024) 
-                        count += 1
-            except Exception as e:
-                EmuLog.debug(f"Aviso en Warm-up: {e}")
-            
-            self.progress.emit(0.85)
-            
-            # 4. Finalización (100%)
-            self.status.emit("Misiones inicializadas. Bienvenida.")
-            self.progress.emit(1.0)
-            self.finished.emit()
-            
-        except Exception as e:
-            EmuLog.error(f"Error crítico en StartupWorker: {e}")
-            self.finished.emit()
-
-
-class EmulatorUpdateWorker(QObject):
-    """Trabajador para actualizar emuladores con backup gestionado por Rust."""
-    finished = Signal(str, str)
-    progress = Signal(str, float)
-    status = Signal(str, str)
-
-    def __init__(self, emu_id: str, url: str, dest_dir: str, executable: str):
-        super().__init__()
-        self.emu_id = emu_id
-        self.url = url
-        self.dest_dir = dest_dir
-        self.executable = executable
-
-    @Slot()
-    def run(self):
-        try:
-            import mango_engine
-            def progress_cb(p: float):
-                self.progress.emit(self.emu_id, p)
-            
-            self.status.emit(self.emu_id, f"Actualizando {self.emu_id}...")
-            path = mango_engine.update_emulator(self.url, self.dest_dir, self.executable, progress_cb)
-            
-            if path:
-                self.status.emit(self.emu_id, f"✓ {self.emu_id} actualizado.")
-                self.finished.emit(self.emu_id, path)
-            else:
-                self.status.emit(self.emu_id, "Error en actualización.")
-                self.finished.emit(self.emu_id, "")
-        except Exception as e:
-            EmuLog.error(f"Error crítico en EmulatorUpdateWorker: {e}")
-            self.status.emit(self.emu_id, f"Error: {e}")
-            self.finished.emit(self.emu_id, "")
-
-
-class LaunchWorker(QObject):
-    """Trabajador que lanza el juego (bloqueante) en un hilo y mide el tiempo."""
-    finished = Signal(int)
-
-    def __init__(self, runner_path: str, game_path: str, core_path: str = None):
-        super().__init__()
-        self.runner_path = runner_path
-        self.game_path = game_path
-        self.core_path = core_path
-
-    @Slot()
-    def run(self):
-        try:
-            import mango_engine
-            # launch_game(emulator_path, game_path, core_path)
-            duration = mango_engine.launch_game(self.runner_path, self.game_path, self.core_path)
-            self.finished.emit(duration)
-        except Exception as e:
-            EmuLog.error(f"Error nativo al lanzar juego: {e}")
-            self.finished.emit(0)
-
+from controllers.workers import (
+    ScanWorker, ScrapeWorker, CoreDownloadWorker, 
+    EmulatorInstallWorker, EmulatorUpdateWorker, 
+    LaunchWorker, StartupWorker
+)
 from backend.libretro import LibretroManager, CORE_DATABASE
 
 @QmlElement
@@ -294,7 +54,7 @@ class MainController(QObject):
         try:
             self.db = DatabaseManager()
             self.scanner = ScannerManager(self.db)
-            self.libretro = LibretroManager(Path(AppConfig.get_cores_path() or "."))
+            self.libretro = LibretroManager(Path(AppConfig.get_emulators_path() or ".") / "retroarch" / "cores")
             self._scan_thread = None
             self._scan_worker = None
             self._scrape_thread = None
@@ -395,30 +155,15 @@ class MainController(QObject):
     def select_cores_directory(self):
         """Abre un diálogo nativo para seleccionar la carpeta de Cores."""
         directory = QFileDialog.getExistingDirectory(
-            None, "Seleccionar Directorio de Cores Libretro", AppConfig.get_cores_path() or ""
+            None, "Seleccionar Directorio Principal para Emuladores", AppConfig.get_emulators_path() or ""
         )
         if directory:
-            AppConfig.set_cores_path(directory)
-            EmuLog.info(f"Configurada nueva ruta de Cores: {directory}")
-            self.libretro.cores_path = Path(directory)
+            AppConfig.set_emulators_path(directory)
+            EmuLog.info(f"Configurada nueva ruta de Emuladores: {directory}")
+            self.libretro.cores_path = Path(directory) / "retroarch" / "cores"
             return directory
-        return AppConfig.get_cores_path()
+        return AppConfig.get_emulators_path()
 
-    @Slot(result=str)
-    def select_runner_executable(self):
-        """Abre un diálogo nativo para seleccionar el ejecutable del emulador."""
-        file_path, _ = QFileDialog.getOpenFileName(
-            None, "Seleccionar Ejecutable de Emulador/RetroArch", ""
-        )
-        if file_path:
-            AppConfig.set_runner_path(file_path)
-            EmuLog.info(f"Configurada nueva ruta de Ejecutable: {file_path}")
-            return file_path
-        return AppConfig.get_runner_path()
-
-    @Slot(result=str)
-    def get_runner_path(self):
-        return AppConfig.get_runner_path()
 
     # --- NUEVA GESTIÓN DE REPOSITORIOS ---
     @Slot(result='QVariantList')
@@ -433,14 +178,27 @@ class MainController(QObject):
             return []
         
         try:
-            with open(repo_path, 'r') as f:
+            with open(repo_path, 'r', encoding='utf-8') as f:
                 data = json.load(f)
             
             # Verificar si cada emulador está instalado
-            base_path = Path(AppConfig.get_cores_path())
+            import platform
+            os_name = platform.system().lower()
+            base_path = Path(AppConfig.get_emulators_path())
+            
             for emu in data.get("emulators", []):
                 emu_id = emu.get("id", "")
-                executable_path = base_path / emu_id / emu.get("executable", "")
+                
+                # Resolver el ejecutable según el OS
+                exe_config = emu.get("executable", {})
+                if isinstance(exe_config, dict):
+                    executable_name = exe_config.get(os_name, "")
+                else:
+                    executable_name = exe_config # Fallback por si acaso
+                
+                emu["executable"] = executable_name # Aplanar para QML
+                executable_path = base_path / emu_id / executable_name
+                
                 emu["isInstalled"] = executable_path.exists()
                 emu["localPath"] = str(executable_path) if executable_path.exists() else ""
             
@@ -450,17 +208,39 @@ class MainController(QObject):
             return []
 
     @Slot(str, str, str)
+    @Slot(str, str, str)
     def install_emulator(self, emu_id: str, url: str, executable: str):
         """Inicia el flujo de descarga de un emulador independiente."""
         if self._emu_thread and self._emu_thread.isRunning():
             EmuLog.warning(f"Ignorando instalación de {emu_id}: Ya hay otra instalación activa.")
             return
 
-        # Creamos una subcarpeta específica para el emulador (ej: cores/retroarch/)
-        dest_dir = str(Path(AppConfig.get_cores_path()) / emu_id)
+        # Creamos una subcarpeta específica para el emulador dentro de la ruta global de emuladores
+        base_install_path = Path(AppConfig.get_emulators_path())
+        dest_dir = base_install_path / emu_id
         
+        # Lógica especial para RetroArch: Preparar entorno zero-config
+        if emu_id == "retroarch":
+            dest_dir.mkdir(parents=True, exist_ok=True)
+            # 1. Carpeta para Cores
+            cores_dir = dest_dir / "cores"
+            cores_dir.mkdir(parents=True, exist_ok=True)
+            # 2. Inyectar retroarch.cfg básico
+            cfg_path = dest_dir / "retroarch.cfg"
+            if not cfg_path.exists():
+                try:
+                    # Usamos forward slashes para RetroArch incluso en Windows
+                    cores_dir_str = str(cores_dir).replace('\\', '/')
+                    with open(cfg_path, 'w', encoding='utf-8') as f:
+                        f.write(f'libretro_directory = "{cores_dir_str}"\n')
+                        f.write(f'core_assets_directory = "{cores_dir_str}"\n')
+                        f.write('menu_driver = "xmb"\n') # Interfaz clásica amigable
+                    EmuLog.info(f"M.A.N.G.O Config: Inyectado retroarch.cfg en {cfg_path}")
+                except Exception as e:
+                    EmuLog.error(f"No se pudo inyectar configuración de RetroArch: {e}")
+
         self._emu_thread = QThread()
-        self._emu_worker = EmulatorInstallWorker(emu_id, url, dest_dir, executable)
+        self._emu_worker = EmulatorInstallWorker(emu_id, url, str(dest_dir), executable)
         self._emu_worker.moveToThread(self._emu_thread)
         
         # Conectar señales para la UI
@@ -490,8 +270,8 @@ class MainController(QObject):
         except RuntimeError:
             self._emu_thread = None
 
-        # Creamos una subcarpeta específica para el emulador (ej: cores/retroarch/)
-        dest_dir = str(Path(AppConfig.get_cores_path()) / emu_id)
+        # Creamos una subcarpeta específica para el emulador (ej: emulators/retroarch/)
+        dest_dir = str(Path(AppConfig.get_emulators_path()) / emu_id)
         self._emu_thread = QThread()
         self._emu_worker = EmulatorUpdateWorker(emu_id, url, dest_dir, executable)
         self._emu_worker.moveToThread(self._emu_thread)
@@ -518,24 +298,51 @@ class MainController(QObject):
         self.coreDownloadFinished.emit(emu_id, path)
         self.gamesUpdated.emit()
 
-    @Slot(str)
+    @Slot(str, result=bool)
+    def is_emulator_installed(self, emu_id: str) -> bool:
+        """Verifica si un emulador está instalado físicamente."""
+        emu_dir = Path(AppConfig.get_emulators_path()) / emu_id
+        if not emu_dir.exists():
+            return False
+            
+        import platform as py_platform
+        is_win = py_platform.system() == "Windows"
+        
+        # Mapeo de ejecutables por sistema
+        executables = {
+            "retroarch": "retroarch.exe" if is_win else "RetroArch.AppImage",
+            "dolphin": "Dolphin.exe" if is_win else "Dolphin.AppImage",
+            "pcsx2": "pcsx2-qt.exe" if is_win else "PCSX2.AppImage",
+            "ppsspp": "PPSSPPWindows64.exe" if is_win else "PPSSPP.AppImage"
+        }
+        
+        exe_name = executables.get(emu_id.lower())
+        if not exe_name:
+            # Si no está mapeado, buscamos cualquier archivo ejecutable en el root de la carpeta
+            return any(emu_dir.glob("*.exe")) if is_win else any(emu_dir.glob("*.AppImage"))
+            
+        return (emu_dir / exe_name).exists()
+
     @Slot(str)
     def uninstall_emulator(self, emu_id: str):
-        """Elimina el directorio completo del emulador."""
+        """Elimina el directorio completo del emulador usando el motor nativo."""
         try:
-            import shutil
-            target_dir = Path(AppConfig.get_cores_path()) / emu_id
-            if target_dir.exists():
-                shutil.rmtree(target_dir)
-                EmuLog.info(f"Emulador desinstalado y carpeta eliminada: {emu_id}")
-                self.gamesUpdated.emit()
+            target_dir = str(Path(AppConfig.get_emulators_path()) / emu_id)
+            import mango_engine
+            mango_engine.uninstall_emulator(target_dir)
+            EmuLog.info(f"M.A.N.G.O Uninstall: Carpeta eliminada: {emu_id}")
+            self._cached_summary = None 
+            self.gamesUpdated.emit()
         except Exception as e:
             EmuLog.error(f"Error desinstalando emulador {emu_id}: {e}")
 
     @Slot(str)
-    def open_emulator_folder(self, executable_name: str):
-        """Abre la carpeta que contiene el ejecutable en el explorador de archivos."""
-        target_path = Path(AppConfig.get_cores_path()) 
+    def open_emulator_folder(self, emu_id: str):
+        """Abre la carpeta del emulador en el explorador."""
+        target_path = Path(AppConfig.get_emulators_path()) / emu_id
+        if not target_path.exists():
+            target_path = Path(AppConfig.get_emulators_path())
+            
         import subprocess
         try:
             if sys.platform == "linux":
@@ -559,19 +366,31 @@ class MainController(QObject):
                 platform = row["platform"]
 
             # 2. Buscar core sugerido e instalado
+            import platform as py_platform
+            is_win = py_platform.system() == "Windows"
+            core_ext = ".dll" if is_win else ".so"
+            
             core_id = self.libretro.get_core_for_platform(platform)
             core_path = None
             if core_id:
-                # Buscar en la subcarpeta del sistema
-                core_file = self.libretro.cores_path / platform / f"{core_id}_libretro.so"
+                # Buscar en la subcarpeta del sistema dentro de RetroArch/cores/PLATAFORMA
+                # Nota: Ahora los guardamos organizados por plataforma dentro de RetroArch
+                core_file = self.libretro.cores_path / platform / f"{core_id}_libretro{core_ext}"
                 if core_file.exists():
                     core_path = str(core_file)
                 else:
-                    EmuLog.warning(f"Core sugerido {core_id} no está instalado en {core_file}. Intentando lanzar sin core...")
+                    EmuLog.warning(f"Core sugerido {core_id} no está en {core_file}. Intentando lanzar sin core...")
 
-            # 3. Lanzar en hilo separado para no congelar la UI
-            runner = AppConfig.get_runner_path()
-            EmuLog.info(f"M.A.N.G.O Launch: Preparando {game_path} con {runner}...")
+            # 3. Detectar el ejecutable de RetroArch
+            emu_base = Path(AppConfig.get_emulators_path()) / "retroarch"
+            exe_name = "retroarch.exe" if is_win else "RetroArch.AppImage"
+            runner = str(emu_base / exe_name)
+            
+            if not Path(runner).exists():
+                EmuLog.error(f"No se pudo iniciar el emulador: {runner} no existe.")
+                return
+
+            EmuLog.info(f"M.A.N.G.O Launch: Preparando {game_path} con {exe_name}...")
             
             self._launch_thread = QThread()
             self._launch_worker = LaunchWorker(runner, game_path, core_path)
@@ -656,8 +475,8 @@ class MainController(QObject):
         return AppConfig.get_roms_path() or "No configurado"
 
     @Slot(result=str)
-    def get_cores_path(self):
-        return AppConfig.get_cores_path() or "No configurado"
+    def get_emulators_path(self):
+        return AppConfig.get_emulators_path() or "No configurado"
 
     @Slot(result=bool)
     def scan_directories(self):
@@ -818,6 +637,14 @@ class MainController(QObject):
         self._core_thread.start()
         return True
 
+    @Slot(str)
+    def uninstall_core(self, core_id: str):
+        """Solicita la eliminación de un núcleo específico."""
+        if self.libretro.uninstall_core(core_id):
+            self._cached_summary = None
+            self.gamesUpdated.emit()
+            EmuLog.info(f"Core {core_id} desinstalado con éxito.")
+
     def _on_core_download_finished(self, path: str):
         core_id = self._core_worker.core_name if self._core_worker else "core"
         if path:
@@ -861,112 +688,70 @@ class MainController(QObject):
     @Slot(result="QVariantList")
     @Slot(bool, result="QVariantList")
     def get_consoles_summary(self, use_cache=True):
-        """Retorna un resumen dinámico de juegos por plataforma para el carrusel QML."""
+        """Retorna un resumen dinámico de juegos por plataforma para el carrusel QML (Optimizado por M.A.N.G.O)."""
         if use_cache and self._cached_summary:
             return self._cached_summary
 
-        # Sincronizar ruta de cores antes de listar
-        self.libretro.cores_path = Path(AppConfig.get_cores_path())
-
-        base_platforms = [
-            {"title": "SNES", "fullName": "Super Nintendo", "platform": "snes", "icon": "🕹️", "color": "#ff4b2b"},
-            {"title": "NES", "fullName": "Nintendo Entertainment System", "platform": "nes", "icon": "📺", "color": "#ff416c"},
-            {"title": "GBA", "fullName": "Game Boy Advance", "platform": "gba", "icon": "📱", "color": "#9d50bb"},
-            {"title": "N64", "fullName": "Nintendo 64", "platform": "n64", "icon": "🏰", "color": "#3a7bd5"},
-            {"title": "PS1", "fullName": "PlayStation 1", "platform": "ps1", "icon": "💿", "color": "#00d2ff"},
-            {"title": "PS2", "fullName": "PlayStation 2", "platform": "ps2", "icon": "🚀", "color": "#00d2ff"},
-            {"title": "PSP", "fullName": "PlayStation Portable", "platform": "psp", "icon": "🔋", "color": "#00d2ff"},
-            {"title": "DS", "fullName": "Nintendo DS", "platform": "ds", "icon": "📖", "color": "#16a085"},
-            {"title": "GAMECUBE", "fullName": "Nintendo GameCube", "platform": "gc", "icon": "🧊", "color": "#8e44ad"},
-            {"title": "WII", "fullName": "Nintendo Wii", "platform": "wii", "icon": "🎾", "color": "#ffffff"},
-            {"title": "MEGADRIVE", "fullName": "Sega Mega Drive", "platform": "megadrive", "icon": "🌀", "color": "#2c3e50"},
-            {"title": "DREAMCAST", "fullName": "Sega Dreamcast", "platform": "dreamcast", "icon": "🍥", "color": "#e67e22"},
-            {"title": "OTROS", "fullName": "Misceláneo", "platform": "unknown", "icon": "❓", "color": "#95a5a6"}
-        ]
+        base_platforms = {
+            "snes": {"title": "SNES", "fullName": "Super Nintendo", "icon": "🕹️", "color": "#ff4b2b"},
+            "nes": {"title": "NES", "fullName": "Nintendo Entertainment System", "icon": "📺", "color": "#ff416c"},
+            "gba": {"title": "GBA", "fullName": "Game Boy Advance", "icon": "📱", "color": "#9d50bb"},
+            "n64": {"title": "N64", "fullName": "Nintendo 64", "icon": "🏰", "color": "#3a7bd5"},
+            "ps1": {"title": "PS1", "fullName": "PlayStation 1", "icon": "💿", "color": "#00d2ff"},
+            "ps2": {"title": "PS2", "fullName": "PlayStation 2", "icon": "🚀", "color": "#00e5ff"},
+            "psp": {"title": "PSP", "fullName": "PlayStation Portable", "icon": "🔋", "color": "#00aaff"},
+            "ds": {"title": "DS", "fullName": "Nintendo DS", "icon": "📖", "color": "#16a085"},
+            "gc": {"title": "GAMECUBE", "fullName": "Nintendo GameCube", "icon": "🧊", "color": "#8e44ad"},
+            "wii": {"title": "WII", "fullName": "Nintendo Wii", "icon": "🎾", "color": "#ffffff"},
+            "megadrive": {"title": "MEGADRIVE", "fullName": "Sega Mega Drive", "icon": "🌀", "color": "#2c3e50"},
+            "dreamcast": {"title": "DREAMCAST", "fullName": "Sega Dreamcast", "icon": "🍥", "color": "#e67e22"},
+            "unknown": {"title": "OTROS", "fullName": "Misceláneo", "icon": "❓", "color": "#95a5a6"}
+        }
         
         summary = []
         try:
-            installed_cores = self.libretro.list_installed_cores()
-            with self.db.get_connection() as conn:
-                cursor = conn.cursor()
-                for p in base_platforms:
-                    # 1. Contar Juegos
-                    q_count = "SELECT COUNT(*) FROM games"
-                    params = []
-                    if p["platform"] != "all":
-                        q_count += " WHERE platform = ?"
-                        params = [p["platform"]]
-                    cursor.execute(q_count, params)
-                    count = cursor.fetchone()[0]
-                    
-                    # 2. Verificar Nucleos Instalados (Cores y Standalone)
-                    has_core = False
-                    installed_emulators = []
-                    
-                    # A. Check Libretro Cores
-                    platform_cores = CORE_DATABASE.get(p["platform"], [])
-                    for cid, cname in platform_cores:
-                        if f"{cid}_libretro" in installed_cores:
-                            installed_emulators.append(cname.split('(')[0].strip())
-                    
-                    # B. Check Standalone Emulators (NUEVO)
-                    # Mapeo de plataforma a ID de emulador standalone
-                    platform_to_emu = {
-                        "gc": "dolphin", "wii": "dolphin",
-                        "psp": "ppsspp", "ps2": "pcsx2",
-                        "ps1": "duckstation", "ps3": "rpcs3",
-                        "switch": "ryujinx", "vita": "vita3k"
-                    }
-                    
-                    # 1. RetroArch es universal si está instalado
-                    ra_path = Path(AppConfig.get_cores_path()) / "retroarch" / "RetroArch.AppImage"
-                    if ra_path.exists():
-                        installed_emulators.append("RetroArch")
-                        
-                    # 2. Verificar standalone específico
-                    emu_id = platform_to_emu.get(p["platform"])
-                    if emu_id:
-                        # Buscamos el ejecutable en repositories.json para ser precisos
-                        # (Simplificado: buscamos cualquier .AppImage en la subcarpeta por ahora)
-                        emu_dir = Path(AppConfig.get_cores_path()) / emu_id
-                        if emu_dir.exists() and any(emu_dir.glob("*.AppImage")):
-                            installed_emulators.append(emu_id.upper())
-                    
-                    # Eliminar duplicados y formatear
-                    installed_emulators = list(set(installed_emulators))
-                    has_core = len(installed_emulators) > 0
-                    emu_text = ", ".join(installed_emulators) if has_core else "Sin emuladores"
-
-                    # 3. Calcular Tiempo
-                    time_h = "0h"
-                    # ... (resto de la lógica de tiempo)
-                    try:
-                        q_time = "SELECT SUM(play_time_seconds) FROM play_stats"
-                        if p["platform"] != "all":
-                            q_time = "SELECT SUM(play_time_seconds) FROM play_stats s JOIN games g ON s.game_id = g.id WHERE g.platform = ?"
-                        cursor.execute(q_time, params)
-                        seconds = cursor.fetchone()[0] or 0
-                        time_h = f"{seconds // 3600}h"
-                    except Exception: pass
-
-                    # Mostramos ÚNICAMENTE las plataformas que tengan juegos.
-                    # Excepción: la opción 'all' si hay al menos un juego de cualquier tipo.
-                    total_at_all = self.get_games_count()
-                    if count > 0 or (p["platform"] == "all" and total_at_all > 0):
-                        summary.append({
-                            "title": p["title"],
-                            "fullName": p.get("fullName", p["title"]),
-                            "platform": p["platform"],
-                            "iconEmoji": p["icon"],
-                            "accentColor": p["color"],
-                            "gameCount": str(count),
-                            "playTime": time_h,
-                            "hasCore": has_core,
-                            "emulatorName": emu_text
-                        })
-        except Exception as e:
-            EmuLog.error(f"Error al generar resumen de consolas: {e}")
-            return []
+            import mango_engine
+            # Llamada al motor nativo que resuelve todo (DB + Cores + Standalones)
+            native_results = mango_engine.fetch_consoles_summary(
+                str(AppConfig.get_database_path()),
+                str(AppConfig.get_emulators_path())
+            )
             
-        self._cached_summary = summary
-        return summary
+            for item in native_results:
+                platform_id = item["platform"]
+                ui_info = base_platforms.get(platform_id, base_platforms["unknown"])
+                
+                # Combinar datos de negocio (Rust) con datos visuales (Python)
+                summary.append({
+                    "title": ui_info["title"],
+                    "fullName": ui_info["fullName"],
+                    "platform": platform_id,
+                    "iconEmoji": ui_info["icon"],
+                    "accentColor": ui_info["color"],
+                    "gameCount": item["gameCount"],
+                    "playTime": item["playTime"],
+                    "hasCore": item["hasCore"],
+                    "emulatorName": item["emulatorName"]
+                })
+            
+            # Caso especial: Total general "VER TODOS"
+            total_games = self.get_games_count()
+            if total_games > 0:
+                summary.insert(0, {
+                    "title": "TODOS",
+                    "fullName": "Toda la Colección",
+                    "platform": "all",
+                    "iconEmoji": "📂",
+                    "accentColor": "#16a085",
+                    "gameCount": str(total_games),
+                    "playTime": "--",
+                    "hasCore": True,
+                    "emulatorName": "Varios Emuladores"
+                })
+
+            self._cached_summary = summary
+            return summary
+            
+        except Exception as e:
+            EmuLog.error(f"Error nativo en resumen de consola: {e}")
+            return []

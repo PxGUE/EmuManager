@@ -1,0 +1,250 @@
+import sys
+import os
+import time
+from pathlib import Path
+from PySide6.QtCore import QObject, Slot, Signal
+from core.logger import EmuLog
+
+class ScanWorker(QObject):
+    """Trabajador que ejecuta el escaneo en un hilo separado."""
+    finished = Signal(int)
+    progress = Signal(float)
+    status = Signal(str)
+
+    def __init__(self, scanner_manager, directory: str):
+        super().__init__()
+        self.scanner = scanner_manager
+        self.directory = directory
+        self._is_active = True
+
+    @Slot()
+    def stop(self):
+        self._is_active = False
+
+    @Slot()
+    def run(self):
+        try:
+            count = self.scanner.scan_and_register(
+                self.directory,
+                progress_callback=self.progress.emit,
+                status_callback=self.status.emit,
+                is_active_check=lambda: self._is_active
+            )
+            self.finished.emit(count)
+        except Exception as e:
+            EmuLog.error(f"Error fatal en hilo de escaneo: {e}")
+            self.finished.emit(0)
+
+
+class ScrapeWorker(QObject):
+    finished = Signal(int)
+    progress = Signal(float)
+    status = Signal(str)
+
+    def __init__(self, scanner_manager):
+        super().__init__()
+        self.scanner = scanner_manager
+        self._is_active = True
+
+    @Slot()
+    def stop(self):
+        self._is_active = False
+
+    @Slot()
+    def run(self):
+        try:
+            # Nuevo callback que recibe (progreso, status_text) desde Rust
+            def _handle_progress(p, s=None):
+                self.progress.emit(p)
+                if s: self.status.emit(s)
+
+            count = self.scanner.scrape_missing_metadata(
+                self._is_active, 
+                progress_callback=_handle_progress,
+                status_callback=self.status.emit
+            )
+            self.finished.emit(count)
+        except Exception as e:
+            EmuLog.error(f"Error fatal en hilo de scraping: {e}")
+            self.finished.emit(0)
+
+class CoreDownloadWorker(QObject):
+    finished = Signal(str, str)
+    progress = Signal(str, float)
+    status = Signal(str, str)
+
+    def __init__(self, libretro_manager, core_name: str):
+        super().__init__()
+        self.libretro = libretro_manager
+        self.core_name = core_name
+
+    @Slot()
+    def run(self):
+        try:
+            self.status.emit(self.core_name, f"Descargando {self.core_name} usando M.A.N.G.O (Rust)...")
+            # El progress callback llamará self.progress.emit(p)
+            def progress_cb(p: float):
+                self.progress.emit(self.core_name, p)
+                
+            path = self.libretro.download_core(self.core_name, progress_cb)
+            if path:
+                EmuLog.info(f"Instalación exitosa del core '{self.core_name}' en {path}")
+                self.status.emit(self.core_name, "¡Core instalado!")
+                self.finished.emit(self.core_name, path)
+            else:
+                self.status.emit(self.core_name, "Error")
+                self.finished.emit(self.core_name, "")
+        except Exception as e:
+            EmuLog.error(f"Error mortal en CoreDownloadWorker: {e}")
+            self.status.emit(self.core_name, "Error en la instalación.")
+            self.finished.emit(self.core_name, "")
+
+
+class EmulatorInstallWorker(QObject):
+    """Trabajador genérico para descargar e instalar emuladores independientes."""
+    finished = Signal(str, str)
+    progress = Signal(str, float)
+    status = Signal(str, str)
+
+    def __init__(self, emu_id: str, url: str, dest_dir: str, executable: str):
+        super().__init__()
+        self.emu_id = emu_id
+        self.url = url
+        self.dest_dir = dest_dir
+        self.executable = executable
+
+    @Slot()
+    def run(self):
+        try:
+            import mango_engine
+            def progress_cb(p: float):
+                self.progress.emit(self.emu_id, p)
+            
+            self.status.emit(self.emu_id, f"Descargando {self.emu_id}...")
+            EmuLog.info(f"Iniciando instalación del emulador '{self.emu_id}' desde {self.url}...")
+            path = mango_engine.download_emulator(self.url, self.dest_dir, self.executable, progress_cb)
+            
+            if path:
+                EmuLog.info(f"Instalación exitosa del emulador '{self.emu_id}' en {path}")
+                self.status.emit(self.emu_id, f"✓ {self.emu_id} instalado correctamente.")
+                self.finished.emit(self.emu_id, path)
+            else:
+                self.status.emit(self.emu_id, "Error en la descarga.")
+                self.finished.emit(self.emu_id, "")
+        except Exception as e:
+            EmuLog.error(f"Error crítico en EmulatorInstallWorker: {e}")
+            self.status.emit(self.emu_id, f"Fallo: {str(e)}")
+            self.finished.emit(self.emu_id, "")
+
+
+class StartupWorker(QObject):
+    """Orquestador del flujo de arranque real de EmuManager."""
+    progress = Signal(float)
+    status = Signal(str)
+    finished = Signal()
+
+    def __init__(self, controller):
+        super().__init__()
+        self.ctrl = controller
+
+    @Slot()
+    def run(self):
+        try:
+            # 1. Motor Nativo (20%)
+            self.status.emit("Engranando motor nativo M.A.N.G.O (Rust)...")
+            time.sleep(0.4) 
+            self.ctrl._is_precharged = False
+            self.ctrl.proactive_background_load()
+            self.progress.emit(0.25)
+            
+            # 2. Base de Datos (50%)
+            self.status.emit("Verificando integridad de la biblioteca...")
+            time.sleep(0.3)
+            # Podríamos disparar un scan rápido aquí si quisiéramos
+            self.progress.emit(0.55)
+            
+            # 3. Preparación de Assets (80%)
+            self.status.emit("Optimizando caché de medios y carátulas...")
+            try:
+                # Pedimos los juegos a la DB para conocer sus rutas de carátula
+                games = self.ctrl.db.get_all_games()
+                # Calentamos solo las primeras 50 (las que el usuario verá primero)
+                count = 0
+                for game in games:
+                    if count > 50: break
+                    cover_path = game.get('media_path')
+                    if cover_path and os.path.exists(cover_path):
+                        # "Tocamos" el archivo leyéndolo mínimamente para que entre en la caché del OS
+                        with open(cover_path, 'rb') as f:
+                            f.read(1024) 
+                        count += 1
+            except Exception as e:
+                EmuLog.debug(f"Aviso en Warm-up: {e}")
+            
+            self.progress.emit(0.85)
+            
+            # 4. Finalización (100%)
+            self.status.emit("Misiones inicializadas. Bienvenida.")
+            self.progress.emit(1.0)
+            self.finished.emit()
+            
+        except Exception as e:
+            EmuLog.error(f"Error crítico en StartupWorker: {e}")
+            self.finished.emit()
+
+
+class EmulatorUpdateWorker(QObject):
+    """Trabajador para actualizar emuladores con backup gestionado por Rust."""
+    finished = Signal(str, str)
+    progress = Signal(str, float)
+    status = Signal(str, str)
+
+    def __init__(self, emu_id: str, url: str, dest_dir: str, executable: str):
+        super().__init__()
+        self.emu_id = emu_id
+        self.url = url
+        self.dest_dir = dest_dir
+        self.executable = executable
+
+    @Slot()
+    def run(self):
+        try:
+            import mango_engine
+            def progress_cb(p: float):
+                self.progress.emit(self.emu_id, p)
+            
+            self.status.emit(self.emu_id, f"Actualizando {self.emu_id}...")
+            path = mango_engine.update_emulator(self.url, self.dest_dir, self.executable, progress_cb)
+            
+            if path:
+                self.status.emit(self.emu_id, f"✓ {self.emu_id} actualizado.")
+                self.finished.emit(self.emu_id, path)
+            else:
+                self.status.emit(self.emu_id, "Error en actualización.")
+                self.finished.emit(self.emu_id, "")
+        except Exception as e:
+            EmuLog.error(f"Error crítico en EmulatorUpdateWorker: {e}")
+            self.status.emit(self.emu_id, f"Error: {e}")
+            self.finished.emit(self.emu_id, "")
+
+
+class LaunchWorker(QObject):
+    """Trabajador que lanza el juego (bloqueante) en un hilo y mide el tiempo."""
+    finished = Signal(int)
+
+    def __init__(self, runner_path: str, game_path: str, core_path: str = None):
+        super().__init__()
+        self.runner_path = runner_path
+        self.game_path = game_path
+        self.core_path = core_path
+
+    @Slot()
+    def run(self):
+        try:
+            import mango_engine
+            # El motor nativo ya gestiona subprocess y mide el tiempo jugado
+            duration = mango_engine.launch_game(self.runner_path, self.game_path, self.core_path)
+            self.finished.emit(duration)
+        except Exception as e:
+            EmuLog.error(f"Error nativo al lanzar juego: {e}")
+            self.finished.emit(0)

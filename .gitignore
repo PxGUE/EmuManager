@@ -2,8 +2,12 @@ target/
 __pycache__/
 *.so
 *.pyd
+
+# Permitir binarios del motor M.A.N.G.O (Necesarios para ejecucion local sin compilar)
+!mango/bin/**
+!mango/bin/**/*.pyd
+!mango/bin/**/*.so
 emumanager/core/secrets.py
 .env
 secrets.env
 /data
-!/data/.gitkeep

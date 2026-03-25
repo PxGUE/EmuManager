@@ -41,14 +41,27 @@ pub fn get_consoles_summary_native(
     let emu_base = Path::new(emulators_path);
     let ra_base = emu_base.join("retroarch");
     
-    // Detectar RetroArch (universal)
+    // Detección Inteligente de RetroArch (misma lógica que core_manager)
     #[cfg(target_os = "windows")]
-    let ra_exe = "retroarch.exe";
+    let ra_exe_name = "retroarch.exe";
     #[cfg(not(target_os = "windows"))]
-    let ra_exe = "RetroArch.AppImage";
+    let ra_exe_name = "RetroArch.AppImage";
     
-    let has_retroarch = ra_base.join(ra_exe).exists();
-    let cores_dir = ra_base.join("cores");
+    let mut real_ra_path = None;
+    if ra_base.join(ra_exe_name).exists() {
+        real_ra_path = Some(ra_base.join(ra_exe_name));
+    } else if let Ok(entries) = fs::read_dir(&ra_base) {
+        for entry in entries.flatten() {
+            if entry.path().is_dir() && entry.path().join(ra_exe_name).exists() {
+                real_ra_path = Some(entry.path().join(ra_exe_name));
+                break;
+            }
+        }
+    }
+
+    let has_retroarch = real_ra_path.is_some();
+    // Nueva ruta global de cores
+    let cores_dir = emu_base.join("cores");
 
     // 1. Obtener lista de plataformas con juegos
     let mut stmt = conn.prepare("SELECT DISTINCT platform FROM games")

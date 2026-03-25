@@ -1,3 +1,4 @@
+from typing import Optional
 from pathlib import Path
 from PySide6.QtCore import QObject, Slot, Signal, QThread
 from PySide6.QtQml import QmlElement
@@ -160,7 +161,7 @@ class MainController(QObject):
         if directory:
             AppConfig.set_emulators_path(directory)
             EmuLog.info(f"Configurada nueva ruta de Emuladores: {directory}")
-            self.libretro.cores_path = Path(directory) / "retroarch" / "cores"
+            # Ya no asignamos a cores_path porque es una propiedad dinámica en libretro
             return directory
         return AppConfig.get_emulators_path()
 
@@ -250,44 +251,47 @@ class MainController(QObject):
         self.coreDownloadFinished.emit(emu_id, path)
         self.gamesUpdated.emit()
 
-    @Slot(str, result=bool)
-    def is_emulator_installed(self, emu_id: str) -> bool:
-        """Verifica si un emulador está instalado físicamente (Búsqueda Inteligente M.A.N.G.O)."""
-        emu_dir = Path(AppConfig.get_emulators_path()) / emu_id
-        if not emu_dir.exists():
-            return False
-            
+    def _find_emulator_executable(self, emu_id: str) -> Optional[Path]:
+        """Ayudante interno para localizar el ejecutable real de un emulador (Búsqueda 1-nivel)."""
         import platform as py_platform
         is_win = py_platform.system() == "Windows"
-        exe_name = "retroarch.exe" if emu_id.lower() == "retroarch" and is_win else None
         
-        # Mapeo por defecto
-        if not exe_name:
-            executables = {
-                "retroarch": "retroarch.exe" if is_win else "RetroArch.AppImage",
-                "dolphin": "Dolphin.exe" if is_win else "Dolphin.AppImage",
-                "pcsx2": "pcsx2-qt.exe" if is_win else "PCSX2.AppImage",
-                "ppsspp": "PPSSPPWindows64.exe" if is_win else "PPSSPP.AppImage"
-            }
-            exe_name = executables.get(emu_id.lower())
-
-        if not exe_name:
-            # Fallback a búsqueda genérica si no hay mapeo
-            return any(emu_dir.glob("*.exe")) if is_win else any(emu_dir.glob("*.AppImage"))
-            
-        # 1. ¿Está en la raíz?
-        if (emu_dir / exe_name).exists():
-            return True
-            
-        # 2. ¿Está en una subcarpeta? (Ej: RetroArch-Win64)
+        # 1. Obtener nombre del ejecutable del catálogo
+        emu_id_lower = emu_id.lower()
+        exe_name = None
+        
+        # Mapeo rápido para casos comunes si el repo no está cargado
+        executables = {
+            "retroarch": "retroarch.exe" if is_win else "RetroArch.AppImage",
+            "dolphin": "Dolphin.exe" if is_win else "Dolphin.AppImage",
+            "pcsx2": "pcsx2-qt.exe" if is_win else "PCSX2.AppImage",
+            "ppsspp": "PPSSPPWindows64.exe" if is_win else "PPSSPP.AppImage",
+            "duckstation": "duckstation-qt-x64-release.exe" if is_win else "DuckStation.AppImage"
+        }
+        exe_name = executables.get(emu_id_lower)
+        
+        if not exe_name: return None
+        
+        # 2. Buscar en la carpeta del emulador
+        emu_dir = Path(AppConfig.get_emulators_path()) / emu_id_lower
+        if not emu_dir.exists(): return None
+        
+        # Intento A: Raíz
+        if (emu_dir / exe_name).exists(): return emu_dir / exe_name
+        
+        # Intento B: Subcarpeta (Ej: RetroArch-Win64)
         try:
             for sub in emu_dir.iterdir():
                 if sub.is_dir() and (sub / exe_name).exists():
-                    return True
-        except Exception:
-            pass
-            
-        return False
+                    return sub / exe_name
+        except: pass
+        
+        return None
+
+    @Slot(str, result=bool)
+    def is_emulator_installed(self, emu_id: str) -> bool:
+        """Verifica si un emulador está instalado físicamente."""
+        return self._find_emulator_executable(emu_id) is not None
 
     @Slot(str)
     def uninstall_emulator(self, emu_id: str):
@@ -347,40 +351,16 @@ class MainController(QObject):
                 else:
                     EmuLog.warning(f"Core sugerido {core_id} no está en {core_file}. Intentando lanzar sin core...")
 
-            # 3. Detectar el ejecutable de RetroArch (Búsqueda Inteligente M.A.N.G.O)
-            emu_base = Path(AppConfig.get_emulators_path()) / "retroarch"
-            exe_name = "retroarch.exe" if is_win else "RetroArch.AppImage"
+            # 3. Detectar el ejecutable de RetroArch usando el ayudante centralizado
+            runner = self._find_emulator_executable("retroarch")
             
-            # Intento 1: Ruta directa
-            runner = emu_base / exe_name
-            
-            # Intento 2: Búsqueda en un nivel de profundidad (ej: RetroArch-Win64/retroarch.exe)
-            if not runner.exists() and emu_base.exists():
-                for sub in emu_base.iterdir():
-                    if sub.is_dir() and (sub / exe_name).exists():
-                        runner = sub / exe_name
-                        break
-            
-            # Intento 3: Rutas de instalación del sistema
-            if not runner.exists():
-                backups = [
-                    Path("C:/RetroArch-Win64") / exe_name,
-                    Path("C:/RetroArch") / exe_name,
-                    Path("C:/Program Files/RetroArch") / exe_name
-                ]
-                for b in backups:
-                    if b.exists():
-                        runner = b
-                        EmuLog.info(f"M.A.N.G.O: Detectada instalación oficial en {runner}")
-                        break
-
-            if not runner.exists():
-                EmuLog.error(f"No se pudo iniciar el emulador: {exe_name} no se encuentra en ninguna ubicación conocida.")
+            if not runner:
+                EmuLog.error("No se pudo iniciar el emulador: retroarch no se encuentra instalado localmente.")
                 return
 
             runner_str = str(runner)
 
-            EmuLog.info(f"M.A.N.G.O Launch: Preparando {game_path} con {exe_name}...")
+            EmuLog.info(f"M.A.N.G.O Launch: Preparando {game_path} con {runner.name}...")
             
             self._launch_thread = QThread()
             self._launch_worker = LaunchWorker(runner_str, game_path, core_path)

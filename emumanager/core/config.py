@@ -72,6 +72,18 @@ class AppConfig:
         cls._save_config()
 
     @classmethod
+    def get_runner_path(cls) -> str:
+        """Retorna la ruta del ejecutable de RetroArch o el emulador global."""
+        config = cls._load_config()
+        return config.get("runner_path", "retroarch") # Por defecto asume que está en el PATH
+
+    @classmethod
+    def set_runner_path(cls, path: str):
+        config = cls._load_config()
+        config["runner_path"] = str(path)
+        cls._save_config()
+
+    @classmethod
     def get_screenscraper_user(cls) -> str:
         return cls._load_config().get("ss_user", "")
 

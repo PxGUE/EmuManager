@@ -27,6 +27,10 @@ pub async fn scrape_game(
         "ps2" | "playstation 2" | "sony playstation 2" => "Sony - PlayStation 2",
         "psp" | "playstation portable" | "sony playstation portable" => "Sony - PlayStation Portable",
         "ds" | "nintendo ds" => "Nintendo - Nintendo DS",
+        "gb" | "game boy" | "nintendo game boy" => "Nintendo - Game Boy",
+        "gbc" | "game boy color" | "nintendo game boy color" => "Nintendo - Game Boy Color",
+        "gc" | "gamecube" | "game cube" | "nintendo gamecube" => "Nintendo - GameCube",
+        "wii" | "nintendo wii" => "Nintendo - Wii",
         "megadrive" | "genesis" | "sega mega drive - genesis" => "Sega - Mega Drive - Genesis",
         _ => {
             Python::with_gil(|py| {

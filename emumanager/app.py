@@ -6,25 +6,38 @@ from PySide6.QtQml import QQmlApplicationEngine
 from dotenv import load_dotenv
 
 # --- CARGAR SECRETOS (SS_DEV_ID, SS_DEV_PASS) ---
-load_dotenv()
+# Buscamos .env o secrets.env en la raíz del proyecto
+root_dir = Path(__file__).resolve().parent.parent
+load_dotenv(root_dir / ".env")
+load_dotenv(root_dir / "secrets.env")
 
-# Modificamos el import path para resolver módulos desde la raíz emumanager
+# --- CONFIGURACIÓN DE RUTAS ---
 current_dir = Path(__file__).resolve().parent
 if str(current_dir) not in sys.path:
     sys.path.insert(0, str(current_dir))
 
-# AGREGAR BACKEND PARA EL MOTOR NATIVO
+# Agregar backend al path
 backend_dir = current_dir / "backend"
 if str(backend_dir) not in sys.path:
     sys.path.insert(0, str(backend_dir))
 
-# Importamos el controlador y modelos
+# AGREGAR MOTOR NATIVO BINARIO (Linux/Windows)
+import platform
+os_name = platform.system().lower()
+bin_path = current_dir.parent / "mango_engine" / "bin" / os_name
+if bin_path.exists() and str(bin_path) not in sys.path:
+    sys.path.insert(0, str(bin_path))
+
+# --- IMPORTACIONES DEL SISTEMA ---
 from controllers.main_ctrl import MainController
 from controllers.game_model import GameListModel
 
 def main():
     # Setup de UI application env params
     os.environ["QT_QUICK_CONTROLS_STYLE"] = "Material"
+    
+    # Silenciar avisos de perfiles de color de libpng (iCCP warnings)
+    os.environ["QT_LOGGING_RULES"] = "qt.gui.imageio=false"
     
     app = QApplication(sys.argv)
     engine = QQmlApplicationEngine()

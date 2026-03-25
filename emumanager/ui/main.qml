@@ -14,30 +14,21 @@ ApplicationWindow {
     Material.theme: Material.Dark
     Material.accent: "#16a085"
 
-    // --- MOTOR DE PROGRESO DE ARRANQUE ---
+    // --- MOTOR DE PROGRESO DE ARRANQUE REAL ---
     property bool isLoaded: false
     property string activeViewId: "dashboardView"
     property real startupProgress: 0.0
     property string startupStatus: "INICIALIZANDO..."
 
-    Timer {
-        id: startupFlow; interval: 80; running: true; repeat: true
-        onTriggered: {
-            if (startupProgress < 1.0) {
-                startupProgress += 0.02
-                if (startupProgress >= 0.18 && startupProgress < 0.22) {
-                    startupStatus = "Pre-cargando biblioteca..."
-                    controller.proactive_background_load()
-                }
-                else if (startupProgress < 0.2) startupStatus = "Cargando motor de escaneo..."
-                else if (startupProgress < 0.4) startupStatus = "Verificando M.A.N.G.O Native Engine (RUST)..."
-                else if (startupProgress < 0.6) startupStatus = "Conectando base de datos activa..."
-                else if (startupProgress < 0.8) startupStatus = "Sincronizando modelos de interfaz..."
-                else startupStatus = "Listo para iniciar operaciones"
-            } else {
-                startupFlow.stop(); startupStatus = "Listo"; isLoaded = true
-            }
-        }
+    Connections {
+        target: controller
+        function onStartupProgressChanged(p) { window.startupProgress = p }
+        function onStartupStatusChanged(s) { window.startupStatus = s }
+        function onStartupFinished() { window.isLoaded = true }
+    }
+
+    Component.onCompleted: {
+        controller.start_startup_sequence()
     }
 
 

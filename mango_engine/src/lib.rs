@@ -198,11 +198,78 @@ fn download_core(
     }
 }
 
+/// Descarga e instala un emulador genérico.
+#[pyfunction]
+fn download_emulator(
+    url: String,
+    dest_dir: String,
+    expected_filename: String,
+    progress_callback: Option<PyObject>
+) -> PyResult<String> {
+    let rt = Runtime::new().unwrap();
+    let res = Python::with_gil(|py| {
+        py.allow_threads(|| {
+            rt.block_on(core_manager::download_emulator_async(url, dest_dir, expected_filename, progress_callback))
+        })
+    });
+    
+    match res {
+        Ok(path) => Ok(path),
+        Err(e) => Err(pyo3::exceptions::PyRuntimeError::new_err(e.to_string())),
+    }
+}
+
+/// Actualiza un emulador existente de forma segura.
+#[pyfunction]
+fn update_emulator(
+    url: String,
+    dest_dir: String,
+    expected_filename: String,
+    progress_callback: Option<PyObject>
+) -> PyResult<String> {
+    let rt = Runtime::new().unwrap();
+    let res = Python::with_gil(|py| {
+        py.allow_threads(|| {
+            rt.block_on(core_manager::update_emulator_async(url, dest_dir, expected_filename, progress_callback))
+        })
+    });
+    
+    match res {
+        Ok(path) => Ok(path),
+        Err(e) => Err(pyo3::exceptions::PyRuntimeError::new_err(e.to_string())),
+    }
+}
+
+/// Elimina los archivos de un emulador (desinstalar).
+#[pyfunction]
+fn uninstall_emulator(target_path: String) -> PyResult<()> {
+    let rt = Runtime::new().unwrap();
+    let res = Python::with_gil(|py| {
+        py.allow_threads(|| {
+            rt.block_on(core_manager::remove_emulator_files_async(target_path))
+        })
+    });
+    
+    match res {
+        Ok(_) => Ok(()),
+        Err(e) => Err(pyo3::exceptions::PyRuntimeError::new_err(e.to_string())),
+    }
+}
+
 /// Realiza una búsqueda "fuzzymatch" eficiente sobre la base de datos de juegos.
 /// Retorna objetos compatibles con el modelo de Python.
 #[pyfunction]
 fn search_games(py: Python<'_>, db_path: String, query: String, platform_filter: String) -> PyResult<Vec<PyObject>> {
     searcher::search_games(py, &db_path, &query, &platform_filter)
+}
+
+/// Lanza un juego y mide el tiempo de ejecución.
+#[pyfunction]
+fn launch_game(emulator_path: String, game_path: String, core_path: Option<String>) -> PyResult<u64> {
+    match tools::launcher::launch_and_track(&emulator_path, core_path, &game_path) {
+        Ok(duration) => Ok(duration),
+        Err(e) => Err(pyo3::exceptions::PyRuntimeError::new_err(e)),
+    }
 }
 
 /// Definición del módulo nativo mango_engine.
@@ -212,8 +279,12 @@ fn mango_engine(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(scrape_game_metadata, m)?)?;
     m.add_function(wrap_pyfunction!(fetch_cores, m)?)?;
     m.add_function(wrap_pyfunction!(download_core, m)?)?;
+    m.add_function(wrap_pyfunction!(download_emulator, m)?)?;
+    m.add_function(wrap_pyfunction!(update_emulator, m)?)?;
+    m.add_function(wrap_pyfunction!(uninstall_emulator, m)?)?;
     m.add_function(wrap_pyfunction!(start_batch_scrape, m)?)?;
     m.add_function(wrap_pyfunction!(search_games, m)?)?;
+    m.add_function(wrap_pyfunction!(launch_game, m)?)?;
     m.add_function(wrap_pyfunction!(tools::logging::set_log_callback, m)?)?;
     Ok(())
 }

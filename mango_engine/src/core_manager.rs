@@ -168,3 +168,146 @@ pub async fn download_core_async(
     
     Ok(extracted_file)
 }
+
+/// Descarga e instala un emulador genérico desde una URL
+pub async fn download_emulator_async(
+    url: String,
+    dest_dir: String,
+    expected_filename: String,
+    progress_callback: Option<PyObject>
+) -> Result<String, anyhow::Error> {
+    let client = Client::new();
+    
+    let dest_path = Path::new(&dest_dir);
+    if !dest_path.exists() {
+        fs::create_dir_all(&dest_path)?;
+    }
+    
+    // Determinar nombre temporal para la descarga
+    let temp_name = url.split('/').last().unwrap_or("download.tmp");
+    let download_path = dest_path.join(temp_name);
+    
+    // 1. Descargar
+    let res = client.get(&url).send().await?;
+    if !res.status().is_success() {
+        return Err(anyhow::anyhow!("Error HTTP {}: {}", res.status(), url));
+    }
+    
+    let total_size = res.content_length().unwrap_or(0);
+    let mut file = File::create(&download_path)?;
+    let mut downloaded: u64 = 0;
+    let mut stream = res.bytes_stream();
+    let mut last_reported_progress = -0.1;
+    
+    while let Some(chunk) = stream.next().await {
+        let chunk = chunk?;
+        file.write_all(&chunk)?;
+        downloaded += chunk.len() as u64;
+        
+        if let Some(ref cb) = progress_callback {
+            if total_size > 0 {
+                let p = downloaded as f64 / total_size as f64;
+                if (p - last_reported_progress).abs() >= 0.01 || p >= 1.0 {
+                    last_reported_progress = p;
+                    Python::with_gil(|py| {
+                        let _ = cb.call1(py, (p,));
+                    });
+                }
+            }
+        }
+    }
+
+    // 2. Procesar según extensión
+    let final_path = dest_path.join(&expected_filename);
+    let ext = temp_name.to_lowercase();
+    
+    if ext.ends_with(".zip") {
+        // Extraer ZIP
+        let zip_file = File::open(&download_path)?;
+        let mut archive = ZipArchive::new(zip_file)?;
+        archive.extract(dest_path)?;
+        let _ = fs::remove_file(&download_path);
+    } else if ext.ends_with(".tar.gz") || ext.ends_with(".tgz") {
+        // Extraer TAR.GZ usando comando del sistema (más robusto en Linux)
+        let status = std::process::Command::new("tar")
+            .arg("-xzf")
+            .arg(&download_path)
+            .arg("-C")
+            .arg(dest_path)
+            .status()?;
+        if !status.success() {
+            return Err(anyhow::anyhow!("Error al extraer .tar.gz"));
+        }
+        let _ = fs::remove_file(&download_path);
+    } else if ext.ends_with(".appimage") {
+        // Mover a nombre esperado y CHMOD +X
+        fs::rename(&download_path, &final_path)?;
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let mut perms = fs::metadata(&final_path)?.permissions();
+            perms.set_mode(0o755);
+            fs::set_permissions(&final_path, perms)?;
+        }
+    } else {
+        // Simplemente renombrar si no sabemos qué es
+        fs::rename(&download_path, &final_path)?;
+    }
+
+    Ok(final_path.to_string_lossy().to_string())
+}
+
+/// Actualiza un emulador existente de forma segura (con backup previo)
+pub async fn update_emulator_async(
+    url: String,
+    dest_dir: String,
+    expected_filename: String,
+    progress_callback: Option<PyObject>
+) -> Result<String, anyhow::Error> {
+    let dest_path = Path::new(&dest_dir);
+    let final_path = dest_path.join(&expected_filename);
+    let backup_path = final_path.with_extension("bak");
+
+    // 1. Crear Backup si existe el previo
+    if final_path.exists() {
+        if let Err(e) = fs::rename(&final_path, &backup_path) {
+            eprintln!("[MANGO] Error creando backup: {}", e);
+        }
+    }
+
+    // 2. Intentar Descarga / Reinstalación
+    match download_emulator_async(url, dest_dir.clone(), expected_filename.clone(), progress_callback).await {
+        Ok(path) => {
+            // Éxito total: eliminar backup viejo si existe
+            if backup_path.exists() {
+                let _ = fs::remove_file(backup_path);
+            }
+            Ok(path)
+        },
+        Err(e) => {
+            // Error en descarga: restaurar backup para que el usuario no se quede sin emulador
+            if backup_path.exists() {
+                let _ = fs::rename(&backup_path, &final_path);
+            }
+            Err(e)
+        }
+    }
+}
+
+/// Elimina los archivos de un emulador
+pub async fn remove_emulator_files_async(
+    target_path: String
+) -> Result<(), anyhow::Error> {
+    let path = Path::new(&target_path);
+    if !path.exists() {
+        return Ok(());
+    }
+    
+    if path.is_dir() {
+        fs::remove_dir_all(path)?;
+    } else {
+        fs::remove_file(path)?;
+    }
+    
+    Ok(())
+}

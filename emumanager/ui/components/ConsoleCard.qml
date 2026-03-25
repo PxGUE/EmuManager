@@ -164,7 +164,7 @@ Rectangle {
                     delegate: Item {
                         id: emuItem
                         width: parent.width; height: 38
-                        property bool rowHovered: emuMA.containsMouse || cnfMA.containsMouse || delMA.containsMouse
+                        property bool rowHovered: emuMA.containsMouse
                         Rectangle {
                             anchors.fill: parent; radius: 10; opacity: rowHovered ? 0.12 : 0; antialiasing: true
                             gradient: Gradient { 
@@ -179,31 +179,6 @@ Rectangle {
                             anchors.fill: parent; anchors.leftMargin: 12; anchors.rightMargin: 12; spacing: 12
                             Text { text: "✦"; color: accentColor; font.pixelSize: 11; opacity: rowHovered ? 1.0 : 0.4 }
                             Text { text: modelData; color: "white"; font.pixelSize: 13; font.bold: true; Layout.fillWidth: true }
-                            Row {
-                                spacing: 10; opacity: rowHovered ? 1.0 : 0; visible: rowHovered
-                                Rectangle {
-                                    width: 30; height: 30; radius: 8; color: cnfMA.containsMouse ? Qt.rgba(1,1,1,0.15) : "transparent"
-                                    Text { text: "⚙️"; anchors.centerIn: parent; font.pixelSize: 16; opacity: cnfMA.containsMouse ? 1.0 : 0.7 }
-                                    MouseArea { id: cnfMA; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor }
-                                    Rectangle {
-                                        visible: cnfMA.containsMouse; z: 100
-                                        anchors.bottom: parent.top; anchors.bottomMargin: 10; anchors.horizontalCenter: parent.horizontalCenter
-                                        width: 90; height: 22; radius: 6; color: "#111"; border.color: accentColor; border.width: 1
-                                        Text { text: "CONFIGURAR"; color: "white"; anchors.centerIn: parent; font.pixelSize: 8; font.bold: true; font.letterSpacing: 1 }
-                                    }
-                                }
-                                Rectangle {
-                                    width: 30; height: 30; radius: 8; color: delMA.containsMouse ? Qt.rgba(1,0,0,0.15) : "transparent"
-                                    Text { text: "❌"; anchors.centerIn: parent; font.pixelSize: 14; opacity: delMA.containsMouse ? 1.0 : 0.7 }
-                                    MouseArea { id: delMA; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor }
-                                    Rectangle {
-                                        visible: delMA.containsMouse; z: 100
-                                        anchors.bottom: parent.top; anchors.bottomMargin: 10; anchors.horizontalCenter: parent.horizontalCenter
-                                        width: 90; height: 22; radius: 6; color: "#111"; border.color: "#ff416c"; border.width: 1
-                                        Text { text: "ELIMINAR"; color: "white"; anchors.centerIn: parent; font.pixelSize: 8; font.bold: true; font.letterSpacing: 1 }
-                                    }
-                                }
-                            }
                         }
                     }
                 }

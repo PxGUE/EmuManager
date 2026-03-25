@@ -19,6 +19,7 @@ Item {
 
     property string currentRomsPath: "Cargando..."
     property string currentCoresPath: "Cores..."
+    property string currentRunnerPath: "Runner..."
     property int gamesCount: 0
     property int activeTab: 0
  
@@ -27,9 +28,12 @@ Item {
     }
 
     Component.onCompleted: {
-        currentRomsPath = controller.get_roms_path()
-        currentCoresPath = controller.get_cores_path()
-        updateGamesCount()
+        if (controller) {
+            currentRomsPath = controller.get_roms_path()
+            currentCoresPath = controller.get_cores_path()
+            currentRunnerPath = controller.get_runner_path()
+            updateGamesCount()
+        }
     }
 
     Rectangle {
@@ -122,6 +126,13 @@ Item {
                         Text { text: currentCoresPath; color: "#16a085"; font.pixelSize: 11; width: parent.width - 160; wrapMode: Text.WrapAnywhere; anchors.verticalCenter: parent.verticalCenter }
                         Button { text: "CAMBIAR"; flat: true; highlighted: true; onClicked: currentCoresPath = controller.select_cores_directory() }
                     }
+                    Rectangle { width: parent.width; height: 1; color: "#1a1a1f" }
+                    Row {
+                        width: parent.width; spacing: 10
+                        Text { text: "RUNNER:"; color: "white"; font.bold: true; width: 60; anchors.verticalCenter: parent.verticalCenter }
+                        Text { text: currentRunnerPath; color: "#16a085"; font.pixelSize: 11; width: parent.width - 160; wrapMode: Text.WrapAnywhere; anchors.verticalCenter: parent.verticalCenter }
+                        Button { text: "CAMBIAR"; flat: true; highlighted: true; onClicked: currentRunnerPath = controller.select_runner_executable() }
+                    }
                 }
             }
             Text { text: "INFO DE COLECCIÓN"; color: "#16a085"; font.pixelSize: 10; font.bold: true; font.letterSpacing: 2; topPadding: 15 }
@@ -151,13 +162,13 @@ Item {
                     }
                     TextField { 
                         id: userField; placeholderText: "Usuario"; width: parent.width; 
-                        text: controller.get_api_credential("screenscraper_user")
-                        onEditingFinished: controller.set_api_credential("screenscraper_user", text) 
+                        text: controller ? controller.get_api_credential("screenscraper_user") : ""
+                        onEditingFinished: if(controller) controller.set_api_credential("screenscraper_user", text) 
                     }
                     TextField { 
                         id: passField; placeholderText: "Contraseña"; echoMode: TextInput.Password; width: parent.width; 
-                        text: controller.get_api_credential("screenscraper_pass")
-                        onEditingFinished: controller.set_api_credential("screenscraper_pass", text) 
+                        text: controller ? controller.get_api_credential("screenscraper_pass") : ""
+                        onEditingFinished: if(controller) controller.set_api_credential("screenscraper_pass", text) 
                     }
                 }
             }

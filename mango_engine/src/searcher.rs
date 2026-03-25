@@ -5,6 +5,7 @@ use fuzzy_matcher::FuzzyMatcher;
 use fuzzy_matcher::skim::SkimMatcherV2;
 
 struct GameRow {
+    id: i64,
     file_hash: String,
     file_path: String,
     title: String,
@@ -24,7 +25,7 @@ pub fn search_games(
     let conn = Connection::open(db_path)
         .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("DB Open error: {}", e)))?;
         
-    let mut sql = "SELECT g.file_hash, g.file_path, g.platform, m.title, m.cover_2d_path, m.cover_3d_path 
+    let mut sql = "SELECT g.id, g.file_hash, g.file_path, g.platform, m.title, m.cover_2d_path, m.cover_3d_path 
                    FROM games g 
                    JOIN game_metadata m ON g.id = m.game_id".to_string();
                    
@@ -40,12 +41,13 @@ pub fn search_games(
         
     let row_iter = stmt.query_map(rusqlite::params_from_iter(params), |row| {
         Ok(GameRow {
-            file_hash: row.get(0)?,
-            file_path: row.get(1)?,
-            platform: row.get(2)?,
-            title: row.get::<_, Option<String>>(3)?.unwrap_or_default(),
-            cover_2d: row.get::<_, Option<String>>(4)?.unwrap_or_default(),
-            cover_3d: row.get::<_, Option<String>>(5)?.unwrap_or_default(),
+            id: row.get(0)?,
+            file_hash: row.get(1)?,
+            file_path: row.get(2)?,
+            platform: row.get(3)?,
+            title: row.get::<_, Option<String>>(4)?.unwrap_or_default(),
+            cover_2d: row.get::<_, Option<String>>(5)?.unwrap_or_default(),
+            cover_3d: row.get::<_, Option<String>>(6)?.unwrap_or_default(),
             score: 0,
         })
     }).map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("Query execution error: {}", e)))?;
@@ -85,6 +87,7 @@ pub fn search_games(
     
     for g in results {
         let dict = PyDict::new(py);
+        dict.set_item("id", g.id)?;
         dict.set_item("file_hash", g.file_hash)?;
         dict.set_item("file_path", g.file_path)?;
         dict.set_item("title", g.title)?;

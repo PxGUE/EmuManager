@@ -14,6 +14,7 @@ class GameListModel(QAbstractListModel):
     PlatformRole = Qt.UserRole + 4
     Cover2dRole = Qt.UserRole + 5
     Cover3dRole = Qt.UserRole + 6
+    IdRole = Qt.UserRole + 7
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -34,7 +35,8 @@ class GameListModel(QAbstractListModel):
             self.TitleRole: b"title",
             self.PlatformRole: b"platform",
             self.Cover2dRole: b"cover2dPath",
-            self.Cover3dRole: b"cover3dPath"
+            self.Cover3dRole: b"cover3dPath",
+            self.IdRole: b"gameId"
         }
 
     def rowCount(self, parent=QModelIndex()):
@@ -52,6 +54,7 @@ class GameListModel(QAbstractListModel):
         if role == self.PlatformRole: return game["platform"]
         if role == self.Cover2dRole: return game.get("cover_2d_path", "") or ""
         if role == self.Cover3dRole: return game.get("cover_3d_path", "") or ""
+        if role == self.IdRole: return game.get("id", 0)
         
         return None
 

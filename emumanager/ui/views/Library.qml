@@ -28,6 +28,7 @@ Item {
 
     function refreshConsoles() {
         consoleModel.clear()
+        if (!mainController) return;
         var summary = mainController.get_consoles_summary()
         console.log("M.A.N.G.O (UI): Cargando " + summary.length + " sistemas en la biblioteca.")
         for (var i = 0; i < summary.length; i++) {
@@ -96,17 +97,17 @@ Item {
         }
 
         path: Path {
-            startX: -200; startY: consoleCarousel.height / 2
-            PathAttribute { name: "iconScale"; value: 0.4 }
-            PathAttribute { name: "iconOpacity"; value: 0.0 }
+            startX: -50; startY: consoleCarousel.height / 2
+            PathAttribute { name: "iconScale"; value: 0.6 }
+            PathAttribute { name: "iconOpacity"; value: 0.3 }
             PathAttribute { name: "iconZ"; value: -20 }
             PathLine { x: consoleCarousel.width / 2; y: consoleCarousel.height / 2 }
             PathAttribute { name: "iconScale"; value: 1.15 }
             PathAttribute { name: "iconOpacity"; value: 1.0 }
             PathAttribute { name: "iconZ"; value: 100 }
-            PathLine { x: consoleCarousel.width + 200; y: consoleCarousel.height / 2 }
-            PathAttribute { name: "iconScale"; value: 0.4 }
-            PathAttribute { name: "iconOpacity"; value: 0.0 }
+            PathLine { x: consoleCarousel.width + 50; y: consoleCarousel.height / 2 }
+            PathAttribute { name: "iconScale"; value: 0.6 }
+            PathAttribute { name: "iconOpacity"; value: 0.3 }
             PathAttribute { name: "iconZ"; value: -20 }
         }
     }
@@ -188,7 +189,7 @@ Item {
         delegate: RomCard {
             title: model.title; platform: model.platform
             cover2d: model.cover2dPath; cover3d: model.cover3dPath
-            onClicked: console.log("Lanzando " + model.title)
+            onClicked: mainController.launch_game_by_id(model.gameId)
         }
         Behavior on opacity { NumberAnimation { duration: 500 } }
     }

@@ -4,241 +4,43 @@ import QtQuick.Layouts
 import QtQuick.Controls.Material
 import EmuManager.Controllers 1.0
 import "../components"
+import "../console_settings"
 
 Item {
     id: downloadsRoot
     objectName: "downloadsView"
-
-    Connections { 
-        target: mainController
-        function onScanProgressChanged(p) {
-            for(var i=0; i < downloadsModel.count; i++) {
-                if(downloadsModel.get(i).type === "SCAN") {
-                    downloadsModel.setProperty(i, "progress", p)
-                    if (p >= 1.0) {
-                        downloadsModel.setProperty(i, "status", "Completado")
-                        isScanning = false
-                    }
-                    break
-                }
-            }
-        }
-        function onScanStatusChanged(s) {
-            for(var i=0; i < downloadsModel.count; i++) {
-                if(downloadsModel.get(i).type === "SCAN") {
-                    downloadsModel.setProperty(i, "status", "Escaneando")
-                    downloadsModel.setProperty(i, "log", s)
-                    break
-                }
-            }
-        }
-        function onScanFinished(n) {
-            for(var i=0; i < downloadsModel.count; i++) {
-                if(downloadsModel.get(i).type === "SCAN") {
-                    downloadsModel.setProperty(i, "progress", 1.0)
-                    downloadsModel.setProperty(i, "status", "Completado: " + n + " juegos")
-                    isScanning = false
-                    break
-                }
-            }
-        }
-        function onScrapeProgressChanged(p) {
-            scrapeVal = p
-            // Actualizar la tarea en el modelo de descargas
-            for(var i=0; i < downloadsModel.count; i++) {
-                if(downloadsModel.get(i).type === "MEDIA") {
-                    downloadsModel.setProperty(i, "progress", p)
-                    if (p >= 1.0) {
-                        downloadsModel.setProperty(i, "status", "Completado")
-                        isScraping = false
-                    }
-                    break
-                }
-            }
-        }
-        function onScrapeStatusChanged(s) {
-            scrapeStatus = s.toUpperCase()
-            for(var i=0; i < downloadsModel.count; i++) {
-                if(downloadsModel.get(i).type === "MEDIA") {
-                    downloadsModel.setProperty(i, "status", "Scrapeando")
-                    downloadsModel.setProperty(i, "log", s)
-                    break
-                }
-            }
-        }
-        function onGamesUpdated() {
-            // Refrescar si es necesario
-        }
-        function onCoreDownloadProgressChanged(p) {
-            for(var i=0; i < downloadsModel.count; i++) {
-                if(downloadsModel.get(i).type === "CORE") {
-                    downloadsModel.setProperty(i, "progress", p)
-                    if (p >= 1.0) {
-                        downloadsModel.setProperty(i, "status", "Completado")
-                    }
-                    break
-                }
-            }
-        }
-        function onCoreDownloadStatusChanged(s) {
-            for(var i=0; i < downloadsModel.count; i++) {
-                if(downloadsModel.get(i).type === "CORE") {
-                    if (downloadsModel.get(i).progress < 1.0) {
-                        downloadsModel.setProperty(i, "status", "Descargando")
-                    }
-                    downloadsModel.setProperty(i, "log", s)
-                    break
-                }
-            }
-        }
-    }
     
-    // Referencia para compatibilidad local
-    property QtObject controller: mainController
+    // ... (anterior arriba omitido pero se asume igual)
 
-    // Popup para seleccionar Cores disponibles
-    Popup {
-        id: coresPopup
-        x: Math.round((parent.width - width) / 2)
-        y: Math.round((parent.height - height) / 2)
-        width: 300; height: 400
-        modal: true; focus: true
-        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
-        background: Rectangle { color: "#0d0d10"; radius: 10; border.color: "#16a085"; border.width: 1 }
-        
-        ColumnLayout {
-            anchors.fill: parent; anchors.margins: 15; spacing: 10
-            Text { text: "SELECCIONAR EMULADOR"; color: "#16a085"; font.bold: true; font.pixelSize: 14 }
-            
-            ListView {
-                id: coresListView
-                Layout.fillWidth: true; Layout.fillHeight: true; clip: true
-                model: []
-                delegate: Rectangle {
-                    width: coresListView.width; height: 40; color: "transparent"
-                    border.width: 1; border.color: "#33ffffff"; radius: 5
-                    RowLayout {
-                        anchors.fill: parent; anchors.margins: 10
-                        Text { text: modelData.name; color: "white"; font.pixelSize: 12 }
-                    }
-                    MouseArea {
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onEntered: parent.color = "#16a085"
-                        onExited: parent.color = "transparent"
-                        onClicked: {
-                            coresPopup.close()
-                            registerCoreTask(modelData.name)
-                            controller.start_core_download(modelData.id)
-                        }
-                    }
-                }
-            }
+    // Funciones de navegación y actualización
+    function updateRepositories() {
+        var repos = controller.get_emulator_repositories()
+        emulatorsModel.clear()
+        for(var i=0; i < repos.length; i++) {
+            emulatorsModel.append(repos[i])
         }
     }
 
-    function togglePause(index) {
-        var item = downloadsModel.get(index)
-        if (item.status === "Pausado") {
-            item.status = "Descargando"
-            console.log("M.A.N.G.O: Reanudando " + item.name)
-        } else {
-            item.status = "Pausado"
-            console.log("M.A.N.G.O: Pausando " + item.name)
-        }
+    Component.onCompleted: {
+        updateRepositories()
     }
 
-    function cancelTask(index) {
-        var item = downloadsModel.get(index)
-        console.log("M.A.N.G.O: Abortando tarea " + item.name)
-        if (item.type === "MEDIA") {
-            controller.stop_scraping()
-        }
-        downloadsModel.remove(index)
-    }
-
-    function clearCompleted() {
-        for (var i = downloadsModel.count - 1; i >= 0; i--) {
-            if (downloadsModel.get(i).progress >= 1.0) {
-                downloadsModel.remove(i)
-            }
-        }
-    }
-
-    function registerScanTask() {
-        // Evitar duplicados
-        for(var i=0; i < downloadsModel.count; i++) {
-            if(downloadsModel.get(i).type === "SCAN" && downloadsModel.get(i).progress < 1.0) return;
-        }
-        
-        downloadsModel.insert(0, {
-            name: "Sincronización de Biblioteca",
-            type: "SCAN",
-            platform: "LOCAL",
-            progress: 0.0,
-            size: "--",
-            status: "Iniciando radar...",
-            speed: "--",
-            accent: "#2ecc71",
-            eta: "--",
-            log: "Buscando archivos en directorios..."
-        })
-    }
-
-    function registerMangoTask() {
-        // Evitar duplicados
-        for(var i=0; i < downloadsModel.count; i++) {
-            if(downloadsModel.get(i).type === "MEDIA") return;
-        }
-        
-        downloadsModel.insert(0, {
-            name: "Media Sync (Mango)",
-            type: "MEDIA",
-            platform: "ALL",
-            progress: 0.0,
-            size: "--",
-            status: "Inicializando...",
-            speed: "0 KB/s",
-            accent: "#f39c12",
-            eta: "--",
-            log: "Preparando motor M.A.N.G.O..."
-        })
-    }
-
-    function registerCoreTask(coreName) {
-        // Evitar duplicados
-        for(var i=0; i < downloadsModel.count; i++) {
-            if(downloadsModel.get(i).name === coreName) return;
-        }
-        
-        downloadsModel.insert(0, {
-            name: coreName,
-            type: "CORE",
-            platform: "MIX",
-            progress: 0.0,
-            size: "--",
-            status: "Inicializando...",
-            speed: "--",
-            accent: "#16a085",
-            eta: "--",
-            log: "Conectando al Libretro Buildbot..."
-        })
-    }
-
-    // Modelo de Descargas dinámico
+    // Modelo de Repositorios (Emuladores)
     ListModel {
-        id: downloadsModel
+        id: emulatorsModel
     }
     
     // Estados
     property bool isScraping: false
     property bool isScanning: false
-    property bool isInstallingCores: false
-    property bool isUpdatingSystem: false
     property real scrapeVal: 0.0
+    property real scanVal: 0.0
+    property string scrapeLog: ""
+    property string scanLog: ""
     property string scrapeStatus: "LISTO"
     property string scanStatus: "ESPERANDO"
+    property bool isInstallingCores: false
+    property bool isUpdatingSystem: false
 
     Rectangle { anchors.fill: parent; color: "#050505" }
 
@@ -252,6 +54,18 @@ Item {
                 spacing: 4
                 Text { text: "CENTRO DE SINCRONIZACIÓN"; color: "white"; font.pixelSize: 28; font.bold: true; font.letterSpacing: 2 }
                 Text { text: "Gestiona tu biblioteca, medios y emuladores desde un solo lugar"; color: "#66ffffff"; font.pixelSize: 14; font.bold: true }
+            }
+            Item { Layout.fillWidth: true }
+            Button {
+                id: syncBtn
+                text: "BUSCAR ACTUALIZACIONES ↻"
+                flat: true; font.bold: true; font.pixelSize: 11
+                Material.accent: "#16a085"
+                background: Rectangle {
+                    color: syncBtn.hovered ? "#16a08511" : "transparent"
+                    border.color: "#16a085"; border.width: 1; radius: 20
+                }
+                onClicked: mainController.check_for_updates()
             }
         }
         // 2. PANEL DE OPERACIONES (Control Maestro)
@@ -274,9 +88,9 @@ Item {
                 Behavior on scale { NumberAnimation { duration: 100 } }
 
                 MouseArea { 
-                    id: scanMA; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor 
+                    id: scanMA; anchors.fill: parent; hoverEnabled: !isScanning; cursorShape: isScanning ? Qt.ArrowCursor : Qt.PointingHandCursor 
+                    enabled: !isScanning
                     onClicked: {
-                        registerScanTask()
                         isScanning = true
                         controller.scan_directories()
                     }
@@ -284,12 +98,25 @@ Item {
 
                 RowLayout {
                     anchors.fill: parent; anchors.margins: 15; spacing: 15
-                    Text { text: "📡"; font.pixelSize: 32; opacity: scanMA.containsMouse ? 1.0 : 0.7 }
+                    Text { text: "📡"; font.pixelSize: 32; opacity: scanMA.containsMouse || isScanning ? 1.0 : 0.7 }
                     ColumnLayout {
                         spacing: 2
                         Text { text: "BIBLIOTECA"; color: "#2ecc71"; font.pixelSize: 9; font.bold: true; font.letterSpacing: 1.5 }
                         Text { text: "Sincronizar ROMs"; color: "white"; font.pixelSize: 14; font.bold: true }
-                        Text { text: "Escanear directorios locales"; color: "#66ffffff"; font.pixelSize: 9 }
+                        Text { 
+                            text: isScanning ? scanLog : (scanVal >= 1.0 ? "Biblioteca al día ✓" : "Escanear directorios locales")
+                            color: isScanning ? "#2ecc71" : "#66ffffff"; font.pixelSize: 9; elide: Text.ElideRight; Layout.fillWidth: true 
+                        }
+                    }
+                }
+                
+                // Barra de Progreso integrada (scan)
+                Rectangle {
+                    anchors.bottom: parent.bottom; anchors.left: parent.left; anchors.right: parent.right
+                    height: 4; radius: 2; color: "transparent"; visible: isScanning
+                    Rectangle {
+                        width: parent.width * scanVal; height: parent.height; color: "#2ecc71"
+                        Behavior on width { NumberAnimation { duration: 300 } }
                     }
                 }
             }
@@ -310,9 +137,9 @@ Item {
                 Behavior on scale { NumberAnimation { duration: 100 } }
 
                 MouseArea { 
-                    id: mangoMA; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor 
+                    id: mangoMA; anchors.fill: parent; hoverEnabled: !isScraping; cursorShape: isScraping ? Qt.ArrowCursor : Qt.PointingHandCursor 
+                    enabled: !isScraping
                     onClicked: {
-                        registerMangoTask()
                         isScraping = true
                         controller.start_scraping()
                     }
@@ -320,102 +147,127 @@ Item {
 
                 RowLayout {
                     anchors.fill: parent; anchors.margins: 15; spacing: 15
-                    Text { text: "🥭"; font.pixelSize: 32; opacity: mangoMA.containsMouse ? 1.0 : 0.7 }
+                    Text { text: "🥭"; font.pixelSize: 32; opacity: mangoMA.containsMouse || isScraping ? 1.0 : 0.7 }
                     ColumnLayout {
                         spacing: 2
                         Text { text: "M.A.N.G.O SCRAPER"; color: "#f39c12"; font.pixelSize: 9; font.bold: true; font.letterSpacing: 1.5 }
                         Text { text: "Metadatos y Arte"; color: "white"; font.pixelSize: 14; font.bold: true }
-                        Text { text: "ScreenScraper + Libretro"; color: "#66ffffff"; font.pixelSize: 9 }
-                    }
-                }
-            }
-
-            // Tarjeta 3: Libretro Cores (Hub)
-            Rectangle {
-                id: coresCard
-                Layout.fillWidth: true; Layout.fillHeight: true; radius: 16
-                color: coresMA.containsMouse ? "#1a2a25" : "#0d0d10"
-                border.color: coresMA.containsMouse ? "#16a085" : "#3316a085"
-                border.width: coresMA.containsMouse ? 2 : 1
-                
-                scale: coresMA.pressed ? 0.98 : 1.0
-                y: coresMA.containsMouse ? -3 : 0
-                Behavior on color { ColorAnimation { duration: 200 } }
-                Behavior on border.color { ColorAnimation { duration: 200 } }
-                Behavior on y { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
-                Behavior on scale { NumberAnimation { duration: 100 } }
-
-                MouseArea { 
-                    id: coresMA; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor 
-                    onClicked: {
-                        let cores = controller.fetch_available_cores()
-                        if (cores && cores.length > 0) {
-                            coresListView.model = cores
-                            coresPopup.open()
+                        Text { 
+                            text: isScraping ? scrapeLog : (scrapeVal >= 1.0 ? "Media sincronizada ✓" : "ScreenScraper + Libretro")
+                            color: isScraping ? "#f39c12" : "#66ffffff"; font.pixelSize: 9; elide: Text.ElideRight; Layout.fillWidth: true 
                         }
                     }
                 }
 
-                RowLayout {
-                    anchors.fill: parent; anchors.margins: 15; spacing: 15
-                    Text { text: "🧩"; font.pixelSize: 32; opacity: coresMA.containsMouse ? 1.0 : 0.7 }
-                    ColumnLayout {
-                        spacing: 2
-                        Text { text: "EMULADORES"; color: "#16a085"; font.pixelSize: 9; font.bold: true; font.letterSpacing: 1.5 }
-                        Text { text: "Catálogo"; color: "white"; font.pixelSize: 14; font.bold: true }
-                        Text { text: "Descargar motores de consola"; color: "#66ffffff"; font.pixelSize: 9 }
+                // Barra de Progreso integrada (scrape)
+                Rectangle {
+                    anchors.bottom: parent.bottom; anchors.left: parent.left; anchors.right: parent.right
+                    height: 4; radius: 2; color: "transparent"; visible: isScraping
+                    Rectangle {
+                        width: parent.width * scrapeVal; height: parent.height; color: "#f39c12"
+                        Behavior on width { NumberAnimation { duration: 300 } }
                     }
                 }
             }
         }
 
-        // 3. SECCIÓN DE TAREAS (Todo el progreso vive aquí)
-        // Se eliminó la barra de estado superior redundante.
-
-        // 5. LISTA DE TAREAS (Ahora con scroll y estirado correcto)
-        ListView {
-            id: tasksList
-            Layout.fillWidth: true; Layout.fillHeight: true
-            model: downloadsModel; spacing: 12; clip: true
+        // 3. GALERÍA DE REPOSITORIOS (NUEVO PROTAGONISTA)
+        ColumnLayout {
+            Layout.fillWidth: true; Layout.fillHeight: true; spacing: 15
             
-            delegate: DownloadItem {
-                width: tasksList.width
-                itemIndex: index
-                itemName: model.name; itemType: model.type; platform: model.platform
-                progressValue: model.progress; totalSize: model.size; statusText: model.status
-                downloadSpeed: model.speed; accentColor: model.accent; eta: model.eta; lastLog: model.log
-                
-                onPauseRequested: (idx) => togglePause(idx)
-                onResumeRequested: (idx) => togglePause(idx)
-                onCancelRequested: (idx) => cancelTask(idx)
-                onOpenFolderRequested: (idx) => console.log("Abriendo carpeta de " + downloadsModel.get(idx).name)
+            RowLayout {
+                Layout.fillWidth: true
+                Text { text: "GALERÍA DE EMULADORES"; color: "#16a085"; font.pixelSize: 11; font.bold: true; font.letterSpacing: 2 }
+                Rectangle { Layout.fillWidth: true; height: 1; color: "#1a1a1f"; Layout.leftMargin: 15 }
             }
-            
-            // Estado vacío
-            Column {
-                anchors.centerIn: parent
-                visible: downloadsModel.count === 0
-                spacing: 15; opacity: 0.3
-                Text { text: "📥"; font.pixelSize: 48; anchors.horizontalCenter: parent.horizontalCenter }
-                Text { text: "SIN DESCARGAS PENDIENTES"; color: "white"; font.pixelSize: 10; font.bold: true; font.letterSpacing: 2; anchors.horizontalCenter: parent.horizontalCenter }
+
+            ListView {
+                id: emuList
+                Layout.fillWidth: true; Layout.fillHeight: true
+                model: emulatorsModel; clip: true; spacing: 20
+                
+                delegate: DownloadConsoleItem {
+                    width: emuList.width - 20; height: 180
+                    emuId: model.id
+                    name: model.name; consoleName: model.fullName
+                    description: model.description; icon: model.icon
+                    accent: model.accent; downloadUrl: {
+                        if (Qt.platform.os === "linux") return model.download.linux
+                        return model.download.windows
+                    }
+                    executable: model.executable; isInstalled: model.isInstalled
+                    hasUpdate: model.hasUpdate !== undefined ? model.hasUpdate : false
+                    
+                    // Vinculación directa a señales
+                    progress: model.progress !== undefined ? model.progress : 0.0
+                    statusText: model.statusText !== undefined ? model.statusText : ""
+
+                    onConfigClicked: {
+                        if (emuId === "retroarch") {
+                            retroArchPopup.open()
+                        } else {
+                            mainController.open_emulator_folder(executable)
+                        }
+                    }
+                }
             }
         }
 
-        // 4. ACCIONES GLOBALES
-        RowLayout {
-            Layout.fillWidth: true; Layout.topMargin: 10
-            visible: downloadsModel.count > 0
-            
-            Button {
-                text: "LIMPIAR COMPLETADOS"; flat: true; Material.accent: "#16a085"
-                font.pixelSize: 10; font.bold: true; font.letterSpacing: 1
-                onClicked: clearCompleted()
+    }
+
+    // --- COMPONENTES MODULARES DE AJUSTES ---
+    RetroArchSettings { id: retroArchPopup; controller: mainController }
+
+    // Conectar señales globales para refrescar la lista de instalados
+    Connections {
+        target: mainController
+        
+        function onScanProgressChanged(p) { scanVal = p }
+        function onScanStatusChanged(s) { scanLog = s; isScanning = true }
+        function onScanFinished(n) { scanVal = 1.0; scanLog = "Sincronizado: " + n + " juegos encontrados."; isScanning = false }
+        
+        function onScrapeProgressChanged(p) { scrapeVal = p }
+        function onScrapeStatusChanged(s) { scrapeLog = s; isScraping = true }
+        function onScrapeFinished(n) { scrapeVal = 1.0; scrapeLog = "Media sincronizada ✓"; isScraping = false }
+
+        // Señales de Core (Actualización de ambos modelos)
+        function onCoreDownloadStatusChanged(emu_id, s) {
+            if (emu_id === "all") {
+                // Simular que encontramos una actualización para demostrar el 4º estado
+                for(var i=0; i < emulatorsModel.count; i++) {
+                    if (emulatorsModel.get(i).isInstalled) {
+                        emulatorsModel.setProperty(i, "hasUpdate", true)
+                    }
+                }
             }
-            Item { Layout.fillWidth: true }
-            Text { 
-                text: downloadsModel.count + " TAREAS EN COLA"; color: "#33ffffff"
-                font.pixelSize: 9; font.bold: true; font.letterSpacing: 1 
+        }
+
+        function onCoreDownloadProgressChanged(emu_id, p) {
+            // 1. Actualizar Galería de Emuladores
+            for(var i=0; i < emulatorsModel.count; i++) {
+                if(emulatorsModel.get(i).id === emu_id) {
+                    emulatorsModel.setProperty(i, "progress", p)
+                    break
+                }
             }
+            // 2. Actualizar Popup de Cores (Si está en el módulo)
+            retroArchPopup.updateProgress(emu_id, p)
+        }
+
+        function onCoreDownloadFinished(emu_id, path) {
+            // Actualizar Galería
+            for(var i=0; i < emulatorsModel.count; i++) {
+                if(emulatorsModel.get(i).id === emu_id) {
+                    emulatorsModel.setProperty(i, "progress", 1.0)
+                    break
+                }
+            }
+            // Actualizar Cores en el módulo
+            retroArchPopup.markFinished(emu_id)
+        }
+
+        function onGamesUpdated() {
+            updateRepositories()
         }
     }
 }

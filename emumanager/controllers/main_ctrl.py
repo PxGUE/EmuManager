@@ -126,6 +126,7 @@ class MainController(QObject):
         self._startup_worker.progress.connect(self.startupProgressChanged.emit)
         self._startup_worker.status.connect(self.startupStatusChanged.emit)
         self._startup_worker.finished.connect(self.startupFinished.emit)
+        self._startup_worker.finished.connect(self.gamesUpdated.emit) 
         self._startup_worker.finished.connect(self._startup_thread.quit)
         
         self._startup_thread.started.connect(self._startup_worker.run)

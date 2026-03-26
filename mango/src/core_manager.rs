@@ -92,6 +92,19 @@ pub async fn download_core_async(core_name: String, dest_dir: String, progress_c
         }
     }
     let _ = fs::remove_file(&zip_p);
+    
+    // --- Post-procesamiento: Permisos Unix ---
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let p = Path::new(&ext_p);
+        if p.exists() {
+            let mut perms = fs::metadata(p)?.permissions();
+            perms.set_mode(0o755);
+            fs::set_permissions(p, perms)?;
+        }
+    }
+    
     if let Some(ref scb) = status_callback { Python::with_gil(|py| { let _ = scb.call1(py, ("INSTALADO",)); }); }
     if let Some(ref cb) = progress_callback { Python::with_gil(|py| { let _ = cb.call1(py, (1.0,)); }); }
     Ok(ext_p)
@@ -215,6 +228,18 @@ pub async fn download_emulator_async(url: String, dest_dir: String, expected_fil
     } else {
         final_exe.to_string_lossy().to_string()
     };
+
+    // --- Post-procesamiento: Permisos Unix ---
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let p = Path::new(&return_path);
+        if p.exists() {
+            let mut perms = fs::metadata(p)?.permissions();
+            perms.set_mode(0o755);
+            let _ = fs::set_permissions(p, perms);
+        }
+    }
 
     if let Some(ref scb) = status_callback { Python::with_gil(|py| { let _ = scb.call1(py, ("INSTALADO",)); }); }
     if let Some(ref cb) = progress_callback { Python::with_gil(|py| { let _ = cb.call1(py, (1.0,)); }); }

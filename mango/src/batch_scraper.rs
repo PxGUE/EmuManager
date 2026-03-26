@@ -95,31 +95,39 @@ pub fn run_batch_scrape(
     let runtime = tokio::runtime::Runtime::new().unwrap();
     let interrupt_arc = Arc::new(AtomicBool::new(false));
 
-    log_to_python(py, "info", "Validando conexión con ScreenScraper...");
-    let auth_ok = runtime.block_on(async {
-        let client = reqwest::Client::new();
-        let res = client.get("https://www.screenscraper.fr/api2/ssuserInfos.php")
-            .query(&[
-                ("devid", dev_id),
-                ("devpassword", dev_pass),
-                ("softname", "EmuManagerApp"),
-                ("ssid", ss_id),
-                ("sspassword", ss_pass),
-                ("output", "json")
-            ])
-            .send().await;
-        
-        if let Ok(r) = res {
-            r.status().is_success()
-        } else {
-            false
-        }
-    });
+    // Determinar si debemos usar ScreenScraper basándonos en credenciales + validación
+    let ss_available = if ss_id.is_empty() || ss_pass.is_empty() {
+        log_to_python(py, "warning", "Credenciales de ScreenScraper no configuradas. Usando modo de rescate (Libretro).");
+        false
+    } else {
+        log_to_python(py, "info", "Validando conexión con ScreenScraper...");
+        let auth_ok = runtime.block_on(async {
+            let client = reqwest::Client::new();
+            let res = client.get("https://www.screenscraper.fr/api2/ssuserInfos.php")
+                .query(&[
+                    ("devid", dev_id),
+                    ("devpassword", dev_pass),
+                    ("softname", "EmuManagerApp"),
+                    ("ssid", ss_id),
+                    ("sspassword", ss_pass),
+                    ("output", "json")
+                ])
+                .send().await;
+            
+            if let Ok(r) = res {
+                r.status().is_success()
+            } else {
+                false
+            }
+        });
 
-    if !auth_ok {
-        log_to_python(py, "error", "Fallo de autenticación o conexión con ScreenScraper. Revisa tus credenciales.");
-        return Ok(0);
-    }
+        if !auth_ok {
+            log_to_python(py, "error", "Fallo de autenticación en ScreenScraper. Continuando en modo de rescate (Libretro).");
+            false
+        } else {
+            true
+        }
+    };
 
     log_to_python(py, "info", &format!("Iniciando scraping masivo optimizado de {} juegos.", total_pending));
     
@@ -136,9 +144,10 @@ pub fn run_batch_scrape(
                 .map(|(index, game)| {
                     let prog_cb = progress_arc.clone();
                     let game_name = game.filename.clone();
+                    let skip_ss = !ss_available;
                     
                     async move {
-                        if index > 0 {
+                        if index > 0 && !skip_ss {
                             tokio::time::sleep(tokio::time::Duration::from_millis(200)).await;
                         }
                         
@@ -147,6 +156,7 @@ pub fn run_batch_scrape(
                             &game.md5, "", &game.filename, &game.platform, &game.system_id,
                             ss_id, ss_pass, dev_id, dev_pass, &game.media_dir,
                             &dummy_flag,
+                            skip_ss,
                         ).await;
                         
                         let has_media = if let Some(ref m) = meta {

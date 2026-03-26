@@ -736,6 +736,61 @@ class MainController(QObject):
             EmuLog.error(f"Error inesperado al contar juegos: {e}")
             return 0
 
+    @Slot(result="QVariantMap")
+    def get_dashboard_stats(self):
+        """Retorna un conjunto de estadísticas y datos para el Dashboard premium."""
+        stats = {
+            "total_games": 0,
+            "last_game": None,
+            "total_play_time": "0h 0m",
+            "most_played_system": "N/A"
+        }
+        try:
+            with self.db.get_connection() as conn:
+                cursor = conn.cursor()
+                
+                # 1. Total Juegos
+                cursor.execute("SELECT COUNT(*) FROM games")
+                stats["total_games"] = cursor.fetchone()[0]
+                
+                # 2. Último Juego Jugado (Relación games + game_metadata + play_stats)
+                cursor.execute("""
+                    SELECT g.id, m.title, g.platform, m.cover_2d_path, s.last_played_at
+                    FROM games g
+                    JOIN game_metadata m ON g.id = m.game_id
+                    LEFT JOIN play_stats s ON g.id = s.game_id
+                    WHERE s.last_played_at IS NOT NULL
+                    ORDER BY s.last_played_at DESC
+                    LIMIT 1
+                """)
+                row = cursor.fetchone()
+                if row:
+                    stats["last_game"] = {
+                        "id": row[0],
+                        "title": row[1],
+                        "platform": row[2].upper(),
+                        "cover": row[3] if row[3] else "",
+                        "date": row[4]
+                    }
+                
+                # 3. Tiempo Total
+                cursor.execute("SELECT SUM(play_time_seconds) FROM play_stats")
+                total_sec = cursor.fetchone()[0] or 0
+                hours = total_sec // 3600
+                minutes = (total_sec % 3600) // 60
+                stats["total_play_time"] = f"{hours}h {minutes}m"
+
+                # 4. Sistema dominante
+                cursor.execute("SELECT platform, COUNT(*) as c FROM games GROUP BY platform ORDER BY c DESC LIMIT 1")
+                row_sys = cursor.fetchone()
+                if row_sys:
+                    stats["most_played_system"] = row_sys[0].upper()
+
+        except Exception as e:
+            EmuLog.error(f"Error cargando stats del dashboard: {e}")
+            
+        return stats
+
     @Slot(result="QVariantList")
     @Slot(bool, result="QVariantList")
     def get_consoles_summary(self, use_cache=True):

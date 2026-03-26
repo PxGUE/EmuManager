@@ -3,8 +3,8 @@
         {
             "id": "retroarch",
             "name": "RetroArch",
-            "fullName": "Repositorio Universal Libretro",
-            "description": "El frontend definitivo para emulación. Permite gestionar cientos de cores desde una sola interfaz con soporte para shaders y guardado en la nube.",
+            "fullName": "emu_retroarch_fullname",
+            "description": "emu_retroarch_desc",
             "icon": "📦",
             "accent": "#FF4E11",
             "orchestration": {
@@ -22,8 +22,8 @@
         {
             "id": "dolphin",
             "name": "Dolphin Emulator",
-            "fullName": "Emulador Independiente GameCube / Wii",
-            "description": "Potente emulador con soporte para alta resolución (4K), juego online y compatibilidad casi perfecta con el catálogo de Nintendo Wii y GameCube.",
+            "fullName": "emu_dolphin_fullname",
+            "description": "emu_dolphin_desc",
             "icon": "🐬",
             "accent": "#3498db",
             "orchestration": {
@@ -41,8 +41,8 @@
         {
             "id": "ppsspp",
             "name": "PPSSPP",
-            "fullName": "Emulador de PlayStation Portable",
-            "description": "Corre tus juegos de PSP en HD con texturas mejoradas. Soporta guardado rápido, multijugador asíncrono y mapeado de controles avanzado.",
+            "fullName": "emu_ppsspp_fullname",
+            "description": "emu_ppsspp_desc",
             "icon": "🌀",
             "accent": "#2196F3",
             "orchestration": {
@@ -60,8 +60,8 @@
         {
             "id": "pcsx2",
             "name": "PCSX2",
-            "fullName": "Emulador de PlayStation 2",
-            "description": "El estándar de oro para emulación de PS2. Soporta miles de juegos, mejoras gráficas mediante Vulkan y soporte para DualShock nativo.",
+            "fullName": "emu_pcsx2_fullname",
+            "description": "emu_pcsx2_desc",
             "icon": "🎮",
             "accent": "#003791",
             "orchestration": {
@@ -79,8 +79,8 @@
         {
             "id": "rpcs3",
             "name": "RPCS3",
-            "fullName": "Emulador de PlayStation 3",
-            "description": "Emulador experimental de código abierto que permite jugar títulos de PS3 en PC. Requiere hardware potente y el firmware original de Sony.",
+            "fullName": "emu_rpcs3_fullname",
+            "description": "emu_rpcs3_desc",
             "icon": "🕹️",
             "accent": "#ff2424",
             "orchestration": {
@@ -98,8 +98,8 @@
         {
             "id": "duckstation",
             "name": "DuckStation",
-            "fullName": "Emulador de PlayStation 1",
-            "description": "Increíble emulador de PSX enfocado en la jugabilidad, velocidad y mantenibilidad a largo plazo. Incluye corrección de perspectiva de texturas.",
+            "fullName": "emu_duckstation_fullname",
+            "description": "emu_duckstation_desc",
             "icon": "🦆",
             "accent": "#f1c40f",
             "orchestration": {

@@ -81,7 +81,7 @@ class CoreDownloadWorker(QObject):
     @Slot()
     def run(self):
         try:
-            self.status.emit(self.core_name, f"Descargando {self.core_name} usando M.A.N.G.O (Rust)...")
+            self.status.emit(self.core_name, "core_downloading|" + self.core_name)
             # El progress callback llamará self.progress.emit(p)
             def progress_cb(p: float):
                 self.progress.emit(self.core_name, p)
@@ -91,14 +91,14 @@ class CoreDownloadWorker(QObject):
             path = self.libretro.download_core(self.core_name, progress_cb, status_cb)
             if path:
                 EmuLog.info(f"Instalación exitosa del core '{self.core_name}' en {path}")
-                self.status.emit(self.core_name, "¡Core instalado!")
+                self.status.emit(self.core_name, "core_installed")
                 self.finished.emit(self.core_name, path)
             else:
-                self.status.emit(self.core_name, "Error")
+                self.status.emit(self.core_name, "generic_error")
                 self.finished.emit(self.core_name, "")
         except Exception as e:
             EmuLog.error(f"Error mortal en CoreDownloadWorker: {e}")
-            self.status.emit(self.core_name, "Error en la instalación.")
+            self.status.emit(self.core_name, "generic_error")
             self.finished.emit(self.core_name, "")
 
 
@@ -164,20 +164,20 @@ class StartupWorker(QObject):
     def run(self):
         try:
             # 1. Motor Nativo (20%)
-            self.status.emit("Engranando motor nativo M.A.N.G.O (Rust)...")
+            self.status.emit("startup_native")
             time.sleep(0.4) 
             self.ctrl._is_precharged = False
             self.ctrl.proactive_background_load()
             self.progress.emit(0.25)
             
             # 2. Base de Datos (50%)
-            self.status.emit("Verificando integridad de la biblioteca...")
+            self.status.emit("startup_db")
             time.sleep(0.3)
             # Podríamos disparar un scan rápido aquí si quisiéramos
             self.progress.emit(0.55)
             
             # 3. Preparación de Assets (80%)
-            self.status.emit("Optimizando caché de medios y carátulas...")
+            self.status.emit("startup_assets")
             try:
                 # Pedimos los juegos a la DB para conocer sus rutas de carátula
                 games = self.ctrl.db.get_all_games()
@@ -197,7 +197,7 @@ class StartupWorker(QObject):
             self.progress.emit(0.85)
             
             # 4. Finalización (100%)
-            self.status.emit("Misiones inicializadas. Bienvenida.")
+            self.status.emit("startup_ready")
             self.progress.emit(1.0)
             self.finished.emit()
             

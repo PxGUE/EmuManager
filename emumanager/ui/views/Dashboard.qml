@@ -20,7 +20,7 @@ Item {
             mangoMonitor.isEngineBusy = (p > 0 && p < 1.0)
         }
         function onScanStatusChanged(s) { 
-            mangoMonitor.engineStatusText = s.toUpperCase()
+            mangoMonitor.engineStatusText = I18n.tp(s).toUpperCase()
         }
         function onGamesUpdated() {
             dashboardRoot.refreshAll()
@@ -87,10 +87,10 @@ Item {
             }
             ColumnLayout {
                 Layout.alignment: Qt.AlignCenter; Layout.preferredWidth: parent.width * 0.8; spacing: 12
-                Text { text: "SISTEMA INICIALIZADO. SIN DATOS."; color: "white"; font.pixelSize: 26; font.bold: true; font.letterSpacing: 4; horizontalAlignment: Text.AlignHCenter }
-                Text { text: "Bienvenido, Comandante. El catálogo está actualmente vacío."; color: "#88ffffff"; font.pixelSize: 14; horizontalAlignment: Text.AlignHCenter; lineHeight: 1.5; opacity: 0.7 }
+                Text { text: I18n.t.empty_library; color: "white"; font.pixelSize: 26; font.bold: true; font.letterSpacing: 4; horizontalAlignment: Text.AlignHCenter }
+                Text { text: I18n.t.empty_library_desc; color: "#88ffffff"; font.pixelSize: 14; horizontalAlignment: Text.AlignHCenter; lineHeight: 1.5; opacity: 0.7 }
             }
-            Button { text: "CONFIGURAR BIBLIOTECA"; Layout.alignment: Qt.AlignCenter; Layout.preferredHeight: 52; Layout.preferredWidth: 280; Material.background: "#16a085"; onClicked: activeViewId = "settingsView"; font.bold: true }
+            Button { text: I18n.t.configure_paths_btn; Layout.alignment: Qt.AlignCenter; Layout.preferredHeight: 52; Layout.preferredWidth: 280; Material.background: "#16a085"; onClicked: activeViewId = "settingsView"; font.bold: true }
             Item { Layout.fillHeight: true }
         }
 
@@ -134,7 +134,7 @@ Item {
                             color: "white"; font.pixelSize: 42; font.bold: true; font.letterSpacing: -1
                         }
                         Text { 
-                            text: "CENTRO DE COMANDO"
+                            text: I18n.t.command_center
                             color: "#16a085"; font.pixelSize: 12; font.bold: true; font.letterSpacing: 6 
                         }
                     }
@@ -144,7 +144,7 @@ Item {
                     ColumnLayout {
                         Layout.alignment: Qt.AlignRight
                         Text { text: new Date().toLocaleDateString(Qt.locale(), "dd/MM/yyyy"); color: "white"; font.pixelSize: 14; opacity: 0.6 }
-                        Text { text: "OPERATIVO"; color: "#16a085"; font.pixelSize: 10; font.bold: true; Layout.alignment: Qt.AlignRight }
+                        Text { text: I18n.t.operational; color: "#16a085"; font.pixelSize: 10; font.bold: true; Layout.alignment: Qt.AlignRight }
                     }
                 }
 
@@ -181,21 +181,21 @@ Item {
                         
                         ColumnLayout {
                             spacing: 12
-                            Text { text: "SIGUIENTE RETO"; color: "#f39c12"; font.pixelSize: 11; font.bold: true; font.letterSpacing: 3 }
+                            Text { text: I18n.t.next_challenge; color: "#f39c12"; font.pixelSize: 11; font.bold: true; font.letterSpacing: 3 }
                             Text { 
                                 text: statsData.last_game ? statsData.last_game.title : ""
                                 color: "white"; font.pixelSize: 42; font.bold: true; font.letterSpacing: -1
                                 elide: Text.ElideRight; Layout.preferredWidth: 400
                             }
                             Text { 
-                                text: "PLATAFORMA: " + (statsData.last_game ? statsData.last_game.platform : "N/A")
+                                text: I18n.t.platform_prefix + (statsData.last_game ? statsData.last_game.platform : "N/A")
                                 color: "#88ffffff"; font.pixelSize: 14; font.bold: true 
                             }
                             
                             Item { Layout.preferredHeight: 20 }
                             
                             Button {
-                                text: "▶  REANUDAR MISIÓN"
+                                text: I18n.t.resume_mission
                                 Layout.preferredHeight: 52; Layout.preferredWidth: 220; Material.background: "#f39c12"
                                 font.bold: true; font.pixelSize: 14
                                 onClicked: mainController.launch_game_by_id(statsData.last_game.id)
@@ -209,17 +209,17 @@ Item {
                     Layout.fillWidth: true; Layout.margins: 40; spacing: 25
                     
                     DashboardStatCard {
-                        width: 280; label: "JUEGOS"; value: totalGames; subLabel: "Títulos registrados"; icon: "📦"; accentColor: "#16a085"
+                        width: 280; label: I18n.t.stats_total_games; value: totalGames; subLabel: ""; icon: "📦"; accentColor: "#16a085"
                     }
                     
                     // Stats 2: Tiempo de Misión
                     DashboardStatCard {
-                        width: 280; label: "TIEMPO TOTAL"; value: statsData.total_play_time; subLabel: "Horas de despliegue"; icon: "⏳"; accentColor: "#9d50bb"
+                        width: 280; label: I18n.t.stats_play_time; value: statsData.total_play_time; subLabel: ""; icon: "⏳"; accentColor: "#9d50bb"
                     }
 
                     // Stats 3: Sistema Host
                     DashboardStatCard {
-                        width: 280; label: "ESCUADRÓN LÍDER"; value: statsData.most_played_system; subLabel: "Consola dominante"; icon: "🛡️"; accentColor: "#3a7bd5"
+                        width: 280; label: I18n.t.stats_most_played; value: statsData.most_played_system; subLabel: ""; icon: "🛡️"; accentColor: "#3a7bd5"
                     }
 
                     // Stats 4: Monitor M.A.N.G.O (Integrado)
@@ -227,15 +227,15 @@ Item {
                         id: mangoMonitor
                         width: 450; height: 160; radius: 24; color: "#0d0d12"; border.color: "#1a1a1f"
                         property bool isEngineBusy: false
-                        property string engineStatusText: "REPOSO"
+                        property string engineStatusText: I18n.t.idle
                         property real scanProgressVal: 0.0
 
                         ColumnLayout {
                             anchors.fill: parent; anchors.margins: 25; spacing: 5
                             RowLayout {
-                                Text { text: "MOTOR M.A.N.G.O (VITAL-LOG)"; color: "#f39c12"; font.pixelSize: 10; font.bold: true; font.letterSpacing: 2 }
+                                Text { text: I18n.t.mango_monitor; color: "#f39c12"; font.pixelSize: 10; font.bold: true; font.letterSpacing: 2 }
                                 Item { Layout.fillWidth: true }
-                                Text { text: "🥭 v0.1.4-RUST"; color: "#22ffffff"; font.pixelSize: 8; font.bold: true }
+                                Text { text: "🥭 MOTOR NATIVO"; color: "#22ffffff"; font.pixelSize: 8; font.bold: true }
                             }
                             Item { Layout.fillHeight: true }
                             RowLayout {
@@ -249,9 +249,9 @@ Item {
                                         NumberAnimation { from: 0.3; to: 1; duration: 600 }
                                     }
                                 }
-                                Text { text: mangoMonitor.isEngineBusy ? "PROCESANDO" : "EJECUTANDO"; color: "white"; font.pixelSize: 16; font.bold: true; font.letterSpacing: 1 }
+                                Text { text: mangoMonitor.isEngineBusy ? I18n.t.processing_caps : I18n.t.running_caps; color: "white"; font.pixelSize: 16; font.bold: true; font.letterSpacing: 1 }
                             }
-                            Text { text: "ESTADO: " + mangoMonitor.engineStatusText; color: "#66ffffff"; font.pixelSize: 11; Layout.fillWidth: true; elide: Text.ElideRight }
+                            Text { text: I18n.t.status_prefix + mangoMonitor.engineStatusText; color: "#66ffffff"; font.pixelSize: 11; Layout.fillWidth: true; elide: Text.ElideRight }
                             ProgressBar { Layout.fillWidth: true; height: 3; value: mangoMonitor.scanProgressVal; visible: mangoMonitor.isEngineBusy; Material.accent: "#f39c12" }
                         }
                     }
@@ -260,7 +260,7 @@ Item {
                 // --- ACCESO RÁPIDO A ESCUADRONES (CONSOLAS) ---
                 ColumnLayout {
                     Layout.fillWidth: true; Layout.margins: 40; spacing: 20
-                    Text { text: "EXPLORAR ESCUADRONES"; color: "white"; font.pixelSize: 16; font.bold: true; font.letterSpacing: 3; opacity: 0.7 }
+                    Text { text: I18n.t.explore.toUpperCase(); color: "white"; font.pixelSize: 16; font.bold: true; font.letterSpacing: 3; opacity: 0.7 }
                     
                     ListView {
                         id: recentConsoles

@@ -13,6 +13,9 @@ Item {
     Connections { 
         target: mainController
         function onGamesUpdated() { updateGamesCount() }
+        function onLanguage_changed(lang) {
+            systemInfo = controller.get_system_info()
+        }
     }
     
     property QtObject controller: mainController
@@ -21,6 +24,7 @@ Item {
     property string currentEmulatorsPath: "Emuladores..."
     property int gamesCount: 0
     property int activeTab: 0
+    property var systemInfo: ({})
  
     function updateGamesCount() {
         gamesCount = controller.get_games_count()
@@ -31,6 +35,7 @@ Item {
             currentRomsPath = controller.get_roms_path()
             currentEmulatorsPath = controller.get_emulators_path()
             updateGamesCount()
+            systemInfo = controller.get_system_info()
         }
     }
 
@@ -51,7 +56,7 @@ Item {
         Column {
             anchors.fill: parent
             spacing: 10
-            Text { text: "CONFIGURACIÓN"; color: "white"; font.pixelSize: 22; font.bold: true; font.letterSpacing: 2 }
+            Text { text: I18n.t.settings_title; color: "white"; font.pixelSize: 22; font.bold: true; font.letterSpacing: 2 }
             Item { width: 1; height: 30 }
             Repeater {
                 model: navModel
@@ -64,7 +69,8 @@ Item {
                         anchors.fill: parent; anchors.margins: 12; spacing: 15
                         Text { text: model.iconEmoji; font.pixelSize: 16; opacity: activeTab === index ? 1.0 : 0.4 }
                         Text { 
-                            text: model.title.toUpperCase(); color: "white"
+                            text: (I18n.t[model.key] || "").toUpperCase()
+                            color: "white"
                             font.pixelSize: 10; font.bold: activeTab === index; font.letterSpacing: 1
                             opacity: activeTab === index ? 1.0 : 0.4 
                             anchors.verticalCenter: parent.verticalCenter
@@ -78,11 +84,11 @@ Item {
 
     ListModel {
         id: navModel
-        ListElement { title: "General"; iconEmoji: "⚙️" }
-        ListElement { title: "Biblioteca"; iconEmoji: "📚" }
-        ListElement { title: "Servicios"; iconEmoji: "🌐" }
-        ListElement { title: "Avanzado"; iconEmoji: "🥭" }
-        ListElement { title: "Acerca de"; iconEmoji: "ℹ️" }
+        ListElement { key: "tab_general"; iconEmoji: "⚙️" }
+        ListElement { key: "tab_library"; iconEmoji: "📚" }
+        ListElement { key: "tab_services"; iconEmoji: "🌐" }
+        ListElement { key: "tab_advanced"; iconEmoji: "🥭" }
+        ListElement { key: "tab_about"; iconEmoji: "ℹ️" }
     }
 
     StackLayout {
@@ -97,42 +103,52 @@ Item {
         // --- PANEL 0: GENERAL ---
         Column {
             Layout.fillWidth: true; Layout.fillHeight: true; spacing: 25
-            Text { text: "PREFERENCIAS DE SISTEMA"; color: "#16a085"; font.pixelSize: 10; font.bold: true; font.letterSpacing: 2 }
-            SettingsItem { width: parent.width; title: "Idioma Global"; description: "Interfaz en tu idioma"; controlArea: ComboBox { model: ["Español", "English"]; width: 120 } }
-            SettingsItem { width: parent.width; title: "Tema Automático"; description: "Sincronizar luz/oscuridad"; controlArea: Switch { checked: true; Material.accent: "#16a085" } }
+            Text { text: I18n.t.system_preferences; color: "#16a085"; font.pixelSize: 10; font.bold: true; font.letterSpacing: 2 }
+            SettingsItem { 
+                width: parent.width; title: I18n.t.global_language; description: I18n.t.global_language_desc
+                controlArea: ComboBox { 
+                    model: ["Español", "English"]; width: 120;
+                    currentIndex: I18n.language === "es" ? 0 : 1
+                    onActivated: (index) => {
+                        var lang = (index === 0) ? "es" : "en"
+                        if (controller) controller.set_language(lang)
+                    }
+                } 
+            }
+            SettingsItem { width: parent.width; title: I18n.t.auto_theme; description: I18n.t.auto_theme_desc; controlArea: Switch { checked: true; Material.accent: "#16a085" } }
             Item { Layout.fillHeight: true }
         }
 
         // --- PANEL 1: BIBLIOTECA ---
         Column {
             Layout.fillWidth: true; Layout.fillHeight: true; spacing: 25
-            Text { text: "RUTAS Y ESCANEO"; color: "#16a085"; font.pixelSize: 10; font.bold: true; font.letterSpacing: 2 }
+            Text { text: I18n.t.paths_scanning; color: "#16a085"; font.pixelSize: 10; font.bold: true; font.letterSpacing: 2 }
             Rectangle {
                 width: parent.width; height: 180; radius: 16; color: "#0a0a0c"; border.color: "#33ffffff"; border.width: 1
                 Column {
                     anchors.fill: parent; anchors.margins: 20; spacing: 15
                     Row {
                         width: parent.width; spacing: 10
-                        Text { text: "ROMS:"; color: "white"; font.bold: true; width: 60; anchors.verticalCenter: parent.verticalCenter }
-                        Text { text: currentRomsPath; color: "#16a085"; font.pixelSize: 11; width: parent.width - 160; wrapMode: Text.WrapAnywhere; anchors.verticalCenter: parent.verticalCenter }
-                        Button { text: "CAMBIAR"; flat: true; highlighted: true; onClicked: currentRomsPath = controller.select_roms_directory() }
+                        Text { text: I18n.t.roms_path + ":"; color: "white"; font.bold: true; width: 100; font.pixelSize: 9; anchors.verticalCenter: parent.verticalCenter }
+                        Text { text: currentRomsPath; color: "#16a085"; font.pixelSize: 11; width: parent.width - 200; wrapMode: Text.WrapAnywhere; anchors.verticalCenter: parent.verticalCenter }
+                        Button { text: I18n.t.change_btn; flat: true; highlighted: true; onClicked: currentRomsPath = controller.select_roms_directory() }
                     }
                     Rectangle { width: parent.width; height: 1; color: "#1a1a1f" }
                     Row {
                         width: parent.width; spacing: 10
-                        Text { text: "EMULADORES:"; color: "white"; font.bold: true; width: 60; anchors.verticalCenter: parent.verticalCenter }
-                        Text { text: currentEmulatorsPath; color: "#16a085"; font.pixelSize: 11; width: parent.width - 160; wrapMode: Text.WrapAnywhere; anchors.verticalCenter: parent.verticalCenter }
-                        Button { text: "CAMBIAR"; flat: true; highlighted: true; onClicked: currentEmulatorsPath = controller.select_cores_directory() }
+                        Text { text: I18n.t.emus_path + ":"; color: "white"; font.bold: true; width: 100; font.pixelSize: 9; anchors.verticalCenter: parent.verticalCenter }
+                        Text { text: currentEmulatorsPath; color: "#16a085"; font.pixelSize: 11; width: parent.width - 200; wrapMode: Text.WrapAnywhere; anchors.verticalCenter: parent.verticalCenter }
+                        Button { text: I18n.t.change_btn; flat: true; highlighted: true; onClicked: currentEmulatorsPath = controller.select_cores_directory() }
                     }
                 }
             }
-            Text { text: "INFO DE COLECCIÓN"; color: "#16a085"; font.pixelSize: 10; font.bold: true; font.letterSpacing: 2; topPadding: 15 }
+            Text { text: I18n.t.collection_info; color: "#16a085"; font.pixelSize: 10; font.bold: true; font.letterSpacing: 2; topPadding: 15 }
             Text { 
-                text: "Tienes " + gamesCount + " juegos registrados."; 
+                text: (I18n.t.games_registered || "").arg(gamesCount); 
                 color: "#66ffffff"; font.pixelSize: 11 
             }
             Text { 
-                text: "Para actualizar tu biblioteca o descargar medios, dirígete a la sección de DESCARGAS."; 
+                text: I18n.t.section_downloads_ref; 
                 color: "#33ffffff"; font.pixelSize: 10; font.italic: true; width: parent.width; wrapMode: Text.WordWrap
             }
             Item { Layout.fillHeight: true }
@@ -141,30 +157,30 @@ Item {
         // --- PANEL 2: SERVICIOS ---
         Column {
             Layout.fillWidth: true; Layout.fillHeight: true; spacing: 25
-            Text { text: "RECURSOS EXTERNOS"; color: "#16a085"; font.pixelSize: 10; font.bold: true; font.letterSpacing: 2 }
+            Text { text: I18n.t.external_resources; color: "#16a085"; font.pixelSize: 10; font.bold: true; font.letterSpacing: 2 }
             Rectangle {
                 width: parent.width; height: 260; radius: 16; color: "#0a0a0c"; border.color: "#33ffffff"
                 Column {
                     anchors.fill: parent; anchors.margins: 20; spacing: 15
-                    Text { text: "SCREEN SCRAPER API"; color: "white"; font.bold: true }
+                    Text { text: I18n.t.api_screenscraper; color: "white"; font.bold: true }
                     Text { 
-                        text: "Introduce tus credenciales de ScreenScraper.fr para descargar portadas y metadatos automáticamente."; 
+                        text: I18n.t.api_desc; 
                         color: "#66ffffff"; font.pixelSize: 11; width: parent.width - 40; wrapMode: Text.WordWrap 
                     }
                     TextField { 
-                        id: userField; placeholderText: "Usuario"; width: parent.width; 
+                        id: userField; placeholderText: I18n.t.username_placeholder; width: parent.width; 
                         text: controller ? controller.get_api_credential("screenscraper_user") : ""
                         onEditingFinished: if(controller) controller.set_api_credential("screenscraper_user", text) 
                     }
                     TextField { 
-                        id: passField; placeholderText: "Contraseña"; echoMode: TextInput.Password; width: parent.width; 
+                        id: passField; placeholderText: I18n.t.password_placeholder; echoMode: TextInput.Password; width: parent.width; 
                         text: controller ? controller.get_api_credential("screenscraper_pass") : ""
                         onEditingFinished: if(controller) controller.set_api_credential("screenscraper_pass", text) 
                     }
                 }
             }
             Text { 
-                text: "Configuración de API guardada. El motor M.A.N.G.O usará estas credenciales al iniciar una sincronización desde la sección de DESCARGAS."; 
+                text: I18n.t.api_saved; 
                 color: "#33ffffff"; font.pixelSize: 10; font.italic: true; width: parent.width; wrapMode: Text.WordWrap
             }
             Item { Layout.fillHeight: true }
@@ -173,14 +189,14 @@ Item {
         // --- PANEL 3: AVANZADO ---
         Column {
             Layout.fillWidth: true; Layout.fillHeight: true; spacing: 25
-            Text { text: "MOTOR M.A.N.G.O (RUST CORE)"; color: "#16a085"; font.pixelSize: 10; font.bold: true; font.letterSpacing: 2 }
+            Text { text: I18n.t.mango_engine; color: "#16a085"; font.pixelSize: 10; font.bold: true; font.letterSpacing: 2 }
             Column {
                 width: parent.width; spacing: 20
-                SettingsItem { width: parent.width; title: "Optimización Multinúcleo"; description: "Usa todos los hilos del CPU para el hashing"; controlArea: Switch { checked: true; Material.accent: "#16a085" } }
-                SettingsItem { width: parent.width; title: "Verificación de Integridad"; description: "Comprobar archivos corruptos durante el escaneo"; controlArea: Switch { checked: false; Material.accent: "#16a085" } }
-                SettingsItem { width: parent.width; title: "Modo Ultra-Baja Latencia"; description: "Scraping asíncrono optimizado por RUST"; controlArea: Switch { checked: true; Material.accent: "#16a085" } }
+                SettingsItem { width: parent.width; title: I18n.t.opt_multicore; description: I18n.t.opt_multicore_desc; controlArea: Switch { checked: true; Material.accent: "#16a085" } }
+                SettingsItem { width: parent.width; title: I18n.t.opt_integrity; description: I18n.t.opt_integrity_desc; controlArea: Switch { checked: false; Material.accent: "#16a085" } }
+                SettingsItem { width: parent.width; title: I18n.t.opt_low_latency; description: I18n.t.opt_low_latency_desc; controlArea: Switch { checked: true; Material.accent: "#16a085" } }
                 Item { width: 1; height: 10 }
-                Button { text: "PURGAR CACHÉ DEL MOTOR"; flat: true; highlighted: true; onClicked: console.log("Purgando caché M.A.N.G.O...") }
+                Button { text: I18n.t.purge_cache; flat: true; highlighted: true; onClicked: console.log("Purgando caché M.A.N.G.O...") }
             }
             Item { Layout.fillHeight: true }
         }
@@ -190,39 +206,103 @@ Item {
             Layout.fillWidth: true; Layout.fillHeight: true
             contentHeight: aboutColumn.height + 100; clip: true
             ScrollBar.vertical: ScrollBar { }
+            
             Column {
-                id: aboutColumn; width: parent.width; spacing: 40; anchors.horizontalCenter: parent.horizontalCenter
+                id: aboutColumn; width: parent.width; spacing: 30; anchors.horizontalCenter: parent.horizontalCenter
+                
+                // HEADER SECTION (LOGO + VERSION)
                 Column {
                     width: parent.width; spacing: 15
-                    Row { 
+                    Item {
+                        width: 120; height: 120; anchors.horizontalCenter: parent.horizontalCenter
+                        Rectangle {
+                            anchors.fill: parent; radius: 30; color: "#0a0a0c"
+                            border.color: "#33ffffff"; border.width: 1
+                            Image { 
+                                source: "../assets/logo.svg"; anchors.fill: parent; anchors.margins: 25; 
+                                fillMode: Image.PreserveAspectFit; smooth: true 
+                            }
+                            Rectangle {
+                                width: 20; height: 20; radius: 10; color: "#16a085"; border.color: "white"
+                                anchors.bottom: parent.bottom; anchors.right: parent.right
+                                anchors.margins: -5
+                                ToolTip.text: (systemInfo.is_engine_ready ? "🥭 " : "❌ ") + I18n.t.engine_online
+                                ToolTip.visible: statusMa.containsMouse
+                                MouseArea { id: statusMa; anchors.fill: parent; hoverEnabled: true }
+                            }
+                        }
+                    }
+                    Text { 
+                        text: (systemInfo.app_name || "EMUMANAGER").toUpperCase()
+                        color: "white"; font.pixelSize: 22; font.bold: true; font.letterSpacing: 6; 
+                        anchors.horizontalCenter: parent.horizontalCenter 
+                    }
+                    Rectangle {
+                        width: 120; height: 24; radius: 12; color: "#1a1a1f"
                         anchors.horizontalCenter: parent.horizontalCenter
-                        spacing: 25
-                        Image { source: "../assets/logo.svg"; width: 70; height: 70 }
-                        Text { text: "🥭"; font.pixelSize: 45; anchors.verticalCenter: parent.verticalCenter; opacity: 0.9 } 
+                        Text { 
+                            anchors.centerIn: parent; text: systemInfo.app_version || "v1.0.0"
+                            color: "#16a085"; font.pixelSize: 10; font.bold: true; font.letterSpacing: 1
+                        }
                     }
-                    Text { text: "EMUMANAGER ECOSYSTEM"; color: "white"; font.pixelSize: 22; font.bold: true; font.letterSpacing: 6; anchors.horizontalCenter: parent.horizontalCenter }
                 }
+
+                // DESCRIPTION
                 Text { 
-                    width: parent.width * 0.85; wrapMode: Text.WordWrap; horizontalAlignment: Text.AlignHCenter; color: "#ccffffff"; font.pixelSize: 12; lineHeight: 1.4; anchors.horizontalCenter: parent.horizontalCenter
-                    text: "EmuManager es una interfaz de código abierto diseñada para centralizar y organizar bibliotecas locales de videojuegos. El sistema utiliza <b>M.A.N.G.O Engine</b> para realizar tareas pesadas..."
+                    width: parent.width * 0.9; wrapMode: Text.WordWrap; horizontalAlignment: Text.AlignHCenter 
+                    color: "#ccffffff"; font.pixelSize: 13; lineHeight: 1.5; anchors.horizontalCenter: parent.horizontalCenter
+                    text: I18n.t.about_desc
                 }
-                Column {
-                    width: parent.width * 0.8; spacing: 25; anchors.horizontalCenter: parent.horizontalCenter
-                    Column { 
-                        width: parent.width
-                        spacing: 5
-                        Text { text: "LOCAL-FIRST PRIVACY"; color: "#16a085"; font.pixelSize: 9; font.bold: true }
-                        Text { width: parent.width; wrapMode: Text.WordWrap; color: "#99ffffff"; font.pixelSize: 11; text: "Tus datos son tuyos. El motor M.A.N.G.O procesa todo localmente." } 
+
+                // GRID DE ESPECIFICACIONES (Glassmorphism inspired)
+                Flow {
+                    width: parent.width; spacing: 10; Layout.alignment: Qt.AlignHCenter
+                    
+                    AboutStatCard { 
+                        title: I18n.t.os_spec; value: systemInfo.os || "Buscando..."
+                        icon: "💻" 
                     }
-                    Column { 
-                        width: parent.width
-                        spacing: 5
-                        Text { text: "SOFTWARE LIBRE"; color: "#16a085"; font.pixelSize: 9; font.bold: true } 
-                        Text { width: parent.width; wrapMode: Text.WordWrap; color: "#99ffffff"; font.pixelSize: 11; text: "Distribuido bajo la Licencia MIT. EmuManager es y será siempre gratuito." } 
+                    AboutStatCard { 
+                        title: I18n.t.engine_spec; value: systemInfo.mango || "M.A.N.G.O Inactivo"
+                        valueColor: "#16a085"; icon: "🥭"
+                    }
+                    AboutStatCard { 
+                        title: I18n.t.ram_spec; value: systemInfo.ram || "Detectando..."
+                        icon: "🧠" 
+                    }
+                    AboutStatCard { 
+                        title: I18n.t.cpu_spec; value: systemInfo.cpu || "N/A"
+                        icon: "⚡" 
+                    }
+                    AboutStatCard { 
+                        title: I18n.t.python_spec; value: systemInfo.python || "N/A"
+                        icon: "🐍" 
                     }
                 }
+
+                // BARRAS DE ESTADO RAPIDO
                 Column {
-                    width: parent.width; spacing: 5; Text { text: "© 2026 PAIDEX | EMUMANAGER TEAM"; color: "#44ffffff"; font.pixelSize: 10; font.bold: true; anchors.horizontalCenter: parent.horizontalCenter }
+                    width: parent.width; spacing: 15
+                    Rectangle { 
+                        width: parent.width; height: 1; color: "#1a1a1f" 
+                    }
+                    Row {
+                        spacing: 20; anchors.horizontalCenter: parent.horizontalCenter
+                        Button { 
+                            text: I18n.t.contribute_github; width: 180; height: 40; 
+                            flat: true; highlighted: true
+                            onClicked: Qt.openUrlExternally("https://github.com/PxGUE/EmuManager") 
+                        }
+                        Button { 
+                            text: I18n.t.official_site; width: 150; height: 40; 
+                            flat: true; onClicked: Qt.openUrlExternally("https://emumanager.app") 
+                        }
+                    }
+                    Text { 
+                        text: I18n.t.copyright; 
+                        color: "#44ffffff"; font.pixelSize: 9; font.bold: true; 
+                        anchors.horizontalCenter: parent.horizontalCenter 
+                    }
                 }
             }
         }

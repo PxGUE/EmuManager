@@ -18,12 +18,12 @@ ApplicationWindow {
     property bool isLoaded: false
     property string activeViewId: "dashboardView"
     property real startupProgress: 0.0
-    property string startupStatus: "INICIALIZANDO..."
+    property string startupStatus: I18n.t.initializing
 
     Connections {
         target: controller
         function onStartupProgressChanged(p) { window.startupProgress = p }
-        function onStartupStatusChanged(s) { window.startupStatus = s }
+        function onStartupStatusChanged(s) { window.startupStatus = I18n.tp(s) }
         function onStartupFinished() { window.isLoaded = true }
     }
 
@@ -39,10 +39,10 @@ ApplicationWindow {
 
     ListModel {
         id: navModel
-        ListElement { name: "DASHBOARD"; icon: "🏠"; file: "views/Dashboard.qml"; viewId: "dashboardView" }
-        ListElement { name: "BIBLIOTECA"; icon: "📚"; file: "views/Library.qml"; viewId: "libraryView" }
-        ListElement { name: "DESCARGAS"; icon: "📥"; file: "views/Downloads.qml"; viewId: "downloadsView" }
-        ListElement { name: "CONFIGURACIÓN"; icon: "⚙️"; file: "views/Settings.qml"; viewId: "settingsView" }
+        ListElement { key: "dashboard"; icon: "🏠"; file: "views/Dashboard.qml"; viewId: "dashboardView" }
+        ListElement { key: "library"; icon: "📚"; file: "views/Library.qml"; viewId: "libraryView" }
+        ListElement { key: "downloads"; icon: "📥"; file: "views/Downloads.qml"; viewId: "downloadsView" }
+        ListElement { key: "settings"; icon: "⚙️"; file: "views/Settings.qml"; viewId: "settingsView" }
     }
 
     // --- 1. PANTALLA DE CARGA (Modular + Logo Herencia) ---
@@ -77,13 +77,17 @@ ApplicationWindow {
                         contentItem: RowLayout {
                             spacing: 15
                             Text { text: model.icon; font.pixelSize: 18; opacity: highlighted ? 1.0 : 0.5 }
-                            Text { text: model.name; color: highlighted ? "white" : "#66ffffff"; font.pixelSize: 11; font.bold: highlighted; font.letterSpacing: 2 }
+                            Text { 
+                                text: (I18n.t[model.key] || "").toUpperCase()
+                                color: highlighted ? "white" : "#66ffffff"
+                                font.pixelSize: 11; font.bold: highlighted; font.letterSpacing: 2 
+                            }
                         }
                         onClicked: activeViewId = model.viewId
                     }
                 }
                 Item { Layout.fillHeight: true }
-                Text { text: "v0.1.0-alpha"; color: "#22ffffff"; font.pixelSize: 9; Layout.alignment: Qt.AlignHCenter }
+                Text { text: "v0.9.5-MANGO"; color: "#22ffffff"; font.pixelSize: 9; Layout.alignment: Qt.AlignHCenter }
             }
         }
 

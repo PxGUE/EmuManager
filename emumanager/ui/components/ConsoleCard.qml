@@ -78,7 +78,7 @@ Item {
         Column {
             anchors.verticalCenter: parent.verticalCenter; spacing: 0
             Text { text: title.toUpperCase(); color: "white"; font.pixelSize: 13; font.bold: true; font.letterSpacing: 2 }
-            Text { text: gameCount + " JUEGOS"; color: "#66ffffff"; font.pixelSize: 9; font.bold: true }
+            Text { text: gameCount + " " + I18n.t.games_suffix; color: "#66ffffff"; font.pixelSize: 9; font.bold: true }
         }
     }
 
@@ -142,8 +142,8 @@ Item {
 
             Column {
                 anchors.left: parent.left; width: parent.width/2; spacing: 8
-                Text { width: parent.width; text: "BIBLIOTECA"; color: "#66ffffff"; font.pixelSize: 10; horizontalAlignment: Text.AlignHCenter; font.bold: true; font.letterSpacing: 2 }
-                Text { width: parent.width; text: gameCount + " JX"; color: "white"; font.pixelSize: 24; horizontalAlignment: Text.AlignHCenter; font.bold: true }
+                Text { width: parent.width; text: I18n.t.library; color: "#66ffffff"; font.pixelSize: 10; horizontalAlignment: Text.AlignHCenter; font.bold: true; font.letterSpacing: 2 }
+                Text { width: parent.width; text: gameCount + " " + I18n.t.games_abbr; color: "white"; font.pixelSize: 24; horizontalAlignment: Text.AlignHCenter; font.bold: true }
             }
             
             Rectangle { 
@@ -153,7 +153,7 @@ Item {
 
             Column {
                 anchors.right: parent.right; width: parent.width/2; spacing: 8
-                Text { width: parent.width; text: "TIEMPO"; color: "#66ffffff"; font.pixelSize: 10; horizontalAlignment: Text.AlignHCenter; font.bold: true; font.letterSpacing: 2 }
+                Text { width: parent.width; text: I18n.t.play_time_abbr; color: "#66ffffff"; font.pixelSize: 10; horizontalAlignment: Text.AlignHCenter; font.bold: true; font.letterSpacing: 2 }
                 Text { width: parent.width; text: playTime; color: "white"; font.pixelSize: 24; horizontalAlignment: Text.AlignHCenter; font.bold: true }
             }
         }

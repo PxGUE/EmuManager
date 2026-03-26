@@ -120,7 +120,7 @@ Item {
         }
 
         Text {
-            width: parent.width; text: isHovered ? "LANZAR AVENTURA" : "BIBLIOTECA"
+            width: parent.width; text: isHovered ? I18n.t.launch_adventure : I18n.t.library
             color: isHovered ? "white" : "#66ffffff"
             font.pixelSize: 8; font.bold: true; horizontalAlignment: Text.AlignHCenter
             font.letterSpacing: 2

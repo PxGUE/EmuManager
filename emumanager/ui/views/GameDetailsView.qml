@@ -11,7 +11,7 @@ Item {
     
     // --- DATOS DEL JUEGO ---
     property int gameId: 0
-    property string title: "CARGANDO..."
+    property string title: I18n.t.loading
     property string platform: ""
     property string developer: ""
     property string genre: ""
@@ -110,7 +110,7 @@ Item {
                         ScrollBar.vertical: ScrollBar { width: 3; contentItem: Rectangle { color: accentColor; radius: 2; opacity: 0.3 } }
                         Text {
                             width: 380; wrapMode: Text.WordWrap
-                            text: detailsRoot.description !== "Sin descripción disponible." ? detailsRoot.description : "Sin descripción adicional disponible para este título de " + detailsRoot.platform + "."
+                            text: detailsRoot.description !== "Sin descripción disponible." ? detailsRoot.description : I18n.t.no_description_template.arg(detailsRoot.platform.toUpperCase())
                             color: "#99ffffff"; font.pixelSize: 14; lineHeight: 1.4
                         }
                     }
@@ -127,7 +127,7 @@ Item {
                             Behavior on color { ColorAnimation { duration: 200 } }
                         }
                         contentItem: Text {
-                            text: "LANZAR AVENTURA"; color: launchBigBtn.hovered ? "black" : "white"
+                            text: I18n.t.launch_adventure; color: launchBigBtn.hovered ? "black" : "white"
                             font.bold: true; font.letterSpacing: 2; font.pixelSize: 14; horizontalAlignment: Text.AlignHCenter
                         }
                     }

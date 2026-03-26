@@ -10,6 +10,11 @@ from backend.database import DatabaseManager
 from backend.scanner import ScannerManager
 import sys
 import os
+import platform
+try:
+    import psutil
+except ImportError:
+    psutil = None
 
 QML_IMPORT_NAME = "EmuManager.Controllers"
 QML_IMPORT_MAJOR_VERSION = 1
@@ -24,6 +29,7 @@ from backend.libretro import LibretroManager, CORE_DATABASE
 @QmlElement
 class MainController(QObject):
     # Señales para comunicación con QML en tiempo real
+    language_changed = Signal(str)
     scanProgressChanged = Signal(float)  # 0.0 a 1.0
     scanStatusChanged = Signal(str)      # "Escanenando..." "Listo"
     scanFinished = Signal(int)           # Juegos encontrados
@@ -134,6 +140,25 @@ class MainController(QObject):
         
         self._startup_thread.start()
 
+    # --- Gestión de Idioma ---
+    @Slot(result=str)
+    def get_language(self):
+        return AppConfig.get_language()
+
+    @Slot(str)
+    def set_language(self, lang):
+        if lang in ["es", "en"]:
+            AppConfig.set_language(lang)
+            self.language_changed.emit(lang)
+            EmuLog.info(f"M.A.N.G.O I18n: Idioma cambiado a: {lang}")
+
+    @Slot(result=int)
+    def get_games_count(self):
+        try:
+            return self.db.count_all_roms()
+        except Exception:
+            return 0
+
     # --- Gestión de Credenciales ---
     @Slot(str, str)
     def saveScreenScraperCredentials(self, username, password):
@@ -226,7 +251,7 @@ class MainController(QObject):
                 
                 # Inicializar estados de progreso para la UI
                 emu["progress"] = 0.0
-                emu["statusText"] = "Listo" if is_installed else "Disponible para instalar"
+                emu["statusText"] = "emu_status_installed" if is_installed else "emu_status_available"
                 
                 if is_installed:
                     EmuLog.debug(f"M.A.N.G.O (Check): {emu_id} detectado en {local_path}")
@@ -790,6 +815,49 @@ class MainController(QObject):
             EmuLog.error(f"Error cargando stats del dashboard: {e}")
             
         return stats
+
+    @Slot(result="QVariantMap")
+    def get_system_info(self):
+        """Retorna información técnica para la sección 'Acerca de'."""
+        import platform as py_platform
+        lang = AppConfig.get_language()
+        
+        # Diccionario local de traducción para términos técnicos
+        i18n_tech = {
+            "es": {"active": "Activo", "inactive": "Inactivo", "threads": "hilos"},
+            "en": {"active": "Active", "inactive": "Inactive", "threads": "threads"}
+        }
+        t = i18n_tech.get(lang, i18n_tech["es"])
+
+        # M.A.N.G.O Status
+        is_engine_ready = False
+        mango_status = t["inactive"]
+        try:
+            import mango_engine
+            mango_status = f"{t['active']} (v0.1.0)"
+            is_engine_ready = True
+        except ImportError:
+            pass
+
+        # CPU info
+        cpu_threads = os.cpu_count() or 0
+        
+        # RAM info
+        ram_total = "N/A"
+        if psutil:
+            ram_total = f"{round(psutil.virtual_memory().total / (1024**3))} GB"
+
+        return {
+            "app_name": AppConfig.APP_NAME,
+            "app_version": AppConfig.APP_VERSION,
+            "os": f"{py_platform.system()} {py_platform.release()} ({py_platform.machine()})",
+            "python": py_platform.python_version(),
+            "cpu": f"{cpu_threads} {t['threads']}",
+            "ram": ram_total,
+            "mango": mango_status,
+            "is_engine_ready": is_engine_ready,
+            "runtime": "PySide6 (Qt Quick)"
+        }
 
     @Slot(result="QVariantList")
     @Slot(bool, result="QVariantList")

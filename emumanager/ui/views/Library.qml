@@ -120,17 +120,17 @@ Item {
         ColumnLayout {
             spacing: 5
             Text {
-                text: "BIBLIOTECA VACÍA"
+                text: I18n.t.empty_library
                 color: "white"; font.pixelSize: 18; font.bold: true; font.letterSpacing: 2; Layout.alignment: Qt.AlignHCenter
             }
             Text {
-                text: "No se han detectado juegos todavía.\\nVe a Configuración para añadir rutas de escaneo."
+                text: I18n.t.empty_library_desc
                 color: "#66ffffff"; font.pixelSize: 12; horizontalAlignment: Text.AlignHCenter; Layout.alignment: Qt.AlignHCenter
             }
         }
         
         Button {
-            text: "CONFIGURAR RUTAS"
+            text: I18n.t.configure_paths_btn
             Layout.alignment: Qt.AlignHCenter
             Material.background: "#16a085"; font.bold: true
             onClicked: activeViewId = "settingsView" 
@@ -163,7 +163,7 @@ Item {
                     id: searchInput
                     Layout.fillWidth: true
                     color: "white"
-                    placeholderText: "Búsqueda instantánea..."
+                    placeholderText: I18n.t.search_placeholder
                     background: Item {} // Remover el subrayado por defecto
                     font.pixelSize: 14; font.letterSpacing: 1
                     onTextEdited: gamesModel.search_games(text, activePlatform)

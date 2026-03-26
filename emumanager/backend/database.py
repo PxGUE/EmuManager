@@ -82,3 +82,7 @@ class DatabaseManager:
             ''')
             
             conn.commit()
+
+    def count_all_roms(self) -> int:
+        with self.get_connection() as conn:
+            return conn.execute("SELECT COUNT(*) FROM games").fetchone()[0]

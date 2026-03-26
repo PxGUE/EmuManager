@@ -37,8 +37,8 @@ Item {
     property real scanVal: 0.0
     property string scrapeLog: ""
     property string scanLog: ""
-    property string scrapeStatus: "LISTO"
-    property string scanStatus: "ESPERANDO"
+    property string scrapeStatus: I18n.t.ready_caps
+    property string scanStatus: I18n.t.waiting_caps
     property bool isInstallingCores: false
     property bool isUpdatingSystem: false
 
@@ -52,13 +52,13 @@ Item {
             Layout.fillWidth: true
             ColumnLayout {
                 spacing: 4
-                Text { text: "CENTRO DE SINCRONIZACIÓN"; color: "white"; font.pixelSize: 28; font.bold: true; font.letterSpacing: 2 }
-                Text { text: "Gestiona tu biblioteca, medios y emuladores desde un solo lugar"; color: "#66ffffff"; font.pixelSize: 14; font.bold: true }
+                Text { text: I18n.t.sync_center; color: "white"; font.pixelSize: 28; font.bold: true; font.letterSpacing: 2 }
+                Text { text: I18n.t.sync_center_desc; color: "#66ffffff"; font.pixelSize: 14; font.bold: true }
             }
             Item { Layout.fillWidth: true }
             Button {
                 id: syncBtn
-                text: "BUSCAR ACTUALIZACIONES ↻"
+                text: I18n.t.check_updates_btn
                 flat: true; font.bold: true; font.pixelSize: 11
                 Material.accent: "#16a085"
                 background: Rectangle {
@@ -101,10 +101,10 @@ Item {
                     Text { text: "📡"; font.pixelSize: 32; opacity: scanMA.containsMouse || isScanning ? 1.0 : 0.7 }
                     ColumnLayout {
                         spacing: 2
-                        Text { text: "BIBLIOTECA"; color: "#2ecc71"; font.pixelSize: 9; font.bold: true; font.letterSpacing: 1.5 }
-                        Text { text: "Sincronizar ROMs"; color: "white"; font.pixelSize: 14; font.bold: true }
+                        Text { text: I18n.t.library; color: "#2ecc71"; font.pixelSize: 9; font.bold: true; font.letterSpacing: 1.5 }
+                        Text { text: I18n.t.sync_roms; color: "white"; font.pixelSize: 14; font.bold: true }
                         Text { 
-                            text: isScanning ? scanLog : (scanVal >= 1.0 ? "Biblioteca al día ✓" : "Escanear directorios locales")
+                            text: isScanning ? scanLog : (scanVal >= 1.0 ? I18n.t.scan_done : I18n.t.scan_idle)
                             color: isScanning ? "#2ecc71" : "#66ffffff"; font.pixelSize: 9; elide: Text.ElideRight; Layout.fillWidth: true 
                         }
                     }
@@ -150,10 +150,10 @@ Item {
                     Text { text: "🥭"; font.pixelSize: 32; opacity: mangoMA.containsMouse || isScraping ? 1.0 : 0.7 }
                     ColumnLayout {
                         spacing: 2
-                        Text { text: "M.A.N.G.O SCRAPER"; color: "#f39c12"; font.pixelSize: 9; font.bold: true; font.letterSpacing: 1.5 }
-                        Text { text: "Metadatos y Arte"; color: "white"; font.pixelSize: 14; font.bold: true }
+                        Text { text: I18n.t.mango_monitor; color: "#f39c12"; font.pixelSize: 9; font.bold: true; font.letterSpacing: 1.5 }
+                        Text { text: I18n.t.sync_media; color: "white"; font.pixelSize: 14; font.bold: true }
                         Text { 
-                            text: isScraping ? scrapeLog : (scrapeVal >= 1.0 ? "Media sincronizada ✓" : "ScreenScraper + Libretro")
+                            text: isScraping ? scrapeLog : (scrapeVal >= 1.0 ? I18n.t.scrape_done : I18n.t.scrape_idle)
                             color: isScraping ? "#f39c12" : "#66ffffff"; font.pixelSize: 9; elide: Text.ElideRight; Layout.fillWidth: true 
                         }
                     }
@@ -177,7 +177,7 @@ Item {
             
             RowLayout {
                 Layout.fillWidth: true
-                Text { text: "GALERÍA DE EMULADORES"; color: "#16a085"; font.pixelSize: 11; font.bold: true; font.letterSpacing: 2 }
+                Text { text: I18n.t.emu_gallery; color: "#16a085"; font.pixelSize: 11; font.bold: true; font.letterSpacing: 2 }
                 Rectangle { Layout.fillWidth: true; height: 1; color: "#1a1a1f"; Layout.leftMargin: 15 }
             }
 
@@ -220,12 +220,12 @@ Item {
         target: mainController
         
         function onScanProgressChanged(p) { scanVal = p }
-        function onScanStatusChanged(s) { scanLog = s; isScanning = true }
-        function onScanFinished(n) { scanVal = 1.0; scanLog = "Sincronizado: " + n + " juegos encontrados."; isScanning = false }
+        function onScanStatusChanged(s) { scanLog = I18n.tp(s); isScanning = true }
+        function onScanFinished(n) { scanVal = 1.0; scanLog = I18n.t.scan_finished.arg(n); isScanning = false }
         
         function onScrapeProgressChanged(p) { scrapeVal = p }
-        function onScrapeStatusChanged(s) { scrapeLog = s; isScraping = true }
-        function onScrapeFinished(n) { scrapeVal = 1.0; scrapeLog = "Media sincronizada ✓"; isScraping = false }
+        function onScrapeStatusChanged(s) { scrapeLog = I18n.tp(s); isScraping = true }
+        function onScrapeFinished(n) { scrapeVal = 1.0; scrapeLog = I18n.t.scrape_done; isScraping = false }
 
         // Señales de Core (Actualización de ambos modelos)
         function onCoreDownloadStatusChanged(emu_id, s) {
@@ -240,7 +240,7 @@ Item {
                 // Actualización masiva de estado para un ID específico
                 for(var i=0; i < emulatorsModel.count; i++) {
                     if(emulatorsModel.get(i).id === emu_id) {
-                        emulatorsModel.setProperty(i, "statusText", s)
+                        emulatorsModel.setProperty(i, "statusText", I18n.tp(s))
                         break
                     }
                 }

@@ -102,7 +102,7 @@ class ScannerManager:
         extensions.append("zip") # Incluir ZIP siempre
         extensions = list(set(extensions))
 
-        if status_callback: status_callback("Escaneando archivos con motor Rust...")
+        if status_callback: status_callback("scan_starting")
         
         # Invocación al motor de RUST
         if mango_engine:
@@ -116,7 +116,7 @@ class ScannerManager:
         total_files = len(raw_results)
         
         if total_files == 0:
-            if status_callback: status_callback("No se encontraron ROMs soportadas.")
+            if status_callback: status_callback("scan_no_roms")
             return 0
 
         new_games_count = 0
@@ -153,7 +153,7 @@ class ScannerManager:
                 if progress_callback:
                     progress_callback( (index + 1) / total_files )
                 if status_callback and index % 5 == 0: # Reportar cada 5 juegos para no saturar
-                    status_callback(f"Registrando: {game_title}")
+                    status_callback(f"scan_registering|{game_title}")
                 
                 try:
                     cursor.execute('''
@@ -198,7 +198,7 @@ class ScannerManager:
         project_root = Path(__file__).parent.parent.parent # f:/.../EmuManager
         media_base = str(project_root / "data" / "media")
         
-        if status_callback: status_callback("Iniciando M.A.N.G.O Batch Scraper...")
+        if status_callback: status_callback("scrape_starting")
         
         try:
             def _interrupt_check():
@@ -221,7 +221,7 @@ class ScannerManager:
             )
             
             if status_callback:
-                status_callback("Scrapeado completado con éxito.")
+                status_callback("scrape_finished")
                 
             return success_count
         except Exception as e:

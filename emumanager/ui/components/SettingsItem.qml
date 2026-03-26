@@ -19,11 +19,19 @@ Item {
 
     // Fondo Sutil de Hover
     Rectangle {
+        id: hoverRect
         anchors.fill: parent
         radius: 12
         color: "white"
         opacity: 0
         Behavior on opacity { NumberAnimation { duration: 200 } }
+    }
+
+    MouseArea {
+        anchors.fill: parent
+        hoverEnabled: true
+        onEntered: hoverRect.opacity = 0.04
+        onExited: hoverRect.opacity = 0
     }
 
     RowLayout {
@@ -78,10 +86,4 @@ Item {
         height: 1; color: "#08ffffff"
     }
 
-    MouseArea {
-        anchors.fill: parent
-        hoverEnabled: true
-        onEntered: parent.children[0].opacity = 0.04
-        onExited: parent.children[0].opacity = 0
-    }
 }

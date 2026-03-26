@@ -75,12 +75,12 @@ Rectangle {
                     text: root.name; color: "white"; font.pixelSize: 18; font.bold: true
                 }
                 Text {
-                    text: root.consoleName.toUpperCase()
+                    text: (I18n.t[root.consoleName] || root.consoleName).toUpperCase()
                     color: accent; font.pixelSize: 9; font.bold: true; font.letterSpacing: 1.5; opacity: 0.8
                 }
             }
             Text {
-                text: root.description
+                text: I18n.t[root.description] || root.description
                 color: "#66ffffff"; font.pixelSize: 11; Layout.fillWidth: true; wrapMode: Text.WordWrap; maximumLineCount: 2
                 elide: Text.ElideRight
             }
@@ -92,7 +92,7 @@ Rectangle {
                 color: isInstalling ? "#20f1c40f" : (isInstalled ? "#202ecc71" : "#10ffffff")
                 Text {
                     id: badgeText; anchors.centerIn: parent
-                    text: isInstalling ? (root.statusText ? root.statusText : "PROCESANDO...") : (isInstalled ? "INSTALADO" : "DISPONIBLE")
+                    text: isInstalling ? (I18n.tp(root.statusText) || I18n.t.status_processing) : I18n.tp(root.statusText)
                     color: isInstalling ? "#f1c40f" : (isInstalled ? "#2ecc71" : "#66ffffff")
                     font.pixelSize: 8; font.bold: true; font.letterSpacing: 1
                 }
@@ -109,7 +109,8 @@ Rectangle {
                 visible: isInstalling
                 
                 Text {
-                    text: root.statusText; color: accent; font.pixelSize: 8; font.bold: true; opacity: 0.8
+                    text: I18n.tp(root.statusText)
+                    color: accent; font.pixelSize: 9; font.bold: true; font.letterSpacing: 2
                 }
                 
                 Rectangle {
@@ -128,10 +129,10 @@ Rectangle {
                 
                 // Lógica de 4 Estados
                 property string btnText: {
-                    if (isInstalling) return "PROCESANDO..."
-                    if (!isInstalled) return "INSTALAR"
-                    if (hasUpdate) return "ACTUALIZAR"
-                    return "DESINSTALAR"
+                    if (isInstalling) return I18n.t.status_processing
+                    if (!isInstalled) return I18n.t.btn_install
+                    if (hasUpdate) return I18n.t.btn_update
+                    return I18n.t.btn_uninstall
                 }
                 
                 property color btnColor: {

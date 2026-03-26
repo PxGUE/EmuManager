@@ -1,0 +1,11 @@
+singleton I18n 1.0 I18n.qml
+AboutStatCard 1.0 AboutStatCard.qml
+ConsoleCard 1.0 ConsoleCard.qml
+DashboardStatCard 1.0 DashboardStatCard.qml
+DownloadConsoleItem 1.0 DownloadConsoleItem.qml
+EmuButton 1.0 EmuButton.qml
+EmuFloatingButton 1.0 EmuFloatingButton.qml
+EmuSplash 1.0 EmuSplash.qml
+GameBox3D 1.0 GameBox3D.qml
+RomCard 1.0 RomCard.qml
+SettingsItem 1.0 SettingsItem.qml

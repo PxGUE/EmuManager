@@ -11,7 +11,7 @@ Rectangle {
     
     // Propiedades de Control Externo
     property bool isLoaded: false
-    property string statusText: "INICIALIZANDO..."
+    property string statusText: I18n.t.initializing
     property real progress: 0.0
     
     // Transición de Salida Cinematográfica

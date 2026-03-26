@@ -5,6 +5,7 @@ from typing import Optional
 
 class AppConfig:
     APP_NAME = "EmuManager"
+    APP_VERSION = "0.9.5 Beta"
     _config_cache: Optional[dict] = None
 
     @classmethod
@@ -110,6 +111,16 @@ class AppConfig:
             if "ss_pass" in config:
                 del config["ss_pass"]
                 cls._save_config()
+
+    @classmethod
+    def get_language(cls) -> str:
+        return cls._load_config().get("language", "es")
+
+    @classmethod
+    def set_language(cls, lang: str):
+        config = cls._load_config()
+        config["language"] = str(lang)
+        cls._save_config()
 
     @classmethod
     def get_database_path(cls) -> Path:

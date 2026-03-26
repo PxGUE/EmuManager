@@ -3,6 +3,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Controls.Material
 import Qt5Compat.GraphicalEffects
+import "../components"
 
 Popup {
     id: root
@@ -43,9 +44,9 @@ Popup {
             RowLayout {
                 Layout.fillWidth: true
                 ColumnLayout {
-                    Text { text: "AJUSTES: RETROARCH"; color: "white"; font.pixelSize: 18; font.bold: true; font.letterSpacing: 1.5 }
+                    Text { text: I18n.t.ra_settings; color: "white"; font.pixelSize: 18; font.bold: true; font.letterSpacing: 1.5 }
                     Text { 
-                        text: isRetroArchInstalled ? "Gestión avanzada de núcleos" : "⚠️ RETROARCH NO DETECTADO"
+                        text: isRetroArchInstalled ? I18n.t.ra_management : I18n.t.ra_not_detected
                         color: isRetroArchInstalled ? "#16a085" : "#e74c3c"
                         font.pixelSize: 9; font.bold: true 
                     }
@@ -66,7 +67,7 @@ Popup {
                     anchors.fill: parent; anchors.leftMargin: 15; spacing: 10
                     Text { text: "ℹ️"; font.pixelSize: 14 }
                     Text { 
-                        text: "Debes instalar RetroArch desde el panel principal antes de descargar núcleos."; 
+                        text: I18n.t.ra_install_warning; 
                         color: "#e74c3c"; font.pixelSize: 10; font.bold: true 
                     }
                 }
@@ -92,7 +93,7 @@ Popup {
                             Layout.fillWidth: true; spacing: 2
                             Text { text: model.name; color: "white"; font.pixelSize: 13; font.bold: true }
                             Text { 
-                                text: model.isInstalled ? "Núcleo listo para usar" : "Disponible para descarga"
+                                text: model.isInstalled ? I18n.t.core_ready : I18n.t.core_available
                                 color: "#66ffffff"; font.pixelSize: 9 
                             }
                             
@@ -108,8 +109,8 @@ Popup {
                             implicitWidth: 100; implicitHeight: 32
                             text: {
                                 if (model.isDownloading) return "..."
-                                if (model.isInstalled) return "BORRAR"
-                                return "INSTALAR"
+                                if (model.isInstalled) return I18n.t.btn_delete
+                                return I18n.t.btn_install
                             }
                             
                             enabled: !model.isDownloading

@@ -201,108 +201,121 @@ Item {
             Item { Layout.fillHeight: true }
         }
 
-        // --- PANEL 4: ACERCA DE ---
+        // --- PANEL 4: ACERCA DE (DESIGN REFEDINED - MINIMALIST PREMIUM) ---
         Flickable {
             Layout.fillWidth: true; Layout.fillHeight: true
-            contentHeight: aboutColumn.height + 100; clip: true
+            contentHeight: aboutContent.height + 60; clip: true
             ScrollBar.vertical: ScrollBar { }
             
-            Column {
-                id: aboutColumn; width: parent.width; spacing: 30; anchors.horizontalCenter: parent.horizontalCenter
+            ColumnLayout {
+                id: aboutContent
+                width: parent.width - 80; anchors.horizontalCenter: parent.horizontalCenter
+                spacing: 30
                 
-                // HEADER SECTION (LOGO + VERSION)
-                Column {
-                    width: parent.width; spacing: 15
-                    Item {
-                        width: 120; height: 120; anchors.horizontalCenter: parent.horizontalCenter
-                        Rectangle {
-                            anchors.fill: parent; radius: 30; color: "#0a0a0c"
-                            border.color: "#33ffffff"; border.width: 1
-                            Image { 
-                                source: "../assets/logo.svg"; anchors.fill: parent; anchors.margins: 25; 
-                                fillMode: Image.PreserveAspectFit; smooth: true 
-                            }
-                            Rectangle {
-                                width: 20; height: 20; radius: 10; color: "#16a085"; border.color: "white"
-                                anchors.bottom: parent.bottom; anchors.right: parent.right
-                                anchors.margins: -5
-                                ToolTip.text: (systemInfo.is_engine_ready ? "🥭 " : "❌ ") + I18n.t.engine_online
-                                ToolTip.visible: statusMa.containsMouse
-                                MouseArea { id: statusMa; anchors.fill: parent; hoverEnabled: true }
-                            }
-                        }
-                    }
-                    Text { 
-                        text: (systemInfo.app_name || "EMUMANAGER").toUpperCase()
-                        color: "white"; font.pixelSize: 22; font.bold: true; font.letterSpacing: 6; 
-                        anchors.horizontalCenter: parent.horizontalCenter 
-                    }
+                Item { Layout.preferredHeight: 40 }
+
+                // LOGO & TITLE
+                ColumnLayout {
+                    Layout.alignment: Qt.AlignHCenter; spacing: 10
+                    
                     Rectangle {
-                        width: 120; height: 24; radius: 12; color: "#1a1a1f"
-                        anchors.horizontalCenter: parent.horizontalCenter
-                        Text { 
-                            anchors.centerIn: parent; text: systemInfo.app_version || "v1.0.0"
-                            color: "#16a085"; font.pixelSize: 10; font.bold: true; font.letterSpacing: 1
+                        Layout.alignment: Qt.AlignHCenter; width: 100; height: 100; radius: 25; color: "#0a0a0c"; border.color: "#1a1a1f"
+                        Image { 
+                            source: "../assets/logo.svg"; anchors.fill: parent; anchors.margins: 20; 
+                            fillMode: Image.PreserveAspectFit; smooth: true; opacity: 0.9
                         }
+                    }
+                    
+                    Text { 
+                        Layout.alignment: Qt.AlignHCenter
+                        text: "EmuManager"
+                        color: "white"; font.pixelSize: 32; font.bold: true; font.letterSpacing: -1
+                    }
+                    
+                    Text { 
+                        Layout.alignment: Qt.AlignHCenter
+                        text: "v0.1.3 - alpha"; color: "#66ffffff"; font.pixelSize: 11; font.bold: true; font.letterSpacing: 2
                     }
                 }
 
-                // DESCRIPTION
+                // POWERED BY TAGLINE
+                RowLayout {
+                    Layout.alignment: Qt.AlignHCenter; spacing: 12
+                    Rectangle { Layout.preferredWidth: 40; Layout.preferredHeight: 1; color: "#1a1a1f" }
+                    Text { 
+                        text: "POWERED BY M.A.N.G.O v0.2.5"; color: "#16a085"; font.pixelSize: 9; font.bold: true; font.letterSpacing: 3 
+                    }
+                    Rectangle { Layout.preferredWidth: 40; Layout.preferredHeight: 1; color: "#1a1a1f" }
+                }
+
+                // OVERVIEW DESCRIPTION
                 Text { 
-                    width: parent.width * 0.9; wrapMode: Text.WordWrap; horizontalAlignment: Text.AlignHCenter 
-                    color: "#ccffffff"; font.pixelSize: 13; lineHeight: 1.5; anchors.horizontalCenter: parent.horizontalCenter
+                    Layout.fillWidth: true; horizontalAlignment: Text.AlignHCenter; wrapMode: Text.WordWrap; lineHeight: 1.6
+                    color: "#ccffffff"; font.pixelSize: 14
                     text: I18n.t.about_desc
                 }
 
-                // GRID DE ESPECIFICACIONES (Glassmorphism inspired)
-                Flow {
-                    width: parent.width; spacing: 10; Layout.alignment: Qt.AlignHCenter
+                // STATUS PILLS (FOSS & PRIVACY)
+                Row {
+                    Layout.alignment: Qt.AlignHCenter; spacing: 15
                     
-                    AboutStatCard { 
-                        title: I18n.t.os_spec; value: systemInfo.os || "Buscando..."
-                        icon: "💻" 
+                    Rectangle {
+                        height: 32; width: 140; radius: 16; color: "#0a0a0c"; border.color: "#16a085"; border.width: 1; opacity: 0.8
+                        Row { anchors.centerIn: parent; spacing: 8
+                            Text { text: "🔓"; font.pixelSize: 12 }
+                            Text { text: I18n.t.pill_free_open; color: "white"; font.pixelSize: 8; font.bold: true; font.letterSpacing: 1 }
+                        }
                     }
-                    AboutStatCard { 
-                        title: I18n.t.engine_spec; value: systemInfo.mango || "M.A.N.G.O Inactivo"
-                        valueColor: "#16a085"; icon: "🥭"
-                    }
-                    AboutStatCard { 
-                        title: I18n.t.ram_spec; value: systemInfo.ram || "Detectando..."
-                        icon: "🧠" 
-                    }
-                    AboutStatCard { 
-                        title: I18n.t.cpu_spec; value: systemInfo.cpu || "N/A"
-                        icon: "⚡" 
-                    }
-                    AboutStatCard { 
-                        title: I18n.t.python_spec; value: systemInfo.python || "N/A"
-                        icon: "🐍" 
+                    Rectangle {
+                        height: 32; width: 140; radius: 16; color: "#0a0a0c"; border.color: "#3a7bd5"; border.width: 1; opacity: 0.8
+                        Row { anchors.centerIn: parent; spacing: 8
+                            Text { text: "🛡️"; font.pixelSize: 12 }
+                            Text { text: I18n.t.pill_local_privacy; color: "white"; font.pixelSize: 8; font.bold: true; font.letterSpacing: 1 }
+                        }
                     }
                 }
 
-                // BARRAS DE ESTADO RAPIDO
-                Column {
-                    width: parent.width; spacing: 15
-                    Rectangle { 
-                        width: parent.width; height: 1; color: "#1a1a1f" 
-                    }
-                    Row {
-                        spacing: 20; anchors.horizontalCenter: parent.horizontalCenter
-                        Button { 
-                            text: I18n.t.contribute_github; width: 180; height: 40; 
-                            flat: true; highlighted: true
-                            onClicked: Qt.openUrlExternally("https://github.com/PxGUE/EmuManager") 
-                        }
-                        Button { 
-                            text: I18n.t.official_site; width: 150; height: 40; 
-                            flat: true; onClicked: Qt.openUrlExternally("https://emumanager.app") 
-                        }
-                    }
+                Item { Layout.preferredHeight: 20 }
+
+                // TECHNICAL SPECS GRID
+                ColumnLayout {
+                    Layout.fillWidth: true; spacing: 15
                     Text { 
-                        text: I18n.t.copyright; 
-                        color: "#44ffffff"; font.pixelSize: 9; font.bold: true; 
-                        anchors.horizontalCenter: parent.horizontalCenter 
+                        text: I18n.t.tech_system_specs; color: "#66ffffff"; font.pixelSize: 8; font.bold: true; font.letterSpacing: 2
+                        Layout.alignment: Qt.AlignHCenter
                     }
+                    
+                    GridLayout {
+                        columns: 3; columnSpacing: 15; rowSpacing: 15; Layout.alignment: Qt.AlignHCenter
+                        
+                        AboutStatCard { 
+                            title: I18n.t.os_spec; value: systemInfo.os || "Buscando..."; icon: "💻" 
+                            width: 180; height: 65; border.color: "#1a1a1f"
+                        }
+                        AboutStatCard { 
+                            title: I18n.t.cpu_spec; value: (systemInfo.cpu_threads || "?") + " " + I18n.t.tech_threads; icon: "📟" 
+                            width: 180; height: 65; border.color: "#1a1a1f"
+                        }
+                        AboutStatCard { 
+                            title: I18n.t.ram_spec; value: systemInfo.ram || "Detectando..."; icon: "🧠" 
+                            width: 180; height: 65; border.color: "#1a1a1f"
+                        }
+                        AboutStatCard { 
+                            title: I18n.t.python_spec; value: "v" + systemInfo.python; icon: "🐍" 
+                            width: 180; height: 65; border.color: "#1a1a1f"
+                        }
+                        AboutStatCard { 
+                            title: I18n.t.engine_spec; value: systemInfo.is_engine_ready ? I18n.t.tech_engine_ready : I18n.t.tech_inactive; 
+                            valueColor: systemInfo.is_engine_ready ? "#16a085" : "#e74c3c"; icon: "🥭"
+                            width: 180; height: 65; border.color: "#1a1a1f"
+                        }
+                    }
+                }
+
+                Item { Layout.preferredHeight: 20 }
+                
+                Text { 
+                    Layout.alignment: Qt.AlignHCenter; text: I18n.t.copyright; color: "#22ffffff"; font.pixelSize: 9; font.bold: true 
                 }
             }
         }

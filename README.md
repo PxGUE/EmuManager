@@ -6,7 +6,7 @@
 
 ## 🚀 Características Principales
 
-*   **Alto Rendimiento:** Motor nativo escrito en **Rust** (M.A.N.G.O.) para procesar miles de juegos en segundos sin bloquear la interfaz.
+*   **Alto Rendimiento:** Motor nativo **M.A.N.G.O.** (Multithreaded Asynchronous Native Game Orchestrator) para procesar miles de juegos en segundos sin bloquear la interfaz.
 *   **Interfaz Moderna:** Construida con **QML (Qt Quick)** para ofrecer efectos visuales fluidos y una navegación intuitiva.
 *   **Instalación Inteligente:** Orquestación automática de emuladores (RetroArch, Dolphin, etc.) y descarga de núcleos de Libretro.
 *   **Privacidad Local:** Todos los datos, carátulas y configuraciones se guardan localmente en tu equipo. No hay telemetría ni uso de la nube.
@@ -16,10 +16,10 @@
 
 ## 🛠️ Stack Tecnológico
 
-EmuManager combina la flexibilidad de Python con la potencia bruta de Rust:
+EmuManager combina la flexibilidad de Python con la potencia de M.A.N.G.O:
 *   **Frontend:** QML (Qt Quick) para la interfaz de usuario.
 *   **Lógica:** Python 3.12+ (vía PySide6).
-*   **Motor (Core):** Rust (vía PyO3) para escaneo masivo, hashing y orquestación de red.
+*   **Motor (Core):** **M.A.N.G.O.** para escaneo masivo, hashing y orquestación de red.
 *   **Base de Datos:** SQLite3 local.
 
 ---

@@ -71,7 +71,7 @@ Item {
             "api_desc": "Introduce tus credenciales para descargar portadas automáticamente.",
             "api_saved": "Configuración guardada. M.A.N.G.O la usará al sincronizar.",
 
-            "mango_engine": "MOTOR M.A.N.G.O (NATIVO)",
+            "mango_engine": "M.A.N.G.O (NATIVO)",
             "opt_multicore": "Optimización Multinúcleo",
             "opt_multicore_desc": "Usa todos los hilos del CPU para el hashing",
             "opt_integrity": "Verificación de Integridad",
@@ -80,7 +80,7 @@ Item {
             "opt_low_latency_desc": "Scraping asíncrono optimizado por Rust",
             "purge_cache": "PURGAR CACHÉ DEL MOTOR",
 
-            "about_desc": "EmuManager es un ecosistema local impulsado por el motor <b>M.A.N.G.O (Rust)</b>, diseñado para coleccionistas de videojuegos que buscan rendimiento extremo y privacidad absoluta.",
+            "about_desc": "EmuManager es software <b>Libre y Gratuito</b>, impulsado por el motor nativo <b>M.A.N.G.O</b>. Diseñado con un enfoque <b>Local-First</b>, garantizamos que tu privacidad es absoluta: tus datos y biblioteca permanecen exclusivamente en tu equipo, sin telemetría ni dependencias de la nube.",
             "os_spec": "SISTEMA OPERATIVO",
             "engine_spec": "MOTOR NATIVO",
             "ram_spec": "MEMORIA RAM",
@@ -99,6 +99,7 @@ Item {
             "stats_play_time": "TIEMPO JUGADO",
             "stats_most_played": "PLATAFORMA LÍDER",
             "stats_last_game": "RECIENTE",
+            "stats_favorites": "FAVORITOS",
 
             // Downloads
             "sync_center": "CENTRO DE SINCRONIZACIÓN",
@@ -134,18 +135,25 @@ Item {
             "btn_uninstall": "DESINSTALAR",
 
             // Startup & Workers
-            "initializing": "INICIALIZANDO...",
-            "startup_native": "Engranando motor nativo M.A.N.G.O (Rust)...",
-            "startup_db": "Verificando integridad de la biblioteca...",
-            "startup_assets": "Optimizando caché de medios y carátulas...",
             "startup_ready": "Misiones inicializadas. Bienvenida.",
             "core_downloading": "Descargando %1 usando M.A.N.G.O...",
             "core_installed": "¡Core instalado!",
             "install_success": "✓ Instalación completada.",
             "install_failed": "Fallo en la orquestación.",
+            
+            // System Info Tech Keys
+            "tech_active": "ACTIVO",
+            "tech_inactive": "INACTIVO",
+            "tech_threads": "HILOS",
+            "tech_cores": "NÚCLEOS",
+            "tech_engine_ready": "MOTOR SINCRONIZADO",
+            "tech_system_specs": "ESPECIFICACIONES DEL SISTEMA",
+            "pill_free_open": "LIBRE Y GRATUITO",
+            "pill_local_privacy": "PRIVACIDAD LOCAL",
+            "engine_tool_tip": "Motor de Orquestación Nativo: %1",
 
             // Scan & Scrape Workers
-            "scan_starting": "Escaneando archivos con motor Rust...",
+            "scan_starting": "Escaneando archivos con M.A.N.G.O...",
             "scan_no_roms": "No se encontraron ROMs soportadas.",
             "scan_registering": "Registrando: %1",
             "scan_finished": "Escaneo finalizado. %1 juegos nuevos registrados.",
@@ -244,7 +252,7 @@ Item {
             "opt_low_latency_desc": "Asynchronous scraping optimized by Rust",
             "purge_cache": "PURGE ENGINE CACHE",
 
-            "about_desc": "EmuManager is a local ecosystem powered by the <b>M.A.N.G.O (Rust)</b> engine, designed for video game collectors seeking extreme performance and absolute privacy.",
+            "about_desc": "EmuManager is <b>Free and Open Source</b> software, powered by the <b>M.A.N.G.O</b> native engine. Built with a <b>Local-First</b> approach, we guarantee absolute privacy: your data and library stay exclusively on your device, with no telemetry or cloud dependencies.",
             "os_spec": "OPERATING SYSTEM",
             "engine_spec": "NATIVE ENGINE",
             "ram_spec": "RAM MEMORY",
@@ -263,6 +271,7 @@ Item {
             "stats_play_time": "PLAY TIME",
             "stats_most_played": "TOP PLATFORM",
             "stats_last_game": "RECENT",
+            "stats_favorites": "FAVORITES",
 
             // Downloads
             "sync_center": "SYNC CENTER",
@@ -308,8 +317,19 @@ Item {
             "install_success": "✓ Installation completed.",
             "install_failed": "Orchestration failed.",
 
+            // System Info Tech Keys
+            "tech_active": "ACTIVE",
+            "tech_inactive": "INACTIVE",
+            "tech_threads": "THREADS",
+            "tech_cores": "CORES",
+            "tech_engine_ready": "ENGINE SYNCED",
+            "tech_system_specs": "SYSTEM SPECIFICATIONS",
+            "pill_free_open": "FREE & OPEN SOURCE",
+            "pill_local_privacy": "LOCAL PRIVACY",
+            "engine_tool_tip": "Native Orchestration Engine: %1",
+
             // Scan & Scrape Workers
-            "scan_starting": "Scanning files with Rust engine...",
+            "scan_starting": "Scanning files with M.A.N.G.O...",
             "scan_no_roms": "No supported ROMs found.",
             "scan_registering": "Registering: %1",
             "scan_finished": "Scan finished. %1 new games registered.",

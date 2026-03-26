@@ -104,10 +104,8 @@ class ScannerManager:
 
         if status_callback: status_callback("scan_starting")
         
-        # Invocación al motor de RUST
+        # Invocación al motor M.A.N.G.O
         if mango_engine:
-            # El motor M.A.N.G.O. (Multithreaded Asynchronous Native Game Orchestrator)
-            # se encarga del heavy lifting en paralelo
             raw_results = mango_engine.scan_directory(directory_path, extensions)
         else:
             EmuLog.error("El motor M.A.N.G.O. no está disponible. No se puede escanear el directorio.")
@@ -179,7 +177,7 @@ class ScannerManager:
     def scrape_missing_metadata(self, interrupt_flag, progress_callback: Optional[Callable[[float], None]] = None, status_callback: Optional[Callable[[str], None]] = None):
         """
         Busca metadatos y portadas (2D/3D) para las ROMs que aún no tengan.
-        Usa el motor M.A.N.G.O (Rust) para peticiones de ultra-baja latencia.
+        Usa el motor M.A.N.G.O para peticiones de ultra-baja latencia.
         Delegate native interruption to Rust via 'interrupt_flag'.
         """
         if not mango_engine:

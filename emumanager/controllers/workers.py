@@ -180,17 +180,20 @@ class StartupWorker(QObject):
             self.status.emit("startup_assets")
             try:
                 # Pedimos los juegos a la DB para conocer sus rutas de carátula
-                games = self.ctrl.db.get_all_games()
-                # Calentamos solo las primeras 50 (las que el usuario verá primero)
+                # Usamos el nuevo método optimizado con límite inicial
+                games = self.ctrl.db.get_all_games(limit=200)
+                # Calentamos solo las primeras 100 (las que el usuario verá primero)
                 count = 0
                 for game in games:
-                    if count > 50: break
+                    if count > 100: break
                     cover_path = game.get('media_path')
                     if cover_path and os.path.exists(cover_path):
-                        # "Tocamos" el archivo leyéndolo mínimamente para que entre en la caché del OS
-                        with open(cover_path, 'rb') as f:
-                            f.read(1024) 
-                        count += 1
+                        # Pre-carga suave en caché del OS
+                        try:
+                            with open(cover_path, 'rb') as f:
+                                f.read(4096) 
+                            count += 1
+                        except: pass
             except Exception as e:
                 EmuLog.debug(f"Aviso en Warm-up: {e}")
             

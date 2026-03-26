@@ -183,7 +183,7 @@ Item {
         
         delegate: RomCard {
             title: model.title; platform: model.platform
-            gameId: model.gameId 
+            gameId: model.gameId; isFavorite: model.isFavorite
             cover2d: model.cover2dPath; cover3d: model.cover3dPath
             accentColor: libraryRoot.activeAccentColor
             onClicked: mainController.launch_game_by_id(model.gameId)

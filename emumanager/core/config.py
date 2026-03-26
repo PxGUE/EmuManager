@@ -5,7 +5,7 @@ from typing import Optional
 
 class AppConfig:
     APP_NAME = "EmuManager"
-    APP_VERSION = "0.9.5 Beta"
+    APP_VERSION = "0.1.3 - alpha"
     _config_cache: Optional[dict] = None
 
     @classmethod

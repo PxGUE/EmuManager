@@ -13,6 +13,7 @@ Item {
     property string cover2d: ""
     property string cover3d: ""
     property string gameId: ""
+    property bool isFavorite: false
     property color accentColor: "#8e44ad"
     
     // --- ESTADOS ---
@@ -157,6 +158,27 @@ Item {
             onClicked: (mouse) => {
                 mouse.accepted = true
                 romCardRoot.infoClicked()
+            }
+        }
+    }
+
+    // --- INDICADOR DE FAVORITO (❤️) ---
+    Text {
+        id: favIndicator
+        text: isFavorite ? "❤️" : "🤍"
+        anchors.top: parent.top; anchors.left: parent.left; anchors.margins: 15
+        font.pixelSize: 18
+        opacity: isFavorite ? 1.0 : (isHovered ? 0.4 : 0)
+        visible: opacity > 0
+        z: 50
+        
+        Behavior on opacity { NumberAnimation { duration: 300 } }
+        
+        MouseArea {
+            anchors.fill: parent; hoverEnabled: true
+            onClicked: (mouse) => {
+                mouse.accepted = true
+                mainController.toggle_favorite(gameId, !isFavorite)
             }
         }
     }

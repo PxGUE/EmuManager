@@ -20,6 +20,7 @@ class GameListModel(QAbstractListModel):
     ReleaseDateRole = Qt.UserRole + 10
     GenreRole = Qt.UserRole + 11
     DescriptionRole = Qt.UserRole + 12
+    IsFavoriteRole = Qt.UserRole + 13
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -46,7 +47,8 @@ class GameListModel(QAbstractListModel):
             self.PublisherRole: b"publisher",
             self.ReleaseDateRole: b"releaseDate",
             self.GenreRole: b"genre",
-            self.DescriptionRole: b"description"
+            self.DescriptionRole: b"description",
+            self.IsFavoriteRole: b"isFavorite"
         }
 
     def rowCount(self, parent=QModelIndex()):
@@ -70,6 +72,7 @@ class GameListModel(QAbstractListModel):
         if role == self.ReleaseDateRole: return game.get("release_date", "") or ""
         if role == self.GenreRole: return game.get("genre", "") or ""
         if role == self.DescriptionRole: return game.get("description", "") or "Sin descripción disponible."
+        if role == self.IsFavoriteRole: return bool(game.get("is_favorite", 0))
         
         return None
 

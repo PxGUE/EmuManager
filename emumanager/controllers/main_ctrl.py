@@ -103,9 +103,9 @@ class MainController(QObject):
                     else: EmuLog.debug(f"M.A.N.G.O: {msg}")
                 
                 mango_engine.set_log_callback(_mango_log_bridge)
-                EmuLog.info("M.A.N.G.O: Motor nativo Rust y sistema de logs sincronizado.")
+                EmuLog.info("M.A.N.G.O: Motor nativo y sistema de logs sincronizados.")
             except ImportError:
-                EmuLog.warning("M.A.N.G.O: Motor Rust no encontrado. Operando en modo degradado (Python-only).")
+                EmuLog.warning("M.A.N.G.O: Motor no encontrado. Operando en modo degradado (Python-only).")
 
             EmuLog.info("M.A.N.G.O: Generando caché de consolas...")
             self._cached_summary = self.get_consoles_summary(use_cache=False)
@@ -359,33 +359,49 @@ class MainController(QObject):
                     EmuLog.error(f"No se encontró el juego con ID {game_id} en la base de datos.")
                     return
                 game_path = row["file_path"]
-                platform = row["platform"]
+                platform_id = row["platform"].lower()
 
-            # 2. Buscar core sugerido e instalado
-            import platform as py_platform
-            is_win = py_platform.system() == "Windows"
-            core_ext = ".dll" if is_win else ".so"
+            # 2. INTELIGENCIA DE LANZAMIENTO: ¿RetroArch o Standalone?
+            # Prioridad A: Buscar si hay un emulador standalone instalado para esta plataforma
+            standalone_map = {
+                "ps2": "pcsx2",
+                "gc": "dolphin",
+                "wii": "dolphin",
+                "psp": "ppsspp",
+                "ps1": "duckstation",
+                "ds": "desmume",
+                "n64": "mupen64plus" # Opcional, RetroArch suele ser mejor para N64
+            }
             
-            core_id = self.libretro.get_core_for_platform(platform)
+            target_emu_id = standalone_map.get(platform_id)
+            runner = None
             core_path = None
-            if core_id:
-                # Buscar en la subcarpeta del sistema dentro de RetroArch/cores/PLATAFORMA
-                # Nota: Ahora los guardamos organizados por plataforma dentro de RetroArch
-                core_file = self.libretro.cores_path / platform / f"{core_id}_libretro{core_ext}"
-                if core_file.exists():
-                    core_path = str(core_file)
-                else:
-                    EmuLog.warning(f"Core sugerido {core_id} no está en {core_file}. Intentando lanzar sin core...")
-
-            # 3. Detectar el ejecutable de RetroArch usando el ayudante centralizado
-            runner = self._find_emulator_executable("retroarch")
             
+            if target_emu_id:
+                runner = self._find_emulator_executable(target_emu_id)
+                if runner:
+                    EmuLog.info(f"M.A.N.G.O Launch: Detectado emulador independiente para {platform_id} -> {target_emu_id}")
+            
+            # Prioridad B: RetroArch (Fallback universal)
             if not runner:
-                EmuLog.error("No se pudo iniciar el emulador: retroarch no se encuentra instalado localmente.")
-                return
+                runner = self._find_emulator_executable("retroarch")
+                if runner:
+                    import platform as py_platform
+                    is_win = py_platform.system() == "Windows"
+                    core_ext = ".dll" if is_win else ".so"
+                    
+                    core_id = self.libretro.get_core_for_platform(platform_id)
+                    if core_id:
+                        core_file = self.libretro.cores_path / platform_id / f"{core_id}_libretro{core_ext}"
+                        if core_file.exists():
+                            core_path = str(core_file)
+                        else:
+                            EmuLog.warning(f"Core sugerido {core_id} no encontrado. RetroArch intentará detección automática.")
+                else:
+                    EmuLog.error("No se encontró ningún emulador compatible (RetroArch o Standalone) instalado.")
+                    return
 
             runner_str = str(runner)
-
             EmuLog.info(f"M.A.N.G.O Launch: Preparando {game_path} con {runner.name}...")
             
             self._launch_thread = QThread()
@@ -766,18 +782,24 @@ class MainController(QObject):
         """Retorna un conjunto de estadísticas y datos para el Dashboard premium."""
         stats = {
             "total_games": 0,
-            "last_game": None,
+            "total_favorites": 0,
             "total_play_time": "0h 0m",
-            "most_played_system": "N/A"
+            "most_played_system": "N/A",
+            "last_game": None
         }
         try:
             with self.db.get_connection() as conn:
                 cursor = conn.cursor()
                 
-                # 1. Total Juegos
+                # 1. Total de juegos
                 cursor.execute("SELECT COUNT(*) FROM games")
                 stats["total_games"] = cursor.fetchone()[0]
-                
+
+                # 2. Favoritos
+                cursor.execute("SELECT COUNT(*) FROM game_metadata WHERE is_favorite = 1")
+                stats["total_favorites"] = cursor.fetchone()[0]
+
+                # 3. Juego Reciente
                 # 2. Último Juego Jugado (Relación games + game_metadata + play_stats)
                 cursor.execute("""
                     SELECT g.id, m.title, g.platform, m.cover_2d_path, s.last_played_at
@@ -818,23 +840,15 @@ class MainController(QObject):
 
     @Slot(result="QVariantMap")
     def get_system_info(self):
-        """Retorna información técnica para la sección 'Acerca de'."""
+        """Retorna información técnica unificada para la sección 'Acerca de'."""
         import platform as py_platform
-        lang = AppConfig.get_language()
         
-        # Diccionario local de traducción para términos técnicos
-        i18n_tech = {
-            "es": {"active": "Activo", "inactive": "Inactivo", "threads": "hilos"},
-            "en": {"active": "Active", "inactive": "Inactive", "threads": "threads"}
-        }
-        t = i18n_tech.get(lang, i18n_tech["es"])
-
         # M.A.N.G.O Status
         is_engine_ready = False
-        mango_status = t["inactive"]
+        mango_version = "N/A"
         try:
             import mango_engine
-            mango_status = f"{t['active']} (v0.1.0)"
+            mango_version = "v0.2.5"
             is_engine_ready = True
         except ImportError:
             pass
@@ -852,12 +866,27 @@ class MainController(QObject):
             "app_version": AppConfig.APP_VERSION,
             "os": f"{py_platform.system()} {py_platform.release()} ({py_platform.machine()})",
             "python": py_platform.python_version(),
-            "cpu": f"{cpu_threads} {t['threads']}",
+            "cpu_threads": cpu_threads,
             "ram": ram_total,
-            "mango": mango_status,
+            "mango_version": mango_version,
             "is_engine_ready": is_engine_ready,
             "runtime": "PySide6 (Qt Quick)"
         }
+
+    # --- NUEVOS MÉTODOS DE FORTALECIMIENTO ---
+    @Slot(int, bool)
+    def toggle_favorite(self, game_id: int, is_favorite: bool):
+        """Marca un juego como favorito en la base de datos."""
+        self.db.update_game_favorite(game_id, is_favorite)
+        self.gamesUpdated.emit()
+        EmuLog.debug(f"Game {game_id} favorite status -> {is_favorite}")
+
+    @Slot(str, result="QVariantList")
+    def search_library(self, query: str):
+        """Realiza una búsqueda rápida y retorna los resultados."""
+        if not query or len(query) < 2:
+            return []
+        return self.db.search_games(query)
 
     @Slot(result="QVariantList")
     @Slot(bool, result="QVariantList")

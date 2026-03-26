@@ -136,7 +136,7 @@ class LibretroManager:
 
     def download_core(self, core_name: str, progress_callback=None, status_callback=None) -> Optional[str]:
         """
-        Descarga e instala un core usando M.A.N.G.O (Rust). 
+        Descarga e instala un core usando M.A.N.G.O (Motor Nativo). 
         Ahora lo organiza en subcarpetas por consola.
         """
         if not mango_engine:

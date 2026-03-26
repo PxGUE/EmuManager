@@ -59,16 +59,26 @@ class DatabaseManager:
                     description TEXT,
                     cover_2d_path TEXT,
                     cover_3d_path TEXT,
+                    is_favorite INTEGER DEFAULT 0,
                     FOREIGN KEY (game_id) REFERENCES games (id) ON DELETE CASCADE
                 )
             ''')
             
-            # Migración automática para la versión M.A.N.G.O (añade columnas si venimos de versiones anteriores)
-            try:
-                cursor.execute("ALTER TABLE game_metadata ADD COLUMN cover_2d_path TEXT")
-                cursor.execute("ALTER TABLE game_metadata ADD COLUMN cover_3d_path TEXT")
-            except sqlite3.OperationalError:
-                pass # Las columnas ya existen
+            # Migraciones individuales para asegurar robustez
+            for cmd in [
+                "ALTER TABLE game_metadata ADD COLUMN cover_2d_path TEXT",
+                "ALTER TABLE game_metadata ADD COLUMN cover_3d_path TEXT",
+                "ALTER TABLE game_metadata ADD COLUMN is_favorite INTEGER DEFAULT 0"
+            ]:
+                try:
+                    cursor.execute(cmd)
+                except sqlite3.OperationalError:
+                    pass # La columna ya existe
+
+            # Índices para Optimización Masiva (Crucial para colecciones > 10,000 juegos)
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_games_platform ON games(platform)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_games_filepath ON games(file_path)")
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_metadata_title ON game_metadata(title)")
             
             # Tabla: play_stats (Telemetría pura local)
             cursor.execute('''
@@ -86,3 +96,49 @@ class DatabaseManager:
     def count_all_roms(self) -> int:
         with self.get_connection() as conn:
             return conn.execute("SELECT COUNT(*) FROM games").fetchone()[0]
+
+    def get_all_games(self, limit: int = 0):
+        """Retorna todos los juegos con su metadata básica (usado para warm-up)."""
+        query = '''
+            SELECT g.id, g.file_path, g.platform, m.title, m.cover_2d_path as media_path, m.is_favorite
+            FROM games g
+            JOIN game_metadata m ON g.id = m.game_id
+            ORDER BY m.title ASC
+        '''
+        if limit > 0:
+            query += f" LIMIT {limit}"
+            
+        with self.get_connection() as conn:
+            return [dict(row) for row in conn.execute(query).fetchall()]
+
+    def get_games_by_platform(self, platform: str):
+        """Retorna juegos filtrados por plataforma."""
+        query = '''
+            SELECT g.id, g.file_path, g.platform, m.title, m.cover_2d_path, m.is_favorite
+            FROM games g
+            JOIN game_metadata m ON g.id = m.game_id
+            WHERE g.platform = ?
+            ORDER BY m.title ASC
+        '''
+        with self.get_connection() as conn:
+            return [dict(row) for row in conn.execute(query, (platform.lower(),)).fetchall()]
+
+    def search_games(self, search_query: str):
+        """Búsqueda instantánea en títulos de la biblioteca."""
+        query = '''
+            SELECT g.id, g.file_path, g.platform, m.title, m.cover_2d_path, m.is_favorite
+            FROM games g
+            JOIN game_metadata m ON g.id = m.game_id
+            WHERE m.title LIKE ?
+            ORDER BY m.title ASC
+            LIMIT 100
+        '''
+        with self.get_connection() as conn:
+            return [dict(row) for row in conn.execute(query, (f'%{search_query}%',)).fetchall()]
+
+    def update_game_favorite(self, game_id: int, is_favorite: bool):
+        """Marca o desmarca un juego como favorito."""
+        val = 1 if is_favorite else 0
+        with self.get_connection() as conn:
+            conn.execute("UPDATE game_metadata SET is_favorite = ? WHERE game_id = ?", (val, game_id))
+            conn.commit()

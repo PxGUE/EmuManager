@@ -13,31 +13,26 @@ Item {
     property var statsData: ({})
     property int totalGames: 0
 
+    // --- MANGO ENGINE STATE ---
+    property bool isEngineBusy: false
+    property string engineStatusText: I18n.t.idle
+    property real scanProgress: 0.0
+
     Connections { 
         target: mainController
         function onScanProgressChanged(p) { 
-            mangoMonitor.scanProgressVal = p
-            mangoMonitor.isEngineBusy = (p > 0 && p < 1.0)
+            dashboardRoot.scanProgress = p
+            dashboardRoot.isEngineBusy = (p > 0 && p < 1.0)
         }
         function onScanStatusChanged(s) { 
-            mangoMonitor.engineStatusText = I18n.tp(s).toUpperCase()
+            dashboardRoot.engineStatusText = I18n.tp(s).toUpperCase()
         }
         function onGamesUpdated() {
             dashboardRoot.refreshAll()
         }
     }
-    
-    ListModel { id: consoleModel }
-
     function refreshAll() {
-        consoleModel.clear()
         if (!mainController) return;
-        
-        // Cargar Consolas
-        var summary = mainController.get_consoles_summary()
-        for (var i = 0; i < summary.length; i++) {
-            consoleModel.append(summary[i])
-        }
 
         // Cargar Stats Dashboard
         statsData = mainController.get_dashboard_stats()
@@ -63,35 +58,47 @@ Item {
         currentIndex: totalGames > 0 ? 1 : 0
         
         // --- 1. EMPTY STATE ---
-        ColumnLayout {
-            // (Se mantiene tu diseño de splash premium para bibliotecas vacías)
-            Layout.fillWidth: true; Layout.fillHeight: true; spacing: 35
-            Item { Layout.fillHeight: true }
-            Item {
-                Layout.alignment: Qt.AlignCenter; width: 240; height: 240
-                Rectangle {
-                    anchors.centerIn: parent; width: 180; height: 180; radius: 90
-                    gradient: Gradient {
-                        GradientStop { position: 0.0; color: Qt.rgba(0.086, 0.627, 0.522, 0.15) }
-                        GradientStop { position: 1.0; color: "transparent" }
-                    }
-                }
-                Text {
-                    text: "🛰️"; font.pixelSize: 100; anchors.centerIn: parent; opacity: 0.9
-                    SequentialAnimation on scale {
-                        loops: Animation.Infinite
-                        NumberAnimation { from: 1; to: 1.15; duration: 3000; easing.type: Easing.InOutSine }
-                        NumberAnimation { from: 1.15; to: 1; duration: 3000; easing.type: Easing.InOutSine }
-                    }
-                }
-            }
+        Item {
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+
             ColumnLayout {
-                Layout.alignment: Qt.AlignCenter; Layout.preferredWidth: parent.width * 0.8; spacing: 12
-                Text { text: I18n.t.empty_library; color: "white"; font.pixelSize: 26; font.bold: true; font.letterSpacing: 4; horizontalAlignment: Text.AlignHCenter }
-                Text { text: I18n.t.empty_library_desc; color: "#88ffffff"; font.pixelSize: 14; horizontalAlignment: Text.AlignHCenter; lineHeight: 1.5; opacity: 0.7 }
+                anchors.centerIn: parent
+                spacing: 35
+                
+                // Icono Satélite Animado
+                Item {
+                    Layout.alignment: Qt.AlignCenter; width: 240; height: 240
+                    Rectangle {
+                        anchors.centerIn: parent; width: 180; height: 180; radius: 90
+                        gradient: Gradient {
+                            GradientStop { position: 0.0; color: Qt.rgba(0.086, 0.627, 0.522, 0.15) }
+                            GradientStop { position: 1.0; color: "transparent" }
+                        }
+                    }
+                    Text {
+                        text: "🛰️"; font.pixelSize: 100; anchors.centerIn: parent; opacity: 0.9
+                        SequentialAnimation on scale {
+                            loops: Animation.Infinite
+                            NumberAnimation { from: 1; to: 1.15; duration: 3000; easing.type: Easing.InOutSine }
+                            NumberAnimation { from: 1.15; to: 1; duration: 3000; easing.type: Easing.InOutSine }
+                        }
+                    }
+                }
+
+                // Textos
+                ColumnLayout {
+                    Layout.alignment: Qt.AlignCenter; spacing: 12
+                    Text { text: I18n.t.empty_library; color: "white"; font.pixelSize: 26; font.bold: true; font.letterSpacing: 4; horizontalAlignment: Text.AlignHCenter }
+                    Text { text: I18n.t.empty_library_desc; color: "#88ffffff"; font.pixelSize: 14; horizontalAlignment: Text.AlignHCenter; lineHeight: 1.5; opacity: 0.7 }
+                }
+
+                Button { 
+                    text: I18n.t.configure_paths_btn
+                    Layout.alignment: Qt.AlignCenter; Layout.preferredHeight: 52; Layout.preferredWidth: 280
+                    Material.background: "#16a085"; onClicked: activeViewId = "settingsView"; font.bold: true 
+                }
             }
-            Button { text: I18n.t.configure_paths_btn; Layout.alignment: Qt.AlignCenter; Layout.preferredHeight: 52; Layout.preferredWidth: 280; Material.background: "#16a085"; onClicked: activeViewId = "settingsView"; font.bold: true }
-            Item { Layout.fillHeight: true }
         }
 
         // --- 2. ACTIVE DASHBOARD (EL NUEVO DISEÑO WOW) ---
@@ -141,10 +148,68 @@ Item {
                     
                     Item { Layout.fillWidth: true }
                     
+                    // --- MANGO ENGINE PILOT STATUS (NEW SUBTLE DESIGN) ---
+                    Rectangle {
+                        id: enginePill
+                        Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
+                        width: 200; height: 48; radius: 24; color: "#0d0d12"; border.color: "#1a1a1f"
+                        
+                        RowLayout {
+                            anchors.fill: parent; anchors.leftMargin: 20; anchors.rightMargin: 10; spacing: 12
+                            
+                            // Indicador de Pulso
+                            Rectangle {
+                                id: pulseDot
+                                width: 10; height: 10; radius: 5
+                                color: dashboardRoot.isEngineBusy ? "#f39c12" : "#16a085"
+                                
+                                SequentialAnimation {
+                                    running: true; loops: Animation.Infinite
+                                    NumberAnimation { target: pulseDot; property: "opacity"; from: 1; to: 0.3; duration: 800; easing.type: Easing.InOutSine }
+                                    NumberAnimation { target: pulseDot; property: "opacity"; from: 0.3; to: 1; duration: 800; easing.type: Easing.InOutSine }
+                                }
+                                layer.enabled: true
+                            }
+
+                            ColumnLayout {
+                                spacing: 1
+                                Text { 
+                                    text: "M.A.N.G.O"
+                                    color: "white"; font.pixelSize: 10; font.bold: true; font.letterSpacing: 2
+                                }
+                                Text { 
+                                    text: dashboardRoot.isEngineBusy ? (Math.round(dashboardRoot.scanProgress * 100) + "%") : I18n.t.operational.toUpperCase()
+                                    color: dashboardRoot.isEngineBusy ? "#f39c12" : "#16a085"
+                                    font.pixelSize: 9; font.bold: true; font.letterSpacing: 1
+                                }
+                            }
+                            
+                            Item { Layout.fillWidth: true }
+                            
+                            // Icono o Logo pequeño de Motor
+                            Text { 
+                                text: "🥭"
+                                font.pixelSize: 16
+                                opacity: dashboardRoot.isEngineBusy ? 1 : 0.3
+                                Behavior on opacity { NumberAnimation { duration: 300 } }
+                            }
+                        }
+                        
+                        ToolTip {
+                            visible: engineMouse.containsMouse
+                            text: I18n.tp("engine_tool_tip|" + dashboardRoot.engineStatusText)
+                            delay: 500
+                        }
+                        
+                        MouseArea {
+                            id: engineMouse
+                            anchors.fill: parent; hoverEnabled: true
+                        }
+                    }
+                    
                     ColumnLayout {
                         Layout.alignment: Qt.AlignRight
-                        Text { text: new Date().toLocaleDateString(Qt.locale(), "dd/MM/yyyy"); color: "white"; font.pixelSize: 14; opacity: 0.6 }
-                        Text { text: I18n.t.operational; color: "#16a085"; font.pixelSize: 10; font.bold: true; Layout.alignment: Qt.AlignRight }
+                        Text { text: new Date().toLocaleDateString(Qt.locale(), "dd/MM/yyyy"); color: "white"; font.pixelSize: 14; opacity: 0.4 }
                     }
                 }
 
@@ -222,58 +287,14 @@ Item {
                         width: 280; label: I18n.t.stats_most_played; value: statsData.most_played_system; subLabel: ""; icon: "🛡️"; accentColor: "#3a7bd5"
                     }
 
-                    // Stats 4: Monitor M.A.N.G.O (Integrado)
-                    Rectangle {
-                        id: mangoMonitor
-                        width: 450; height: 160; radius: 24; color: "#0d0d12"; border.color: "#1a1a1f"
-                        property bool isEngineBusy: false
-                        property string engineStatusText: I18n.t.idle
-                        property real scanProgressVal: 0.0
-
-                        ColumnLayout {
-                            anchors.fill: parent; anchors.margins: 25; spacing: 5
-                            RowLayout {
-                                Text { text: I18n.t.mango_monitor; color: "#f39c12"; font.pixelSize: 10; font.bold: true; font.letterSpacing: 2 }
-                                Item { Layout.fillWidth: true }
-                                Text { text: "🥭 MOTOR NATIVO"; color: "#22ffffff"; font.pixelSize: 8; font.bold: true }
-                            }
-                            Item { Layout.fillHeight: true }
-                            RowLayout {
-                                spacing: 15
-                                Rectangle { 
-                                    width: 8; height: 8; radius: 4; color: mangoMonitor.isEngineBusy ? "#f39c12" : "#16a085"
-                                    SequentialAnimation on opacity { 
-                                        loops: Animation.Infinite
-                                        running: mangoMonitor.isEngineBusy
-                                        NumberAnimation { from: 1; to: 0.3; duration: 600 }
-                                        NumberAnimation { from: 0.3; to: 1; duration: 600 }
-                                    }
-                                }
-                                Text { text: mangoMonitor.isEngineBusy ? I18n.t.processing_caps : I18n.t.running_caps; color: "white"; font.pixelSize: 16; font.bold: true; font.letterSpacing: 1 }
-                            }
-                            Text { text: I18n.t.status_prefix + mangoMonitor.engineStatusText; color: "#66ffffff"; font.pixelSize: 11; Layout.fillWidth: true; elide: Text.ElideRight }
-                            ProgressBar { Layout.fillWidth: true; height: 3; value: mangoMonitor.scanProgressVal; visible: mangoMonitor.isEngineBusy; Material.accent: "#f39c12" }
-                        }
+                    // Stats 4: Favoritos
+                    DashboardStatCard {
+                        width: 280; label: I18n.t.stats_favorites; value: statsData.total_favorites; subLabel: ""; icon: "❤️"; accentColor: "#e74c3c"
                     }
+
+
                 }
 
-                // --- ACCESO RÁPIDO A ESCUADRONES (CONSOLAS) ---
-                ColumnLayout {
-                    Layout.fillWidth: true; Layout.margins: 40; spacing: 20
-                    Text { text: I18n.t.explore.toUpperCase(); color: "white"; font.pixelSize: 16; font.bold: true; font.letterSpacing: 3; opacity: 0.7 }
-                    
-                    ListView {
-                        id: recentConsoles
-                        Layout.fillWidth: true; Layout.preferredHeight: 180; orientation: ListView.Horizontal; spacing: 20; clip: true
-                        model: consoleModel
-                        delegate: ConsoleCard {
-                            title: model.title; fullName: model.fullName; iconEmoji: model.iconEmoji; accentColor: model.accentColor
-                            gameCount: model.gameCount; playTime: model.playTime; minimalMode: true
-                            onClicked: { activeViewId = "libraryView" }
-                        }
-                    }
-                }
-                
                 Item { Layout.preferredHeight: 40 }
             }
             

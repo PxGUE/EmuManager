@@ -64,8 +64,12 @@ class GameListModel(QAbstractListModel):
         if role == self.FilePathRole: return game["file_path"]
         if role == self.TitleRole: return game["title"]
         if role == self.PlatformRole: return game["platform"]
-        if role == self.Cover2dRole: return game.get("cover_2d_path", "") or ""
-        if role == self.Cover3dRole: return game.get("cover_3d_path", "") or ""
+        if role == self.Cover2dRole: 
+            p = game.get("cover_2d_path", "") or ""
+            return p.replace("\\", "/")
+        if role == self.Cover3dRole: 
+            p = game.get("cover_3d_path", "") or ""
+            return p.replace("\\", "/")
         if role == self.IdRole: return game.get("id", 0)
         if role == self.DeveloperRole: return game.get("developer", "") or ""
         if role == self.PublisherRole: return game.get("publisher", "") or ""

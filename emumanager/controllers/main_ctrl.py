@@ -826,11 +826,13 @@ class MainController(QObject):
                 """)
                 row = cursor.fetchone()
                 if row:
+                    cover_path = row[3] if row[3] else ""
+                    if cover_path: cover_path = cover_path.replace("\\", "/") # Normalizar para QML
                     stats["last_game"] = {
                         "id": row[0],
                         "title": row[1],
                         "platform": row[2].upper(),
-                        "cover": row[3] if row[3] else "",
+                        "cover": cover_path,
                         "date": row[4]
                     }
                 
@@ -857,34 +859,40 @@ class MainController(QObject):
                     })
                 stats["top_platforms"] = top_platforms
                 
-                # 5. Lista de Recientes (Últimos y nuevos hallazgos)
+                # 5. Lista de Recientes (Ordenados por Mayor Tiempo Jugado)
+                # Omitimos el último juego absoluto si ya aparece en el banner
+                last_id = stats["last_game"]["id"] if stats["last_game"] else -1
+
                 cursor.execute("""
                     SELECT g.id, m.title, g.platform, m.cover_2d_path, s.last_played_at, s.play_time_seconds
                     FROM games g
                     JOIN game_metadata m ON g.id = m.game_id
                     LEFT JOIN play_stats s ON g.id = s.game_id
-                    ORDER BY s.last_played_at DESC, g.id DESC
+                    WHERE s.play_time_seconds IS NOT NULL AND g.id != ?
+                    ORDER BY s.play_time_seconds DESC
                     LIMIT 6
-                """)
+                """, (last_id,))
                 recent_games = []
                 for row_r in cursor.fetchall():
                     sec = row_r[5] or 0
                     h = sec // 3600
                     m = (sec % 3600) // 60
+                    
+                    cov = row_r[3] if row_r[3] else ""
+                    if cov: cov = cov.replace("\\", "/") # Normalizar para QML
+                    
                     recent_games.append({
                         "id": row_r[0],
                         "title": row_r[1],
                         "platform": row_r[2].upper(),
-                        "cover": row_r[3] if row_r[3] else "",
+                        "cover": cov,
                         "playTime": f"{h}h {m}m" if h > 0 else f"{m}m"
                     })
                 stats["recent_games"] = recent_games
                 
-                # 6. Último Juego Jugado (Específico para Hero)
-                if recent_games:
-                    stats["last_game"] = recent_games[0]
-                else:
-                    stats["last_game"] = None
+                # EmuManager: Eliminamos el overwrite previo para que el Banner 
+                # siempre sea el ÚLTIMO JUGADO ABSOLUTO (Independiente de la lista).
+                # (stats["last_game"] ya fue asignado correctamente en el punto 3 de arriba)
                 
                 if top_platforms:
                     stats["most_played_system"] = top_platforms[0]["id"].upper()

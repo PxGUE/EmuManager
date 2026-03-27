@@ -126,18 +126,43 @@ Item {
                 width: parent.width; height: 180; radius: Theme.radiusMedium; color: Theme.cardBackground; border.color: Theme.cardBorder; border.width: Theme.borderThin
                 Column {
                     anchors.fill: parent; anchors.margins: 20; spacing: 15
-                    Row {
-                        width: parent.width; spacing: Theme.spaceMedium
-                        Text { text: I18n.t.roms_path + ":"; color: Theme.textMain; font.bold: true; width: 100; font.pixelSize: Theme.fontSmall; anchors.verticalCenter: parent.verticalCenter }
-                        Text { text: currentRomsPath; color: Theme.accentColor; font.pixelSize: Theme.fontBody; width: parent.width - 200; wrapMode: Text.WrapAnywhere; anchors.verticalCenter: parent.verticalCenter }
-                        Button { text: I18n.t.change_btn; flat: true; highlighted: true; onClicked: currentRomsPath = controller.select_roms_directory() }
-                    }
-                    Rectangle { width: parent.width; height: 1; color: Theme.divider }
-                    Row {
-                        width: parent.width; spacing: Theme.spaceMedium
-                        Text { text: I18n.t.emus_path + ":"; color: Theme.textMain; font.bold: true; width: 100; font.pixelSize: Theme.fontSmall; anchors.verticalCenter: parent.verticalCenter }
-                        Text { text: currentEmulatorsPath; color: Theme.accentColor; font.pixelSize: Theme.fontBody; width: parent.width - 200; wrapMode: Text.WrapAnywhere; anchors.verticalCenter: parent.verticalCenter }
-                        Button { text: I18n.t.change_btn; flat: true; highlighted: true; onClicked: currentEmulatorsPath = controller.select_cores_directory() }
+                    GridLayout {
+                        width: parent.width; columns: 3; columnSpacing: 15; rowSpacing: 15
+                        
+                        // ROW 1: ROMS
+                        Text { 
+                            text: I18n.t.roms_path + ":"
+                            color: Theme.textMain; font.bold: true; font.pixelSize: Theme.fontSmall
+                            Layout.alignment: Qt.AlignVCenter
+                        }
+                        Text { 
+                            text: currentRomsPath; color: Theme.accentColor; font.pixelSize: Theme.fontBody
+                            Layout.fillWidth: true; elide: Text.ElideRight; maximumLineCount: 1
+                            Layout.alignment: Qt.AlignVCenter
+                        }
+                        Button { 
+                            text: I18n.t.change_btn; flat: true; highlighted: true
+                            onClicked: currentRomsPath = controller.select_roms_directory() 
+                        }
+
+                        // DIVIDER (Spans 3 columns)
+                        Rectangle { Layout.columnSpan: 3; Layout.fillWidth: true; height: 1; color: Theme.divider; opacity: 0.3 }
+
+                        // ROW 2: EMULATORS
+                        Text { 
+                            text: I18n.t.emus_path + ":"
+                            color: Theme.textMain; font.bold: true; font.pixelSize: Theme.fontSmall
+                            Layout.alignment: Qt.AlignVCenter
+                        }
+                        Text { 
+                            text: currentEmulatorsPath; color: Theme.accentColor; font.pixelSize: Theme.fontBody
+                            Layout.fillWidth: true; elide: Text.ElideRight; maximumLineCount: 1
+                            Layout.alignment: Qt.AlignVCenter
+                        }
+                        Button { 
+                            text: I18n.t.change_btn; flat: true; highlighted: true
+                            onClicked: currentEmulatorsPath = controller.select_cores_directory() 
+                        }
                     }
                 }
             }

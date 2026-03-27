@@ -48,7 +48,10 @@ Item {
     Connections {
         target: mainController
         function onScanFinished(count) { refreshConsoles() }
-        function onGamesUpdated() { refreshConsoles() }
+        function onGamesUpdated() { 
+            refreshConsoles() 
+            if (libraryRoot.showGames) gamesModel.filter_by_platform(libraryRoot.activePlatform)
+        }
     }
 
     ListModel { id: consoleModel }

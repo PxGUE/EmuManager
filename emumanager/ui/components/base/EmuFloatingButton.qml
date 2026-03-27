@@ -1,4 +1,5 @@
 import QtQuick
+import ".."
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Controls.Material
@@ -8,15 +9,15 @@ Rectangle {
     
     // Propiedades Configurables
     property string icon: "⟲"
-    property color accentColor: "#16a085"
+    property color accentColor: Theme.accentColor
     property real size: 50
     property bool isHovered: mouseArea.containsMouse
     
     signal clicked()
 
     width: size; height: size; radius: size / 2
-    color: isHovered ? Qt.rgba(accentColor.r, accentColor.g, accentColor.b, 0.2) : "#121216"
-    border.color: isHovered ? accentColor : "#25252b"
+    color: isHovered ? Qt.rgba(accentColor.r, accentColor.g, accentColor.b, 0.2) : Theme.panelBackground
+    border.color: isHovered ? accentColor : Theme.cardBorder
     border.width: 1
     
     Behavior on color { ColorAnimation { duration: 300 } }
@@ -26,7 +27,7 @@ Rectangle {
     // Capa de Brillo (Glassmorphism)
     Rectangle {
         anchors.fill: parent; radius: parent.radius; opacity: 0.05
-        color: "white"
+        color: Theme.textMain
     }
 
     // Efecto de Resplandor (Glow)
@@ -41,7 +42,7 @@ Rectangle {
     Text {
         anchors.centerIn: parent
         text: floatingBtn.icon
-        color: isHovered ? "white" : accentColor
+        color: isHovered ? Theme.textMain : accentColor
         font.pixelSize: size * 0.4
         font.bold: true
         Behavior on color { ColorAnimation { duration: 300 } }

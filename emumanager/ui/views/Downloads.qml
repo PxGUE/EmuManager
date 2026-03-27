@@ -39,57 +39,64 @@ Item {
     property string scanLog: ""
     property string scrapeStatus: I18n.t.ready_caps
     property string scanStatus: I18n.t.waiting_caps
+    property bool isInstallingEmulator: false
     property bool isInstallingCores: false
     property bool isUpdatingSystem: false
+    
+    // UX: Estado centralizado para bloqueo de concurrencia
+    readonly property bool isAnyOperationRunning: isScanning || isScraping || isInstallingEmulator || isInstallingCores
 
-    Rectangle { anchors.fill: parent; color: "#050505" }
+    Rectangle { anchors.fill: parent; color: Theme.viewBackground }
 
     ColumnLayout {
-        anchors.fill: parent; anchors.margins: 40; spacing: 25
+        anchors.fill: parent; anchors.margins: Theme.spaceExtraLarge; spacing: Theme.spaceLarge
 
         // 1. CABECERA
         RowLayout {
             Layout.fillWidth: true
             ColumnLayout {
                 spacing: 4
-                Text { text: I18n.t.sync_center; color: "white"; font.pixelSize: 28; font.bold: true; font.letterSpacing: 2 }
-                Text { text: I18n.t.sync_center_desc; color: "#66ffffff"; font.pixelSize: 14; font.bold: true }
+                Text { text: I18n.t.sync_center; color: Theme.textMain; font.pixelSize: Theme.fontTitle; font.bold: true; font.letterSpacing: 2 }
+                Text { text: I18n.t.sync_center_desc; color: Theme.textMuted; font.pixelSize: Theme.fontBody; font.bold: true }
             }
             Item { Layout.fillWidth: true }
             Button {
                 id: syncBtn
                 text: I18n.t.check_updates_btn
                 flat: true; font.bold: true; font.pixelSize: 11
-                Material.accent: "#16a085"
+                Material.accent: Theme.accentColor
                 background: Rectangle {
-                    color: syncBtn.hovered ? "#16a08511" : "transparent"
-                    border.color: "#16a085"; border.width: 1; radius: 20
+                    color: syncBtn.hovered ? Theme.accentColor + "11" : "transparent"
+                    border.color: Theme.accentColor; border.width: Theme.borderThin; radius: Theme.radiusMedium
                 }
+                enabled: !isAnyOperationRunning
+                opacity: enabled ? 1.0 : 0.3
+                Behavior on opacity { NumberAnimation { duration: 300 } }
                 onClicked: mainController.check_for_updates()
             }
         }
         // 2. PANEL DE OPERACIONES (Control Maestro)
         RowLayout {
-            Layout.fillWidth: true; Layout.preferredHeight: 120; Layout.maximumHeight: 120; spacing: 15
+            Layout.fillWidth: true; Layout.preferredHeight: 120; Layout.maximumHeight: 120; spacing: Theme.spaceMedium
             
             // Tarjeta 1: Escanear Biblioteca (Radar)
             Rectangle {
                 id: scanCard
-                Layout.fillWidth: true; Layout.fillHeight: true; radius: 16
-                color: scanMA.containsMouse ? "#1a2a20" : "#0d0d10"
-                border.color: scanMA.containsMouse ? "#2ecc71" : "#332ecc71"
-                border.width: scanMA.containsMouse ? 2 : 1
+                Layout.fillWidth: true; Layout.fillHeight: true; radius: Theme.radiusMedium
+                color: (scanMA.containsMouse && scanMA.enabled) ? Theme.statusSuccess + "11" : Theme.cardBackground
+                border.color: (scanMA.containsMouse && scanMA.enabled) ? Theme.statusSuccess : Theme.cardBorder
+                border.width: (scanMA.containsMouse && scanMA.enabled) ? Theme.borderThick : Theme.borderThin
                 
                 scale: scanMA.pressed ? 0.98 : 1.0
-                y: scanMA.containsMouse ? -3 : 0
+                y: (scanMA.containsMouse && scanMA.enabled) ? -3 : 0
                 Behavior on color { ColorAnimation { duration: 200 } }
                 Behavior on border.color { ColorAnimation { duration: 200 } }
                 Behavior on y { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
                 Behavior on scale { NumberAnimation { duration: 100 } }
 
                 MouseArea { 
-                    id: scanMA; anchors.fill: parent; hoverEnabled: !isScanning; cursorShape: isScanning ? Qt.ArrowCursor : Qt.PointingHandCursor 
-                    enabled: !isScanning
+                    id: scanMA; anchors.fill: parent; hoverEnabled: !isAnyOperationRunning; cursorShape: isAnyOperationRunning ? Qt.ArrowCursor : Qt.PointingHandCursor 
+                    enabled: !isAnyOperationRunning
                     onClicked: {
                         isScanning = true
                         mainController.scan_directories()
@@ -97,15 +104,15 @@ Item {
                 }
 
                 RowLayout {
-                    anchors.fill: parent; anchors.margins: 15; spacing: 15
-                    Text { text: "📡"; font.pixelSize: 32; opacity: scanMA.containsMouse || isScanning ? 1.0 : 0.7 }
+                    anchors.fill: parent; anchors.margins: Theme.spaceMedium; spacing: Theme.spaceMedium
+                    Text { text: "📡"; font.pixelSize: Theme.fontTitle; opacity: scanMA.containsMouse || isScanning ? 1.0 : 0.7 }
                     ColumnLayout {
                         spacing: 2
-                        Text { text: I18n.t.library; color: "#2ecc71"; font.pixelSize: 9; font.bold: true; font.letterSpacing: 1.5 }
-                        Text { text: I18n.t.sync_roms; color: "white"; font.pixelSize: 14; font.bold: true }
+                        Text { text: I18n.t.library; color: Theme.statusSuccess; font.pixelSize: Theme.fontSmall; font.bold: true; font.letterSpacing: 1.5 }
+                        Text { text: I18n.t.sync_roms; color: Theme.textMain; font.pixelSize: Theme.fontBody; font.bold: true }
                         Text { 
                             text: isScanning ? scanLog : (scanVal >= 1.0 ? I18n.t.scan_done : I18n.t.scan_idle)
-                            color: isScanning ? "#2ecc71" : "#66ffffff"; font.pixelSize: 9; elide: Text.ElideRight; Layout.fillWidth: true 
+                            color: isScanning ? Theme.statusSuccess : Theme.textMuted; font.pixelSize: Theme.fontMicro; elide: Text.ElideRight; Layout.fillWidth: true 
                         }
                     }
                 }
@@ -115,7 +122,7 @@ Item {
                     anchors.bottom: parent.bottom; anchors.left: parent.left; anchors.right: parent.right
                     height: 4; radius: 2; color: "transparent"; visible: isScanning
                     Rectangle {
-                        width: parent.width * scanVal; height: parent.height; color: "#2ecc71"
+                        width: parent.width * scanVal; height: parent.height; color: Theme.statusSuccess
                         Behavior on width { NumberAnimation { duration: 300 } }
                     }
                 }
@@ -124,21 +131,21 @@ Item {
             // Tarjeta 2: Mango Media Sync (El Scraping Modular)
             Rectangle {
                 id: mangoCard
-                Layout.fillWidth: true; Layout.fillHeight: true; radius: 16
-                color: mangoMA.containsMouse ? "#2a1a10" : "#0d0d10"
-                border.color: mangoMA.containsMouse ? "#f39c12" : "#33f39c12"
-                border.width: mangoMA.containsMouse ? 2 : 1
+                Layout.fillWidth: true; Layout.fillHeight: true; radius: Theme.radiusMedium
+                color: (mangoMA.containsMouse && mangoMA.enabled) ? Theme.statusWarning + "11" : Theme.cardBackground
+                border.color: (mangoMA.containsMouse && mangoMA.enabled) ? Theme.statusWarning : Theme.cardBorder
+                border.width: (mangoMA.containsMouse && mangoMA.enabled) ? Theme.borderThick : Theme.borderThin
                 
                 scale: mangoMA.pressed ? 0.98 : 1.0
-                y: mangoMA.containsMouse ? -3 : 0
+                y: (mangoMA.containsMouse && mangoMA.enabled) ? -3 : 0
                 Behavior on color { ColorAnimation { duration: 200 } }
                 Behavior on border.color { ColorAnimation { duration: 200 } }
                 Behavior on y { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
                 Behavior on scale { NumberAnimation { duration: 100 } }
 
                 MouseArea { 
-                    id: mangoMA; anchors.fill: parent; hoverEnabled: !isScraping; cursorShape: isScraping ? Qt.ArrowCursor : Qt.PointingHandCursor 
-                    enabled: !isScraping
+                    id: mangoMA; anchors.fill: parent; hoverEnabled: !isAnyOperationRunning; cursorShape: isAnyOperationRunning ? Qt.ArrowCursor : Qt.PointingHandCursor 
+                    enabled: !isAnyOperationRunning
                     onClicked: {
                         isScraping = true
                         mainController.start_scraping()
@@ -146,15 +153,15 @@ Item {
                 }
 
                 RowLayout {
-                    anchors.fill: parent; anchors.margins: 15; spacing: 15
-                    Text { text: "🥭"; font.pixelSize: 32; opacity: mangoMA.containsMouse || isScraping ? 1.0 : 0.7 }
+                    anchors.fill: parent; anchors.margins: Theme.spaceMedium; spacing: Theme.spaceMedium
+                    Text { text: "🥭"; font.pixelSize: Theme.fontTitle; opacity: mangoMA.containsMouse || isScraping ? 1.0 : 0.7 }
                     ColumnLayout {
                         spacing: 2
-                        Text { text: I18n.t.mango_monitor; color: "#f39c12"; font.pixelSize: 9; font.bold: true; font.letterSpacing: 1.5 }
-                        Text { text: I18n.t.sync_media; color: "white"; font.pixelSize: 14; font.bold: true }
+                        Text { text: I18n.t.mango_monitor; color: Theme.statusWarning; font.pixelSize: Theme.fontSmall; font.bold: true; font.letterSpacing: 1.5 }
+                        Text { text: I18n.t.sync_media; color: Theme.textMain; font.pixelSize: Theme.fontBody; font.bold: true }
                         Text { 
                             text: isScraping ? scrapeLog : (scrapeVal >= 1.0 ? I18n.t.scrape_done : I18n.t.scrape_idle)
-                            color: isScraping ? "#f39c12" : "#66ffffff"; font.pixelSize: 9; elide: Text.ElideRight; Layout.fillWidth: true 
+                            color: isScraping ? Theme.statusWarning : Theme.textMuted; font.pixelSize: Theme.fontMicro; elide: Text.ElideRight; Layout.fillWidth: true 
                         }
                     }
                 }
@@ -164,7 +171,7 @@ Item {
                     anchors.bottom: parent.bottom; anchors.left: parent.left; anchors.right: parent.right
                     height: 4; radius: 2; color: "transparent"; visible: isScraping
                     Rectangle {
-                        width: parent.width * scrapeVal; height: parent.height; color: "#f39c12"
+                        width: parent.width * scrapeVal; height: parent.height; color: Theme.statusWarning
                         Behavior on width { NumberAnimation { duration: 300 } }
                     }
                 }
@@ -173,18 +180,18 @@ Item {
 
         // 3. GALERÍA DE REPOSITORIOS (NUEVO PROTAGONISTA)
         ColumnLayout {
-            Layout.fillWidth: true; Layout.fillHeight: true; spacing: 15
+            Layout.fillWidth: true; Layout.fillHeight: true; spacing: Theme.spaceMedium
             
             RowLayout {
                 Layout.fillWidth: true
-                Text { text: I18n.t.emu_gallery; color: "#16a085"; font.pixelSize: 11; font.bold: true; font.letterSpacing: 2 }
-                Rectangle { Layout.fillWidth: true; height: 1; color: "#1a1a1f"; Layout.leftMargin: 15 }
+                Text { text: I18n.t.emu_gallery; color: Theme.accentColor; font.pixelSize: Theme.fontBody; font.bold: true; font.letterSpacing: 2 }
+                Rectangle { Layout.fillWidth: true; height: 1; color: Theme.divider; Layout.leftMargin: Theme.spaceMedium }
             }
 
             ListView {
                 id: emuList
                 Layout.fillWidth: true; Layout.fillHeight: true
-                model: emulatorsModel; clip: true; spacing: 20
+                model: emulatorsModel; clip: true; spacing: Theme.spaceLarge
                 
                 delegate: DownloadConsoleItem {
                     width: emuList.width - 20; height: 180
@@ -194,6 +201,11 @@ Item {
                     accent: model.accent; downloadUrl: model.downloadUrl
                     executable: model.executable; isInstalled: model.isInstalled
                     hasUpdate: model.hasUpdate !== undefined ? model.hasUpdate : false
+                    
+                    // UX: Bloqueo por concurrencia global
+                    enabled: !isAnyOperationRunning || progress > 0
+                    opacity: enabled ? 1.0 : 0.5
+                    Behavior on opacity { NumberAnimation { duration: 300 } }
                     
                     // Vinculación directa a señales
                     progress: model.progress !== undefined ? model.progress : 0.0
@@ -213,7 +225,11 @@ Item {
     }
 
     // --- COMPONENTES MODULARES DE AJUSTES ---
-    RetroArchSettings { id: retroArchPopup; controller: mainController }
+    RetroArchSettings { 
+        id: retroArchPopup; 
+        controller: mainController; 
+        isGlobalBusy: downloadsRoot.isAnyOperationRunning 
+    }
 
     // Conectar señales globales para refrescar la lista de instalados
     Connections {
@@ -255,13 +271,37 @@ Item {
                     break
                 }
             }
+            
+            // Detectar si estamos bajando un núcleo (ID de núcleo suele ser distinto a IDs de emuladores)
+            // o si p > 0.
+            if (p > 0 && p < 1.0) {
+                // Si el ID no está en el modelo de emuladores, es probable que sea un CORE de RetroArch
+                let foundInEmu = false
+                for(var k=0; k < emulatorsModel.count; k++) {
+                   if(emulatorsModel.get(k).id === emu_id) { foundInEmu = true; break; }
+                }
+                if (!foundInEmu) isInstallingCores = true
+            }
+            
+            // Actualizar estado global de instalación
+            let installing = false
+            for(var j=0; j < emulatorsModel.count; j++) {
+                let prog = emulatorsModel.get(j).progress
+                if (prog > 0 && prog < 1.0) {
+                    installing = true
+                    break
+                }
+            }
+            isInstallingEmulator = installing
+
             // 2. Actualizar Popup de Cores (Si está en el módulo)
             retroArchPopup.updateProgress(emu_id, p)
         }
-
         function onCoreDownloadFinished(emu_id, path) {
             updateRepositories() 
             retroArchPopup.markFinished(emu_id)
+            isInstallingEmulator = false
+            isInstallingCores = false
         }
 
         function onGamesUpdated() {

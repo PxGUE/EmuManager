@@ -348,6 +348,20 @@ class MainController(QObject):
         except Exception as e:
             EmuLog.error(f"No se pudo abrir la carpeta: {e}")
 
+    @Slot()
+    def launch_random_game(self):
+        """Picks a random game from the database and launches it."""
+        try:
+            with self.db.get_connection() as conn:
+                row = conn.execute("SELECT id FROM games ORDER BY RANDOM() LIMIT 1").fetchone()
+                if row:
+                    EmuLog.info(f"M.A.N.G.O: Selección aleatoria detectada. Lanzando misión {row['id']}...")
+                    self.launch_game_by_id(row["id"])
+                else:
+                    EmuLog.warning("No hay juegos en la biblioteca para lanzar de forma aleatoria.")
+        except Exception as e:
+            EmuLog.error(f"Error al lanzar juego aleatorio: {e}")
+
     @Slot(int)
     def launch_game_by_id(self, game_id: int):
         """Lanza el juego por ID, buscando su core y registrando telemetría al cerrar."""
@@ -437,7 +451,7 @@ class MainController(QObject):
     def stop_scraping(self):
         """Mantiene la integridad del motor de scraping permitiendo que termine en segundo plano."""
         EmuLog.info("M.A.N.G.O: Tarea ocultada. El motor terminará el proceso actual de forma segura.")
-        self.scrapeStatusChanged.emit("FINALIZANDO EN SEGUNDO PLANO")
+        self.scrapeStatusChanged.emit("status_finishing_bg")
 
     @Slot()
     def shutdown(self):
@@ -562,7 +576,7 @@ class MainController(QObject):
 
     def _on_scan_finished(self, count):
         EmuLog.info(f"Escaneo finalizado desde hilo: {count} juegos.")
-        self.scanStatusChanged.emit(f"Escaneo completado: {count} juegos encontrados.")
+        self.scanStatusChanged.emit(f"scan_finished_msg|{count}")
         self.scanProgressChanged.emit(1.0)
         self.scanFinished.emit(count) # <--- FUNDAMENTAL PARA EL RESET DE QML
         
@@ -576,7 +590,7 @@ class MainController(QObject):
             EmuLog.warning("Ya hay un scraping en curso.")
             return False
 
-        self.scrapeStatusChanged.emit("Inicializando M.A.N.G.O Engine...")
+        self.scrapeStatusChanged.emit("engine_init")
         self.scrapeProgressChanged.emit(0.0)
 
         self._scrape_thread = QThread()
@@ -598,7 +612,7 @@ class MainController(QObject):
     def stop_scraping(self):
         """Mantiene la integridad del motor permitiendo que termine los juegos actuales de forma segura."""
         EmuLog.info("M.A.N.G.O: Tarea ocultada. El motor terminará el proceso actual en segundo plano para evitar corrupción.")
-        self.scrapeStatusChanged.emit("FINALIZANDO EN SEGUNDO PLANO")
+        self.scrapeStatusChanged.emit("status_finishing_bg")
 
     def _clear_scrape_thread(self):
         """Limpia la referencia al hilo de scraping."""
@@ -677,13 +691,13 @@ class MainController(QObject):
     def _on_emu_install_finished(self, emu_id: str, path: str):
         if path:
             EmuLog.info(f"✓ La misión de instalación de {emu_id} ha sido un éxito en {path}")
-            self.coreDownloadStatusChanged.emit(emu_id, "✓ Instalación exitosa")
+            self.coreDownloadStatusChanged.emit(emu_id, "install_success_tag")
             self.coreDownloadFinished.emit(emu_id, path)
             self._cached_summary = None 
             self.gamesUpdated.emit()
         else:
             EmuLog.error(f"La misión de instalación de {emu_id} ha fallado estrepitosamente.")
-            self.coreDownloadStatusChanged.emit(emu_id, "✘ Error")
+            self.coreDownloadStatusChanged.emit(emu_id, "install_failed_tag")
             self.coreDownloadFinished.emit(emu_id, "")
 
     def _clear_emu_thread(self):
@@ -711,7 +725,7 @@ class MainController(QObject):
             EmuLog.warning("Ya hay una descarga de core en curso.")
             return False
 
-        self.coreDownloadStatusChanged.emit(core_name, f"Iniciando descarga de {core_name}...")
+        self.coreDownloadStatusChanged.emit(core_name, f"core_download_init_msg|{core_name}")
         self.coreDownloadProgressChanged.emit(core_name, 0.0)
 
         self._core_thread = QThread()
@@ -740,7 +754,7 @@ class MainController(QObject):
     def _on_core_download_finished(self, path: str):
         core_id = self._core_worker.core_name if self._core_worker else "core"
         if path:
-            self.coreDownloadStatusChanged.emit(core_id, f"Instalación completada: {Path(path).name}")
+            self.coreDownloadStatusChanged.emit(core_id, f"core_install_finished_msg|{Path(path).name}")
             self.coreDownloadProgressChanged.emit(core_id, 1.0)
             self.coreDownloadFinished.emit(core_id, path)
             
@@ -748,13 +762,13 @@ class MainController(QObject):
             self._cached_summary = None
             self.gamesUpdated.emit()
         else:
-            self.coreDownloadStatusChanged.emit(core_id, "Fallo en la descarga.")
+            self.coreDownloadStatusChanged.emit(core_id, "download_failed")
             self.coreDownloadProgressChanged.emit(core_id, 0.0)
             self.coreDownloadFinished.emit(core_id, "")
 
     def _on_scrape_finished(self, count):
         EmuLog.info(f"Scraping M.A.N.G.O completado: {count} descargas.")
-        self.scrapeStatusChanged.emit(f"Scraping completado. {count} portadas descargadas.")
+        self.scrapeStatusChanged.emit(f"scrape_finished_msg|{count}")
         self.scrapeProgressChanged.emit(1.0)
         self.scrapeFinished.emit(count)
         
@@ -827,11 +841,53 @@ class MainController(QObject):
                 minutes = (total_sec % 3600) // 60
                 stats["total_play_time"] = f"{hours}h {minutes}m"
 
-                # 4. Sistema dominante
-                cursor.execute("SELECT platform, COUNT(*) as c FROM games GROUP BY platform ORDER BY c DESC LIMIT 1")
-                row_sys = cursor.fetchone()
-                if row_sys:
-                    stats["most_played_system"] = row_sys[0].upper()
+                # 4. Top Plataformas (Lista)
+                cursor.execute("""
+                    SELECT platform, COUNT(*) as c 
+                    FROM games 
+                    GROUP BY platform 
+                    ORDER BY c DESC 
+                    LIMIT 5
+                """)
+                top_platforms = []
+                for row_p in cursor.fetchall():
+                    top_platforms.append({
+                        "id": row_p[0],
+                        "count": row_p[1]
+                    })
+                stats["top_platforms"] = top_platforms
+                
+                # 5. Lista de Recientes (Últimos y nuevos hallazgos)
+                cursor.execute("""
+                    SELECT g.id, m.title, g.platform, m.cover_2d_path, s.last_played_at, s.play_time_seconds
+                    FROM games g
+                    JOIN game_metadata m ON g.id = m.game_id
+                    LEFT JOIN play_stats s ON g.id = s.game_id
+                    ORDER BY s.last_played_at DESC, g.id DESC
+                    LIMIT 6
+                """)
+                recent_games = []
+                for row_r in cursor.fetchall():
+                    sec = row_r[5] or 0
+                    h = sec // 3600
+                    m = (sec % 3600) // 60
+                    recent_games.append({
+                        "id": row_r[0],
+                        "title": row_r[1],
+                        "platform": row_r[2].upper(),
+                        "cover": row_r[3] if row_r[3] else "",
+                        "playTime": f"{h}h {m}m" if h > 0 else f"{m}m"
+                    })
+                stats["recent_games"] = recent_games
+                
+                # 6. Último Juego Jugado (Específico para Hero)
+                if recent_games:
+                    stats["last_game"] = recent_games[0]
+                else:
+                    stats["last_game"] = None
+                
+                if top_platforms:
+                    stats["most_played_system"] = top_platforms[0]["id"].upper()
 
         except Exception as e:
             EmuLog.error(f"Error cargando stats del dashboard: {e}")
@@ -896,19 +952,19 @@ class MainController(QObject):
             return self._cached_summary
 
         base_platforms = {
-            "snes": {"title": "SNES", "fullName": "Super Nintendo", "icon": "🕹️", "color": "#ff4b2b"},
-            "nes": {"title": "NES", "fullName": "Nintendo Entertainment System", "icon": "📺", "color": "#ff416c"},
-            "gba": {"title": "GBA", "fullName": "Game Boy Advance", "icon": "📱", "color": "#9d50bb"},
-            "n64": {"title": "N64", "fullName": "Nintendo 64", "icon": "🏰", "color": "#3a7bd5"},
-            "ps1": {"title": "PS1", "fullName": "PlayStation 1", "icon": "💿", "color": "#00d2ff"},
-            "ps2": {"title": "PS2", "fullName": "PlayStation 2", "icon": "🚀", "color": "#00e5ff"},
-            "psp": {"title": "PSP", "fullName": "PlayStation Portable", "icon": "🔋", "color": "#00aaff"},
-            "ds": {"title": "DS", "fullName": "Nintendo DS", "icon": "📖", "color": "#16a085"},
-            "gc": {"title": "GAMECUBE", "fullName": "Nintendo GameCube", "icon": "🧊", "color": "#8e44ad"},
-            "wii": {"title": "WII", "fullName": "Nintendo Wii", "icon": "🎾", "color": "#ffffff"},
-            "megadrive": {"title": "MEGADRIVE", "fullName": "Sega Mega Drive", "icon": "🌀", "color": "#2c3e50"},
-            "dreamcast": {"title": "DREAMCAST", "fullName": "Sega Dreamcast", "icon": "🍥", "color": "#e67e22"},
-            "unknown": {"title": "OTROS", "fullName": "Misceláneo", "icon": "❓", "color": "#95a5a6"}
+            "snes": {"title": "SNES", "fullName": "Super Nintendo", "icon": "🕹️", "color": "platSnes"},
+            "nes": {"title": "NES", "fullName": "Nintendo Entertainment System", "icon": "📺", "color": "platNes"},
+            "gba": {"title": "GBA", "fullName": "Game Boy Advance", "icon": "📱", "color": "platGba"},
+            "n64": {"title": "N64", "fullName": "Nintendo 64", "icon": "🏰", "color": "platN64"},
+            "ps1": {"title": "PS1", "fullName": "PlayStation 1", "icon": "💿", "color": "platPs1"},
+            "ps2": {"title": "PS2", "fullName": "PlayStation 2", "icon": "🚀", "color": "platPs2"},
+            "psp": {"title": "PSP", "fullName": "PlayStation Portable", "icon": "🔋", "color": "platPsp"},
+            "ds": {"title": "DS", "fullName": "Nintendo DS", "icon": "📖", "color": "platDs"},
+            "gc": {"title": "GAMECUBE", "fullName": "Nintendo GameCube", "icon": "🧊", "color": "platGc"},
+            "wii": {"title": "WII", "fullName": "Nintendo Wii", "icon": "🎾", "color": "platWii"},
+            "megadrive": {"title": "MEGADRIVE", "fullName": "Sega Mega Drive", "icon": "🌀", "color": "platMegaDrive"},
+            "dreamcast": {"title": "DREAMCAST", "fullName": "Sega Dreamcast", "icon": "🍥", "color": "platDreamcast"},
+            "unknown": {"title": "OTROS", "fullName": "Misceláneo", "icon": "❓", "color": "platUnknown"}
         }
         
         summary = []

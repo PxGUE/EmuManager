@@ -16,13 +16,14 @@ Item {
 
     property bool showGames: false
     property string activePlatform: "all"
-    property color activeAccentColor: "#16a085"
+    property var activeAccentColor: Theme.accentColor
+    readonly property color resolvedActiveAccent: (typeof activeAccentColor === "string" && Theme[activeAccentColor] !== undefined) ? Theme[activeAccentColor] : activeAccentColor
 
-    Rectangle { anchors.fill: parent; color: "#050505" }
+    Rectangle { anchors.fill: parent; color: Theme.viewBackground }
 
     function selectConsole(platform, index, color) {
         activePlatform = platform
-        activeAccentColor = color || "#16a085"
+        activeAccentColor = color || Theme.accentColor
         gamesModel.update_games()
         gamesModel.filter_by_platform(platform)
         showGames = true
@@ -108,7 +109,7 @@ Item {
     // --- ESTADO VACÍO (Si no hay sistemas) ---
     ColumnLayout {
         id: emptyView
-        anchors.centerIn: parent; spacing: 20
+        anchors.centerIn: parent; spacing: Theme.spaceLarge
         visible: consoleModel.count === 0 && window.isLoaded
         
         Text {
@@ -118,21 +119,21 @@ Item {
         }
         
         ColumnLayout {
-            spacing: 5
+            spacing: Theme.spaceSmall
             Text {
                 text: I18n.t.empty_library
-                color: "white"; font.pixelSize: 18; font.bold: true; font.letterSpacing: 2; Layout.alignment: Qt.AlignHCenter
+                color: Theme.textMain; font.pixelSize: Theme.fontHeader; font.bold: true; font.letterSpacing: 2; Layout.alignment: Qt.AlignHCenter
             }
             Text {
                 text: I18n.t.empty_library_desc
-                color: "#66ffffff"; font.pixelSize: 12; horizontalAlignment: Text.AlignHCenter; Layout.alignment: Qt.AlignHCenter
+                color: Theme.textMuted; font.pixelSize: Theme.fontBody; horizontalAlignment: Text.AlignHCenter; Layout.alignment: Qt.AlignHCenter
             }
         }
         
         Button {
             text: I18n.t.configure_paths_btn
             Layout.alignment: Qt.AlignHCenter
-            Material.background: "#16a085"; font.bold: true
+            Material.background: Theme.accentColor; font.bold: true
             onClicked: activeViewId = "settingsView" 
         }
     }
@@ -142,30 +143,31 @@ Item {
         id: searchContainer
         anchors.top: consoleCarousel.bottom
         anchors.left: parent.left; anchors.right: parent.right
-        anchors.leftMargin: 40; anchors.rightMargin: 40
+        anchors.leftMargin: 30; anchors.rightMargin: 30
         height: showGames ? 60 : 0
         visible: showGames
         opacity: showGames ? 1 : 0
-        color: "transparent"
+        color: Theme.viewBackground // Changed from "transparent"
+        property color activeAccentColor: Theme.accentColor
         Behavior on height { NumberAnimation { duration: 400; easing.type: Easing.OutQuint } }
         Behavior on opacity { NumberAnimation { duration: 400 } }
 
         Rectangle {
             anchors.verticalCenter: parent.verticalCenter
-            width: parent.width; height: 44; radius: 10
-            color: "#0a0a0d"; border.color: searchInput.focus ? "#16a085" : "#33ffffff"; border.width: 1
+            width: parent.width; height: 44; radius: Theme.radiusSmall
+            color: Theme.controlBackground; border.color: searchInput.focus ? Theme.accentColor : Theme.cardBorder; border.width: Theme.borderThin
             Behavior on border.color { ColorAnimation { duration: 200 } }
             
             RowLayout {
-                anchors.fill: parent; anchors.leftMargin: 15; anchors.rightMargin: 10; spacing: 15
-                Text { text: "🔍"; color: searchInput.focus ? "#16a085" : "#66ffffff"; font.pixelSize: 16 }
+                anchors.fill: parent; anchors.leftMargin: Theme.spaceMedium; anchors.rightMargin: Theme.spaceSmall; spacing: Theme.spaceMedium
+                Text { text: "🔍"; color: searchInput.focus ? Theme.accentColor : Theme.textMuted; font.pixelSize: Theme.fontHeader }
                 TextField {
                     id: searchInput
                     Layout.fillWidth: true
-                    color: "white"
+                    color: Theme.textMain
                     placeholderText: I18n.t.search_placeholder
                     background: Item {} // Remover el subrayado por defecto
-                    font.pixelSize: 14; font.letterSpacing: 1
+                    font.pixelSize: Theme.fontBody; font.letterSpacing: 1
                     onTextEdited: gamesModel.search_games(text, activePlatform)
                 }
             }
@@ -176,8 +178,12 @@ Item {
     GridView {
         id: romGallery
         anchors.top: searchContainer.bottom; anchors.bottom: parent.bottom
-        anchors.left: parent.left; anchors.right: parent.right; anchors.margins: 30; anchors.topMargin: 20
-        cellWidth: 240; cellHeight: 360; clip: true; visible: showGames; opacity: showGames ? 1 : 0
+        anchors.left: parent.left; anchors.right: parent.right; anchors.margins: 30; anchors.topMargin: Theme.spaceMedium
+        
+        // Distribución perfecta: Ajusta el ancho de celda para llenar el espacio proporcionalmente
+        cellWidth: width / Math.max(1, Math.floor(width / 240))
+        cellHeight: cellWidth * 1.5
+        clip: true; visible: showGames; opacity: showGames ? 1 : 0
         model: gamesModel
         cacheBuffer: 1000 
         
@@ -185,7 +191,7 @@ Item {
             title: model.title; platform: model.platform
             gameId: model.gameId; isFavorite: model.isFavorite
             cover2d: model.cover2dPath; cover3d: model.cover3dPath
-            accentColor: libraryRoot.activeAccentColor
+            accentColor: libraryRoot.resolvedActiveAccent
             onClicked: mainController.launch_game_by_id(model.gameId)
             
             onInfoClicked: {
@@ -207,9 +213,9 @@ Item {
 
     // --- BOTÓN VOLVER (Reubicado para no estorbar) ---
     EmuFloatingButton {
-        icon: "⟲"; accentColor: "#16a085"; size: 54; visible: showGames && detailsLoader.status !== Loader.Ready
-        anchors.bottom: parent.bottom; anchors.bottomMargin: 40
-        anchors.right: parent.right; anchors.rightMargin: 40
+        icon: "⟲"; accentColor: Theme.accentColor; size: 54; visible: showGames && detailsLoader.status !== Loader.Ready
+        anchors.bottom: parent.bottom; anchors.bottomMargin: Theme.spaceExtraLarge
+        anchors.right: parent.right; anchors.rightMargin: Theme.spaceExtraLarge
         onClicked: showGames = false
     }
 
@@ -254,6 +260,6 @@ Item {
         itm.description = gameData.description
         itm.cover2d = gameData.cover2d
         itm.cover3d = gameData.cover3d
-        itm.accentColor = libraryRoot.activeAccentColor
+        itm.accentColor = libraryRoot.resolvedActiveAccent
     }
 }

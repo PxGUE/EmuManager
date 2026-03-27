@@ -48,7 +48,6 @@ Item {
             "tab_general": "General",
             "tab_library": "Biblioteca",
             "tab_services": "Servicios",
-            "tab_advanced": "Avanzado",
             "tab_about": "Acerca de",
 
             // Settings Panels
@@ -71,14 +70,6 @@ Item {
             "api_desc": "Introduce tus credenciales para descargar portadas automáticamente.",
             "api_saved": "Configuración guardada. M.A.N.G.O la usará al sincronizar.",
 
-            "mango_engine": "M.A.N.G.O (NATIVO)",
-            "opt_multicore": "Optimización Multinúcleo",
-            "opt_multicore_desc": "Usa todos los hilos del CPU para el hashing",
-            "opt_integrity": "Verificación de Integridad",
-            "opt_integrity_desc": "Comprobar archivos corruptos al escanear",
-            "opt_low_latency": "Modo Ultra-Baja Latencia",
-            "opt_low_latency_desc": "Scraping asíncrono optimizado por Rust",
-            "purge_cache": "PURGAR CACHÉ DEL MOTOR",
 
             "about_desc": "EmuManager es software <b>Libre y Gratuito</b>, impulsado por el motor nativo <b>M.A.N.G.O</b>. Diseñado con un enfoque <b>Local-First</b>, garantizamos que tu privacidad es absoluta: tus datos y biblioteca permanecen exclusivamente en tu equipo, sin telemetría ni dependencias de la nube.",
             "os_spec": "SISTEMA OPERATIVO",
@@ -91,13 +82,14 @@ Item {
             "copyright": "© 2026 PAIDEX | EMUMANAGER TEAM | LICENCIA MIT",
 
             // Library & Dashboard
+            "recent_activity": "ACTIVIDAD RECIENTE",
             "empty_library": "BIBLIOTECA VACÍA",
             "empty_library_desc": "No se han detectado juegos todavía.\nVe a Configuración para añadir rutas de escaneo.",
             "configure_paths_btn": "CONFIGURAR RUTAS",
             "search_placeholder": "Búsqueda instantánea...",
-            "stats_total_games": "JUEGOS TOTALES",
+            "stats_total_games": "COLECCIÓN",
             "stats_play_time": "TIEMPO JUGADO",
-            "stats_most_played": "PLATAFORMA LÍDER",
+            "stats_most_played": "SISTEMA PRINCIPAL",
             "stats_last_game": "RECIENTE",
             "stats_favorites": "FAVORITOS",
 
@@ -126,7 +118,7 @@ Item {
             "games_suffix": "JUEGOS",
             "games_abbr": "JX",
             "play_time_abbr": "TIEMPO",
-            "launch_adventure": "LANZAR AVENTURA",
+            "launch_adventure": "INICIAR JUEGO",
             "status_processing": "PROCESANDO...",
             "status_installed": "INSTALADO",
             "status_available": "DISPONIBLE",
@@ -140,6 +132,10 @@ Item {
             "core_installed": "¡Core instalado!",
             "install_success": "✓ Instalación completada.",
             "install_failed": "Fallo en la orquestación.",
+            "initializing": "INICIALIZANDO...",
+            "startup_native": "Activando motor nativo M.A.N.G.O (Rust)...",
+            "startup_db": "Verificando integridad de la biblioteca...",
+            "startup_assets": "Optimizando caché de medios y carátulas...",
             
             // System Info Tech Keys
             "tech_active": "ACTIVO",
@@ -168,9 +164,15 @@ Item {
             // Dashboard Extras
             "command_center": "CENTRO DE COMANDO",
             "operational": "OPERATIVO",
-            "next_challenge": "SIGUIENTE RETO",
-            "platform_prefix": "PLATAFORMA: ",
-            "resume_mission": "▶ REANUDAR MISIÓN",
+            "welcome_back": "BIENVENIDO DE VUELTA",
+            "ready_to_play": "¿Qué vamos a jugar hoy?",
+            "top_platforms": "TUS PLATAFORMAS",
+            "next_challenge": "PRÓXIMO OBJETIVO",
+            "platform_prefix": "SISTEMA: ",
+            "resume_mission": "▶ CONTINUAR",
+            "others_recent_titles": "OTROS TÍTULOS RECIENTES",
+            "hero_subtitle_resume": "REANUDA TU PARTIDA",
+            "hero_subtitle_empty": "EXPLORA TU BIBLIOTECA",
             "idle": "REPOSO",
             "mango_monitor": "MOTOR M.A.N.G.O (VITAL-LOG)",
             "processing_caps": "PROCESANDO",
@@ -178,6 +180,20 @@ Item {
             "status_prefix": "ESTADO: ",
             "ready_caps": "LISTO",
             "waiting_caps": "ESPERANDO",
+
+            // Global/Technical
+            "app_name": "EmuManager",
+            "engine_name": "M.A.N.G.O",
+            "not_available": "N/A",
+            "status_finishing_bg": "FINALIZANDO EN SEGUNDO PLANO",
+            "engine_init": "Inicializando M.A.N.G.O Engine...",
+            "install_success_tag": "✓ Instalación exitosa",
+            "install_failed_tag": "✘ Error",
+            "download_failed": "Fallo en la descarga.",
+            "scan_finished_msg": "Escaneo completado: %1 juegos encontrados.",
+            "scrape_finished_msg": "Scraping completado. %1 portadas descargadas.",
+            "core_install_finished_msg": "Instalación completada: %1",
+            "core_download_init_msg": "Iniciando descarga de %1...",
 
             // RetroArch Panel
             "ra_settings": "AJUSTES: RETROARCH",
@@ -220,7 +236,6 @@ Item {
             "tab_general": "General",
             "tab_library": "Library",
             "tab_services": "Services",
-            "tab_advanced": "Advanced",
             "tab_about": "About",
 
             // Settings Panels
@@ -243,14 +258,6 @@ Item {
             "api_desc": "Enter your credentials to download covers automatically.",
             "api_saved": "Settings saved. M.A.N.G.O will use them when syncing.",
 
-            "mango_engine": "M.A.N.G.O ENGINE (NATIVE)",
-            "opt_multicore": "Multi-core Optimization",
-            "opt_multicore_desc": "Uses all CPU threads for hashing",
-            "opt_integrity": "Integrity Check",
-            "opt_integrity_desc": "Check for corrupt files during scanning",
-            "opt_low_latency": "Ultra-Low Latency Mode",
-            "opt_low_latency_desc": "Asynchronous scraping optimized by Rust",
-            "purge_cache": "PURGE ENGINE CACHE",
 
             "about_desc": "EmuManager is <b>Free and Open Source</b> software, powered by the <b>M.A.N.G.O</b> native engine. Built with a <b>Local-First</b> approach, we guarantee absolute privacy: your data and library stay exclusively on your device, with no telemetry or cloud dependencies.",
             "os_spec": "OPERATING SYSTEM",
@@ -344,9 +351,15 @@ Item {
             // Dashboard Extras
             "command_center": "COMMAND CENTER",
             "operational": "OPERATIONAL",
+            "welcome_back": "WELCOME BACK",
+            "ready_to_play": "What are we playing today?",
+            "top_platforms": "YOUR PLATFORMS",
             "next_challenge": "NEXT CHALLENGE",
             "platform_prefix": "PLATFORM: ",
-            "resume_mission": "▶ RESUME MISSION",
+            "resume_mission": "▶ RESUME",
+            "others_recent_titles": "OTHER RECENT TITLES",
+            "hero_subtitle_resume": "RECOVERY DATA",
+            "hero_subtitle_empty": "EXPLORE LIBRARY",
             "idle": "IDLE",
             "mango_monitor": "M.A.N.G.O ENGINE (VITAL-LOG)",
             "processing_caps": "PROCESSING",
@@ -354,6 +367,20 @@ Item {
             "status_prefix": "STATUS: ",
             "ready_caps": "READY",
             "waiting_caps": "WAITING",
+
+            // Global/Technical
+            "app_name": "EmuManager",
+            "engine_name": "M.A.N.G.O",
+            "not_available": "N/A",
+            "status_finishing_bg": "FINISHING IN BACKGROUND",
+            "engine_init": "Initializing M.A.N.G.O Engine...",
+            "install_success_tag": "✓ Installation successful",
+            "install_failed_tag": "✘ Error",
+            "download_failed": "Download failed.",
+            "scan_finished_msg": "Scan completed: %1 games found.",
+            "scrape_finished_msg": "Scraping completed. %1 covers downloaded.",
+            "core_install_finished_msg": "Installation completed: %1",
+            "core_download_init_msg": "Starting download of %1...",
 
             // RetroArch Panel
             "ra_settings": "RETROARCH SETTINGS",

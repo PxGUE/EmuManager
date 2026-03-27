@@ -1,4 +1,5 @@
 import QtQuick
+import ".."
 import QtQuick.Controls
 
 Item {
@@ -7,7 +8,7 @@ Item {
     property string sourceImage: ""
     property string platform: "other"
     property bool isHovered: false
-    property color accentColor: "#8e44ad"
+    property color accentColor: Theme.accentColor
 
     property real dynamicTiltX: 0
     property real dynamicTiltY: 0
@@ -27,7 +28,7 @@ Item {
         anchors.bottom: parent.bottom; anchors.bottomMargin: -12
         anchors.horizontalCenter: parent.horizontalCenter
         width: parent.width * 0.8; height: 10; radius: 5
-        color: "black"
+        color: Theme.viewBackground
         z: -1
         
         // Solo visible en hover y con una opacidad muy suave para que parezca sombra, no barra
@@ -64,10 +65,10 @@ Item {
 
         // CARA FRONTAL: Placeholder Vacío (Solo si no hay imagen en absoluto)
         Rectangle {
-            anchors.fill: parent; color: "#0d0d12"; z: 1
-            opacity: 0.3; border.color: "#25ffffff"; border.width: 1
+            anchors.fill: parent; color: Theme.viewBackground; z: 1
+            opacity: 0.3; border.color: Theme.cardBorder; border.width: 1
             visible: sourceImage === ""
-            Text { anchors.centerIn: parent; text: "🎮"; font.pixelSize: 50; opacity: 0.15 }
+            Text { anchors.centerIn: parent; text: "🎮"; font.pixelSize: 50; opacity: 0.15; color: Theme.textMain }
         }
 
         Image {
@@ -87,13 +88,13 @@ Item {
             id: spine
             anchors.right: parent.right; anchors.top: parent.top; anchors.bottom: parent.bottom
             width: boxThick; x: parent.width - (width/2)
-            z: 1; color: "#000000"; opacity: isHovered ? 0.8 : 0
+            z: 1; color: Theme.viewBackground; opacity: isHovered ? 0.8 : 0
             
             // Gradiente para dar sensación de profundidad
             gradient: Gradient {
                 orientation: Gradient.Horizontal
-                GradientStop { position: 0.0; color: "#000000" }
-                GradientStop { position: 1.0; color: "#2a2a2a" }
+                GradientStop { position: 0.0; color: Theme.viewBackground }
+                GradientStop { position: 1.0; color: Theme.panelBackground }
             }
 
             transform: [
@@ -111,7 +112,7 @@ Item {
             
             gradient: Gradient {
                 orientation: Gradient.Vertical
-                GradientStop { position: 0.0; color: "#ffffff" }
+                GradientStop { position: 0.0; color: Theme.textMain }
                 GradientStop { position: 0.4; color: "transparent" }
             }
             Behavior on opacity { NumberAnimation { duration: 300 } }

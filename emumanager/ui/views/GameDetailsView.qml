@@ -19,7 +19,7 @@ Item {
     property string description: ""
     property string cover2d: ""
     property string cover3d: ""
-    property color accentColor: "#16a085"
+    property color accentColor: Theme.accentColor
     
     property bool has3d: cover3d !== ""
     property bool has2d: cover2d !== ""
@@ -29,7 +29,7 @@ Item {
 
     // --- 1. FONDO DE ATENUACIÓN (Dimmer) ---
     Rectangle {
-        anchors.fill: parent; color: "#000000"; opacity: 0.85
+        anchors.fill: parent; radius: 24; color: Theme.cardBackground; border.color: Theme.accentColor; border.width: 1; opacity: 0.95
         MouseArea { 
             anchors.fill: parent; hoverEnabled: true; onClicked: detailsRoot.closed() 
             // Esto captura el ratón y evita que "atraviese" a las capas inferiores
@@ -41,10 +41,10 @@ Item {
         id: expandedCard
         anchors.centerIn: parent
         width: 820; height: 500
-        color: "#0d0d12"; radius: 24; clip: true
-        border.color: "#25ffffff"; border.width: 1
+        color: Theme.cardBackground; radius: 24; clip: true
+        border.color: Theme.cardBorder; border.width: 1
         
-        layer.enabled: true; layer.effect: DropShadow { radius: 30; color: "#cc000000"; samples: 20 }
+        layer.enabled: true; layer.effect: DropShadow { radius: 30; color: Theme.viewBackground; opacity: 0.8; samples: 20 }
 
         Row {
             anchors.fill: parent
@@ -52,7 +52,7 @@ Item {
             // MITAD IZQUIERDA: CARÁTULA (Showcase)
             Rectangle {
                 width: parent.width * 0.45; height: parent.height
-                color: "#050508"
+                color: Theme.viewBackground
                 
                 // Brillo de fondo con el color de consola
                 RadialGradient {
@@ -88,7 +88,7 @@ Item {
                         spacing: 4; Layout.fillWidth: true
                         Text { text: detailsRoot.platform.toUpperCase(); color: accentColor; font.pixelSize: 11; font.bold: true; font.letterSpacing: 4 }
                         Text { 
-                            text: detailsRoot.title; color: "white"; font.pixelSize: 32; font.bold: true; width: 400; wrapMode: Text.WordWrap
+                            text: detailsRoot.title; color: Theme.textMain; font.pixelSize: 32; font.bold: true; width: 400; wrapMode: Text.WrapAnywhere
                         }
                     }
 
@@ -98,9 +98,9 @@ Item {
                         Repeater {
                             model: [detailsRoot.genre, detailsRoot.releaseDate]
                             delegate: Rectangle {
-                                height: 24; radius: 12; width: stext.width + 20; color: "#15ffffff"
+                                height: 24; radius: 12; width: stext.width + 20; color: Theme.controlBackground
                                 visible: modelData !== "" && modelData !== "----"
-                                Text { id: stext; anchors.centerIn: parent; text: modelData; color: "white"; font.pixelSize: 9; font.bold: true; opacity: 0.6 }
+                                Text { id: stext; anchors.centerIn: parent; text: modelData; color: Theme.textMain; font.pixelSize: 9; font.bold: true; opacity: 0.6 }
                             }
                         }
                     }
@@ -109,9 +109,9 @@ Item {
                         Layout.fillWidth: true; Layout.fillHeight: true
                         ScrollBar.vertical: ScrollBar { width: 3; contentItem: Rectangle { color: accentColor; radius: 2; opacity: 0.3 } }
                         Text {
-                            width: 380; wrapMode: Text.WordWrap
+                            width: 380; wrapMode: Text.WrapAnywhere
                             text: detailsRoot.description !== "Sin descripción disponible." ? detailsRoot.description : I18n.t.no_description_template.arg(detailsRoot.platform.toUpperCase())
-                            color: "#99ffffff"; font.pixelSize: 14; lineHeight: 1.4
+                            color: Theme.textMuted; font.pixelSize: 14; lineHeight: 1.4
                         }
                     }
 
@@ -127,7 +127,7 @@ Item {
                             Behavior on color { ColorAnimation { duration: 200 } }
                         }
                         contentItem: Text {
-                            text: I18n.t.launch_adventure; color: launchBigBtn.hovered ? "black" : "white"
+                            text: I18n.t.launch_adventure; color: launchBigBtn.hovered ? Theme.viewBackground : Theme.textMain
                             font.bold: true; font.letterSpacing: 2; font.pixelSize: 14; horizontalAlignment: Text.AlignHCenter
                         }
                     }
@@ -140,8 +140,8 @@ Item {
             id: closeXBtn
             anchors.top: parent.top; anchors.right: parent.right; anchors.margins: 15
             width: 40; height: 40; flat: true; onClicked: detailsRoot.closed()
-            background: Rectangle { radius: 20; color: closeXBtn.hovered ? "#30ffffff" : "transparent" }
-            contentItem: Text { text: "✕"; color: "white"; font.pixelSize: 20; horizontalAlignment: Text.AlignHCenter; anchors.centerIn: parent }
+            background: Rectangle { radius: 20; color: closeXBtn.hovered ? Theme.cardBorder : "transparent" }
+            contentItem: Text { text: "✕"; color: Theme.textMain; font.pixelSize: 20; horizontalAlignment: Text.AlignHCenter; anchors.centerIn: parent }
         }
     }
 

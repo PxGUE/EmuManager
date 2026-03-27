@@ -1,4 +1,5 @@
 import QtQuick
+import ".."
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Controls.Material
@@ -15,7 +16,7 @@ Button {
     
     contentItem: Text {
         text: control.label.toUpperCase()
-        color: "white"
+        color: Theme.textMain // This is already the new semantic token
         font.bold: true
         font.pixelSize: control.fontSize
         font.letterSpacing: control.letterSpacing

@@ -1,4 +1,5 @@
 import QtQuick
+import ".."
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Controls.Material
@@ -14,10 +15,11 @@ Item {
     property string cover3d: ""
     property string gameId: ""
     property bool isFavorite: false
-    property color accentColor: "#8e44ad"
+    property var accentColor: Theme.accentColor
+    readonly property color resolvedAccent: (typeof accentColor === "string" && Theme[accentColor] !== undefined) ? Theme[accentColor] : accentColor
     
     // --- ESTADOS ---
-    property bool isHovered: mouseArea.containsMouse || infoMA.containsMouse
+    property bool isHovered: mouseArea.containsMouse || infoMA.containsMouse || favMA.containsMouse
     property bool has3d: cover3d !== ""
     property bool has2d: cover2d !== ""
     
@@ -34,8 +36,8 @@ Item {
     // --- CAPA DE EFECTOS (GLOW) ---
     DropShadow {
         id: externalGlow
-        anchors.fill: body; radius: isHovered ? 20 : 0; samples: 14
-        color: Qt.rgba(accentColor.r, accentColor.g, accentColor.b, 0.4)
+        anchors.fill: body; radius: isHovered ? Theme.glowRadius : 0; samples: Theme.glowSamples
+        color: Qt.rgba(resolvedAccent.r, resolvedAccent.g, resolvedAccent.b, 0.4)
         source: body; visible: isHovered; z: -1; transparentBorder: true
         Behavior on radius { NumberAnimation { duration: 250 } }
     }
@@ -43,17 +45,17 @@ Item {
     // --- CUERPO "OBSIDIAN GLASS" ---
     Rectangle {
         id: body
-        anchors.fill: parent; radius: 24
-        color: isHovered ? "#1a1a26" : "#0d0d12"
-        border.color: isHovered ? accentColor : "#252535"
-        border.width: isHovered ? 2 : 1
+        anchors.fill: parent; radius: Theme.radiusLarge
+        color: isHovered ? Theme.panelBackground : Theme.cardBackground
+        border.color: isHovered ? resolvedAccent : Theme.cardBorder
+        border.width: isHovered ? Theme.borderThick : Theme.borderThin
         
         // Efecto de profundidad (gradiente interno)
         Rectangle {
             anchors.fill: parent; radius: parent.radius; opacity: isHovered ? 0.25 : 0.1
             gradient: Gradient {
                 orientation: Gradient.Vertical
-                GradientStop { position: 0.0; color: accentColor }
+                GradientStop { position: 0.0; color: resolvedAccent }
                 GradientStop { position: 0.5; color: "transparent" }
             }
         }
@@ -63,7 +65,7 @@ Item {
     Item {
         id: showcaseContainer
         anchors.top: parent.top; anchors.left: parent.left; anchors.right: parent.right
-        height: 220; anchors.margins: 15
+        height: 220; anchors.margins: Theme.spaceMedium
         
         // 1. CARÁTULA 3D REAL (Si existe)
         Image {
@@ -82,7 +84,7 @@ Item {
 
             Behavior on scale { NumberAnimation { duration: 600; easing.type: Easing.OutBack } }
             
-            layer.enabled: isHovered; layer.effect: DropShadow { radius: 15; color: "black"; samples: 10 }
+            layer.enabled: isHovered; layer.effect: DropShadow { radius: 15; color: Theme.viewBackground; samples: 10 }
         }
 
         // 2. GENERADOR 3D DINÁMICO (Para 2D o para Placeholder Vacío)
@@ -90,7 +92,7 @@ Item {
             anchors.centerIn: parent
             sourceImage: cover2d; platform: romCardRoot.platform
             visible: !has3d; isHovered: romCardRoot.isHovered
-            accentColor: romCardRoot.accentColor
+            accentColor: romCardRoot.resolvedAccent
             
             // PASAMOS EL TILT
             dynamicTiltX: tiltX
@@ -103,27 +105,27 @@ Item {
 
     // --- INFO DEL JUEGO (Sobre el cristal) ---
     Column {
-        anchors.bottom: parent.bottom; anchors.bottomMargin: 20
+        anchors.bottom: parent.bottom; anchors.bottomMargin: Theme.spaceLarge
         anchors.left: parent.left; anchors.right: parent.right
-        anchors.margins: 15; spacing: 5
+        anchors.margins: Theme.spaceMedium; spacing: Theme.spaceSmall
         z: 6
 
         Text {
-            width: parent.width; text: title.toUpperCase(); color: "white"
-            font.pixelSize: 13; font.bold: true; horizontalAlignment: Text.AlignHCenter
+            width: parent.width; text: title.toUpperCase(); color: Theme.textMain
+            font.pixelSize: Theme.fontBody; font.bold: true; horizontalAlignment: Text.AlignHCenter
             elide: Text.ElideRight; font.letterSpacing: 1.5
         }
 
         Rectangle {
             anchors.horizontalCenter: parent.horizontalCenter; width: 30; height: 1.5; radius: 1
-            color: accentColor; opacity: isHovered ? 1 : 0.2
+            color: resolvedAccent; opacity: isHovered ? 1 : 0.2
             Behavior on opacity { NumberAnimation { duration: 300 } }
         }
 
         Text {
             width: parent.width; text: isHovered ? I18n.t.launch_adventure : I18n.t.library
-            color: isHovered ? "white" : "#66ffffff"
-            font.pixelSize: 8; font.bold: true; horizontalAlignment: Text.AlignHCenter
+            color: isHovered ? Theme.textMain : Theme.textMuted
+            font.pixelSize: Theme.fontMicro; font.bold: true; horizontalAlignment: Text.AlignHCenter
             font.letterSpacing: 2
             Behavior on color { ColorAnimation { duration: 250 } }
         }
@@ -137,16 +139,16 @@ Item {
     // --- BOTÓN DE INFORMACIÓN (ⓘ) ---
     Rectangle {
         id: infoBtn
-        anchors.top: parent.top; anchors.right: parent.right; anchors.margins: 12
-        width: 32; height: 32; radius: 16
-        color: infoMA.containsMouse ? accentColor : "#25ffffff"
+        anchors.top: parent.top; anchors.right: parent.right; anchors.margins: Theme.spaceMedium
+        width: 32; height: 32; radius: Theme.radiusCircle
+        color: infoMA.containsMouse ? resolvedAccent : Theme.cardBorder
         opacity: isHovered ? 1 : 0
         visible: opacity > 0
         z: 50
         
         Text {
-            text: "ⓘ"; anchors.centerIn: parent; color: infoMA.containsMouse ? "black" : "white"
-            font.pixelSize: 14; font.bold: true
+            text: "ⓘ"; anchors.centerIn: parent; color: infoMA.containsMouse ? Theme.viewBackground : Theme.textMain
+            font.pixelSize: Theme.fontBody; font.bold: true
         }
         
         Behavior on opacity { NumberAnimation { duration: 250 } }
@@ -166,8 +168,8 @@ Item {
     Text {
         id: favIndicator
         text: isFavorite ? "❤️" : "🤍"
-        anchors.top: parent.top; anchors.left: parent.left; anchors.margins: 15
-        font.pixelSize: 18
+        anchors.top: parent.top; anchors.left: parent.left; anchors.margins: Theme.spaceMedium
+        font.pixelSize: Theme.fontHeader
         opacity: isFavorite ? 1.0 : (isHovered ? 0.4 : 0)
         visible: opacity > 0
         z: 50
@@ -175,6 +177,7 @@ Item {
         Behavior on opacity { NumberAnimation { duration: 300 } }
         
         MouseArea {
+            id: favMA
             anchors.fill: parent; hoverEnabled: true
             onClicked: (mouse) => {
                 mouse.accepted = true

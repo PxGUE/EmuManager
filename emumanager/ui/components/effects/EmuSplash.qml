@@ -1,4 +1,5 @@
 import QtQuick
+import ".."
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Controls.Material
@@ -6,7 +7,7 @@ import QtQuick.Controls.Material
 Rectangle {
     id: splashRoot
     anchors.fill: parent
-    color: "#050505"
+    color: Theme.viewBackground
     z: 100
     
     // Propiedades de Control Externo
@@ -35,7 +36,7 @@ Rectangle {
             Layout.alignment: Qt.AlignCenter; spacing: 4
             
             Image {
-                source: "../assets/logo.svg"
+                source: "../../assets/logo.svg"
                 Layout.preferredWidth: 80; Layout.preferredHeight: 80
                 Layout.alignment: Qt.AlignCenter
                 fillMode: Image.PreserveAspectFit
@@ -52,7 +53,7 @@ Rectangle {
             
             Text {
                 text: "EmuManager"
-                color: "white"; font.pixelSize: 20; font.bold: true
+                color: Theme.textMain; font.pixelSize: 20; font.bold: true
                 font.letterSpacing: 4; Layout.alignment: Qt.AlignHCenter
             }
         }
@@ -62,10 +63,10 @@ Rectangle {
             Layout.alignment: Qt.AlignCenter; spacing: 12; width: 180
             
             Rectangle {
-                width: parent.width; height: 4; radius: 2; color: "#111111"
+                width: parent.width; height: 4; radius: 2; color: Theme.cardBackground
                 clip: true
                 Rectangle {
-                    width: Math.max(2, parent.width * progress); height: parent.height; radius: 2; color: "#16a085"
+                    width: Math.max(2, parent.width * progress); height: parent.height; radius: 2; color: Theme.accentColor
                     Behavior on width { NumberAnimation { duration: 400; easing.type: Easing.OutCubic } }
                 }
             }
@@ -74,7 +75,7 @@ Rectangle {
                 width: parent.width
                 horizontalAlignment: Text.AlignHCenter
                 text: statusText.toUpperCase()
-                color: "#44ffffff"; font.pixelSize: 8; font.bold: true; font.letterSpacing: 2
+                color: Theme.textMuted; font.pixelSize: 8; font.bold: true; font.letterSpacing: 2
             }
         }
     }

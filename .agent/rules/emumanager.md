@@ -19,4 +19,4 @@ trigger: always_on
     - **Base de Datos:** SQLite3 local con optimización por hilos e índices para grandes colecciones.
 
 - **Estilo de Diseño:**
-    - Tema Oscuro (Obsidian Glass), bordes redondeados, tipografía moderna y transiciones fluidas.
+    - **Zero-Hex Policy:** Prohibido el uso de colores hardcodeados (hex/literal) en QML. `Theme.qml` es la ÚNICA fuente de verdad para el diseño y color. Cualquier nuevo componente o rediseño debe usar o extender `Theme.qml`.

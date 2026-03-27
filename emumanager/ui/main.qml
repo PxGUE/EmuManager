@@ -12,7 +12,7 @@ ApplicationWindow {
     title: "EmuManager"
     
     Material.theme: Material.Dark
-    Material.accent: "#16a085"
+    Material.accent: Theme.accentColor
 
     // --- MOTOR DE PROGRESO DE ARRANQUE REAL ---
     property bool isLoaded: false
@@ -55,9 +55,11 @@ ApplicationWindow {
         Behavior on opacity { NumberAnimation { duration: 800; easing.type: Easing.OutCubic } }
         Behavior on scale { NumberAnimation { duration: 1000; easing.type: Easing.OutBack } }
 
-        // Sidebar
         Rectangle {
-            id: sidebar; Layout.preferredWidth: 240; Layout.fillHeight: true; color: "#0a0a0c"
+            id: sidebar; Layout.preferredWidth: 240; Layout.fillHeight: true; color: Theme.sidebarBackground
+            // Subtle border to the right
+            Rectangle { anchors.right: parent.right; width: 1; height: parent.height; color: Theme.cardBorder }
+            
             x: isLoaded ? 0 : -50
             Behavior on x { 
                 SequentialAnimation { 
@@ -74,12 +76,20 @@ ApplicationWindow {
                     delegate: Button {
                         Layout.fillWidth: true; Layout.preferredHeight: 50; flat: true; padding: 15
                         highlighted: activeViewId === model.viewId
+                        
+                        background: Rectangle {
+                            radius: 12
+                            color: highlighted ? Theme.panelBackground : "transparent"
+                            opacity: 0.3
+                            Behavior on opacity { NumberAnimation { duration: 200 } }
+                        }
+
                         contentItem: RowLayout {
                             spacing: 15
-                            Text { text: model.icon; font.pixelSize: 18; opacity: highlighted ? 1.0 : 0.5 }
+                            Text { text: model.icon; font.pixelSize: 18; opacity: highlighted ? 1.0 : 0.4; color: highlighted ? Theme.accentColor : Theme.textMain }
                             Text { 
                                 text: (I18n.t[model.key] || "").toUpperCase()
-                                color: highlighted ? "white" : "#66ffffff"
+                                color: highlighted ? Theme.textMain : Theme.textDim
                                 font.pixelSize: 11; font.bold: highlighted; font.letterSpacing: 2 
                             }
                         }
@@ -87,7 +97,7 @@ ApplicationWindow {
                     }
                 }
                 Item { Layout.fillHeight: true }
-                Text { text: "v0.9.5-MANGO"; color: "#22ffffff"; font.pixelSize: 9; Layout.alignment: Qt.AlignHCenter }
+                Text { text: "v0.9.5-MANGO"; color: Theme.textMuted; opacity: 0.3; font.pixelSize: 9; Layout.alignment: Qt.AlignHCenter }
             }
         }
 

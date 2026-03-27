@@ -13,6 +13,7 @@ Popup {
     // Referencia al controlador de la Main UI
     property var controller: null
     property bool isRetroArchInstalled: false
+    property bool isGlobalBusy: false
 
     // Señales recibidas desde el Connections global (se vinculan externamente)
     function updateProgress(core_id, p) {
@@ -36,7 +37,7 @@ Popup {
     }
 
     Rectangle {
-        anchors.fill: parent; radius: 24; color: "#0d0d12"; border.color: "#3316a085"; border.width: 1
+        anchors.fill: parent; radius: 24; color: Theme.cardBackground; border.color: Theme.accentColor; border.width: 1; opacity: 0.95
 
         ColumnLayout {
             anchors.fill: parent; anchors.margins: 25; spacing: 15
@@ -44,10 +45,10 @@ Popup {
             RowLayout {
                 Layout.fillWidth: true
                 ColumnLayout {
-                    Text { text: I18n.t.ra_settings; color: "white"; font.pixelSize: 18; font.bold: true; font.letterSpacing: 1.5 }
+                    Text { text: I18n.t.ra_settings; color: Theme.textMain; font.pixelSize: 18; font.bold: true; font.letterSpacing: 1.5 }
                     Text { 
                         text: isRetroArchInstalled ? I18n.t.ra_management : I18n.t.ra_not_detected
-                        color: isRetroArchInstalled ? "#16a085" : "#e74c3c"
+                        color: isRetroArchInstalled ? Theme.accentColor : Theme.danger
                         font.pixelSize: 9; font.bold: true 
                     }
                 }
@@ -57,18 +58,18 @@ Popup {
                 }
             }
 
-            Rectangle { Layout.fillWidth: true; height: 1; color: "#1a1a1f" }
+            Rectangle { Layout.fillWidth: true; height: 1; color: Theme.divider }
 
             // Warning Banner
             Rectangle {
                 Layout.fillWidth: true; Layout.preferredHeight: 40; radius: 10
-                color: "#20e74c3c"; border.color: "#33e74c3c"; visible: !isRetroArchInstalled
+                color: Theme.danger; opacity: 0.1; border.color: Theme.danger; border.width: 1; visible: !isRetroArchInstalled
                 RowLayout {
                     anchors.fill: parent; anchors.leftMargin: 15; spacing: 10
                     Text { text: "ℹ️"; font.pixelSize: 14 }
                     Text { 
                         text: I18n.t.ra_install_warning; 
-                        color: "#e74c3c"; font.pixelSize: 10; font.bold: true 
+                        color: Theme.danger; font.pixelSize: 10; font.bold: true 
                     }
                 }
             }
@@ -76,31 +77,31 @@ Popup {
             ListView {
                 id: coresList; Layout.fillWidth: true; Layout.fillHeight: true; clip: true; spacing: 10
                 model: ListModel { id: coresModel }
-                opacity: isRetroArchInstalled ? 1.0 : 0.4
-                enabled: isRetroArchInstalled
+                opacity: (isRetroArchInstalled && !isGlobalBusy) ? 1.0 : 0.4
+                enabled: isRetroArchInstalled && !isGlobalBusy
 
                 delegate: Rectangle {
-                    width: coresList.width - 10; height: 75; radius: 15; color: "#16161c"
+                    width: coresList.width - 10; height: 75; radius: 15; color: Theme.controlBackground
                     
                     RowLayout {
                         anchors.fill: parent; anchors.margins: 15; spacing: 15
                         
-                        Rectangle { width: 45; height: 45; radius: 10; color: "#10ffffff"
+                        Rectangle { width: 45; height: 45; radius: 10; color: Theme.cardBorder
                             Text { anchors.centerIn: parent; text: "🧩"; font.pixelSize: 22 }
                         }
 
                         ColumnLayout {
                             Layout.fillWidth: true; spacing: 2
-                            Text { text: model.name; color: "white"; font.pixelSize: 13; font.bold: true }
+                            Text { text: model.name; color: Theme.textMain; font.pixelSize: 13; font.bold: true }
                             Text { 
                                 text: model.isInstalled ? I18n.t.core_ready : I18n.t.core_available
-                                color: "#66ffffff"; font.pixelSize: 9 
+                                color: Theme.textMuted; font.pixelSize: 9 
                             }
                             
                             // Barra de progreso individual
                             Rectangle {
-                                visible: model.isDownloading; Layout.fillWidth: true; height: 3; color: "#0a0a0c"; radius: 1.5
-                                Rectangle { width: parent.width * model.progress; height: 3; color: "#16a085"; radius: 1.5 }
+                                visible: model.isDownloading; Layout.fillWidth: true; height: 3; color: Theme.viewBackground; radius: 1.5
+                                Rectangle { width: parent.width * model.progress; height: 3; color: Theme.accentColor; radius: 1.5 }
                             }
                         }
 
@@ -117,15 +118,16 @@ Popup {
                             
                             background: Rectangle {
                                 color: {
-                                    if (model.isInstalled) return actionBtn.hovered ? "#33e74c3c" : "transparent"
-                                    return "#16a085"
+                                    if (model.isInstalled) return (actionBtn.hovered && actionBtn.enabled) ? Theme.danger + "33" : "transparent"
+                                    return (actionBtn.hovered && actionBtn.enabled) ? Theme.accentColor + "33" : Theme.accentColor
                                 }
-                                border.color: model.isInstalled ? "#e74c3c" : "#16a085"
+                                border.color: actionBtn.enabled ? (model.isInstalled ? Theme.danger : Theme.accentColor) : Theme.cardBorder
                                 border.width: 1; radius: 10
+                                opacity: actionBtn.enabled ? 1.0 : 0.3
                             }
                             
                             contentItem: Text {
-                                text: actionBtn.text; color: "white"; font.pixelSize: 9; font.bold: true
+                                text: actionBtn.text; color: Theme.textMain; font.pixelSize: 9; font.bold: true
                                 horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
                             }
 

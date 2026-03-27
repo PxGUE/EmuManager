@@ -41,7 +41,7 @@ Item {
 
     Rectangle {
         anchors.fill: parent
-        color: "#050505"
+        color: Theme.viewBackground
         visible: true
     }
 
@@ -51,27 +51,27 @@ Item {
         anchors.left: parent.left
         anchors.top: parent.top
         anchors.bottom: parent.bottom
-        anchors.margins: 40
+        anchors.margins: Theme.spaceExtraLarge
 
         Column {
             anchors.fill: parent
-            spacing: 10
-            Text { text: I18n.t.settings_title; color: "white"; font.pixelSize: 22; font.bold: true; font.letterSpacing: 2 }
+            spacing: Theme.spaceSmall
+            Text { text: I18n.t.settings_title; color: Theme.textMain; font.pixelSize: Theme.fontHeader; font.bold: true; font.letterSpacing: 2 }
             Item { width: 1; height: 30 }
             Repeater {
                 model: navModel
                 delegate: Rectangle {
-                    width: 220; height: 48; radius: 10
-                    color: activeTab === index ? "#1a1a1f" : "transparent"
-                    border.color: activeTab === index ? "#16a085" : "transparent"
+                    width: 220; height: 48; radius: Theme.radiusSmall
+                    color: activeTab === index ? Theme.controlBackground : "transparent"
+                    border.color: activeTab === index ? Theme.accentColor : "transparent"
                     border.width: activeTab === index ? 1 : 0
                     Row {
                         anchors.fill: parent; anchors.margins: 12; spacing: 15
-                        Text { text: model.iconEmoji; font.pixelSize: 16; opacity: activeTab === index ? 1.0 : 0.4 }
+                        Text { text: model.iconEmoji; font.pixelSize: Theme.fontHeader; opacity: activeTab === index ? 1.0 : 0.4 }
                         Text { 
                             text: (I18n.t[model.key] || "").toUpperCase()
-                            color: "white"
-                            font.pixelSize: 10; font.bold: activeTab === index; font.letterSpacing: 1
+                            color: Theme.textMain
+                            font.pixelSize: Theme.fontSmall; font.bold: activeTab === index; font.letterSpacing: 1
                             opacity: activeTab === index ? 1.0 : 0.4 
                             anchors.verticalCenter: parent.verticalCenter
                         }
@@ -87,7 +87,6 @@ Item {
         ListElement { key: "tab_general"; iconEmoji: "⚙️" }
         ListElement { key: "tab_library"; iconEmoji: "📚" }
         ListElement { key: "tab_services"; iconEmoji: "🌐" }
-        ListElement { key: "tab_advanced"; iconEmoji: "🥭" }
         ListElement { key: "tab_about"; iconEmoji: "ℹ️" }
     }
 
@@ -97,13 +96,13 @@ Item {
         anchors.right: parent.right
         anchors.top: parent.top
         anchors.bottom: parent.bottom
-        anchors.margins: 40; anchors.leftMargin: 20
+        anchors.margins: Theme.spaceExtraLarge; anchors.leftMargin: Theme.spaceLarge
         currentIndex: activeTab
 
         // --- PANEL 0: GENERAL ---
         Column {
-            Layout.fillWidth: true; Layout.fillHeight: true; spacing: 25
-            Text { text: I18n.t.system_preferences; color: "#16a085"; font.pixelSize: 10; font.bold: true; font.letterSpacing: 2 }
+            Layout.fillWidth: true; Layout.fillHeight: true; spacing: Theme.spaceLarge
+            Text { text: I18n.t.system_preferences; color: Theme.accentColor; font.pixelSize: Theme.fontSmall; font.bold: true; font.letterSpacing: 2 }
             SettingsItem { 
                 width: parent.width; title: I18n.t.global_language; description: I18n.t.global_language_desc
                 controlArea: ComboBox { 
@@ -115,57 +114,57 @@ Item {
                     }
                 } 
             }
-            SettingsItem { width: parent.width; title: I18n.t.auto_theme; description: I18n.t.auto_theme_desc; controlArea: Switch { checked: true; Material.accent: "#16a085" } }
+            SettingsItem { width: parent.width; title: I18n.t.auto_theme; description: I18n.t.auto_theme_desc; controlArea: Switch { checked: true; Material.accent: Theme.accentColor } }
             Item { Layout.fillHeight: true }
         }
 
         // --- PANEL 1: BIBLIOTECA ---
         Column {
-            Layout.fillWidth: true; Layout.fillHeight: true; spacing: 25
-            Text { text: I18n.t.paths_scanning; color: "#16a085"; font.pixelSize: 10; font.bold: true; font.letterSpacing: 2 }
+            Layout.fillWidth: true; Layout.fillHeight: true; spacing: Theme.spaceLarge
+            Text { text: I18n.t.paths_scanning; color: Theme.accentColor; font.pixelSize: Theme.fontSmall; font.bold: true; font.letterSpacing: 2 }
             Rectangle {
-                width: parent.width; height: 180; radius: 16; color: "#0a0a0c"; border.color: "#33ffffff"; border.width: 1
+                width: parent.width; height: 180; radius: Theme.radiusMedium; color: Theme.cardBackground; border.color: Theme.cardBorder; border.width: Theme.borderThin
                 Column {
                     anchors.fill: parent; anchors.margins: 20; spacing: 15
                     Row {
-                        width: parent.width; spacing: 10
-                        Text { text: I18n.t.roms_path + ":"; color: "white"; font.bold: true; width: 100; font.pixelSize: 9; anchors.verticalCenter: parent.verticalCenter }
-                        Text { text: currentRomsPath; color: "#16a085"; font.pixelSize: 11; width: parent.width - 200; wrapMode: Text.WrapAnywhere; anchors.verticalCenter: parent.verticalCenter }
+                        width: parent.width; spacing: Theme.spaceMedium
+                        Text { text: I18n.t.roms_path + ":"; color: Theme.textMain; font.bold: true; width: 100; font.pixelSize: Theme.fontSmall; anchors.verticalCenter: parent.verticalCenter }
+                        Text { text: currentRomsPath; color: Theme.accentColor; font.pixelSize: Theme.fontBody; width: parent.width - 200; wrapMode: Text.WrapAnywhere; anchors.verticalCenter: parent.verticalCenter }
                         Button { text: I18n.t.change_btn; flat: true; highlighted: true; onClicked: currentRomsPath = controller.select_roms_directory() }
                     }
-                    Rectangle { width: parent.width; height: 1; color: "#1a1a1f" }
+                    Rectangle { width: parent.width; height: 1; color: Theme.divider }
                     Row {
-                        width: parent.width; spacing: 10
-                        Text { text: I18n.t.emus_path + ":"; color: "white"; font.bold: true; width: 100; font.pixelSize: 9; anchors.verticalCenter: parent.verticalCenter }
-                        Text { text: currentEmulatorsPath; color: "#16a085"; font.pixelSize: 11; width: parent.width - 200; wrapMode: Text.WrapAnywhere; anchors.verticalCenter: parent.verticalCenter }
+                        width: parent.width; spacing: Theme.spaceMedium
+                        Text { text: I18n.t.emus_path + ":"; color: Theme.textMain; font.bold: true; width: 100; font.pixelSize: Theme.fontSmall; anchors.verticalCenter: parent.verticalCenter }
+                        Text { text: currentEmulatorsPath; color: Theme.accentColor; font.pixelSize: Theme.fontBody; width: parent.width - 200; wrapMode: Text.WrapAnywhere; anchors.verticalCenter: parent.verticalCenter }
                         Button { text: I18n.t.change_btn; flat: true; highlighted: true; onClicked: currentEmulatorsPath = controller.select_cores_directory() }
                     }
                 }
             }
-            Text { text: I18n.t.collection_info; color: "#16a085"; font.pixelSize: 10; font.bold: true; font.letterSpacing: 2; topPadding: 15 }
+            Text { text: I18n.t.collection_info; color: Theme.accentColor; font.pixelSize: Theme.fontSmall; font.bold: true; font.letterSpacing: 2; topPadding: 15 }
             Text { 
                 text: (I18n.t.games_registered || "").arg(gamesCount); 
-                color: "#66ffffff"; font.pixelSize: 11 
+                color: Theme.textMuted; font.pixelSize: Theme.fontBody 
             }
             Text { 
                 text: I18n.t.section_downloads_ref; 
-                color: "#33ffffff"; font.pixelSize: 10; font.italic: true; width: parent.width; wrapMode: Text.WordWrap
+                color: Theme.textMuted; opacity: 0.3; font.pixelSize: Theme.fontSmall; font.italic: true; width: parent.width; wrapMode: Text.WordWrap
             }
             Item { Layout.fillHeight: true }
         }
 
         // --- PANEL 2: SERVICIOS ---
         Column {
-            Layout.fillWidth: true; Layout.fillHeight: true; spacing: 25
-            Text { text: I18n.t.external_resources; color: "#16a085"; font.pixelSize: 10; font.bold: true; font.letterSpacing: 2 }
+            Layout.fillWidth: true; Layout.fillHeight: true; spacing: Theme.spaceLarge
+            Text { text: I18n.t.external_resources; color: Theme.accentColor; font.pixelSize: Theme.fontSmall; font.bold: true; font.letterSpacing: 2 }
             Rectangle {
-                width: parent.width; height: 260; radius: 16; color: "#0a0a0c"; border.color: "#33ffffff"
+                width: parent.width; height: 260; radius: Theme.radiusMedium; color: Theme.cardBackground; border.color: Theme.cardBorder; border.width: Theme.borderThin
                 Column {
                     anchors.fill: parent; anchors.margins: 20; spacing: 15
-                    Text { text: I18n.t.api_screenscraper; color: "white"; font.bold: true }
+                    Text { text: I18n.t.api_screenscraper; color: Theme.textMain; font.bold: true }
                     Text { 
                         text: I18n.t.api_desc; 
-                        color: "#66ffffff"; font.pixelSize: 11; width: parent.width - 40; wrapMode: Text.WordWrap 
+                        color: Theme.textMuted; font.pixelSize: Theme.fontBody; width: parent.width - 40; wrapMode: Text.WordWrap 
                     }
                     TextField { 
                         id: userField; placeholderText: I18n.t.username_placeholder; width: parent.width; 
@@ -181,25 +180,11 @@ Item {
             }
             Text { 
                 text: I18n.t.api_saved; 
-                color: "#33ffffff"; font.pixelSize: 10; font.italic: true; width: parent.width; wrapMode: Text.WordWrap
+                color: Theme.textMuted; opacity: 0.5; font.pixelSize: Theme.fontSmall; font.italic: true; width: parent.width; wrapMode: Text.WordWrap
             }
             Item { Layout.fillHeight: true }
         }
 
-        // --- PANEL 3: AVANZADO ---
-        Column {
-            Layout.fillWidth: true; Layout.fillHeight: true; spacing: 25
-            Text { text: I18n.t.mango_engine; color: "#16a085"; font.pixelSize: 10; font.bold: true; font.letterSpacing: 2 }
-            Column {
-                width: parent.width; spacing: 20
-                SettingsItem { width: parent.width; title: I18n.t.opt_multicore; description: I18n.t.opt_multicore_desc; controlArea: Switch { checked: true; Material.accent: "#16a085" } }
-                SettingsItem { width: parent.width; title: I18n.t.opt_integrity; description: I18n.t.opt_integrity_desc; controlArea: Switch { checked: false; Material.accent: "#16a085" } }
-                SettingsItem { width: parent.width; title: I18n.t.opt_low_latency; description: I18n.t.opt_low_latency_desc; controlArea: Switch { checked: true; Material.accent: "#16a085" } }
-                Item { width: 1; height: 10 }
-                Button { text: I18n.t.purge_cache; flat: true; highlighted: true; onClicked: console.log("Purgando caché M.A.N.G.O...") }
-            }
-            Item { Layout.fillHeight: true }
-        }
 
         // --- PANEL 4: ACERCA DE (DESIGN REFEDINED - MINIMALIST PREMIUM) ---
         Flickable {
@@ -219,7 +204,7 @@ Item {
                     Layout.alignment: Qt.AlignHCenter; spacing: 10
                     
                     Rectangle {
-                        Layout.alignment: Qt.AlignHCenter; width: 100; height: 100; radius: 25; color: "#0a0a0c"; border.color: "#1a1a1f"
+                        Layout.alignment: Qt.AlignHCenter; width: 100; height: 100; radius: 25; color: Theme.cardBackground; border.color: Theme.divider
                         Image { 
                             source: "../assets/logo.svg"; anchors.fill: parent; anchors.margins: 20; 
                             fillMode: Image.PreserveAspectFit; smooth: true; opacity: 0.9
@@ -229,29 +214,29 @@ Item {
                     Text { 
                         Layout.alignment: Qt.AlignHCenter
                         text: "EmuManager"
-                        color: "white"; font.pixelSize: 32; font.bold: true; font.letterSpacing: -1
+                        color: Theme.textMain; font.pixelSize: Theme.fontTitle; font.bold: true; font.letterSpacing: -1
                     }
                     
                     Text { 
                         Layout.alignment: Qt.AlignHCenter
-                        text: "v0.1.3 - alpha"; color: "#66ffffff"; font.pixelSize: 11; font.bold: true; font.letterSpacing: 2
+                        text: "v0.1.3 - alpha"; color: Theme.textMuted; font.pixelSize: Theme.fontBody; font.bold: true; font.letterSpacing: 2
                     }
                 }
 
                 // POWERED BY TAGLINE
                 RowLayout {
                     Layout.alignment: Qt.AlignHCenter; spacing: 12
-                    Rectangle { Layout.preferredWidth: 40; Layout.preferredHeight: 1; color: "#1a1a1f" }
+                    Rectangle { Layout.preferredWidth: 40; Layout.preferredHeight: 1; color: Theme.divider }
                     Text { 
-                        text: "POWERED BY M.A.N.G.O v0.2.5"; color: "#16a085"; font.pixelSize: 9; font.bold: true; font.letterSpacing: 3 
+                        text: "POWERED BY M.A.N.G.O v0.2.5"; color: Theme.accentColor; font.pixelSize: Theme.fontMicro; font.bold: true; font.letterSpacing: 3 
                     }
-                    Rectangle { Layout.preferredWidth: 40; Layout.preferredHeight: 1; color: "#1a1a1f" }
+                    Rectangle { Layout.preferredWidth: 40; Layout.preferredHeight: 1; color: Theme.divider }
                 }
 
                 // OVERVIEW DESCRIPTION
                 Text { 
                     Layout.fillWidth: true; horizontalAlignment: Text.AlignHCenter; wrapMode: Text.WordWrap; lineHeight: 1.6
-                    color: "#ccffffff"; font.pixelSize: 14
+                    color: Theme.textMain; opacity: 0.8; font.pixelSize: Theme.fontHeader
                     text: I18n.t.about_desc
                 }
 
@@ -260,17 +245,17 @@ Item {
                     Layout.alignment: Qt.AlignHCenter; spacing: 15
                     
                     Rectangle {
-                        height: 32; width: 140; radius: 16; color: "#0a0a0c"; border.color: "#16a085"; border.width: 1; opacity: 0.8
+                        height: 32; width: 140; radius: 16; color: Theme.cardBackground; border.color: Theme.accentColor; border.width: 1; opacity: 0.8
                         Row { anchors.centerIn: parent; spacing: 8
-                            Text { text: "🔓"; font.pixelSize: 12 }
-                            Text { text: I18n.t.pill_free_open; color: "white"; font.pixelSize: 8; font.bold: true; font.letterSpacing: 1 }
+                            Text { text: "🔓"; font.pixelSize: Theme.fontBody }
+                            Text { text: I18n.t.pill_free_open; color: Theme.textMain; font.pixelSize: Theme.fontMicro; font.bold: true; font.letterSpacing: 1 }
                         }
                     }
                     Rectangle {
-                        height: 32; width: 140; radius: 16; color: "#0a0a0c"; border.color: "#3a7bd5"; border.width: 1; opacity: 0.8
+                        height: 32; width: 140; radius: 16; color: Theme.cardBackground; border.color: Theme.accentColor; border.width: 1; opacity: 0.8
                         Row { anchors.centerIn: parent; spacing: 8
-                            Text { text: "🛡️"; font.pixelSize: 12 }
-                            Text { text: I18n.t.pill_local_privacy; color: "white"; font.pixelSize: 8; font.bold: true; font.letterSpacing: 1 }
+                            Text { text: "🛡️"; font.pixelSize: Theme.fontBody }
+                            Text { text: I18n.t.pill_local_privacy; color: Theme.textMain; font.pixelSize: Theme.fontMicro; font.bold: true; font.letterSpacing: 1 }
                         }
                     }
                 }
@@ -281,7 +266,7 @@ Item {
                 ColumnLayout {
                     Layout.fillWidth: true; spacing: 15
                     Text { 
-                        text: I18n.t.tech_system_specs; color: "#66ffffff"; font.pixelSize: 8; font.bold: true; font.letterSpacing: 2
+                        text: I18n.t.tech_system_specs; color: Theme.textMuted; font.pixelSize: Theme.fontMicro; font.bold: true; font.letterSpacing: 2
                         Layout.alignment: Qt.AlignHCenter
                     }
                     
@@ -290,24 +275,24 @@ Item {
                         
                         AboutStatCard { 
                             title: I18n.t.os_spec; value: systemInfo.os || "Buscando..."; icon: "💻" 
-                            width: 180; height: 65; border.color: "#1a1a1f"
+                            width: 180; height: 65; border.color: Theme.divider
                         }
                         AboutStatCard { 
                             title: I18n.t.cpu_spec; value: (systemInfo.cpu_threads || "?") + " " + I18n.t.tech_threads; icon: "📟" 
-                            width: 180; height: 65; border.color: "#1a1a1f"
+                            width: 180; height: 65; border.color: Theme.divider
                         }
                         AboutStatCard { 
                             title: I18n.t.ram_spec; value: systemInfo.ram || "Detectando..."; icon: "🧠" 
-                            width: 180; height: 65; border.color: "#1a1a1f"
+                            width: 180; height: 65; border.color: Theme.divider
                         }
                         AboutStatCard { 
                             title: I18n.t.python_spec; value: "v" + systemInfo.python; icon: "🐍" 
-                            width: 180; height: 65; border.color: "#1a1a1f"
+                            width: 180; height: 65; border.color: Theme.divider
                         }
                         AboutStatCard { 
                             title: I18n.t.engine_spec; value: systemInfo.is_engine_ready ? I18n.t.tech_engine_ready : I18n.t.tech_inactive; 
-                            valueColor: systemInfo.is_engine_ready ? "#16a085" : "#e74c3c"; icon: "🥭"
-                            width: 180; height: 65; border.color: "#1a1a1f"
+                            valueColor: systemInfo.is_engine_ready ? Theme.statusSuccess : Theme.statusDanger; icon: "🥭"
+                            width: 180; height: 65; border.color: Theme.divider
                         }
                     }
                 }
@@ -315,7 +300,7 @@ Item {
                 Item { Layout.preferredHeight: 20 }
                 
                 Text { 
-                    Layout.alignment: Qt.AlignHCenter; text: I18n.t.copyright; color: "#22ffffff"; font.pixelSize: 9; font.bold: true 
+                    Layout.alignment: Qt.AlignHCenter; text: I18n.t.copyright; color: Theme.textMuted; opacity: 0.2; font.pixelSize: Theme.fontMicro; font.bold: true 
                 }
             }
         }

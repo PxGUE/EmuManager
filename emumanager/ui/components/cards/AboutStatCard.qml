@@ -1,4 +1,5 @@
 import QtQuick
+import ".."
 import QtQuick.Layouts
 
 Rectangle {
@@ -6,14 +7,15 @@ Rectangle {
     property string title: ""
     property string value: ""
     property string icon: ""
-    property color valueColor: "white"
+    property color valueColor: Theme.textMain
 
     width: 170
     height: 80
     radius: 12
-    color: "#0a0a0c"
-    border.color: "#33ffffff"
+    color: Theme.cardBackground
+    border.color: Theme.cardBorder
     border.width: 1
+
 
     Column {
         anchors.fill: parent
@@ -22,9 +24,11 @@ Rectangle {
 
         Row {
             spacing: 8
-            Text { text: icon; font.pixelSize: 14; opacity: 0.8 }
-            Text { 
-                text: title; color: "#66ffffff"
+            Text {
+                text: icon; font.pixelSize: 14; opacity: 0.8
+            }
+            Text {
+                text: title; color: Theme.textMuted
                 font.pixelSize: 8; font.bold: true; font.letterSpacing: 1
             }
         }

@@ -6,7 +6,7 @@
             "fullName": "emu_retroarch_fullname",
             "description": "emu_retroarch_desc",
             "icon": "📦",
-            "accent": "#FF4E11",
+            "accent": "emuRetroArch",
             "orchestration": {
                 "linux": { "type": "flatpak", "id": "org.libretro.RetroArch" },
                 "portable": {
@@ -25,7 +25,7 @@
             "fullName": "emu_dolphin_fullname",
             "description": "emu_dolphin_desc",
             "icon": "🐬",
-            "accent": "#3498db",
+            "accent": "emuDolphin",
             "orchestration": {
                 "linux": { "type": "flatpak", "id": "org.DolphinEmu.dolphin-emu" },
                 "portable": {
@@ -44,7 +44,7 @@
             "fullName": "emu_ppsspp_fullname",
             "description": "emu_ppsspp_desc",
             "icon": "🌀",
-            "accent": "#2196F3",
+            "accent": "emuPPSSPP",
             "orchestration": {
                 "linux": { "type": "flatpak", "id": "org.ppsspp.PPSSPP" },
                 "portable": {
@@ -63,7 +63,7 @@
             "fullName": "emu_pcsx2_fullname",
             "description": "emu_pcsx2_desc",
             "icon": "🎮",
-            "accent": "#003791",
+            "accent": "emuPCSX2",
             "orchestration": {
                 "linux": { "type": "flatpak", "id": "net.pcsx2.PCSX2" },
                 "portable": {
@@ -82,7 +82,7 @@
             "fullName": "emu_rpcs3_fullname",
             "description": "emu_rpcs3_desc",
             "icon": "🕹️",
-            "accent": "#ff2424",
+            "accent": "emuRPCS3",
             "orchestration": {
                 "linux": { "type": "flatpak", "id": "net.rpcs3.RPCS3" },
                 "portable": {
@@ -101,7 +101,7 @@
             "fullName": "emu_duckstation_fullname",
             "description": "emu_duckstation_desc",
             "icon": "🦆",
-            "accent": "#f1c40f",
+            "accent": "emuDuckStation",
             "orchestration": {
                 "linux": { "type": "flatpak", "id": "org.duckstation.DuckStation" },
                 "portable": {

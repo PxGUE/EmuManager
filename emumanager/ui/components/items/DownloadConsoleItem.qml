@@ -1,4 +1,5 @@
 import QtQuick
+import ".."
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Controls.Material
@@ -13,7 +14,8 @@ Rectangle {
     property string consoleName: ""
     property string description: ""
     property string icon: "📦"
-    property color accent: "#16a085"
+    property var accent: Theme.accentColor
+    readonly property color resolvedAccent: (typeof accent === "string" && Theme[accent] !== undefined) ? Theme[accent] : accent
     property string downloadUrl: ""
     property string executable: ""
     property bool isInstalled: false
@@ -26,10 +28,10 @@ Rectangle {
     
     signal configClicked()
 
-    radius: 20
-    color: "#0d0d12"
-    border.color: isInstalling ? accent : (isInstalled ? Qt.rgba(accent.r, accent.g, accent.b, 0.3) : "#1a1a1f")
-    border.width: isInstalling ? 2 : 1
+    radius: Theme.radiusMedium
+    color: Theme.cardBackground
+    border.color: (isInstalling || isInstalled) ? resolvedAccent : Theme.controlBackground
+    border.width: isInstalling ? Theme.borderThick : Theme.borderThin
     clip: true
 
     // Glossy Overlay sutil
@@ -37,32 +39,32 @@ Rectangle {
         anchors.fill: parent
         opacity: 0.03
         gradient: Gradient {
-            GradientStop { position: 0.0; color: "white" }
+            GradientStop { position: 0.0; color: Theme.textMain }
             GradientStop { position: 1.0; color: "transparent" }
         }
     }
 
     RowLayout {
-        anchors.fill: parent; anchors.margins: 20; spacing: 20
+        anchors.fill: parent; anchors.margins: Theme.spaceMedium; spacing: Theme.spaceMedium
 
         // 1. Icono con estilo neón expandido
         Rectangle {
-            Layout.preferredWidth: 80; Layout.preferredHeight: 80; radius: 18
-            color: "#16161c"
-            border.color: isInstalled ? accent : "#25252b"
-            border.width: 1
+            Layout.preferredWidth: 80; Layout.preferredHeight: 80; radius: Theme.radiusMedium
+            color: Theme.controlBackground
+            border.color: isInstalled ? resolvedAccent : Theme.cardBorder
+            border.width: Theme.borderThin
             
             Text {
                 anchors.centerIn: parent
-                text: root.icon; font.pixelSize: 38
+                text: root.icon; font.pixelSize: Theme.fontDisplay
                 opacity: isInstalled || isInstalling ? 1.0 : 0.3
             }
             
             layer.enabled: isInstalled || isInstalling
             layer.effect: DropShadow {
                 transparentBorder: true
-                color: Qt.rgba(accent.r, accent.g, accent.b, 0.4)
-                samples: 20; radius: 10
+                color: Qt.rgba(resolvedAccent.r, resolvedAccent.g, resolvedAccent.b, 0.4)
+                samples: Theme.glowSamples; radius: Theme.radiusSmall
             }
         }
 
@@ -72,29 +74,29 @@ Rectangle {
             RowLayout {
                 spacing: 10
                 Text {
-                    text: root.name; color: "white"; font.pixelSize: 18; font.bold: true
+                    text: root.name; color: Theme.textMain; font.pixelSize: Theme.fontHeader; font.bold: true
                 }
                 Text {
                     text: (I18n.t[root.consoleName] || root.consoleName).toUpperCase()
-                    color: accent; font.pixelSize: 9; font.bold: true; font.letterSpacing: 1.5; opacity: 0.8
+                    color: Theme.textAccent; font.pixelSize: Theme.fontMicro; font.bold: true; font.letterSpacing: 1.5; opacity: 0.8
                 }
             }
             Text {
                 text: I18n.t[root.description] || root.description
-                color: "#66ffffff"; font.pixelSize: 11; Layout.fillWidth: true; wrapMode: Text.WordWrap; maximumLineCount: 2
+                color: Theme.textDim; font.pixelSize: Theme.fontBody; Layout.fillWidth: true; wrapMode: Text.WordWrap; maximumLineCount: 2
                 elide: Text.ElideRight
             }
             
             // Badge de estado
             Rectangle {
                 Layout.topMargin: 5
-                implicitWidth: badgeText.width + 16; implicitHeight: 20; radius: 10
-                color: isInstalling ? "#20f1c40f" : (isInstalled ? "#202ecc71" : "#10ffffff")
+                implicitWidth: badgeText.width + 16; implicitHeight: 20; radius: Theme.radiusSmall
+                color: isInstalling ? Theme.accentColor + "20" : (isInstalled ? Theme.panelBackground : Theme.cardBorder)
                 Text {
                     id: badgeText; anchors.centerIn: parent
                     text: isInstalling ? (I18n.tp(root.statusText) || I18n.t.status_processing) : I18n.tp(root.statusText)
-                    color: isInstalling ? "#f1c40f" : (isInstalled ? "#2ecc71" : "#66ffffff")
-                    font.pixelSize: 8; font.bold: true; font.letterSpacing: 1
+                    color: isInstalling ? Theme.accentColor : (isInstalled ? Theme.textMain : Theme.textMuted)
+                    font.pixelSize: Theme.fontMicro; font.bold: true; font.letterSpacing: 1
                 }
             }
         }
@@ -110,13 +112,13 @@ Rectangle {
                 
                 Text {
                     text: I18n.tp(root.statusText)
-                    color: accent; font.pixelSize: 9; font.bold: true; font.letterSpacing: 2
+                    color: resolvedAccent; font.pixelSize: Theme.fontSmall; font.bold: true; font.letterSpacing: 2
                 }
                 
                 Rectangle {
-                    Layout.fillWidth: true; height: 3; radius: 1.5; color: "#1a1a1f"
+                    Layout.fillWidth: true; height: 3; radius: 1.5; color: Theme.divider
                     Rectangle {
-                        width: parent.width * progress; height: parent.height; color: accent; radius: 1.5
+                        width: parent.width * progress; height: parent.height; color: resolvedAccent; radius: 1.5
                         Behavior on width { NumberAnimation { duration: 300 } }
                     }
                 }
@@ -136,22 +138,23 @@ Rectangle {
                 }
                 
                 property color btnColor: {
-                    if (isInstalling) return "#66ffffff"
-                    if (!isInstalled) return "#16a085"
-                    if (hasUpdate) return "#f39c12"
-                    return "#e74c3c" // Rojo para Desinstalar
+                    if (isInstalling) return Theme.textMuted
+                    if (!isInstalled) return Theme.accentColor
+                    if (hasUpdate) return Theme.accentColor
+                    return Theme.danger // Preserve red for uninstall
                 }
 
                 contentItem: Text {
                     text: mainActionBtn.btnText
-                    color: "white"; font.pixelSize: 11; font.bold: true
+                    color: Theme.textMain; font.pixelSize: Theme.fontBody; font.bold: true
                     horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
                 }
 
                 background: Rectangle {
-                    color: mainActionBtn.hovered ? mainActionBtn.btnColor + "22" : "transparent"
-                    border.color: mainActionBtn.btnColor
-                    border.width: 1; radius: 10
+                    color: (mainActionBtn.hovered && mainActionBtn.enabled) ? mainActionBtn.btnColor + "22" : "transparent"
+                    border.color: mainActionBtn.enabled ? mainActionBtn.btnColor : Theme.controlBorder
+                    border.width: Theme.borderThin; radius: Theme.radiusSmall
+                    opacity: mainActionBtn.enabled ? 1.0 : 0.3
                 }
 
                 onClicked: {
@@ -174,7 +177,7 @@ Rectangle {
         anchors.top: parent.top; anchors.right: parent.right; anchors.margins: 15; spacing: 8
         Button {
             width: 30; height: 30; flat: true
-            contentItem: Text { text: "⚙️"; font.pixelSize: 14; horizontalAlignment: Text.AlignHCenter }
+            contentItem: Text { text: "⚙️"; font.pixelSize: Theme.fontHeader; horizontalAlignment: Text.AlignHCenter }
             onClicked: root.configClicked()
         }
     }

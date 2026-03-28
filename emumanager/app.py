@@ -32,7 +32,22 @@ if bin_path.exists() and str(bin_path) not in sys.path:
 from controllers.main_ctrl import MainController
 from controllers.game_model import GameListModel
 
+# --- INICIALIZACIÓN DE ECOSISTEMA DE DATOS ---
+def init_storage():
+    """Asegura que la estructura de carpetas local exista para EmuManager."""
+    data_dir = root_dir / "data"
+    subdirs = ["db", "media", "logs", "temp"]
+    
+    if not data_dir.exists():
+        data_dir.mkdir(parents=True, exist_ok=True)
+        
+    for sub in subdirs:
+        (data_dir / sub).mkdir(parents=True, exist_ok=True)
+
 def main():
+    # Asegurar entorno de almacenamiento antes de cualquier otra cosa
+    init_storage()
+    
     # Registrar info del sistema al iniciar
     from core.logger import log_system_info
     log_system_info()

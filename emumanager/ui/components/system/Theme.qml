@@ -19,6 +19,16 @@ QtObject {
     readonly property color _p3: "#A5A692" // Sage Grey
     readonly property color _p4: "#BFB78F" // Sand Olive
     readonly property color _p5: "#F2A71B" // Porsche Orange
+    
+    // --- NUEVA IDENTIDAD: KINETIC NEBULA ---
+    readonly property color _n1: "#00f2ff" // Electric Cyan (Nebula Accent)
+    readonly property color _n2: "#050508" // Void Black (Maximum Contrast)
+    readonly property color _n3: "#0a1015" // Deep Pod (Background for HUD stats)
+    readonly property color _n4: "#ffffff1a" // Glass Border (Low Opacity)
+    readonly property color _n5: "#33ffffff" // Glass Alpha (Medium Opacity)
+    readonly property color _n6: "#000000"   // Pure Black
+    readonly property color _n7: "#15ffffff" // Very Light White
+    readonly property color _n8: "#25ffffff" // Light White
 
     // ==========================================
     // --- 🧩 1. APP LAYOUT (FONDOS GLOBALES) ---
@@ -54,6 +64,15 @@ QtObject {
     // --- 🔘 4. CONTROLS (BOTONES E INPUTS) ---
     // ==========================================
     readonly property color accentColor: _p5          // Color de interacción principal.
+    readonly property color accentElectric: _n1       // Acento Nebula (Reactor, HUD).
+    readonly property color backgroundDeep: _n2       // Fondo ultra oscuro.
+    readonly property color backgroundPod: _n3        // Fondo de pods estadísticos.
+    
+    // --- GLASSMORPHISM & OVERLAYS ---
+    readonly property color glassPlain: _n6           // Negro puro para modales.
+    readonly property color glassLight: _n7           // Blanco ultra-sutil (Overlays).
+    readonly property color glassStrong: _n8          // Blanco sutil (Bordes Glass).
+    
     readonly property color controlBackground: "#16161c" // Fondo de botones y campos de entrada.
     readonly property color controlBorder: "#33ffffff"   // Borde de controles desactivados.
     readonly property color controlHighlight: _p5       // Borde o acento de control enfocado.

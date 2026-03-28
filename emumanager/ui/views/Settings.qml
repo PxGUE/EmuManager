@@ -211,121 +211,75 @@ Item {
         }
 
 
-        // --- PANEL 4: ACERCA DE (DESIGN REFEDINED - MINIMALIST PREMIUM) ---
-        Flickable {
+        // --- PANEL 4: ACERCA DE (RADICAL MINIMALIST IDENTITY) ---
+        Item {
             Layout.fillWidth: true; Layout.fillHeight: true
-            contentHeight: aboutContent.height + 60; clip: true
-            ScrollBar.vertical: ScrollBar { }
             
             ColumnLayout {
                 id: aboutContent
-                width: parent.width - 80; anchors.horizontalCenter: parent.horizontalCenter
-                spacing: 30
+                width: parent.width - 100; anchors.centerIn: parent
+                spacing: 50
                 
-                Item { Layout.preferredHeight: 40 }
-
-                // LOGO & TITLE
+                // --- 1. THE KINETIC CORE ---
                 ColumnLayout {
-                    Layout.alignment: Qt.AlignHCenter; spacing: 10
+                    Layout.alignment: Qt.AlignHCenter; spacing: 20
                     
-                    Rectangle {
-                        Layout.alignment: Qt.AlignHCenter; width: 100; height: 100; radius: 25; color: Theme.cardBackground; border.color: Theme.divider
+                    Item {
+                        Layout.alignment: Qt.AlignHCenter; width: 120; height: 120
+                        Rectangle { anchors.centerIn: parent; width: 100; height: 100; radius: 50; color: "transparent"; border.color: Theme.accentElectric; border.width: 1.5; opacity: 0.2 }
+                        Rectangle {
+                            anchors.centerIn: parent; width: 110; height: 110; radius: 18
+                            color: "transparent"; border.color: Theme.accentElectric; border.width: 1.5; opacity: 0.1
+                            RotationAnimation on rotation { from: 0; to: 360; duration: 15000; loops: Animation.Infinite }
+                        }
                         Image { 
-                            source: "../assets/logo.svg"; anchors.fill: parent; anchors.margins: 20; 
-                            fillMode: Image.PreserveAspectFit; smooth: true; opacity: 0.9
+                            source: "../assets/logo.svg"; anchors.fill: parent; anchors.margins: 25; 
+                            fillMode: Image.PreserveAspectFit; smooth: true
                         }
                     }
                     
-                    Text { 
-                        Layout.alignment: Qt.AlignHCenter
-                        text: "EmuManager"
-                        color: Theme.textMain; font.pixelSize: Theme.fontTitle; font.bold: true; font.letterSpacing: -1
-                    }
-                    
-                    Text { 
-                        Layout.alignment: Qt.AlignHCenter
-                        text: "v0.1.3 - alpha"; color: Theme.textMuted; font.pixelSize: Theme.fontBody; font.bold: true; font.letterSpacing: 2
+                    ColumnLayout {
+                        spacing: 4; Layout.alignment: Qt.AlignHCenter
+                        Text { 
+                            text: "EmuManager"; color: Theme.textMain; font.pixelSize: 48; font.weight: Font.Black; font.letterSpacing: -2 
+                        }
+                        Text { 
+                            Layout.alignment: Qt.AlignHCenter
+                            text: "v" + mainController.appVersion; color: Theme.accentElectric; font.pixelSize: 14; font.bold: true; font.letterSpacing: 6; opacity: 0.8
+                        }
                     }
                 }
 
-                // POWERED BY TAGLINE
+                // --- 2. PROFESSIONAL STATEMENT ---
+                Text { 
+                    Layout.fillWidth: true; Layout.preferredWidth: 500; horizontalAlignment: Text.AlignHCenter; wrapMode: Text.WordWrap; lineHeight: 1.6
+                    color: Theme.textMain; opacity: 0.7; font.pixelSize: 16; font.letterSpacing: 0.2
+                    text: I18n.t.about_statement
+                }
+
+                // --- 3. DYNAMIC LINKS ---
                 RowLayout {
-                    Layout.alignment: Qt.AlignHCenter; spacing: 12
-                    Rectangle { Layout.preferredWidth: 40; Layout.preferredHeight: 1; color: Theme.divider }
-                    Text { 
-                        text: "POWERED BY M.A.N.G.O v0.2.5"; color: Theme.accentColor; font.pixelSize: Theme.fontMicro; font.bold: true; font.letterSpacing: 3 
-                    }
-                    Rectangle { Layout.preferredWidth: 40; Layout.preferredHeight: 1; color: Theme.divider }
-                }
-
-                // OVERVIEW DESCRIPTION
-                Text { 
-                    Layout.fillWidth: true; horizontalAlignment: Text.AlignHCenter; wrapMode: Text.WordWrap; lineHeight: 1.6
-                    color: Theme.textMain; opacity: 0.8; font.pixelSize: Theme.fontHeader
-                    text: I18n.t.about_desc
-                }
-
-                // STATUS PILLS (FOSS & PRIVACY)
-                Row {
-                    Layout.alignment: Qt.AlignHCenter; spacing: 15
+                    Layout.alignment: Qt.AlignHCenter; spacing: 30
                     
+                    // GitHub Link
                     Rectangle {
-                        height: 32; width: 140; radius: 16; color: Theme.cardBackground; border.color: Theme.accentColor; border.width: 1; opacity: 0.8
-                        Row { anchors.centerIn: parent; spacing: 8
-                            Text { text: "🔓"; font.pixelSize: Theme.fontBody }
-                            Text { text: I18n.t.pill_free_open; color: Theme.textMain; font.pixelSize: Theme.fontMicro; font.bold: true; font.letterSpacing: 1 }
-                        }
+                        width: 160; height: 40; radius: 20; color: "transparent"; border.color: Qt.alpha(Theme.accentElectric, 0.3); border.width: 1
+                        Text { anchors.centerIn: parent; text: I18n.t.btn_source_code; color: Theme.accentElectric; font.pixelSize: 9; font.bold: true; font.letterSpacing: 2 }
+                        MouseArea { anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onEntered: parent.opacity = 1.0; onExited: parent.opacity = 0.6; onClicked: Qt.openUrlExternally("https://github.com/PxGUE/EmuManager") }
                     }
+
+                    // Engine Link
                     Rectangle {
-                        height: 32; width: 140; radius: 16; color: Theme.cardBackground; border.color: Theme.accentColor; border.width: 1; opacity: 0.8
-                        Row { anchors.centerIn: parent; spacing: 8
-                            Text { text: "🛡️"; font.pixelSize: Theme.fontBody }
-                            Text { text: I18n.t.pill_local_privacy; color: Theme.textMain; font.pixelSize: Theme.fontMicro; font.bold: true; font.letterSpacing: 1 }
-                        }
+                        width: 160; height: 40; radius: 20; color: "transparent"; border.color: Qt.alpha(Theme.accentElectric, 0.3); border.width: 1
+                        Text { anchors.centerIn: parent; text: I18n.t.btn_mango_core; color: Theme.accentElectric; font.pixelSize: 9; font.bold: true; font.letterSpacing: 2 }
+                        MouseArea { anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onEntered: parent.opacity = 1.0; onExited: parent.opacity = 0.6; onClicked: Qt.openUrlExternally("https://github.com/PxGUE/mango") }
                     }
                 }
 
-                Item { Layout.preferredHeight: 20 }
-
-                // TECHNICAL SPECS GRID
-                ColumnLayout {
-                    Layout.fillWidth: true; spacing: 15
-                    Text { 
-                        text: I18n.t.tech_system_specs; color: Theme.textMuted; font.pixelSize: Theme.fontMicro; font.bold: true; font.letterSpacing: 2
-                        Layout.alignment: Qt.AlignHCenter
-                    }
-                    
-                    GridLayout {
-                        columns: 3; columnSpacing: 15; rowSpacing: 15; Layout.alignment: Qt.AlignHCenter
-                        
-                        AboutStatCard { 
-                            title: I18n.t.os_spec; value: systemInfo.os || "Buscando..."; icon: "💻" 
-                            width: 180; height: 65; border.color: Theme.divider
-                        }
-                        AboutStatCard { 
-                            title: I18n.t.cpu_spec; value: (systemInfo.cpu_threads || "?") + " " + I18n.t.tech_threads; icon: "📟" 
-                            width: 180; height: 65; border.color: Theme.divider
-                        }
-                        AboutStatCard { 
-                            title: I18n.t.ram_spec; value: systemInfo.ram || "Detectando..."; icon: "🧠" 
-                            width: 180; height: 65; border.color: Theme.divider
-                        }
-                        AboutStatCard { 
-                            title: I18n.t.python_spec; value: "v" + systemInfo.python; icon: "🐍" 
-                            width: 180; height: 65; border.color: Theme.divider
-                        }
-                        AboutStatCard { 
-                            title: I18n.t.engine_spec; value: systemInfo.is_engine_ready ? I18n.t.tech_engine_ready : I18n.t.tech_inactive; 
-                            valueColor: systemInfo.is_engine_ready ? Theme.statusSuccess : Theme.statusDanger; icon: "🥭"
-                            width: 180; height: 65; border.color: Theme.divider
-                        }
-                    }
-                }
-
-                Item { Layout.preferredHeight: 20 }
-                
+                // --- 4. ENGINE FOOTER ---
                 Text { 
-                    Layout.alignment: Qt.AlignHCenter; text: I18n.t.copyright; color: Theme.textMuted; opacity: 0.2; font.pixelSize: Theme.fontMicro; font.bold: true 
+                    Layout.alignment: Qt.AlignHCenter; text: I18n.t.powered_by.arg(mainController.mangoVersion); 
+                    color: Theme.textMuted; opacity: 0.3; font.pixelSize: 9; font.bold: true; font.letterSpacing: 3 
                 }
             }
         }

@@ -103,20 +103,20 @@ Item {
                             // 1. Halo base Cian
                             Rectangle {
                                 anchors.centerIn: parent; width: 58; height: 58; radius: 29
-                                color: "transparent"; border.color: "#00f2ff"; border.width: 2; opacity: 0.3
+                                color: "transparent"; border.color: Theme.accentElectric; border.width: 2; opacity: 0.3
                             }
                             
                             // 2. Cuadrado Orbital Giratorio
                             Rectangle {
                                 anchors.centerIn: parent; width: 62; height: 62; radius: 14
-                                color: "transparent"; border.color: "#00f2ff"; border.width: 2; opacity: 0.2
+                                color: "transparent"; border.color: Theme.accentElectric; border.width: 2; opacity: 0.2
                                 RotationAnimation on rotation { from: 0; to: 360; duration: 9000; loops: Animation.Infinite }
                             }
                             
                             // 3. Glow Central
                             Rectangle {
                                 anchors.centerIn: parent; width: 40; height: 40; radius: 20
-                                color: "#00f2ff"; opacity: 0.1
+                                color: Theme.accentElectric; opacity: 0.1
                                 SequentialAnimation on opacity { loops: Animation.Infinite; NumberAnimation { from: 0.05; to: 0.2; duration: 2500; easing.type: Easing.InOutSine } NumberAnimation { from: 0.2; to: 0.05; duration: 2500; easing.type: Easing.InOutSine } }
                             }
 
@@ -130,7 +130,7 @@ Item {
                                 font.pixelSize: 42; font.weight: Font.Black; font.letterSpacing: -1.5 
                             }
                             Text { 
-                                text: "v" + mainController.appVersion; color: "#00f2ff"; 
+                                text: "v" + mainController.appVersion; color: Theme.accentElectric; 
                                 font.pixelSize: 12; font.bold: true; font.letterSpacing: 5; opacity: 0.9 
                             }
                         }
@@ -144,7 +144,7 @@ Item {
                         
                         // Collection Pod
                         Rectangle {
-                            width: 130; height: 50; radius: 14; color: "#0a1015"; border.color: Qt.alpha("#00f2ff", 0.15); border.width: 1
+                            width: 130; height: 50; radius: 14; color: Theme.backgroundPod; border.color: Qt.alpha(Theme.accentElectric, 0.15); border.width: 1
                             ColumnLayout {
                                 anchors.centerIn: parent; spacing: -2
                                 Text { text: I18n.t.stats_total_games; color: Theme.textMuted; font.pixelSize: 8; font.bold: true; font.letterSpacing: 1; Layout.alignment: Qt.AlignCenter }
@@ -154,7 +154,7 @@ Item {
                         
                         // Time Pod
                         Rectangle {
-                            width: 130; height: 50; radius: 14; color: "#0a1015"; border.color: Qt.alpha("#00f2ff", 0.15); border.width: 1
+                            width: 130; height: 50; radius: 14; color: Theme.backgroundPod; border.color: Qt.alpha(Theme.accentElectric, 0.15); border.width: 1
                             ColumnLayout {
                                 anchors.centerIn: parent; spacing: -2
                                 Text { text: I18n.t.stats_play_time; color: Theme.textMuted; font.pixelSize: 8; font.bold: true; font.letterSpacing: 1; Layout.alignment: Qt.AlignCenter }
@@ -166,19 +166,19 @@ Item {
                         Rectangle {
                             id: statusPill
                             width: 150; height: 42; radius: 21
-                            color: isEngineBusy ? Qt.alpha("#00f2ff", 0.15) : Qt.alpha("#00f2ff", 0.05)
-                            border.color: isEngineBusy ? "#00f2ff" : Qt.alpha("#00f2ff", 0.4); border.width: 1.5
+                            color: isEngineBusy ? Qt.alpha(Theme.accentElectric, 0.15) : Qt.alpha(Theme.accentElectric, 0.05)
+                            border.color: isEngineBusy ? Theme.accentElectric : Qt.alpha(Theme.accentElectric, 0.4); border.width: 1.5
                             
                             RowLayout {
                                 anchors.centerIn: parent; spacing: 12
                                 Rectangle { 
-                                    id: heartbeat; width: 10; height: 10; radius: 5; color: "#00f2ff"
+                                    id: heartbeat; width: 10; height: 10; radius: 5; color: Theme.accentElectric
                                     SequentialAnimation on scale { loops: Animation.Infinite; NumberAnimation { from: 1; to: 1.4; duration: 1000; easing.type: Easing.OutSine } NumberAnimation { from: 1.4; to: 1; duration: 1000; easing.type: Easing.InSine } }
-                                    Rectangle { anchors.fill: parent; radius: 5; color: "transparent"; border.color: "#00f2ff"; border.width: 1; scale: heartbeat.scale * 1.6; opacity: 1.6 - heartbeat.scale }
+                                    Rectangle { anchors.fill: parent; radius: 5; color: "transparent"; border.color: Theme.accentElectric; border.width: 1; scale: heartbeat.scale * 1.6; opacity: 1.6 - heartbeat.scale }
                                 }
                                 Text { 
-                                    text: isEngineBusy ? "PROTOCOL ACTIVE" : "SYSTEM IDLE"; 
-                                    color: "#00f2ff"; font.pixelSize: 10; font.bold: true; font.letterSpacing: 2 
+                                    text: isEngineBusy ? I18n.t.status_active_protocol : I18n.t.status_system_idle; 
+                                    color: Theme.accentElectric; font.pixelSize: 10; font.bold: true; font.letterSpacing: 2 
                                 }
                             }
                         }

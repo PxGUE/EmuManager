@@ -29,7 +29,7 @@ Item {
 
     // --- 1. FONDO DE ATENUACIÓN (Dimmer) ---
     Rectangle {
-        anchors.fill: parent; color: "#000000"
+        anchors.fill: parent; color: Theme.glassPlain
         opacity: detailsRoot.visible ? 0.4 : 0
         Behavior on opacity { NumberAnimation { duration: 400 } }
         MouseArea { 
@@ -56,7 +56,7 @@ Item {
             // CABECERA: SHOWCASE 3D (Estilo Minimalista Premium)
             Rectangle {
                 Layout.fillWidth: true; Layout.preferredHeight: parent.height * 0.4
-                color: "#0a0a0f"; clip: true
+                color: Theme.sidebarBackground; clip: true
                 
                 // GRADIENTE ATMOSFÉRICO (Luz ambiental profunda)
                 RadialGradient {
@@ -87,9 +87,9 @@ Item {
                     
                     background: Rectangle { 
                         radius: 16
-                        color: closeXBtn.hovered ? accentColor : "#15ffffff"
+                        color: closeXBtn.hovered ? accentColor : Theme.glassLight
                         opacity: closeXBtn.hovered ? 0.8 : 0.4
-                        border.color: closeXBtn.hovered ? accentColor : "#25ffffff"
+                        border.color: closeXBtn.hovered ? accentColor : Theme.glassStrong
                         border.width: 1
                         
                         Behavior on color { ColorAnimation { duration: 300 } }
@@ -98,7 +98,7 @@ Item {
                     }
 
                     contentItem: Text { 
-                        text: "✕"; color: "#ffffff"; font.pixelSize: 14; font.weight: Font.Light
+                        text: "✕"; color: Theme.textMain; font.pixelSize: 14; font.weight: Font.Light
                         horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
                         anchors.centerIn: parent 
                     }

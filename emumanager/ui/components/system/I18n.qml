@@ -146,6 +146,12 @@ Item {
             "tech_system_specs": "ESPECIFICACIONES DEL SISTEMA",
             "pill_free_open": "LIBRE Y GRATUITO",
             "pill_local_privacy": "PRIVACIDAD LOCAL",
+            "about_statement": "Ecosistema avanzado de preservación y orquestación impulsado por el motor nativo M.A.N.G.O. Diseñado para la gestión de bibliotecas de alta fidelidad e integración fluida de emuladores en múltiples sistemas.",
+            "btn_source_code": "CÓDIGO FUENTE",
+            "btn_mango_core": "M.A.N.G.O CORE",
+            "powered_by": "IMPULSADO POR %1",
+            "status_active_protocol": "PROTOCOLO ACTIVO",
+            "status_system_idle": "SISTEMA EN REPOSO",
             "engine_tool_tip": "Motor de Orquestación Nativo: %1",
 
             // Scan & Scrape Workers
@@ -334,6 +340,12 @@ Item {
             "tech_system_specs": "SYSTEM SPECIFICATIONS",
             "pill_free_open": "FREE & OPEN SOURCE",
             "pill_local_privacy": "LOCAL PRIVACY",
+            "about_statement": "Advanced preservation and orchestration ecosystem powered by the native M.A.N.G.O engine. Designed for high-fidelity library management and seamless emulator integration across multiple systems.",
+            "btn_source_code": "SOURCE CODE",
+            "btn_mango_core": "M.A.N.G.O CORE",
+            "powered_by": "POWERED BY %1",
+            "status_active_protocol": "PROTOCOL ACTIVE",
+            "status_system_idle": "SYSTEM IDLE",
             "engine_tool_tip": "Native Orchestration Engine: %1",
 
             // Scan & Scrape Workers

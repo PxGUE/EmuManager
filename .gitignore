@@ -11,3 +11,11 @@ emumanager/core/secrets.py
 .env
 secrets.env
 /data
+
+# Packaging & Distribution
+/release/
+app.build/
+app.dist/
+*.build/
+*.dist/
+*.exe

@@ -151,6 +151,7 @@ Item {
             // Scan & Scrape Workers
             "scan_starting": "Escaneando archivos con M.A.N.G.O...",
             "scan_no_roms": "No se encontraron ROMs soportadas.",
+            "scan_no_path": "Se intentó escanear pero no hay ruta configurada.",
             "scan_registering": "Registrando: %1",
             "scan_finished": "Escaneo finalizado. %1 juegos nuevos registrados.",
             "scrape_starting": "Iniciando M.A.N.G.O Batch Scraper...",
@@ -338,6 +339,7 @@ Item {
             // Scan & Scrape Workers
             "scan_starting": "Scanning files with M.A.N.G.O...",
             "scan_no_roms": "No supported ROMs found.",
+            "scan_no_path": "Scan attempt failed: No path configured.",
             "scan_registering": "Registering: %1",
             "scan_finished": "Scan finished. %1 new games registered.",
             "scrape_starting": "Starting M.A.N.G.O Batch Scraper...",

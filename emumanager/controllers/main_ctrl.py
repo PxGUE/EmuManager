@@ -11,6 +11,7 @@ from backend.scanner import ScannerManager
 import sys
 import os
 import platform
+import sqlite3
 try:
     import psutil
 except ImportError:
@@ -515,6 +516,8 @@ class MainController(QObject):
         path = AppConfig.get_roms_path()
         if not path:
             EmuLog.warning("Se intentó escanear pero no hay ruta configurada.")
+            self.scanStatusChanged.emit("scan_no_path")
+            self.scanFinished.emit(0)
             return False
             
         # Verificar si ya existe un hilo y si sigue siendo válido/corriendo

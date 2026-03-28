@@ -2,8 +2,10 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Controls.Material
+import Qt5Compat.GraphicalEffects
 import EmuManager.Controllers 1.0
 import "components"
+import "views"
 
 ApplicationWindow {
     id: window
@@ -50,11 +52,15 @@ ApplicationWindow {
 
     // --- 2. ESTRUCTURA PRINCIPAL (Animación Premium) ---
     RowLayout {
+        id: mainLayout
         anchors.fill: parent; spacing: 0
         opacity: isLoaded ? 1 : 0; scale: isLoaded ? 1.0 : 0.98
         Behavior on opacity { NumberAnimation { duration: 800; easing.type: Easing.OutCubic } }
         Behavior on scale { NumberAnimation { duration: 1000; easing.type: Easing.OutBack } }
 
+        layer.enabled: globalDetails.visible
+        layer.effect: FastBlur { radius: 32 }
+        
         Rectangle {
             id: sidebar; Layout.preferredWidth: 240; Layout.fillHeight: true; color: Theme.sidebarBackground
             // Subtle border to the right
@@ -97,22 +103,56 @@ ApplicationWindow {
                     }
                 }
                 Item { Layout.fillHeight: true }
-                Text { text: "v0.9.5-MANGO"; color: Theme.textMuted; opacity: 0.3; font.pixelSize: 9; Layout.alignment: Qt.AlignHCenter }
+                Text { text: "v" + mainController.appVersion + "-MANGO"; color: Theme.textMuted; opacity: 0.3; font.pixelSize: 9; Layout.alignment: Qt.AlignHCenter }
             }
         }
 
-        // Área Central (Precarga MEMORIA)
+        // --- 2. ÁREA CENTRAL (Vistas) ---
         Item {
             Layout.fillWidth: true; Layout.fillHeight: true; clip: true
             Repeater {
                 model: navModel
                 delegate: Loader {
-                    anchors.fill: parent; asynchronous: true; active: true; source: model.file; visible: activeViewId === model.viewId
+                    anchors.fill: parent; asynchronous: true; active: true; source: model.file; visible: window.activeViewId === model.viewId
                     opacity: visible ? 1 : 0; scale: visible ? 1 : 0.99
                     Behavior on opacity { NumberAnimation { duration: 250; easing.type: Easing.OutCubic } }
                     Behavior on scale { NumberAnimation { duration: 400; easing.type: Easing.OutCubic } }
                 }
             }
         }
+    }
+
+    // --- 3. MOTOR DE DETALLES GLOBAL (Unificado) ---
+    function openGameDetails(gameId) {
+        var data = mainController.get_game_details(gameId)
+        if (data.id) {
+            globalDetails.gameId = data.id
+            globalDetails.title = data.title
+            globalDetails.platform = data.platform
+            globalDetails.developer = data.developer
+            globalDetails.genre = data.genre
+            globalDetails.releaseDate = data.release_date
+            globalDetails.description = data.description
+            globalDetails.cover2d = data.cover2d
+            globalDetails.cover3d = data.cover3d
+            
+            // Identidad visual dinámica heredada de Theme.qml
+            var plat = data.platform.toLowerCase()
+            if (plat.includes("gba")) globalDetails.accentColor = Theme.platGba
+            else if (plat.includes("snes") || plat.includes("super nintendo")) globalDetails.accentColor = Theme.platSnes
+            else if (plat.includes("n64")) globalDetails.accentColor = Theme.platN64
+            else if (plat.includes("ps1")) globalDetails.accentColor = Theme.platPs1
+            else if (plat.includes("psp")) globalDetails.accentColor = Theme.platPsp
+            else if (plat.includes("ds")) globalDetails.accentColor = Theme.platDs
+            else globalDetails.accentColor = Theme.accentColor
+            
+            globalDetails.visible = true
+        }
+    }
+
+    GameDetailsView {
+        id: globalDetails
+        visible: false
+        onClosed: visible = false
     }
 }

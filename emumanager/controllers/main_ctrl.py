@@ -29,6 +29,9 @@ from backend.libretro import LibretroManager, CORE_DATABASE
 
 @QmlElement
 class MainController(QObject):
+    # --- VERSIÓN DINÁMICA DEL ECOSISTEMA ---
+    EMUMANAGER_VERSION = "0.3.5 - alpha"
+    MANGO_VERSION = "0.2.1 - alpha"
     # Señales para comunicación con QML en tiempo real
     language_changed = Signal(str)
     scanProgressChanged = Signal(float)  # 0.0 a 1.0
@@ -48,6 +51,14 @@ class MainController(QObject):
     startupProgressChanged = Signal(float)
     startupStatusChanged = Signal(str)
     startupFinished = Signal()
+    
+    # Propiedades dinámicas para la UI
+    from PySide6.QtCore import Property
+    @Property(str, constant=True)
+    def appVersion(self): return self.EMUMANAGER_VERSION
+    
+    @Property(str, constant=True)
+    def mangoVersion(self): return self.MANGO_VERSION
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -69,10 +80,9 @@ class MainController(QObject):
             self._scrape_worker = None
             self._core_thread = None
             self._core_worker = None
-            self._emu_thread = None
-            self._emu_worker = None
             self._cached_summary = None 
             self._is_precharged = False # Flag para evitar re-carga redundante
+            self._active_launches = {} # Track de hilos de juego para evitar GC
         except (ImportError, ModuleNotFoundError) as e:
             EmuLog.error(f"Error de dependencia en MainController: No se pudo importar un módulo crítico: {e}")
         except PermissionError as e:
@@ -90,6 +100,8 @@ class MainController(QObject):
             
         try:
             db_path = AppConfig.get_database_path()
+            EmuLog.info(f"--------------------------------------------------")
+            EmuLog.info(f"INICIANDO EmuManager v{self.EMUMANAGER_VERSION} ({self.MANGO_VERSION})")
             EmuLog.info(f"M.A.N.G.O: Inicializando puente con backend en {db_path}")
             
             # Verificación del motor nativo e inicialización de logs
@@ -419,13 +431,25 @@ class MainController(QObject):
             runner_str = str(runner)
             EmuLog.info(f"M.A.N.G.O Launch: Preparando {game_path} con {runner.name}...")
             
-            self._launch_thread = QThread()
-            self._launch_worker = LaunchWorker(runner_str, game_path, core_path)
-            self._launch_worker.moveToThread(self._launch_thread)
-            self._launch_thread.started.connect(self._launch_worker.run)
+            # --- THREAD MANAGEMENT (M.A.N.G.O SAFE) ---
+            # Guardamos referencia en dict para que Python no mate el hilo por GC
+            if game_id in self._active_launches:
+                EmuLog.warning(f"M.A.N.G.O: El juego {game_id} ya está en proceso de lanzamiento.")
+                return
+
+            thread = QThread(self)
+            worker = LaunchWorker(runner_str, game_path, core_path)
+            worker.moveToThread(thread)
+            
+            # Registrar para persistencia
+            self._active_launches[game_id] = (thread, worker)
             
             def cleanup_launch(duration):
-                if duration > 5: # Guardar si jugó más de 5 segundos
+                # Limpiar rastro de hilos primero
+                if game_id in self._active_launches:
+                    del self._active_launches[game_id]
+
+                if duration >= 1: # Umbral de 1 seg para tests rápidos
                     EmuLog.info(f"M.A.N.G.O: Sesión terminada. Tiempo jugado: {duration} segundos.")
                     with self.db.get_connection() as conn:
                         conn.execute("""
@@ -438,12 +462,17 @@ class MainController(QObject):
                         """, (game_id, duration))
                         conn.commit()
                     self.gamesUpdated.emit()
+                else:
+                    EmuLog.debug(f"M.A.N.G.O (Launch): Sesión demasiado corta ({duration}s).")
                 
-                self._launch_thread.quit()
-                # self._launch_thread.wait() # ELIMINADO: evita 'Thread tried to wait on itself'
+                thread.quit()
 
-            self._launch_worker.finished.connect(cleanup_launch)
-            self._launch_thread.start()
+            worker.finished.connect(cleanup_launch)
+            thread.started.connect(worker.run)
+            thread.finished.connect(thread.deleteLater)
+            worker.finished.connect(worker.deleteLater)
+            
+            thread.start()
 
         except Exception as e:
             EmuLog.error(f"Fallo al intentar lanzar el juego {game_id}: {e}")
@@ -867,12 +896,13 @@ class MainController(QObject):
                 last_id = stats["last_game"]["id"] if stats["last_game"] else -1
 
                 cursor.execute("""
-                    SELECT g.id, m.title, g.platform, m.cover_2d_path, s.last_played_at, s.play_time_seconds
+                    SELECT g.id, m.title, g.platform, m.cover_2d_path, s.last_played_at, 
+                           COALESCE(s.play_time_seconds, 0) as playtime
                     FROM games g
                     JOIN game_metadata m ON g.id = m.game_id
                     LEFT JOIN play_stats s ON g.id = s.game_id
-                    WHERE s.play_time_seconds IS NOT NULL AND g.id != ?
-                    ORDER BY s.play_time_seconds DESC
+                    WHERE g.id != ?
+                    ORDER BY playtime DESC, g.id DESC
                     LIMIT 6
                 """, (last_id,))
                 recent_games = []
@@ -947,6 +977,39 @@ class MainController(QObject):
         self.db.update_game_favorite(game_id, is_favorite)
         self.gamesUpdated.emit()
         EmuLog.debug(f"Game {game_id} favorite status -> {is_favorite}")
+
+    @Slot(int, result="QVariantMap")
+    def get_game_details(self, game_id: int):
+        """Retorna toda la metadata de un juego específico para la vista extendida."""
+        try:
+            with self.db.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT g.id, g.platform, m.title, m.developer, m.publisher, 
+                           m.release_date, m.genre, m.description, 
+                           m.cover_2d_path, m.cover_3d_path, m.is_favorite
+                    FROM games g
+                    JOIN game_metadata m ON g.id = m.game_id
+                    WHERE g.id = ?
+                """, (game_id,))
+                row = cursor.fetchone()
+                if row:
+                    return {
+                        "id": row[0],
+                        "platform": row[1],
+                        "title": row[2],
+                        "developer": row[3] or "Desconocido",
+                        "publisher": row[4] or "N/A",
+                        "release_date": row[5] or "----",
+                        "genre": row[6] or "Varios",
+                        "description": row[7] or "Sin descripción disponible.",
+                        "cover2d": (row[8] or "").replace("\\", "/"),
+                        "cover3d": (row[9] or "").replace("\\", "/"),
+                        "isFavorite": bool(row[10])
+                    }
+        except Exception as e:
+            EmuLog.error(f"Error cargando detalle del juego {game_id}: {e}")
+        return {}
 
     @Slot(str, result="QVariantList")
     def search_library(self, query: str):

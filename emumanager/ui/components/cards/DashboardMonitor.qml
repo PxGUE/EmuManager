@@ -53,7 +53,7 @@ GlassPanel {
             RowLayout {
                 Text { text: I18n.t.engine_spec; color: Theme.textMuted; font.pixelSize: 9; font.bold: true }
                 Item { Layout.fillWidth: true }
-                Text { text: sysInfo.mango_version || "v0.9.5"; color: Theme.accentColor; font.pixelSize: 10; font.bold: true }
+                Text { text: mainController.mangoVersion; color: Theme.accentColor; font.pixelSize: 10; font.bold: true }
             }
 
             // OS

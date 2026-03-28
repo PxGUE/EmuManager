@@ -63,14 +63,7 @@ Item {
             }
         ]
 
-        // CARA FRONTAL: Placeholder Vacío (Solo si no hay imagen en absoluto)
-        Rectangle {
-            anchors.fill: parent; color: Theme.viewBackground; z: 1
-            opacity: 0.3; border.color: Theme.cardBorder; border.width: 1
-            visible: sourceImage === ""
-            Text { anchors.centerIn: parent; text: "🎮"; font.pixelSize: 50; opacity: 0.15; color: Theme.textMain }
-        }
-
+        // CARA FRONTAL
         Image {
             id: frontCover
             anchors.fill: parent
@@ -79,8 +72,6 @@ Item {
             asynchronous: true
             z: 2
             visible: sourceImage !== ""
-            
-            // ELIMINADO: El borde de color que no gustaba
         }
 
         // CARA LATERAL (Lomo / Spine) - Simulada con un rectángulo sombreado
@@ -88,9 +79,8 @@ Item {
             id: spine
             anchors.right: parent.right; anchors.top: parent.top; anchors.bottom: parent.bottom
             width: boxThick; x: parent.width - (width/2)
-            z: 1; color: Theme.viewBackground; opacity: isHovered ? 0.8 : 0
+            z: 1; color: Theme.viewBackground; opacity: isHovered ? 0.7 : 0
             
-            // Gradiente para dar sensación de profundidad
             gradient: Gradient {
                 orientation: Gradient.Horizontal
                 GradientStop { position: 0.0; color: Theme.viewBackground }
@@ -100,22 +90,6 @@ Item {
             transform: [
                 Rotation { axis { x: 0; y: 1; z: 0 } angle: 90 }
             ]
-        }
-        
-        // Brillo reflectante premium (Solo sobre la imagen si existe)
-        Rectangle {
-            anchors.horizontalCenter: parent.horizontalCenter
-            anchors.verticalCenter: parent.verticalCenter
-            width: sourceImage !== "" ? frontCover.paintedWidth : parent.width
-            height: sourceImage !== "" ? frontCover.paintedHeight : parent.height
-            z: 5; opacity: isHovered ? 0.2 : 0.05
-            
-            gradient: Gradient {
-                orientation: Gradient.Vertical
-                GradientStop { position: 0.0; color: Theme.textMain }
-                GradientStop { position: 0.4; color: "transparent" }
-            }
-            Behavior on opacity { NumberAnimation { duration: 300 } }
         }
     }
 }

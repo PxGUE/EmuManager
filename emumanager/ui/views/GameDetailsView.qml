@@ -29,34 +29,38 @@ Item {
 
     // --- 1. FONDO DE ATENUACIÓN (Dimmer) ---
     Rectangle {
-        anchors.fill: parent; radius: 24; color: Theme.cardBackground; border.color: Theme.accentColor; border.width: 1; opacity: 0.95
+        anchors.fill: parent; color: "#000000"
+        opacity: detailsRoot.visible ? 0.4 : 0
+        Behavior on opacity { NumberAnimation { duration: 400 } }
         MouseArea { 
-            anchors.fill: parent; hoverEnabled: true; onClicked: detailsRoot.closed() 
+            anchors.fill: parent; onClicked: detailsRoot.closed() 
             // Esto captura el ratón y evita que "atraviese" a las capas inferiores
         }
     }
 
-    // --- 2. LA TARJETA EXPANDIDA (800x480) ---
+    // --- 2. LA HOJA LATERAL (SIDE-BLADE) ---
     Rectangle {
-        id: expandedCard
-        anchors.centerIn: parent
-        width: 820; height: 500
-        color: Theme.cardBackground; radius: 24; clip: true
-        border.color: Theme.cardBorder; border.width: 1
+        id: sideBlade
+        width: 600; height: parent.height
+        x: detailsRoot.visible ? parent.width - width : parent.width
+        color: Theme.cardBackground; clip: true
         
-        layer.enabled: true; layer.effect: DropShadow { radius: 30; color: Theme.viewBackground; opacity: 0.8; samples: 20 }
+        Behavior on x { NumberAnimation { duration: 550; easing.type: Easing.OutQuint } }
 
-        Row {
-            anchors.fill: parent
+        // Borde izquierdo con glow reactivo
+        Rectangle { width: 1; height: parent.height; anchors.left: parent.left; color: accentColor; opacity: 0.3 }
 
-            // MITAD IZQUIERDA: CARÁTULA (Showcase)
+        ColumnLayout {
+            anchors.fill: parent; spacing: 0
+            
+            // CABECERA: SHOWCASE 3D (Estilo Minimalista Premium)
             Rectangle {
-                width: parent.width * 0.45; height: parent.height
-                color: Theme.viewBackground
+                Layout.fillWidth: true; Layout.preferredHeight: parent.height * 0.4
+                color: "#0a0a0f"; clip: true
                 
-                // Brillo de fondo con el color de consola
+                // GRADIENTE ATMOSFÉRICO (Luz ambiental profunda)
                 RadialGradient {
-                    anchors.fill: parent; opacity: 0.15
+                    anchors.fill: parent; opacity: 0.12
                     gradient: Gradient {
                         GradientStop { position: 0.0; color: accentColor }
                         GradientStop { position: 0.8; color: "transparent" }
@@ -64,94 +68,120 @@ Item {
                 }
 
                 GameBox3D {
-                    id: exhibitBox; anchors.centerIn: parent; width: 230; height: 340
+                    id: exhibitBox; anchors.centerIn: parent; width: 220; height: 320
                     sourceImage: detailsRoot.has3d ? detailsRoot.cover3d : detailsRoot.cover2d
-                    platform: detailsRoot.platform; isHovered: true; accentColor: detailsRoot.accentColor
+                    platform: detailsRoot.platform; isHovered: true; accentColor: detailsRoot.accentColor; z: 10
                     
                     // Rotación automática muy lenta
                     property real animTime: 0
-                    NumberAnimation on animTime { from: 0; to: 360; duration: 25000; loops: Animation.Infinite; running: true }
+                    NumberAnimation on animTime { from: 0; to: 360; duration: 25000; loops: Animation.Infinite; running: detailsRoot.visible }
                     dynamicTiltY: Math.sin(animTime * Math.PI / 180) * 15
                     dynamicTiltX: Math.cos(animTime * Math.PI / 180) * 10
                 }
+
+                // Botón Cerrar: Estética Glass Minimalista
+                Button {
+                    id: closeXBtn
+                    anchors.top: parent.top; anchors.right: parent.right; anchors.margins: 25
+                    width: 32; height: 32; flat: true; onClicked: detailsRoot.closed(); z: 100
+                    
+                    background: Rectangle { 
+                        radius: 16
+                        color: closeXBtn.hovered ? accentColor : "#15ffffff"
+                        opacity: closeXBtn.hovered ? 0.8 : 0.4
+                        border.color: closeXBtn.hovered ? accentColor : "#25ffffff"
+                        border.width: 1
+                        
+                        Behavior on color { ColorAnimation { duration: 300 } }
+                        Behavior on border.color { ColorAnimation { duration: 300 } }
+                        Behavior on opacity { NumberAnimation { duration: 300 } }
+                    }
+
+                    contentItem: Text { 
+                        text: "✕"; color: "#ffffff"; font.pixelSize: 14; font.weight: Font.Light
+                        horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
+                        anchors.centerIn: parent 
+                    }
+                }
             }
 
-            // MITAD DERECHA: INFO Y BOTÓN
+            // INFO Y METADATOS
             Item {
-                width: parent.width * 0.55; height: parent.height
+                Layout.fillWidth: true; Layout.fillHeight: true
                 
                 ColumnLayout {
-                    anchors.fill: parent; anchors.margins: 40; spacing: 20
+                    anchors.fill: parent; anchors.margins: 40; spacing: Theme.spaceLarge
                     
-                    // Cabecera Interna
                     Column {
-                        spacing: 4; Layout.fillWidth: true
-                        Text { text: detailsRoot.platform.toUpperCase(); color: accentColor; font.pixelSize: 11; font.bold: true; font.letterSpacing: 4 }
+                        spacing: 12; Layout.fillWidth: true
+                        Text { text: detailsRoot.platform.toUpperCase(); color: accentColor; font.pixelSize: 10; font.bold: true; font.letterSpacing: 4 }
                         Text { 
-                            text: detailsRoot.title; color: Theme.textMain; font.pixelSize: 32; font.bold: true; width: 400; wrapMode: Text.WrapAnywhere
+                            text: detailsRoot.title; color: Theme.textMain; width: parent.width; wrapMode: Text.WrapAnywhere
+                            font.pixelSize: text.length > 35 ? 19 : 26
+                            font.bold: true; font.weight: Font.Black; font.letterSpacing: -0.5
+                            lineHeight: 0.95
+                            Behavior on font.pixelSize { NumberAnimation { duration: 200 } }
                         }
                     }
 
                     // Stats Rápidos
                     Row {
-                        spacing: 10
+                        spacing: 12
                         Repeater {
                             model: [detailsRoot.genre, detailsRoot.releaseDate]
                             delegate: Rectangle {
-                                height: 24; radius: 12; width: stext.width + 20; color: Theme.controlBackground
+                                height: 22; radius: 11; width: stext.width + 24; color: Theme.controlBackground; border.color: Theme.cardBorder; border.width: 1
                                 visible: modelData !== "" && modelData !== "----"
-                                Text { id: stext; anchors.centerIn: parent; text: modelData; color: Theme.textMain; font.pixelSize: 9; font.bold: true; opacity: 0.6 }
+                                Text { id: stext; anchors.centerIn: parent; text: modelData; color: Theme.textMain; font.pixelSize: 9; font.bold: true; opacity: 0.7 }
                             }
                         }
                     }
 
+                    // Separador
+                    Rectangle { Layout.fillWidth: true; height: 1; color: Theme.cardBorder; opacity: 0.3 }
+
+                    // Scroll de Descripción
                     ScrollView {
-                        Layout.fillWidth: true; Layout.fillHeight: true
-                        ScrollBar.vertical: ScrollBar { width: 3; contentItem: Rectangle { color: accentColor; radius: 2; opacity: 0.3 } }
+                        id: descScroll
+                        Layout.fillWidth: true; Layout.fillHeight: true; clip: true
+                        contentWidth: availableWidth
+                        
+                        ScrollBar.vertical: ScrollBar { width: 4; policy: ScrollBar.AsNeeded; contentItem: Rectangle { color: accentColor; radius: 2; opacity: 0.2 } }
+                        
                         Text {
-                            width: 380; wrapMode: Text.WrapAnywhere
+                            id: descText
+                            width: descScroll.availableWidth
+                            wrapMode: Text.WordWrap
                             text: detailsRoot.description !== "Sin descripción disponible." ? detailsRoot.description : I18n.t.no_description_template.arg(detailsRoot.platform.toUpperCase())
-                            color: Theme.textMuted; font.pixelSize: 14; lineHeight: 1.4
+                            color: Theme.textMuted; font.pixelSize: 14; lineHeight: 1.5; horizontalAlignment: Text.AlignJustify
                         }
                     }
 
-                    // Botón LANZAR (Grande)
+                    // ACCIONES
                     Button {
                         id: launchBigBtn
-                        Layout.fillWidth: true; Layout.preferredHeight: 64; Layout.topMargin: 10
+                        Layout.fillWidth: true; Layout.preferredHeight: 60; Layout.topMargin: 20
                         flat: true; onClicked: { detailsRoot.launched(); mainController.launch_game_by_id(detailsRoot.gameId); detailsRoot.closed(); }
 
                         background: Rectangle {
-                            radius: 12; color: launchBigBtn.hovered ? accentColor : "transparent"
+                            radius: 12
+                            color: launchBigBtn.hovered ? accentColor : "transparent"
                             border.color: accentColor; border.width: 2
-                            Behavior on color { ColorAnimation { duration: 200 } }
+                            Behavior on color { ColorAnimation { duration: 250 } }
+                            
+                            // Glow sutil
+                            layer.enabled: launchBigBtn.hovered
+                            layer.effect: DropShadow { radius: 10; color: accentColor; opacity: 0.4 }
                         }
                         contentItem: Text {
-                            text: I18n.t.launch_adventure; color: launchBigBtn.hovered ? Theme.viewBackground : Theme.textMain
-                            font.bold: true; font.letterSpacing: 2; font.pixelSize: 14; horizontalAlignment: Text.AlignHCenter
+                            text: I18n.t.launch_adventure.toUpperCase()
+                            color: launchBigBtn.hovered ? Theme.viewBackground : Theme.textMain
+                            font.bold: true; font.letterSpacing: 3; font.pixelSize: 12
+                            horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
                         }
                     }
                 }
             }
-        }
-
-        // --- ICONO DE CERRAR SUPERIOR ---
-        Button {
-            id: closeXBtn
-            anchors.top: parent.top; anchors.right: parent.right; anchors.margins: 15
-            width: 40; height: 40; flat: true; onClicked: detailsRoot.closed()
-            background: Rectangle { radius: 20; color: closeXBtn.hovered ? Theme.cardBorder : "transparent" }
-            contentItem: Text { text: "✕"; color: Theme.textMain; font.pixelSize: 20; horizontalAlignment: Text.AlignHCenter; anchors.centerIn: parent }
-        }
-    }
-
-    // ANIMACIÓN DE EXPANSIÓN
-    opacity: 0; scale: 0.9
-    SequentialAnimation {
-        running: true
-        ParallelAnimation {
-            NumberAnimation { target: detailsRoot; property: "opacity"; from: 0; to: 1; duration: 400; easing.type: Easing.OutCubic }
-            NumberAnimation { target: detailsRoot; property: "scale"; from: 0.9; to: 1.0; duration: 500; easing.type: Easing.OutBack }
         }
     }
 }

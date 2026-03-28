@@ -12,6 +12,7 @@ Item {
     property alias content: contentItem.data
     property real radius: 24
     property color borderColor: Theme.cardBorder
+    property real borderWidth: 1
     property color glowColor: Theme.controlBackground
     property color backgroundColor: Theme.panelBackground
     property real glassOpacity: 0.6
@@ -42,7 +43,8 @@ Item {
         radius: glassRoot.radius
         color: "transparent"
         border.color: glassRoot.borderColor
-        border.width: 1
+        border.width: glassRoot.borderWidth
+        z: 100 // Aseguramos que el borde esté siempre encima
     }
 
     // Degradado interno sutil (Highlight)

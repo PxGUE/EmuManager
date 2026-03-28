@@ -111,4 +111,26 @@ QtObject {
     readonly property color platMegaDrive: accentSega; readonly property color platDreamcast: "#E67E22"
     readonly property color platGb: "#81822A"; readonly property color platGbc: "#C51C5B"
     readonly property color platUnknown: "#95A5A6"
+
+    /**
+     * Mapeo inteligente para obtener el color de una consola por su nombre.
+     */
+    function colorForPlatform(name) {
+        if (!name) return accentColor;
+        var p = name.toLowerCase();
+        if (p.includes("gba")) return platGba;
+        if (p.includes("snes") || p.includes("super nintendo")) return platSnes;
+        if (p.includes("n64") || p.includes("nintendo 64")) return platN64;
+        if (p.includes("ds")) return platDs;
+        if (p.includes("gamecube") || p.includes("gc")) return platGc;
+        if (p.includes("wii")) return platWii;
+        if (p.includes("ps1") || p.includes("playstation")) return platPs1;
+        if (p.includes("ps2")) return platPs2;
+        if (p.includes("psp")) return platPsp;
+        if (p.includes("mega drive") || p.includes("genesis")) return platMegaDrive;
+        if (p.includes("dreamcast")) return platDreamcast;
+        if (p.includes("game boy color") || p.includes("gbc")) return platGbc;
+        if (p.includes("game boy") || p.includes("gb")) return platGb;
+        return accentColor;
+    }
 }

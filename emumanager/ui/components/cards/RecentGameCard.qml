@@ -15,12 +15,17 @@ GlassPanel {
     
     // Signals
     signal launchRequested(int id)
+    signal detailsRequested(int id)
     
     Layout.fillWidth: true
     Layout.preferredHeight: 80
     radius: 12
-    glassOpacity: 0.6
-    borderColor: Theme.cardBorder
+    glassOpacity: 0.65
+    showHighlight: true
+    borderColor: hovered ? accentColor : Qt.alpha(accentColor, 0.25)
+    backgroundColor: Theme.cardBackground
+    
+    readonly property color accentColor: Theme.colorForPlatform(platform)
     
     // Interaction State
     property bool hovered: false
@@ -30,10 +35,22 @@ GlassPanel {
         hoverEnabled: true
         onEntered: root.hovered = true
         onExited: root.hovered = false
-        onClicked: root.launchRequested(root.gameId)
+        onClicked: root.detailsRequested(root.gameId)
         cursorShape: Qt.PointingHandCursor
         preventStealing: false
         propagateComposedEvents: true
+        
+        // --- FONDO ATMOSFÉRICO (Degradado sutil de consola) ---
+        Rectangle {
+            anchors.fill: parent; radius: root.radius; z: -1
+            gradient: Gradient {
+                orientation: Gradient.Horizontal
+                GradientStop { position: 0.0; color: root.accentColor }
+                GradientStop { position: 0.8; color: "transparent" }
+            }
+            opacity: root.hovered ? 0.12 : 0.05
+            Behavior on opacity { NumberAnimation { duration: 300 } }
+        }
 
         RowLayout {
             anchors.fill: parent
@@ -43,7 +60,7 @@ GlassPanel {
 
             // 1. CARÁTULA (Miniatura)
             Rectangle {
-                Layout.preferredWidth: 56; Layout.preferredHeight: 56; radius: 6; color: Theme.cardBackground; clip: true
+                Layout.preferredWidth: 56; Layout.preferredHeight: 56; radius: 6; color: Theme.viewBackground; clip: true
                 Image {
                     anchors.fill: parent
                     source: root.cover ? "file:///" + root.cover : ""
@@ -66,7 +83,7 @@ GlassPanel {
                     text: root.title; color: Theme.textMain; font.pixelSize: 18; font.bold: true; elide: Text.ElideRight; Layout.fillWidth: true
                 }
                 Text {
-                    text: root.platform.toUpperCase(); color: Theme.textAccent; font.pixelSize: 10; font.bold: true; font.letterSpacing: 1.5; opacity: 0.8
+                    text: root.platform.toUpperCase(); color: root.accentColor; font.pixelSize: 10; font.bold: true; font.letterSpacing: 1.5; opacity: 0.9
                 }
             }
 
@@ -100,7 +117,7 @@ GlassPanel {
                     }
                     
                     background: Rectangle {
-                        radius: 8; color: Theme.accentColor
+                        radius: 8; color: root.accentColor
                         Rectangle {
                             anchors.fill: parent; radius: 8; color: "white"; opacity: resumeBtn.pressed ? 0.2 : 0
                         }
@@ -120,10 +137,10 @@ GlassPanel {
     Rectangle {
         anchors.fill: parent; radius: root.radius; z: -1
         gradient: Gradient {
-            GradientStop { position: 0; color: Theme.accentColor }
+            GradientStop { position: 0; color: root.accentColor }
             GradientStop { position: 1; color: "transparent" }
         }
-        opacity: root.hovered ? 0.05 : 0
+        opacity: root.hovered ? 0.1 : 0
         Behavior on opacity { NumberAnimation { duration: 400 } }
     }
 }

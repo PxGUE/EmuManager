@@ -13,6 +13,8 @@ secrets.env
 /data
 
 # Packaging & Distribution
+appimagetool
+/build/
 /release/
 app.build/
 app.dist/

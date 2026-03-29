@@ -12,15 +12,27 @@ class AppConfig:
     def get_app_data_dir(cls) -> Path:
         """
         Retorna el directorio de datos local de la aplicación.
-        Ahora centralizado en la carpeta 'data/' en la raíz del proyecto.
+        Usa rutas estándar del sistema en modo empaquetado para evitar errores de solo lectura.
         """
-        # Obtenemos la raíz del proyecto (un nivel arriba de emumanager/core)
-        project_root = Path(__file__).resolve().parent.parent.parent
-        data_dir = project_root / "data"
+        import sys
+        if getattr(sys, 'frozen', False) or "APPIMAGE" in os.environ:
+            if os.name == 'nt':
+                appdata = os.getenv('APPDATA')
+                base_dir = Path(appdata).resolve() / "EmuManager" if appdata else Path.home() / "AppData" / "Roaming" / "EmuManager"
+            else:
+                base_dir = Path.home() / ".local" / "share" / "EmuManager"
+            
+            data_dir = base_dir / "data"
+        else:
+            # Desarrollo: una carpeta 'data' en la raíz del proyecto
+            project_root = Path(__file__).resolve().parent.parent.parent
+            data_dir = project_root / "data"
+
         
-        # Aseguramos que la carpeta exista
+        # Aseguramos que la carpeta exista (en la ruta de usuario, no en el AppImage)
         data_dir.mkdir(parents=True, exist_ok=True)
         return data_dir
+
 
     @classmethod
     def _get_config_file(cls) -> Path:
@@ -124,8 +136,7 @@ class AppConfig:
 
     @classmethod
     def get_database_path(cls) -> Path:
-
-        return cls.get_app_data_dir() / "emumanager.db"
+        return cls.get_app_data_dir() / "db" / "emumanager.db"
 
     @classmethod
     def get_media_dir(cls, platform: str, media_type: str) -> Path:

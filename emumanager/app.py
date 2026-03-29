@@ -7,9 +7,24 @@ from dotenv import load_dotenv
 
 # --- CARGAR SECRETOS (SS_DEV_ID, SS_DEV_PASS) ---
 # Buscamos .env o secrets.env en la raíz del proyecto
-root_dir = Path(__file__).resolve().parent.parent
+# MODO ESTÁNDAR (Seguro para Instaladores y AppImage)
+# Define una carpeta de datos persistente en el perfil del usuario (~/.local/share o %APPDATA%)
+if getattr(sys, 'frozen', False) or "APPIMAGE" in os.environ:
+    if os.name == 'nt':
+        # Windows: C:\Users\Nombre\AppData\Roaming\EmuManager
+        appdata = os.getenv('APPDATA')
+        root_dir = Path(appdata).resolve() / "EmuManager" if appdata else Path.home() / "AppData" / "Roaming" / "EmuManager"
+    else:
+        # Linux: /home/usuario/.local/share/EmuManager
+        root_dir = Path.home() / ".local" / "share" / "EmuManager"
+else:
+    # En desarrollo usamos la raíz del proyecto para mayor comodidad
+    root_dir = Path(__file__).resolve().parent.parent
+
+
 load_dotenv(root_dir / ".env")
 load_dotenv(root_dir / "secrets.env")
+
 
 # --- CONFIGURACIÓN DE RUTAS ---
 current_dir = Path(__file__).resolve().parent
@@ -24,9 +39,21 @@ if str(backend_dir) not in sys.path:
 # AGREGAR MOTOR NATIVO BINARIO (Linux/Windows)
 import platform
 os_name = platform.system().lower()
-bin_path = current_dir.parent / "mango" / "bin" / os_name
+
+# Buscamos el motor nativo en dos ubicaciones posibles:
+# 1. Al lado del binario (Estructura optimizada de Windows)
+# 2. En la carpeta superior (Estructura de Desarrollo y AppImage)
+bin_path_prod = current_dir / "mango" / "bin" / os_name
+bin_path_dev = current_dir.parent / "mango" / "bin" / os_name
+
+if bin_path_prod.exists():
+    bin_path = bin_path_prod
+else:
+    bin_path = bin_path_dev
+
 if bin_path.exists() and str(bin_path) not in sys.path:
     sys.path.insert(0, str(bin_path))
+
 
 # --- IMPORTACIONES DEL SISTEMA ---
 from controllers.main_ctrl import MainController

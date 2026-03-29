@@ -8,6 +8,7 @@ struct GameRow {
     id: i64,
     file_hash: String,
     file_path: String,
+    display_name: String,
     title: String,
     platform: String,
     cover_2d: String,
@@ -25,7 +26,7 @@ pub fn search_games(
     let conn = Connection::open(db_path)
         .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("DB Open error: {}", e)))?;
         
-    let mut sql = "SELECT g.id, g.file_hash, g.file_path, g.platform, m.title, m.cover_2d_path, m.cover_3d_path 
+    let mut sql = "SELECT g.id, g.file_hash, g.file_path, g.display_name, g.platform, m.title, m.cover_2d_path, m.cover_3d_path 
                    FROM games g 
                    JOIN game_metadata m ON g.id = m.game_id".to_string();
                    
@@ -44,10 +45,11 @@ pub fn search_games(
             id: row.get(0)?,
             file_hash: row.get(1)?,
             file_path: row.get(2)?,
-            platform: row.get(3)?,
-            title: row.get::<_, Option<String>>(4)?.unwrap_or_default(),
-            cover_2d: row.get::<_, Option<String>>(5)?.unwrap_or_default(),
-            cover_3d: row.get::<_, Option<String>>(6)?.unwrap_or_default(),
+            display_name: row.get::<_, Option<String>>(3)?.unwrap_or_default(),
+            platform: row.get(4)?,
+            title: row.get::<_, Option<String>>(5)?.unwrap_or_default(),
+            cover_2d: row.get::<_, Option<String>>(6)?.unwrap_or_default(),
+            cover_3d: row.get::<_, Option<String>>(7)?.unwrap_or_default(),
             score: 0,
         })
     }).map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("Query execution error: {}", e)))?;
@@ -62,8 +64,11 @@ pub fn search_games(
             if is_query_empty {
                 results.push(g);
             } else {
-                // Fuzzymatch on Title. Fallback to file_path
-                let mut best_score = matcher.fuzzy_match(&g.title, query).unwrap_or(0);
+                // Fuzzymatch on Display Name. Fallback to Title then file_path
+                let mut best_score = matcher.fuzzy_match(&g.display_name, query).unwrap_or(0);
+                if best_score == 0 {
+                    best_score = matcher.fuzzy_match(&g.title, query).unwrap_or(0);
+                }
                 if best_score == 0 {
                     best_score = matcher.fuzzy_match(&g.file_path, query).unwrap_or(0);
                 }
@@ -90,6 +95,7 @@ pub fn search_games(
         dict.set_item("id", g.id)?;
         dict.set_item("file_hash", g.file_hash)?;
         dict.set_item("file_path", g.file_path)?;
+        dict.set_item("display_name", g.display_name)?;
         dict.set_item("title", g.title)?;
         dict.set_item("platform", g.platform)?;
         dict.set_item("cover_2d_path", g.cover_2d)?;

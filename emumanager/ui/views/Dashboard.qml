@@ -323,7 +323,7 @@ Item {
 
                 // 3. RECENT ACTIVITY LIST (HORIZONTAL STYLE)
                 ColumnLayout {
-                    Layout.fillWidth: true; spacing: 12; visible: statsData.recent_games && statsData.recent_games.length > 1
+                    Layout.fillWidth: true; spacing: 12; visible: statsData.recent_games && statsData.recent_games.length > 0
                     
                     RowLayout {
                         Layout.fillWidth: true; Layout.bottomMargin: 8
@@ -333,7 +333,7 @@ Item {
                     ColumnLayout {
                         Layout.fillWidth: true; spacing: 8
                         Repeater {
-                            model: statsData.recent_games ? statsData.recent_games.slice(1, 6) : []
+                            model: statsData.recent_games || []
                             delegate: RecentGameCard {
                                 gameId: modelData.id
                                 title: modelData.title

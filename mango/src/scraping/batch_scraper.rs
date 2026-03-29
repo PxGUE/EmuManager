@@ -1,4 +1,4 @@
-use crate::scraper::{scrape_game, ScrapedMetadata};
+use crate::scraping::scraper::{scrape_game, ScrapedMetadata};
 use rusqlite::{params, Connection};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;

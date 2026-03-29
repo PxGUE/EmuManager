@@ -2,7 +2,7 @@ use pyo3::prelude::*;
 use reqwest::Client;
 use std::path::Path;
 use serde_json::Value;
-use crate::scraper::scrapers::{ScrapedMetadata, download_image, extract_single, extract_text, clean_filename_for_search};
+use crate::scraping::scraper::scrapers::{ScrapedMetadata, download_image, extract_single, extract_text, clean_filename_for_search};
 
 pub async fn scrape_game(
     md5: &str,
@@ -82,7 +82,7 @@ pub async fn scrape_game(
 
                         if let Some(match_result) = crate::tools::fuzzy::find_best_match(&clean_name, candidates, 0.85) {
                             Python::with_gil(|py| {
-                                crate::batch_scraper::log_to_python(py, "info", &format!(
+                                crate::scraping::batch_scraper::log_to_python(py, "info", &format!(
                                     "[SCREEN-SCRAPER] ¡Match encontrado! '{}' (Confianza: {:.2})", 
                                     match_result.name, match_result.similarity
                                 ));
@@ -98,7 +98,7 @@ pub async fn scrape_game(
                             }
                         } else {
                             Python::with_gil(|py| {
-                                crate::batch_scraper::log_to_python(py, "warning", &format!(
+                                crate::scraping::batch_scraper::log_to_python(py, "warning", &format!(
                                     "[SCREEN-SCRAPER] Sin coincidencias confiables para: '{}'", 
                                     clean_name
                                 ));

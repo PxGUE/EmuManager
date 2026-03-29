@@ -7,7 +7,7 @@ Rectangle {
     property string platformId: ""
     property int count: 0
     property string icon: "🕹️"
-    property color accent: Theme.accentColor
+    property color accent: Theme.colorForPlatform(platformId)
 
     width: 65; height: 100
     color: "transparent"

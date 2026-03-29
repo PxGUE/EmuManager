@@ -80,6 +80,8 @@ class MainController(QObject):
             self._scrape_worker = None
             self._core_thread = None
             self._core_worker = None
+            self._emu_thread = None
+            self._emu_worker = None
             self._cached_summary = None 
             self._is_precharged = False # Flag para evitar re-carga redundante
             self._active_launches = {} # Track de hilos de juego para evitar GC
@@ -826,114 +828,24 @@ class MainController(QObject):
     @Slot(result="QVariantMap")
     def get_dashboard_stats(self):
         """Retorna un conjunto de estadísticas y datos para el Dashboard premium."""
-        stats = {
-            "total_games": 0,
-            "total_favorites": 0,
-            "total_play_time": "0h 0m",
-            "most_played_system": "N/A",
-            "last_game": None
-        }
         try:
-            with self.db.get_connection() as conn:
-                cursor = conn.cursor()
-                
-                # 1. Total de juegos
-                cursor.execute("SELECT COUNT(*) FROM games")
-                stats["total_games"] = cursor.fetchone()[0]
-
-                # 2. Favoritos
-                cursor.execute("SELECT COUNT(*) FROM game_metadata WHERE is_favorite = 1")
-                stats["total_favorites"] = cursor.fetchone()[0]
-
-                # 3. Juego Reciente
-                # 2. Último Juego Jugado (Relación games + game_metadata + play_stats)
-                cursor.execute("""
-                    SELECT g.id, m.title, g.platform, m.cover_2d_path, s.last_played_at
-                    FROM games g
-                    JOIN game_metadata m ON g.id = m.game_id
-                    LEFT JOIN play_stats s ON g.id = s.game_id
-                    WHERE s.last_played_at IS NOT NULL
-                    ORDER BY s.last_played_at DESC
-                    LIMIT 1
-                """)
-                row = cursor.fetchone()
-                if row:
-                    cover_path = row[3] if row[3] else ""
-                    if cover_path: cover_path = cover_path.replace("\\", "/") # Normalizar para QML
-                    stats["last_game"] = {
-                        "id": row[0],
-                        "title": row[1],
-                        "platform": row[2].upper(),
-                        "cover": cover_path,
-                        "date": row[4]
-                    }
-                
-                # 3. Tiempo Total
-                cursor.execute("SELECT SUM(play_time_seconds) FROM play_stats")
-                total_sec = cursor.fetchone()[0] or 0
-                hours = total_sec // 3600
-                minutes = (total_sec % 3600) // 60
-                stats["total_play_time"] = f"{hours}h {minutes}m"
-
-                # 4. Top Plataformas (Lista)
-                cursor.execute("""
-                    SELECT platform, COUNT(*) as c 
-                    FROM games 
-                    GROUP BY platform 
-                    ORDER BY c DESC 
-                    LIMIT 5
-                """)
-                top_platforms = []
-                for row_p in cursor.fetchall():
-                    top_platforms.append({
-                        "id": row_p[0],
-                        "count": row_p[1]
-                    })
-                stats["top_platforms"] = top_platforms
-                
-                # 5. Lista de Recientes (Ordenados por Mayor Tiempo Jugado)
-                # Omitimos el último juego absoluto si ya aparece en el banner
-                last_id = stats["last_game"]["id"] if stats["last_game"] else -1
-
-                cursor.execute("""
-                    SELECT g.id, m.title, g.platform, m.cover_2d_path, s.last_played_at, 
-                           COALESCE(s.play_time_seconds, 0) as playtime
-                    FROM games g
-                    JOIN game_metadata m ON g.id = m.game_id
-                    LEFT JOIN play_stats s ON g.id = s.game_id
-                    WHERE g.id != ?
-                    ORDER BY playtime DESC, g.id DESC
-                    LIMIT 6
-                """, (last_id,))
-                recent_games = []
-                for row_r in cursor.fetchall():
-                    sec = row_r[5] or 0
-                    h = sec // 3600
-                    m = (sec % 3600) // 60
-                    
-                    cov = row_r[3] if row_r[3] else ""
-                    if cov: cov = cov.replace("\\", "/") # Normalizar para QML
-                    
-                    recent_games.append({
-                        "id": row_r[0],
-                        "title": row_r[1],
-                        "platform": row_r[2].upper(),
-                        "cover": cov,
-                        "playTime": f"{h}h {m}m" if h > 0 else f"{m}m"
-                    })
-                stats["recent_games"] = recent_games
-                
-                # EmuManager: Eliminamos el overwrite previo para que el Banner 
-                # siempre sea el ÚLTIMO JUGADO ABSOLUTO (Independiente de la lista).
-                # (stats["last_game"] ya fue asignado correctamente en el punto 3 de arriba)
-                
-                if top_platforms:
-                    stats["most_played_system"] = top_platforms[0]["id"].upper()
-
+            import mango_engine
+            db_path = str(AppConfig.get_database_path())
+            stats = mango_engine.fetch_dashboard_stats(db_path)
+            if not stats:
+                raise ValueError("Rust module returned null stats")
+            return stats
         except Exception as e:
-            EmuLog.error(f"Error cargando stats del dashboard: {e}")
-            
-        return stats
+            EmuLog.error(f"Error cargando stats del dashboard nativo: {e}")
+            return {
+                "total_games": 0,
+                "total_favorites": 0,
+                "total_play_time": "0h 0m",
+                "most_played_system": "N/A",
+                "last_game": None,
+                "recent_games": [],
+                "top_platforms": []
+            }
 
     @Slot(result="QVariantMap")
     def get_system_info(self):

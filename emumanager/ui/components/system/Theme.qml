@@ -135,7 +135,7 @@ QtObject {
      * Mapeo inteligente para obtener el color de una consola por su nombre.
      */
     function colorForPlatform(name) {
-        if (!name) return accentColor;
+        if (!name) return theme.accentColor;
         var p = name.toLowerCase();
         if (p.includes("gba")) return platGba;
         if (p.includes("snes") || p.includes("super nintendo")) return platSnes;
@@ -150,6 +150,18 @@ QtObject {
         if (p.includes("dreamcast")) return platDreamcast;
         if (p.includes("game boy color") || p.includes("gbc")) return platGbc;
         if (p.includes("game boy") || p.includes("gb")) return platGb;
-        return accentColor;
+        return theme.accentColor;
+    }
+
+    /**
+     * Resuelve un color desde un string (nombre de propiedad) o nombre de plataforma.
+     */
+    function resolveColor(c, fallbackPlatform) {
+        if (c === undefined || c === null || c === "") {
+            return colorForPlatform(fallbackPlatform);
+        }
+        if (typeof c !== "string") return c;
+        if (theme[c] !== undefined) return theme[c];
+        return colorForPlatform(c);
     }
 }

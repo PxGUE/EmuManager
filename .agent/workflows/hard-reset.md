@@ -1,22 +1,15 @@
 ---
-description: Borra la base de datos y la caché de medios para permitir un re-escaneo limpio desde cero.
+description: Realiza un reset completo eliminando carpetas de construcción (build), ejecutables (release) y datos locales (data).
 ---
-# Hard Reset de Base de Datos y Medios
+# Hard Reset de Proyecto (Limpieza Total)
 
-Este flujo de trabajo elimina todos los datos locales para iniciar una sesión de prueba limpia.
+Este flujo de trabajo elimina todos los archivos generados y carpetas de datos para realizar un reinicio completo del sistema de desarrollo y empaquetado.
 
-1. **Localizar Directorio de Datos:**
-   Identificar la carpeta `data/` en la raíz del proyecto.
-
-2. **Borrar Base de Datos:**
+1. **Ejecutar Limpieza de Directorios:**
 // turbo
-   - En Windows: `if (Test-Path "f:/00_CHRISTIAN/00_PROJECTS/EmuManager/data/emumanager.db") { Remove-Item "f:/00_CHRISTIAN/00_PROJECTS/EmuManager/data/emumanager.db" -Force }`
-   - En Linux: `rm -f "f:/00_CHRISTIAN/00_PROJECTS/EmuManager/data/emumanager.db"`
+   - En Linux/macOS: `rm -rf build/ release/ data/`
+   - En Windows (PowerShell): `Remove-Item -Path build, release, data -Recurse -Force -ErrorAction SilentlyContinue`
 
-3. **Limpiar Caché de Medios:**
-// turbo
-   - En Windows: `if (Test-Path "f:/00_CHRISTIAN/00_PROJECTS/EmuManager/data/media") { Remove-Item "f:/00_CHRISTIAN/00_PROJECTS/EmuManager/data/media/*" -Recurse -Force }`
-   - En Linux: `rm -rf "f:/00_CHRISTIAN/00_PROJECTS/EmuManager/data/media/*"`
+2. **Confirmación:**
+   Indicar al usuario que las carpetas `build/`, `release/` y `data/` han sido eliminadas por completo y el proyecto está en estado "fábrica".
 
-4. **Confirmación:**
-   Indicar al usuario que los datos han sido borrados y el sistema está listo para un nuevo escaneo.

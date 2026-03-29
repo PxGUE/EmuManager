@@ -15,8 +15,8 @@ Item {
     property string cover3d: ""
     property string gameId: ""
     property bool isFavorite: false
-    property var accentColor: Theme.accentColor
-    readonly property color resolvedAccent: (typeof accentColor === "string" && Theme[accentColor] !== undefined) ? Theme[accentColor] : accentColor
+    property var accentColor: undefined
+    readonly property color resolvedAccent: Theme.resolveColor(accentColor, platform)
     
     // --- ESTADOS ---
     property bool isHovered: mouseArea.containsMouse || infoMA.containsMouse || favMA.containsMouse
@@ -47,16 +47,16 @@ Item {
         id: body
         anchors.fill: parent; radius: Theme.radiusLarge
         color: isHovered ? Theme.panelBackground : Theme.cardBackground
-        border.color: isHovered ? resolvedAccent : Theme.cardBorder
+        border.color: isHovered ? resolvedAccent : Qt.alpha(resolvedAccent, 0.6)
         border.width: isHovered ? Theme.borderThick : Theme.borderThin
         
         // Efecto de profundidad (gradiente interno)
         Rectangle {
-            anchors.fill: parent; radius: parent.radius; opacity: isHovered ? 0.25 : 0.1
+            anchors.fill: parent; radius: parent.radius; opacity: isHovered ? 0.35 : 0.25
             gradient: Gradient {
                 orientation: Gradient.Vertical
                 GradientStop { position: 0.0; color: resolvedAccent }
-                GradientStop { position: 0.5; color: "transparent" }
+                GradientStop { position: 0.4; color: "transparent" }
             }
         }
     }

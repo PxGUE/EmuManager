@@ -19,7 +19,36 @@ Item {
     property var activeAccentColor: Theme.accentColor
     readonly property color resolvedActiveAccent: (typeof activeAccentColor === "string" && Theme[activeAccentColor] !== undefined) ? Theme[activeAccentColor] : activeAccentColor
 
-    Rectangle { anchors.fill: parent; color: Theme.viewBackground }
+    // --- FONDO DINÁMICO (Optimizado para Rendimiento) ---
+    Rectangle {
+        anchors.fill: parent
+        color: Theme.viewBackground
+        z: -1
+
+        Rectangle {
+            anchors.fill: parent
+            opacity: libraryRoot.showGames ? 0.2 : 0.5
+            visible: consoleModel.count > 0
+            
+            gradient: Gradient {
+                GradientStop { position: 0.0; color: "transparent" }
+                GradientStop { 
+                    id: dynamicGradientStop
+                    position: 1.0; 
+                    color: Qt.rgba(libraryRoot.resolvedActiveAccent.r, libraryRoot.resolvedActiveAccent.g, libraryRoot.resolvedActiveAccent.b, 0.2)
+                }
+            }
+            Behavior on opacity { NumberAnimation { duration: 500 } }
+        }
+        
+        // Actualizar color de acento según la consola seleccionada en el carrusel
+        Binding {
+            target: libraryRoot
+            property: "activeAccentColor"
+            value: (consoleModel.count > 0 && !libraryRoot.showGames) ? consoleModel.get(consoleCarousel.currentIndex).accentColor : libraryRoot.activeAccentColor
+            when: !libraryRoot.showGames && consoleModel.count > 0
+        }
+    }
 
     function selectConsole(platform, index, color) {
         activePlatform = platform
@@ -70,7 +99,7 @@ Item {
         highlightRangeMode: PathView.StrictlyEnforceRange; snapMode: PathView.SnapToItem
 
         delegate: Item {
-            id: delegateRoot; width: libraryRoot.showGames ? 220 : 380; height: libraryRoot.showGames ? 80 : 480
+            id: delegateRoot; width: libraryRoot.showGames ? 220 : 660; height: libraryRoot.showGames ? 80 : 400
             
             // Atributos de Path manuales para evitar errores de sintaxis
             scale: libraryRoot.showGames ? 1.0 : (delegateRoot.PathView.iconScale || 1.0)
@@ -94,17 +123,17 @@ Item {
         }
 
         path: Path {
-            startX: -50; startY: consoleCarousel.height / 2
-            PathAttribute { name: "iconScale"; value: 0.6 }
-            PathAttribute { name: "iconOpacity"; value: 0.3 }
+            startX: -250; startY: consoleCarousel.height / 2
+            PathAttribute { name: "iconScale"; value: 0.55 }
+            PathAttribute { name: "iconOpacity"; value: 0.25 }
             PathAttribute { name: "iconZ"; value: -20 }
             PathLine { x: consoleCarousel.width / 2; y: consoleCarousel.height / 2 }
-            PathAttribute { name: "iconScale"; value: 1.15 }
+            PathAttribute { name: "iconScale"; value: 1.1 }
             PathAttribute { name: "iconOpacity"; value: 1.0 }
             PathAttribute { name: "iconZ"; value: 100 }
-            PathLine { x: consoleCarousel.width + 50; y: consoleCarousel.height / 2 }
-            PathAttribute { name: "iconScale"; value: 0.6 }
-            PathAttribute { name: "iconOpacity"; value: 0.3 }
+            PathLine { x: consoleCarousel.width + 250; y: consoleCarousel.height / 2 }
+            PathAttribute { name: "iconScale"; value: 0.55 }
+            PathAttribute { name: "iconOpacity"; value: 0.25 }
             PathAttribute { name: "iconZ"; value: -20 }
         }
     }
@@ -158,7 +187,7 @@ Item {
         Rectangle {
             anchors.verticalCenter: parent.verticalCenter
             width: parent.width; height: 44; radius: Theme.radiusSmall
-            color: Theme.controlBackground; border.color: searchInput.focus ? Theme.accentColor : Theme.cardBorder; border.width: Theme.borderThin
+            color: Theme.controlBackground; border.color: searchInput.focus ? libraryRoot.resolvedActiveAccent : Theme.cardBorder; border.width: Theme.borderThin
             Behavior on border.color { ColorAnimation { duration: 200 } }
             
             RowLayout {
@@ -194,7 +223,7 @@ Item {
             title: model.title; platform: model.platform
             gameId: model.gameId; isFavorite: model.isFavorite
             cover2d: model.cover2dPath; cover3d: model.cover3dPath
-            accentColor: libraryRoot.resolvedActiveAccent
+            accentColor: (activePlatform === "all") ? undefined : libraryRoot.resolvedActiveAccent
             onClicked: mainController.launch_game_by_id(model.gameId)
             onInfoClicked: window.openGameDetails(model.gameId)
         }
@@ -203,7 +232,7 @@ Item {
 
     // --- BOTÓN VOLVER (Reubicado para no estorbar) ---
     EmuFloatingButton {
-        icon: "⟲"; accentColor: Theme.accentColor; size: 54; visible: showGames
+        icon: "⟲"; accentColor: libraryRoot.resolvedActiveAccent; size: 54; visible: showGames
         anchors.bottom: parent.bottom; anchors.bottomMargin: Theme.spaceExtraLarge
         anchors.right: parent.right; anchors.rightMargin: Theme.spaceExtraLarge
         onClicked: showGames = false

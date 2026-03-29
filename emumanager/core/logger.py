@@ -25,8 +25,13 @@ def setup_logger(name: str):
         logger.addHandler(console_handler)
         
         # 2. Handler Profesional con ROTACIÓN (DEBUG) - 5MB x 3 archivos
-        log_file = AppConfig.get_app_data_dir() / "emumanager.log"
+        log_file = AppConfig.get_app_data_dir() / "logs" / "emumanager.log"
+        
+        # Asegurar que la carpeta de logs existe antes de abrir el archivo
+        log_file.parent.mkdir(parents=True, exist_ok=True)
+
         file_handler = RotatingFileHandler(
+
             log_file, 
             maxBytes=5*1024*1024, # 5MB
             backupCount=3, 

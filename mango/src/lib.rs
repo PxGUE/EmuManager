@@ -1,18 +1,15 @@
 use pyo3::prelude::*;
 use tokio::runtime::Runtime;
 use std::sync::Arc;
-mod core_manager;
-mod orchestrator;
+mod emulation;
+mod scraping;
+mod library;
 mod tools;
-mod library_manager;
-mod scraper;
-mod batch_scraper;
-mod searcher;
 
 #[pyfunction]
 fn fetch_cores(py: Python<'_>) -> PyResult<Vec<String>> {
     let rt = Runtime::new().unwrap();
-    let res = py.allow_threads(move || { rt.block_on(core_manager::fetch_available_cores_async()) });
+    let res = py.allow_threads(move || { rt.block_on(emulation::core_manager::fetch_available_cores_async()) });
     match res {
         Ok(cores) => Ok(cores),
         Err(e) => Err(pyo3::exceptions::PyRuntimeError::new_err(e.to_string())),
@@ -31,7 +28,7 @@ fn download_core(
     let pc = progress_callback.as_ref().map(|cb| cb.clone_ref(py));
     let sc = status_callback.as_ref().map(|cb| cb.clone_ref(py));
     let res = py.allow_threads(move || {
-        rt.block_on(core_manager::download_core_async(core_name, dest_dir, pc, sc))
+        rt.block_on(emulation::core_manager::download_core_async(core_name, dest_dir, pc, sc))
     });
     match res {
         Ok(path) => Ok(path),
@@ -52,7 +49,7 @@ fn download_emulator(
     let pc = progress_callback.as_ref().map(|cb| cb.clone_ref(py));
     let sc = status_callback.as_ref().map(|cb| cb.clone_ref(py));
     let res = py.allow_threads(move || {
-        rt.block_on(core_manager::download_emulator_async(url, dest_dir, expected_filename, pc, sc))
+        rt.block_on(emulation::core_manager::download_emulator_async(url, dest_dir, expected_filename, pc, sc))
     });
     match res {
         Ok(path) => Ok(path),
@@ -76,8 +73,8 @@ fn install_emulator_orchestra(
     if !system_id.is_empty() {
         let sid = system_id.clone();
         let rt_shared = rt.clone();
-        if let Ok(_) = py.allow_threads(move || rt_shared.block_on(orchestrator::install_via_system(&sid))) {
-            if let Some(path) = orchestrator::find_system_executable(&executable_name) { return Ok(path); }
+        if let Ok(_) = py.allow_threads(move || rt_shared.block_on(emulation::orchestrator::install_via_system(&sid))) {
+            if let Some(path) = emulation::orchestrator::find_system_executable(&executable_name) { return Ok(path); }
             return Ok("SYSTEM_INSTALLED".to_string());
         }
     }
@@ -87,7 +84,7 @@ fn install_emulator_orchestra(
         let sc = status_callback.as_ref().map(|cb| cb.clone_ref(py));
         let rt_shared = rt.clone();
         let res = py.allow_threads(move || {
-            rt_shared.block_on(core_manager::download_emulator_async(portable_url, dest_dir, executable_name, pc, sc))
+            rt_shared.block_on(emulation::core_manager::download_emulator_async(portable_url, dest_dir, executable_name, pc, sc))
         });
         match res {
             Ok(path) => return Ok(path),
@@ -111,7 +108,7 @@ fn update_emulator(
     let pc = progress_callback.as_ref().map(|cb| cb.clone_ref(py));
     let sc = status_callback.as_ref().map(|cb| cb.clone_ref(py));
     let res = py.allow_threads(move || {
-        rt.block_on(core_manager::update_emulator_async(url, dest_dir, expected_filename, pc, sc))
+        rt.block_on(emulation::core_manager::update_emulator_async(url, dest_dir, expected_filename, pc, sc))
     });
     match res {
         Ok(path) => Ok(path),
@@ -123,7 +120,7 @@ fn update_emulator(
 fn uninstall_emulator(py: Python<'_>, target_path: String) -> PyResult<()> {
     let rt = Runtime::new().unwrap();
     let res = py.allow_threads(move || {
-        rt.block_on(core_manager::remove_emulator_files_async(target_path))
+        rt.block_on(emulation::core_manager::remove_emulator_files_async(target_path))
     });
     match res {
         Ok(_) => Ok(()),
@@ -142,7 +139,15 @@ fn fetch_consoles_summary(
     db_path: String,
     emus_path: String
 ) -> PyResult<Vec<PyObject>> {
-    library_manager::get_consoles_summary_native(py, &db_path, &emus_path)
+    library::library_manager::get_consoles_summary_native(py, &db_path, &emus_path)
+}
+
+#[pyfunction]
+fn fetch_dashboard_stats(
+    py: Python<'_>,
+    db_path: String,
+) -> PyResult<PyObject> {
+    library::library_manager::fetch_dashboard_stats(py, &db_path)
 }
 
 #[pyfunction]
@@ -151,7 +156,7 @@ fn scan_directory(
     path: String,
     extensions: Vec<String>
 ) -> PyResult<Vec<PyObject>> {
-    library_manager::scan_directory(py, &path, extensions)
+    library::library_manager::scan_directory(py, &path, extensions)
 }
 
 #[pyfunction]
@@ -166,7 +171,7 @@ fn start_batch_scrape(
     progress_cb: Option<PyObject>,
     interrupt_flag: Option<PyObject>,
 ) -> PyResult<usize> {
-    batch_scraper::run_batch_scrape(py, &db_path, &ss_id, &ss_pass, &dev_id, &dev_pass, &media_dir, progress_cb, interrupt_flag)
+    scraping::batch_scraper::run_batch_scrape(py, &db_path, &ss_id, &ss_pass, &dev_id, &dev_pass, &media_dir, progress_cb, interrupt_flag)
 }
 
 #[pyfunction]
@@ -192,7 +197,7 @@ fn search_games(
     query: String,
     platform: String
 ) -> PyResult<Vec<PyObject>> {
-    searcher::search_games(py, &db_path, &query, &platform)
+    library::searcher::search_games(py, &db_path, &query, &platform)
 }
 
 #[pymodule]
@@ -205,6 +210,7 @@ fn mango_engine(_py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(uninstall_emulator, m)?)?;
     m.add_function(wrap_pyfunction!(set_log_callback, m)?)?;
     m.add_function(wrap_pyfunction!(fetch_consoles_summary, m)?)?;
+    m.add_function(wrap_pyfunction!(fetch_dashboard_stats, m)?)?;
     m.add_function(wrap_pyfunction!(scan_directory, m)?)?;
     m.add_function(wrap_pyfunction!(start_batch_scrape, m)?)?;
     m.add_function(wrap_pyfunction!(search_games, m)?)?;

@@ -31,14 +31,14 @@ pub async fn scrape_game(
 
         // Trazado de Fallback
         pyo3::Python::with_gil(|py| {
-            crate::batch_scraper::log_to_python(py, "debug", &format!(
+            crate::scraping::batch_scraper::log_to_python(py, "debug", &format!(
                 "[MANGO] ScreenScraper sin medios. Activando Protocolo de Rescate (Libretro) para: '{}'", 
                 filename
             ));
         });
     } else {
         pyo3::Python::with_gil(|py| {
-            crate::batch_scraper::log_to_python(py, "info", &format!(
+            crate::scraping::batch_scraper::log_to_python(py, "info", &format!(
                 "[MANGO] Saltando ScreenScraper (Modo Rescate Activo) para: '{}'", 
                 filename
             ));

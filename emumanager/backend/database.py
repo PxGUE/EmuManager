@@ -41,6 +41,7 @@ class DatabaseManager:
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     file_hash TEXT UNIQUE NOT NULL,
                     file_path TEXT NOT NULL,
+                    display_name TEXT,
                     platform TEXT NOT NULL,
                     file_size INTEGER NOT NULL,
                     scanned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -66,6 +67,7 @@ class DatabaseManager:
             
             # Migraciones individuales para asegurar robustez
             for cmd in [
+                "ALTER TABLE games ADD COLUMN display_name TEXT",
                 "ALTER TABLE game_metadata ADD COLUMN cover_2d_path TEXT",
                 "ALTER TABLE game_metadata ADD COLUMN cover_3d_path TEXT",
                 "ALTER TABLE game_metadata ADD COLUMN is_favorite INTEGER DEFAULT 0"
@@ -100,10 +102,11 @@ class DatabaseManager:
     def get_all_games(self, limit: int = 0):
         """Retorna todos los juegos con su metadata básica (usado para warm-up)."""
         query = '''
-            SELECT g.id, g.file_path, g.platform, m.title, m.cover_2d_path as media_path, m.is_favorite
+            SELECT g.id, g.file_path, g.display_name, g.platform, m.title, m.cover_2d_path as media_path, m.is_favorite
             FROM games g
             JOIN game_metadata m ON g.id = m.game_id
-            ORDER BY m.title ASC
+            LEFT JOIN play_stats s ON g.id = s.game_id
+            ORDER BY COALESCE(s.play_time_seconds, 0) DESC, COALESCE(g.display_name, m.title) ASC
         '''
         if limit > 0:
             query += f" LIMIT {limit}"
@@ -114,11 +117,12 @@ class DatabaseManager:
     def get_games_by_platform(self, platform: str):
         """Retorna juegos filtrados por plataforma."""
         query = '''
-            SELECT g.id, g.file_path, g.platform, m.title, m.cover_2d_path, m.is_favorite
+            SELECT g.id, g.file_path, g.display_name, g.platform, m.title, m.cover_2d_path, m.is_favorite
             FROM games g
             JOIN game_metadata m ON g.id = m.game_id
+            LEFT JOIN play_stats s ON g.id = s.game_id
             WHERE g.platform = ?
-            ORDER BY m.title ASC
+            ORDER BY COALESCE(s.play_time_seconds, 0) DESC, COALESCE(g.display_name, m.title) ASC
         '''
         with self.get_connection() as conn:
             return [dict(row) for row in conn.execute(query, (platform.lower(),)).fetchall()]
@@ -126,15 +130,15 @@ class DatabaseManager:
     def search_games(self, search_query: str):
         """Búsqueda instantánea en títulos de la biblioteca."""
         query = '''
-            SELECT g.id, g.file_path, g.platform, m.title, m.cover_2d_path, m.is_favorite
+            SELECT g.id, g.file_path, g.display_name, g.platform, m.title, m.cover_2d_path, m.is_favorite
             FROM games g
             JOIN game_metadata m ON g.id = m.game_id
-            WHERE m.title LIKE ?
-            ORDER BY m.title ASC
+            WHERE g.display_name LIKE ? OR m.title LIKE ?
+            ORDER BY COALESCE(g.display_name, m.title) ASC
             LIMIT 100
         '''
         with self.get_connection() as conn:
-            return [dict(row) for row in conn.execute(query, (f'%{search_query}%',)).fetchall()]
+            return [dict(row) for row in conn.execute(query, (f'%{search_query}%', f'%{search_query}%')).fetchall()]
 
     def update_game_favorite(self, game_id: int, is_favorite: bool):
         """Marca o desmarca un juego como favorito."""

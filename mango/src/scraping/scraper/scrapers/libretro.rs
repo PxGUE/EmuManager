@@ -1,4 +1,4 @@
-use crate::scraper::scrapers::{ScrapedMetadata, download_image, clean_filename_for_search};
+use crate::scraping::scraper::scrapers::{ScrapedMetadata, download_image, clean_filename_for_search};
 use reqwest::Client;
 use std::path::{Path, PathBuf};
 use std::fs;
@@ -12,7 +12,7 @@ pub async fn scrape_game(
     interrupt_flag: &std::sync::atomic::AtomicBool,
 ) -> Option<ScrapedMetadata> {
     Python::with_gil(|py| {
-        crate::batch_scraper::log_to_python(py, "debug", &format!(
+        crate::scraping::batch_scraper::log_to_python(py, "debug", &format!(
             "[LIBRETRO] Iniciando búsqueda para: '{}' (Plataforma enviada: '{}')", 
             filename, platform
         ));
@@ -34,7 +34,7 @@ pub async fn scrape_game(
         "megadrive" | "genesis" | "sega mega drive - genesis" => "Sega - Mega Drive - Genesis",
         _ => {
             Python::with_gil(|py| {
-                crate::batch_scraper::log_to_python(py, "warning", &format!(
+                crate::scraping::batch_scraper::log_to_python(py, "warning", &format!(
                     "[LIBRETRO] Plataforma no soportada en Libretro: '{}'", platform
                 ));
             });
@@ -58,7 +58,7 @@ pub async fn scrape_game(
     
     if index.is_empty() {
         Python::with_gil(|py| {
-            crate::batch_scraper::log_to_python(py, "warning", &format!(
+            crate::scraping::batch_scraper::log_to_python(py, "warning", &format!(
                 "[LIBRETRO] No se pudo obtener el catálogo para: '{}'", repo_name
             ));
         });
@@ -68,7 +68,7 @@ pub async fn scrape_game(
     // 2. Búsqueda Inteligente (Fuzzy) sobre el índice local
     if let Some(match_result) = fuzzy::find_best_match(&clean_local, index, 0.85) {
         Python::with_gil(|py| {
-            crate::batch_scraper::log_to_python(py, "info", &format!(
+            crate::scraping::batch_scraper::log_to_python(py, "info", &format!(
                 "[LIBRETRO] ¡Match Inteligente! '{}' -> '{}' (Sim: {:.2})", 
                 clean_local, match_result.name, match_result.similarity
             ));

@@ -2,7 +2,6 @@ try:
     import mango_engine
 except ImportError:
     mango_engine = None
-import zipfile
 from typing import List, Dict, Any, Callable, Optional
 from pathlib import Path
 from backend.database import DatabaseManager
@@ -13,80 +12,13 @@ class ScannerManager:
     def __init__(self, db_manager: DatabaseManager):
         self.db = db_manager
         
-        # Mapeo EXTENSIÓN -> PLATAFORMA (Uso como fallback)
-        self.platform_map = {
-            "snes": ["smc", "sfc", "fig", "swc"],
-            "nes": ["nes", "fds"],
-            "gb": ["gb"],
-            "gba": ["gba"],
-            "gbc": ["gbc"],
-            "n64": ["z64", "n64", "v64"],
-            "ps1": ["iso", "bin", "cue", "img", "mdf", "pbp"],
-            "ps2": ["iso", "bin", "cue", "gz", "chd"],
-            "psp": ["iso", "cso", "pbp"],
-            "ds": ["nds"],
-            "gc": ["iso", "gcm", "rvz"],
-            "wii": ["iso", "wbfs", "rvz"],
-            "megadrive": ["md", "gen", "bin", "smd"],
-            "mastersystem": ["sms"],
-            "gamegear": ["gg"],
-            "dreamcast": ["cdi", "gdi", "chd"]
-        }
-
-        # Mapeo DIRECTORIO -> PLATAFORMA (Prioridad Máxima)
-        self.alias_map = {
-            "snes": ["snes", "super nintendo", "super famicom", "sfc"],
-            "nes": ["nes", "nintendo entertainment system", "famicom"],
-            "gb": ["gb", "gameboy", "game boy"],
-            "gba": ["gba", "gameboy advance", "game boy advance"],
-            "gbc": ["gbc", "gameboy color", "game boy color"],
-            "n64": ["n64", "nintendo 64"],
-            "ps1": ["ps1", "playstation", "psx"],
-            "ps2": ["ps2", "playstation 2", "ps2 iso"],
-            "psp": ["psp", "playstation portable"],
-            "ds": ["ds", "nintendo ds", "nds"],
-            "gc": ["gc", "gamecube", "game cube"],
-            "wii": ["wii"],
-            "megadrive": ["megadrive", "genesis", "sega genesis", "md"],
-            "mastersystem": ["mastersystem", "master system", "sms"],
-            "gamegear": ["gamegear", "game gear"],
-            "dreamcast": ["dreamcast", "dc"]
-        }
-
-    def _get_platform_from_path(self, file_path: Path) -> Optional[str]:
-        """Intenta deducir la plataforma basándose en los nombres de las carpetas superiores."""
-        # Revisamos los dos últimos niveles de directorios (padre y abuelo)
-        parts_to_check = [file_path.parent.name.lower()]
-        if len(file_path.parents) > 1:
-            parts_to_check.append(file_path.parents[1].name.lower())
-            
-        for part in parts_to_check:
-            for platform, aliases in self.alias_map.items():
-                if part in aliases:
-                    return platform
-        return None
-
-    def _peek_zip_platform(self, zip_path: str) -> str:
-        """Mira dentro de un .zip (solo nombres de archivo) para deducir la plataforma."""
-        try:
-            with zipfile.ZipFile(zip_path, 'r') as z:
-                # Obtenemos la primera extensión válida que encontremos dentro
-                for info in z.infolist():
-                    if info.is_dir(): continue
-                    ext = Path(info.filename).suffix.lower().replace(".", "")
-                    platform = self._get_platform_from_ext(ext)
-                    if platform != "unknown":
-                        return platform
-        except Exception:
-            pass
-        return "unknown"
-
-    def _get_platform_from_ext(self, ext: str) -> str:
-        ext = ext.lower().replace(".", "")
-        for platform, exts in self.platform_map.items():
-            if ext in exts:
-                return platform
-        return "unknown"
+        # Lista estática de extensiones de ROMs soportadas (las plataformas en sí, las infiere M.A.N.G.O)
+        self.SUPPORTED_EXTENSIONS = [
+            "smc", "sfc", "fig", "swc", "nes", "fds", "gb", "gba", "gbc", 
+            "z64", "n64", "v64", "iso", "bin", "cue", "img", "mdf", "pbp", 
+            "gz", "chd", "cso", "nds", "gcm", "rvz", "wbfs", "md", "gen", 
+            "smd", "sms", "gg", "cdi", "gdi", "zip"
+        ]
 
     def scan_and_register(self, directory_path: str, progress_callback: Optional[Callable[[float], None]] = None, status_callback: Optional[Callable[[str], None]] = None, is_active_check: Optional[Callable[[], bool]] = None):
         """
@@ -96,11 +28,7 @@ class ScannerManager:
         if not directory_path:
             return 0
 
-        extensions = []
-        for exts in self.platform_map.values():
-            extensions.extend(exts)
-        extensions.append("zip") # Incluir ZIP siempre
-        extensions = list(set(extensions))
+        extensions = self.SUPPORTED_EXTENSIONS
 
         if status_callback: status_callback("scan_starting")
         
@@ -133,31 +61,21 @@ class ScannerManager:
                 f_size = item["size"]
                 f_ext = f_path.suffix.lower().replace(".", "")
                 
-                # --- ESTRATEGIA DE CLASIFICACIÓN MULTI-CAPA ---
-                # 1. Prioridad: ¿La carpeta nos dice qué es?
-                platform = self._get_platform_from_path(f_path)
+                platform = item.get("platform", "unknown")
                 
-                # 2. Si no sabemos por carpeta, ¿es un ZIP?
-                if not platform and f_ext == "zip":
-                    platform = self._peek_zip_platform(f_path_str)
-                
-                # 3. Fallback: ¿La extensión nos dice qué es?
-                if not platform or platform == "unknown":
-                    platform = self._get_platform_from_ext(f_ext)
-                
-                game_title = f_path.stem
+                display_name = item.get("display_name", f_path.stem)
 
                 # Reportar progreso a la UI
                 if progress_callback:
                     progress_callback( (index + 1) / total_files )
                 if status_callback and index % 5 == 0: # Reportar cada 5 juegos para no saturar
-                    status_callback(f"scan_registering|{game_title}")
+                    status_callback(f"scan_registering|{display_name}")
                 
                 try:
                     cursor.execute('''
-                        INSERT OR IGNORE INTO games (file_hash, file_path, platform, file_size)
-                        VALUES (?, ?, ?, ?)
-                    ''', (f_hash, f_path_str, platform, f_size))
+                        INSERT OR IGNORE INTO games (file_hash, file_path, display_name, platform, file_size)
+                        VALUES (?, ?, ?, ?, ?)
+                    ''', (f_hash, f_path_str, display_name, platform, f_size))
                     
                     if cursor.rowcount > 0:
                         new_games_count += 1
@@ -165,7 +83,7 @@ class ScannerManager:
                         cursor.execute('''
                             INSERT OR IGNORE INTO game_metadata (game_id, title)
                             VALUES (?, ?)
-                        ''', (game_id, game_title))
+                        ''', (game_id, display_name)) # Ahora usamos display_name también en metadata title
                 except Exception as e:
                     EmuLog.error(f"Error al registrar {f_path}: {e}")
             

@@ -19,7 +19,7 @@ Item {
     property string description: ""
     property string cover2d: ""
     property string cover3d: ""
-    property color accentColor: Theme.accentColor
+    property color accentColor: Theme.colorForPlatform(platform)
     
     property bool has3d: cover3d !== ""
     property bool has2d: cover2d !== ""

@@ -10,7 +10,7 @@ Rectangle {
     property color accent: Theme.colorForPlatform(platformId)
 
     width: 65; height: 100
-    color: "transparent"
+    color: Theme.transparent
 
     ColumnLayout {
         anchors.fill: parent; spacing: 8

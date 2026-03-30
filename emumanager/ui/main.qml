@@ -85,7 +85,7 @@ ApplicationWindow {
                         
                         background: Rectangle {
                             radius: 12
-                            color: highlighted ? Theme.panelBackground : "transparent"
+                            color: highlighted ? Theme.panelBackground : Theme.transparent
                             opacity: 0.3
                             Behavior on opacity { NumberAnimation { duration: 200 } }
                         }

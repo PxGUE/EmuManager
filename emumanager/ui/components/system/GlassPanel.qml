@@ -30,7 +30,7 @@ Item {
             anchors.fill: parent
             anchors.margins: 1
             radius: glassRoot.radius
-            color: "transparent"
+            color: Theme.transparent
             border.color: glassRoot.glowColor
             border.width: 1
             opacity: 0.15
@@ -41,7 +41,7 @@ Item {
     Rectangle {
         anchors.fill: parent
         radius: glassRoot.radius
-        color: "transparent"
+        color: Theme.transparent
         border.color: glassRoot.borderColor
         border.width: glassRoot.borderWidth
         z: 100 // Aseguramos que el borde esté siempre encima
@@ -54,7 +54,7 @@ Item {
         opacity: 0.1
         gradient: Gradient {
             GradientStop { position: 0.0; color: Theme.textMain }
-            GradientStop { position: 1.0; color: "transparent" }
+            GradientStop { position: 1.0; color: Theme.transparent }
         }
         visible: glassRoot.showHighlight
     }

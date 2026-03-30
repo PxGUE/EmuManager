@@ -53,7 +53,7 @@ Item {
             anchors.centerIn: parent; opacity: Theme.glowOpacity
             gradient: Gradient {
                 GradientStop { position: 0.0; color: Theme.cardGlow }
-                GradientStop { position: 1.0; color: "transparent" }
+                GradientStop { position: 1.0; color: Theme.transparent }
             }
             NumberAnimation on rotation { from: 0; to: 360; duration: 120000; loops: Animation.Infinite }
         }
@@ -103,13 +103,13 @@ Item {
                             // 1. Halo base Cian
                             Rectangle {
                                 anchors.centerIn: parent; width: 58; height: 58; radius: 29
-                                color: "transparent"; border.color: Theme.accentElectric; border.width: 2; opacity: 0.3
+                                color: Theme.transparent; border.color: Theme.accentElectric; border.width: 2; opacity: 0.3
                             }
                             
                             // 2. Cuadrado Orbital Giratorio
                             Rectangle {
                                 anchors.centerIn: parent; width: 62; height: 62; radius: 14
-                                color: "transparent"; border.color: Theme.accentElectric; border.width: 2; opacity: 0.2
+                                color: Theme.transparent; border.color: Theme.accentElectric; border.width: 2; opacity: 0.2
                                 RotationAnimation on rotation { from: 0; to: 360; duration: 9000; loops: Animation.Infinite }
                             }
                             
@@ -174,7 +174,7 @@ Item {
                                 Rectangle { 
                                     id: heartbeat; width: 10; height: 10; radius: 5; color: Theme.accentElectric
                                     SequentialAnimation on scale { loops: Animation.Infinite; NumberAnimation { from: 1; to: 1.4; duration: 1000; easing.type: Easing.OutSine } NumberAnimation { from: 1.4; to: 1; duration: 1000; easing.type: Easing.InSine } }
-                                    Rectangle { anchors.fill: parent; radius: 5; color: "transparent"; border.color: Theme.accentElectric; border.width: 1; scale: heartbeat.scale * 1.6; opacity: 1.6 - heartbeat.scale }
+                                    Rectangle { anchors.fill: parent; radius: 5; color: Theme.transparent; border.color: Theme.accentElectric; border.width: 1; scale: heartbeat.scale * 1.6; opacity: 1.6 - heartbeat.scale }
                                 }
                                 Text { 
                                     text: isEngineBusy ? I18n.t.status_active_protocol : I18n.t.status_system_idle; 
@@ -199,7 +199,7 @@ Item {
                     // --- FONDO CINEMÁTICO EXTENDIDO ---
                     Rectangle {
                         anchors.fill: parent
-                        color: "#050508" // Fondo base ultra oscuro
+                        color: Theme.backgroundVoid // Fondo base ultra oscuro
                         
                         // Imagen de Fondo con Fade lateral
                         Image {
@@ -215,8 +215,8 @@ Item {
                             gradient: Gradient {
                                 orientation: Gradient.Horizontal
                                 GradientStop { position: 0.0; color: Theme.viewBackground }
-                                GradientStop { position: 0.15; color: "transparent" }
-                                GradientStop { position: 0.85; color: "transparent" }
+                                GradientStop { position: 0.15; color: Theme.transparent }
+                                GradientStop { position: 0.85; color: Theme.transparent }
                                 GradientStop { position: 1.0; color: Theme.viewBackground }
                             }
                         }
@@ -226,9 +226,9 @@ Item {
                             anchors.fill: parent
                             gradient: Gradient {
                                 orientation: Gradient.Horizontal
-                                GradientStop { position: 0.0; color: "#0a0a0f" }
-                                GradientStop { position: 0.45; color: "#0a0a0f" }
-                                GradientStop { position: 0.8; color: "transparent" }
+                                GradientStop { position: 0.0; color: Theme.overlayBackground }
+                                GradientStop { position: 0.45; color: Theme.overlayBackground }
+                                GradientStop { position: 0.8; color: Theme.transparent }
                             }
                         }
 
@@ -237,9 +237,9 @@ Item {
                             anchors.bottom: parent.bottom; width: parent.width; height: 3
                             gradient: Gradient {
                                 orientation: Gradient.Horizontal
-                                GradientStop { position: 0.0; color: "transparent" }
+                                GradientStop { position: 0.0; color: Theme.transparent }
                                 GradientStop { position: 0.5; color: heroBox.heroAccent }
-                                GradientStop { position: 1.0; color: "transparent" }
+                                GradientStop { position: 1.0; color: Theme.transparent }
                             }
                             opacity: 0.6
                         }
@@ -261,14 +261,14 @@ Item {
                                     spacing: 15
                                     Rectangle {
                                         width: recentLabel.implicitWidth + 16; height: 20; radius: 4; color: heroBox.heroAccent
-                                        Text { id: recentLabel; anchors.centerIn: parent; text: I18n.t.recent_activity; color: "white"; font.pixelSize: 8; font.bold: true; font.letterSpacing: 1 }
+                                        Text { id: recentLabel; anchors.centerIn: parent; text: I18n.t.recent_activity; color: Theme.white; font.pixelSize: 8; font.bold: true; font.letterSpacing: 1 }
                                     }
                                     Text { text: heroBox.hasGame ? statsData.last_game.platform.toUpperCase() : ""; color: heroBox.heroAccent; font.pixelSize: 14; font.bold: true; font.letterSpacing: 2 }
                                 }
                                 
                                 Text { 
                                     text: heroBox.hasGame ? statsData.last_game.title : "COLECCIÓN LISTA"
-                                    color: "white"; font.pixelSize: 48; font.bold: true; font.letterSpacing: -1
+                                    color: Theme.white; font.pixelSize: 48; font.bold: true; font.letterSpacing: -1
                                     elide: Text.ElideRight; maximumLineCount: 2; wrapMode: Text.WordWrap; Layout.fillWidth: true
                                 }
                                 
@@ -286,14 +286,14 @@ Item {
                                     enabled: heroBox.hasGame
                                     contentItem: Text { 
                                         text: I18n.t.resume_mission
-                                        color: "white"; font.bold: true; 
+                                        color: Theme.white; font.bold: true; 
                                         font.pixelSize: 18; font.letterSpacing: 2
                                         horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
                                     }
                                     background: Rectangle { 
                                         radius: 12; color: playHero.hovered ? Qt.lighter(heroBox.heroAccent, 1.1) : heroBox.heroAccent
                                         opacity: playHero.enabled ? 1.0 : 0.3
-                                        Rectangle { anchors.fill: parent; radius: 12; color: "transparent"; border.color: "white"; border.width: 1; opacity: 0.2 }
+                                        Rectangle { anchors.fill: parent; radius: 12; color: Theme.transparent; border.color: Theme.white; border.width: 1; opacity: 0.2 }
                                     }
                                     onClicked: if(heroBox.hasGame) launchGame(statsData.last_game.id)
                                 }

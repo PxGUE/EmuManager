@@ -31,7 +31,7 @@ Item {
             visible: consoleModel.count > 0
             
             gradient: Gradient {
-                GradientStop { position: 0.0; color: "transparent" }
+                GradientStop { position: 0.0; color: Theme.transparent }
                 GradientStop { 
                     id: dynamicGradientStop
                     position: 1.0; 

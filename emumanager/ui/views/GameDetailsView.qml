@@ -63,7 +63,7 @@ Item {
                     anchors.fill: parent; opacity: 0.12
                     gradient: Gradient {
                         GradientStop { position: 0.0; color: accentColor }
-                        GradientStop { position: 0.8; color: "transparent" }
+                        GradientStop { position: 0.8; color: Theme.transparent }
                     }
                 }
 
@@ -165,7 +165,7 @@ Item {
 
                         background: Rectangle {
                             radius: 12
-                            color: launchBigBtn.hovered ? accentColor : "transparent"
+                            color: launchBigBtn.hovered ? accentColor : Theme.transparent
                             border.color: accentColor; border.width: 2
                             Behavior on color { ColorAnimation { duration: 250 } }
                             

@@ -26,7 +26,7 @@ Button {
     
     background: Rectangle {
         radius: height / 2
-        color: control.highlighted ? control.accentColor : "transparent"
+        color: control.highlighted ? control.accentColor : Theme.transparent
         border.color: control.accentColor
         border.width: 1.5
         
@@ -34,7 +34,7 @@ Button {
         Rectangle {
             anchors.fill: parent
             radius: parent.radius
-            color: "white"
+            color: Theme.white
             opacity: control.pressed ? 0.1 : 0
         }
     }

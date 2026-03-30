@@ -40,7 +40,7 @@ Rectangle {
         opacity: 0.03
         gradient: Gradient {
             GradientStop { position: 0.0; color: Theme.textMain }
-            GradientStop { position: 1.0; color: "transparent" }
+            GradientStop { position: 1.0; color: Theme.transparent }
         }
     }
 
@@ -151,7 +151,7 @@ Rectangle {
                 }
 
                 background: Rectangle {
-                    color: (mainActionBtn.hovered && mainActionBtn.enabled) ? mainActionBtn.btnColor + "22" : "transparent"
+                    color: (mainActionBtn.hovered && mainActionBtn.enabled) ? mainActionBtn.btnColor + "22" : Theme.transparent
                     border.color: mainActionBtn.enabled ? mainActionBtn.btnColor : Theme.controlBorder
                     border.width: Theme.borderThin; radius: Theme.radiusSmall
                     opacity: mainActionBtn.enabled ? 1.0 : 0.3

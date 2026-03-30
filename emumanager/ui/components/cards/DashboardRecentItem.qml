@@ -19,7 +19,7 @@ Item {
     
     Rectangle {
         anchors.fill: parent; radius: 14; color: mouseArea.containsMouse ? Theme.panelBackground : Theme.cardBackground
-        border.color: mouseArea.containsMouse ? accentColor : "transparent"
+        border.color: mouseArea.containsMouse ? accentColor : Theme.transparent
         border.width: mouseArea.containsMouse ? 1.5 : 0 // Borde solo en hover pero con el color de la consola
         
         Behavior on color { ColorAnimation { duration: 200 } }

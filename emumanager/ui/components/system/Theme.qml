@@ -29,6 +29,11 @@ QtObject {
     readonly property color _n6: "#000000"   // Pure Black
     readonly property color _n7: "#15ffffff" // Very Light White
     readonly property color _n8: "#25ffffff" // Light White
+    
+    // --- 🌏 UNIVERSAL TOKENS ---
+    readonly property color transparent: "transparent"
+    readonly property color white: "#ffffff"
+    readonly property color black: "#000000"
 
     // ==========================================
     // --- 🧩 1. APP LAYOUT (FONDOS GLOBALES) ---
@@ -77,6 +82,10 @@ QtObject {
     readonly property color controlBorder: "#33ffffff"   // Borde de controles desactivados.
     readonly property color controlHighlight: _p5       // Borde o acento de control enfocado.
     readonly property color danger: "#e74c3c"         // Acciones destructivas (Borrar, Desinstalar).
+    
+    // --- 🌙 OVERLAYS & HUD ---
+    readonly property color overlayBackground: "#0a0a0f" // Fondo de overlays oscuros.
+    readonly property color backgroundVoid: "#050508"    // Fondo negro HUD (Maximum black).
 
     // ==========================================
     // --- 🚥 5. STATUS & FEEDBACK ---

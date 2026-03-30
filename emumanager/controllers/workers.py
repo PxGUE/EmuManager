@@ -139,14 +139,14 @@ class EmulatorInstallWorker(QObject):
             
             if path:
                 EmuLog.info(f"Éxito en orquestación de '{self.emu_id}' -> {path}")
-                self.status.emit(self.emu_id, "✓ Instalación completada.")
+                self.status.emit(self.emu_id, "install_success")
                 self.finished.emit(self.emu_id, path)
             else:
-                self.status.emit(self.emu_id, "Fallo en la orquestación.")
+                self.status.emit(self.emu_id, "install_failed")
                 self.finished.emit(self.emu_id, "")
         except Exception as e:
             EmuLog.error(f"Error en M.A.N.G.O Orchestra: {e}")
-            self.status.emit(self.emu_id, f"Fallo: {str(e)}")
+            self.status.emit(self.emu_id, f"install_error|{str(e)}")
             self.finished.emit(self.emu_id, "")
 
 

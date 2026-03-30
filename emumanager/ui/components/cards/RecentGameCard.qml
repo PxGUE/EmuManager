@@ -46,7 +46,7 @@ GlassPanel {
             gradient: Gradient {
                 orientation: Gradient.Horizontal
                 GradientStop { position: 0.0; color: root.accentColor }
-                GradientStop { position: 0.8; color: "transparent" }
+                GradientStop { position: 0.8; color: Theme.transparent }
             }
             opacity: root.hovered ? 0.12 : 0.05
             Behavior on opacity { NumberAnimation { duration: 300 } }
@@ -112,14 +112,14 @@ GlassPanel {
                     
                     contentItem: Text {
                         text: I18n.t.resume_mission
-                        color: "white"; font.bold: true; font.pixelSize: 11; font.letterSpacing: 1
+                        color: Theme.white; font.bold: true; font.pixelSize: 11; font.letterSpacing: 1
                         horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
                     }
                     
                     background: Rectangle {
                         radius: 8; color: root.accentColor
                         Rectangle {
-                            anchors.fill: parent; radius: 8; color: "white"; opacity: resumeBtn.pressed ? 0.2 : 0
+                            anchors.fill: parent; radius: 8; color: Theme.white; opacity: resumeBtn.pressed ? 0.2 : 0
                         }
                     }
                     
@@ -138,7 +138,7 @@ GlassPanel {
         anchors.fill: parent; radius: root.radius; z: -1
         gradient: Gradient {
             GradientStop { position: 0; color: root.accentColor }
-            GradientStop { position: 1; color: "transparent" }
+            GradientStop { position: 1; color: Theme.transparent }
         }
         opacity: root.hovered ? 0.1 : 0
         Behavior on opacity { NumberAnimation { duration: 400 } }

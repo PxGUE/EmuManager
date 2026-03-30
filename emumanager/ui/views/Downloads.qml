@@ -66,7 +66,7 @@ Item {
                 flat: true; font.bold: true; font.pixelSize: 11
                 Material.accent: Theme.accentColor
                 background: Rectangle {
-                    color: syncBtn.hovered ? Theme.accentColor + "11" : "transparent"
+                    color: syncBtn.hovered ? Theme.accentColor + "11" : Theme.transparent
                     border.color: Theme.accentColor; border.width: Theme.borderThin; radius: Theme.radiusMedium
                 }
                 enabled: !isAnyOperationRunning
@@ -120,7 +120,7 @@ Item {
                 // Barra de Progreso integrada (scan)
                 Rectangle {
                     anchors.bottom: parent.bottom; anchors.left: parent.left; anchors.right: parent.right
-                    height: 4; radius: 2; color: "transparent"; visible: isScanning
+                    height: 4; radius: 2; color: Theme.transparent; visible: isScanning
                     Rectangle {
                         width: parent.width * scanVal; height: parent.height; color: Theme.statusSuccess
                         Behavior on width { NumberAnimation { duration: 300 } }
@@ -169,7 +169,7 @@ Item {
                 // Barra de Progreso integrada (scrape)
                 Rectangle {
                     anchors.bottom: parent.bottom; anchors.left: parent.left; anchors.right: parent.right
-                    height: 4; radius: 2; color: "transparent"; visible: isScraping
+                    height: 4; radius: 2; color: Theme.transparent; visible: isScraping
                     Rectangle {
                         width: parent.width * scrapeVal; height: parent.height; color: Theme.statusWarning
                         Behavior on width { NumberAnimation { duration: 300 } }

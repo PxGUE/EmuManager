@@ -132,6 +132,7 @@ Item {
             "core_installed": "¡Core instalado!",
             "install_success": "✓ Instalación completada.",
             "install_failed": "Fallo en la orquestación.",
+            "install_error": "Fallo: %1",
             "initializing": "INICIALIZANDO...",
             "startup_native": "Activando motor nativo M.A.N.G.O (Rust)...",
             "startup_db": "Verificando integridad de la biblioteca...",
@@ -227,7 +228,9 @@ Item {
             "emu_rpcs3_fullname": "Emulador de PlayStation 3",
             "emu_rpcs3_desc": "Emulador experimental de código abierto que permite jugar títulos de PS3 en PC. Requiere hardware potente y el firmware original de Sony.",
             "emu_duckstation_fullname": "Emulador de PlayStation 1",
-            "emu_duckstation_desc": "Increíble emulador de PSX enfocado en la jugabilidad, velocidad y mantenibilidad a largo plazo. Incluye corrección de perspectiva de texturas."
+            "emu_duckstation_desc": "Increíble emulador de PSX enfocado en la jugabilidad, velocidad y mantenibilidad a largo plazo. Incluye corrección de perspectiva de texturas.",
+            "loading_dots": "Cargando...",
+            "emulators_dots": "Emuladores..."
         },
         "en": {
             // Main Navigation
@@ -330,6 +333,7 @@ Item {
             "core_installed": "Core installed!",
             "install_success": "✓ Installation completed.",
             "install_failed": "Orchestration failed.",
+            "install_error": "Failed: %1",
 
             // System Info Tech Keys
             "tech_active": "ACTIVE",
@@ -421,7 +425,9 @@ Item {
             "emu_rpcs3_fullname": "PlayStation 3 Emulator",
             "emu_rpcs3_desc": "Experimental open-source emulator that allows playing PS3 titles on PC. Requires powerful hardware and original Sony firmware.",
             "emu_duckstation_fullname": "PlayStation 1 Emulator",
-            "emu_duckstation_desc": "Incredible PSX emulator focused on playability, speed, and long-term maintainability. Includes texture perspective correction."
+            "emu_duckstation_desc": "Incredible PSX emulator focused on playability, speed, and long-term maintainability. Includes texture perspective correction.",
+            "loading_dots": "Loading...",
+            "emulators_dots": "Emulators..."
         }
     })
 }

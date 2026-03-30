@@ -118,7 +118,7 @@ Popup {
                             
                             background: Rectangle {
                                 color: {
-                                    if (model.isInstalled) return (actionBtn.hovered && actionBtn.enabled) ? Theme.danger + "33" : "transparent"
+                                    if (model.isInstalled) return (actionBtn.hovered && actionBtn.enabled) ? Theme.danger + "33" : Theme.transparent
                                     return (actionBtn.hovered && actionBtn.enabled) ? Theme.accentColor + "33" : Theme.accentColor
                                 }
                                 border.color: actionBtn.enabled ? (model.isInstalled ? Theme.danger : Theme.accentColor) : Theme.cardBorder

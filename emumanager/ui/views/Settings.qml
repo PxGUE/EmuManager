@@ -20,8 +20,8 @@ Item {
     
     property QtObject controller: mainController
 
-    property string currentRomsPath: "Cargando..."
-    property string currentEmulatorsPath: "Emuladores..."
+    property string currentRomsPath: I18n.t.loading_dots
+    property string currentEmulatorsPath: I18n.t.emulators_dots
     property int gamesCount: 0
     property int activeTab: 0
     property var systemInfo: ({})
@@ -62,8 +62,8 @@ Item {
                 model: navModel
                 delegate: Rectangle {
                     width: 220; height: 48; radius: Theme.radiusSmall
-                    color: activeTab === index ? Theme.controlBackground : "transparent"
-                    border.color: activeTab === index ? Theme.accentColor : "transparent"
+                    color: activeTab === index ? Theme.controlBackground : Theme.transparent
+                    border.color: activeTab === index ? Theme.accentColor : Theme.transparent
                     border.width: activeTab === index ? 1 : 0
                     Row {
                         anchors.fill: parent; anchors.margins: 12; spacing: 15
@@ -226,10 +226,10 @@ Item {
                     
                     Item {
                         Layout.alignment: Qt.AlignHCenter; width: 120; height: 120
-                        Rectangle { anchors.centerIn: parent; width: 100; height: 100; radius: 50; color: "transparent"; border.color: Theme.accentElectric; border.width: 1.5; opacity: 0.2 }
+                        Rectangle { anchors.centerIn: parent; width: 100; height: 100; radius: 50; color: Theme.transparent; border.color: Theme.accentElectric; border.width: 1.5; opacity: 0.2 }
                         Rectangle {
                             anchors.centerIn: parent; width: 110; height: 110; radius: 18
-                            color: "transparent"; border.color: Theme.accentElectric; border.width: 1.5; opacity: 0.1
+                            color: Theme.transparent; border.color: Theme.accentElectric; border.width: 1.5; opacity: 0.1
                             RotationAnimation on rotation { from: 0; to: 360; duration: 15000; loops: Animation.Infinite }
                         }
                         Image { 
@@ -263,14 +263,14 @@ Item {
                     
                     // GitHub Link
                     Rectangle {
-                        width: 160; height: 40; radius: 20; color: "transparent"; border.color: Qt.alpha(Theme.accentElectric, 0.3); border.width: 1
+                        width: 160; height: 40; radius: 20; color: Theme.transparent; border.color: Qt.alpha(Theme.accentElectric, 0.3); border.width: 1
                         Text { anchors.centerIn: parent; text: I18n.t.btn_source_code; color: Theme.accentElectric; font.pixelSize: 9; font.bold: true; font.letterSpacing: 2 }
                         MouseArea { anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onEntered: parent.opacity = 1.0; onExited: parent.opacity = 0.6; onClicked: Qt.openUrlExternally("https://github.com/PxGUE/EmuManager") }
                     }
 
                     // Engine Link
                     Rectangle {
-                        width: 160; height: 40; radius: 20; color: "transparent"; border.color: Qt.alpha(Theme.accentElectric, 0.3); border.width: 1
+                        width: 160; height: 40; radius: 20; color: Theme.transparent; border.color: Qt.alpha(Theme.accentElectric, 0.3); border.width: 1
                         Text { anchors.centerIn: parent; text: I18n.t.btn_mango_core; color: Theme.accentElectric; font.pixelSize: 9; font.bold: true; font.letterSpacing: 2 }
                         MouseArea { anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onEntered: parent.opacity = 1.0; onExited: parent.opacity = 0.6; onClicked: Qt.openUrlExternally("https://github.com/PxGUE/mango") }
                     }

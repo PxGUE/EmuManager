@@ -56,7 +56,7 @@ Item {
             gradient: Gradient {
                 orientation: Gradient.Vertical
                 GradientStop { position: 0.0; color: resolvedAccent }
-                GradientStop { position: 0.4; color: "transparent" }
+                GradientStop { position: 0.4; color: Theme.transparent }
             }
         }
     }

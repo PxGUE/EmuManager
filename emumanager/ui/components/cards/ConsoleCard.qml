@@ -165,7 +165,7 @@ Item {
                 // Botón Acción Rápida (Estilo HUD)
                 Rectangle {
                     Layout.fillWidth: true; height: 48; radius: Theme.radiusSmall
-                    color: isFocused ? Qt.rgba(resolvedAccent.r, resolvedAccent.g, resolvedAccent.b, 0.2) : "transparent"
+                    color: isFocused ? Qt.rgba(resolvedAccent.r, resolvedAccent.g, resolvedAccent.b, 0.2) : Theme.transparent
                     border.color: resolvedAccent; border.width: 1
                     
                     Text {

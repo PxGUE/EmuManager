@@ -1,9 +1,43 @@
 import sys
 import os
 import time
+import requests
 from pathlib import Path
 from PySide6.QtCore import QObject, Slot, Signal
 from core.logger import EmuLog
+
+class UpdateWorker(QObject):
+    """Verifica actualizaciones consolidadas (App + Emuladores) vía M.A.N.G.O."""
+    finished = Signal(list)
+    error = Signal(str)
+
+    def __init__(self, current_version: str, targets: dict = None):
+        super().__init__()
+        self.current_version = current_version
+        self.targets = targets or {}
+
+    @Slot()
+    def run(self):
+        try:
+            from core.config import AppConfig
+            if AppConfig.IS_DEV_MODE:
+                EmuLog.info("M.A.N.G.O Sync: Modo Desarrollo Detectado. Saltando comprobación nativa.")
+                time.sleep(0.5)
+                self.finished.emit([]) # No hay actualizaciones en modo dev
+                return
+
+            import mango_engine
+            EmuLog.debug(f"Iniciando sincronización nativa para {len(self.targets)} objetivos...")
+            
+            # Llamada al motor Rust (Tokio paralelo)
+            results = mango_engine.check_all_updates(self.targets)
+            
+            EmuLog.info(f"Sincronización finalizada. {len(results)} actualizaciones detectadas.")
+            self.finished.emit(results)
+            
+        except Exception as e:
+            EmuLog.error(f"Fallo en motor de sincronización nativo: {e}")
+            self.error.emit(str(e))
 
 class ScanWorker(QObject):
     """Trabajador que ejecuta el escaneo en un hilo separado."""
@@ -59,7 +93,6 @@ class ScrapeWorker(QObject):
                 if s: self.status.emit(s)
 
             count = self.scanner.scrape_missing_metadata(
-                self._is_active, 
                 progress_callback=_handle_progress,
                 status_callback=self.status.emit
             )
@@ -123,6 +156,7 @@ class EmulatorInstallWorker(QObject):
             def progress_cb(p: float):
                 self.progress.emit(self.emu_id, p)
             def status_cb(s: str):
+                EmuLog.debug(f"M.A.N.G.O Orchestra ({self.emu_id}): {s}")
                 self.status.emit(self.emu_id, s)
             
             EmuLog.info(f"M.A.N.G.O Orchestra: Instalando '{self.emu_id}' (System: {self.system_id or 'N/A'})")
@@ -210,6 +244,31 @@ class StartupWorker(QObject):
 
 
 # EmulatorUpdateWorker ELIMINADO: La lógica está unificada en EmulatorInstallWorker (Orchestra).
+
+
+class EmulatorUninstallWorker(QObject):
+    """Trabajador para desinstalar emuladores en segundo plano."""
+    finished = Signal(str, bool)
+
+    def __init__(self, emu_id: str, dest_dir: str):
+        super().__init__()
+        self.emu_id = emu_id
+        self.dest_dir = dest_dir
+
+    @Slot()
+    def run(self):
+        try:
+            import mango_engine
+            EmuLog.info(f"M.A.N.G.O Orchestra: Iniciando desinstalación nativa de {self.emu_id}...")
+            
+            # Delegar al motor Rust
+            mango_engine.uninstall_emulator(self.dest_dir)
+            
+            EmuLog.info(f"✓ {self.emu_id} desinstalado con éxito (Motor M.A.N.G.O).")
+            self.finished.emit(self.emu_id, True)
+        except Exception as e:
+            EmuLog.error(f"Fallo en motor M.A.N.G.O durante desinstalación de {self.emu_id}: {e}")
+            self.finished.emit(self.emu_id, False)
 
 
 class LaunchWorker(QObject):

@@ -132,6 +132,13 @@ QtObject {
     readonly property color platGbc: "#C51C5B"
     readonly property color platUnknown: "#95A5A6"
 
+    readonly property color emuRetroArch: "#3498DB"
+    readonly property color emuDolphin: "#00E5FF"
+    readonly property color emuPPSSPP: "#00AAFF"
+    readonly property color emuPCSX2: "#3498DB"
+    readonly property color emuRPCS3: "#E74C3C"
+    readonly property color emuDuckStation: "#F1C40F"
+
     /**
      * Motor de resolución de color infalible (Static Map para evitar errores de ámbito JS)
      * No recursivo para evitar StackOverflow.
@@ -159,7 +166,13 @@ QtObject {
             "platDreamcast": theme.platDreamcast,
             "platGb": theme.platGb,
             "platGbc": theme.platGbc,
-            "accentColor": theme.accentColor
+            "accentColor": theme.accentColor,
+            "emuRetroArch": theme.emuRetroArch,
+            "emuDolphin": theme.emuDolphin,
+            "emuPPSSPP": theme.emuPPSSPP,
+            "emuPCSX2": theme.emuPCSX2,
+            "emuRPCS3": theme.emuRPCS3,
+            "emuDuckStation": theme.emuDuckStation
         };
 
         // Si la clave 'c' existe en el mapa, devolverla

@@ -74,6 +74,25 @@ Item {
             visible: sourceImage !== ""
         }
 
+        // PLACEHOLDER: Mensaje amigable si no hay imagen (Scraping en curso)
+        Column {
+            anchors.centerIn: parent; width: parent.width * 0.8
+            spacing: Theme.spaceSmall; visible: sourceImage === ""
+            z: 3
+            
+            Text {
+                text: "✨"; font.pixelSize: 32; anchors.horizontalCenter: parent.horizontalCenter
+                opacity: 0.5
+            }
+            Text {
+                text: I18n.t.scrape_friendly
+                color: Theme.textMuted; font.pixelSize: 8 // Muy pequeño para que quepa en la caja
+                horizontalAlignment: Text.AlignHCenter; width: parent.width
+                wrapMode: Text.WordWrap; font.letterSpacing: 1
+                lineHeight: 1.2
+            }
+        }
+
         // CARA LATERAL (Lomo / Spine) - Simulada con un rectángulo sombreado
         Rectangle {
             id: spine

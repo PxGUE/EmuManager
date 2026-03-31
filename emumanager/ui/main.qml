@@ -28,6 +28,14 @@ ApplicationWindow {
         function onStartupProgressChanged(p) { window.startupProgress = p }
         function onStartupStatusChanged(s) { window.startupStatus = I18n.tp(s) }
         function onStartupFinished() { window.isLoaded = true }
+        
+        // --- MOTOR DE NOTIFICACIONES SYNC ---
+        function onNotificationRequested(title, message, type) {
+            var color = Theme.statusInfo
+            if (type === "success") color = Theme.statusSuccess
+            else if (type === "error") color = Theme.statusDanger
+            window.pushNotification(title, "M.A.N.G.O Sync", message, color)
+        }
     }
 
     Component.onCompleted: {

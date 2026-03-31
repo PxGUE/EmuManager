@@ -7,6 +7,7 @@
             "description": "emu_retroarch_desc",
             "icon": "📦",
             "accent": "emuRetroArch",
+            "github_repo": "libretro/RetroArch",
             "orchestration": {
                 "linux": { "type": "flatpak", "id": "org.libretro.RetroArch" },
                 "portable": {
@@ -26,6 +27,7 @@
             "description": "emu_dolphin_desc",
             "icon": "🐬",
             "accent": "emuDolphin",
+            "github_repo": "dolphin-emu/dolphin",
             "orchestration": {
                 "linux": { "type": "flatpak", "id": "org.DolphinEmu.dolphin-emu" },
                 "portable": {
@@ -45,6 +47,7 @@
             "description": "emu_ppsspp_desc",
             "icon": "🌀",
             "accent": "emuPPSSPP",
+            "github_repo": "hrydgard/ppsspp",
             "orchestration": {
                 "linux": { "type": "flatpak", "id": "org.ppsspp.PPSSPP" },
                 "portable": {
@@ -64,6 +67,7 @@
             "description": "emu_pcsx2_desc",
             "icon": "🎮",
             "accent": "emuPCSX2",
+            "github_repo": "PCSX2/pcsx2",
             "orchestration": {
                 "linux": { "type": "flatpak", "id": "net.pcsx2.PCSX2" },
                 "portable": {
@@ -83,6 +87,7 @@
             "description": "emu_rpcs3_desc",
             "icon": "🕹️",
             "accent": "emuRPCS3",
+            "github_repo": "RPCS3/rpcs3",
             "orchestration": {
                 "linux": { "type": "flatpak", "id": "net.rpcs3.RPCS3" },
                 "portable": {
@@ -102,6 +107,7 @@
             "description": "emu_duckstation_desc",
             "icon": "🦆",
             "accent": "emuDuckStation",
+            "github_repo": "stenzek/duckstation",
             "orchestration": {
                 "linux": { "type": "flatpak", "id": "org.duckstation.DuckStation" },
                 "portable": {

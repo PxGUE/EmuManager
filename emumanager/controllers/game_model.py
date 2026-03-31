@@ -66,6 +66,13 @@ class GameListModel(QAbstractListModel):
         if role == self.PlatformRole: return game["platform"]
         if role == self.Cover2dRole: 
             p = game.get("cover_2d_path", "") or ""
+            if p:
+                # --- SISTEMA DE MINIATURAS NATIVAS M.A.N.G.O ---
+                # Si existe una versión 256w en .cache, la usamos para fluidez total
+                import os
+                thumb = p.replace("covers/2d", ".cache/thumbs/256w")
+                if os.path.exists(thumb):
+                    return thumb.replace("\\", "/")
             return p.replace("\\", "/")
         if role == self.Cover3dRole: 
             p = game.get("cover_3d_path", "") or ""

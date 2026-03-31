@@ -5,7 +5,13 @@ use std::fs;
 use std::io::Write;
 use serde_json::Value;
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+pub mod screenscraper;
+pub mod libretro;
+pub mod local_nfo;
+
+use async_trait::async_trait;
+
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct ScrapedMetadata {
     pub title: Option<String>,
     pub developer: Option<String>,
@@ -17,8 +23,25 @@ pub struct ScrapedMetadata {
     pub cover_3d_path: Option<String>,
 }
 
-pub mod screenscraper;
-pub mod libretro;
+#[derive(Clone)]
+pub struct ScrapeQuery {
+    pub md5: String,
+    pub crc: String,
+    pub filename: String,
+    pub platform: String,
+    pub system_id: String,
+    pub media_dir: String,
+    pub ss_user: String,
+    pub ss_pass: String,
+    pub dev_id: String,
+    pub dev_pass: String,
+}
+
+#[async_trait]
+pub trait MetadataSource: Send + Sync {
+    fn name(&self) -> &'static str;
+    async fn scrape(&self, query: &ScrapeQuery) -> Option<ScrapedMetadata>;
+}
 
 pub fn extract_single(jeu: &Value, key: &str) -> Option<String> {
     jeu.get(key).and_then(|v| v.get("text")).and_then(|t| t.as_str()).map(|s| s.to_string())

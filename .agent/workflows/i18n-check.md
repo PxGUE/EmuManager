@@ -10,11 +10,11 @@ Este flujo asegura que todo el texto de la interfaz esté centralizado en `I18n.
 
 2. **Ejecutar Escaneo en QML:**
 // turbo
-   - Ejecutar: `rg -g "*.qml" "\"[^\"].*\"" f:/00_CHRISTIAN/00_PROJECTS/EmuManager/emumanager/ui` (Filtrando falsos positivos manualmente después).
+   - Ejecutar: `rg -g "*.qml" "\"[^\"].*\"" f:/00_CHRISTIAN/00_PROJECTS/EmuManager/emumanager/ui | grep -v "EmuLog" | grep -v "print("` (Filtrando falsos positivos manualmente después).
 
 3. **Ejecutar Escaneo en Python:**
 // turbo
-   - Ejecutar: `rg -g "*.py" "\"[^\"].*\"" f:/00_CHRISTIAN/00_PROJECTS/EmuManager/emumanager/controllers`
+   - Ejecutar: `rg -g "*.py" "\"[^\"].*\"" f:/00_CHRISTIAN/00_PROJECTS/EmuManager/emumanager/controllers | grep -v "EmuLog" | grep -v "print("`
 
 4. **Reporte:**
    Listar las líneas sospechosas para que el desarrollador las mueva a `I18n.qml`.

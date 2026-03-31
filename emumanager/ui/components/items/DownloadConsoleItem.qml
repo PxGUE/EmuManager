@@ -15,7 +15,7 @@ Rectangle {
     property string description: ""
     property string icon: "📦"
     property var accent: Theme.accentColor
-    readonly property color resolvedAccent: (typeof accent === "string" && Theme[accent] !== undefined) ? Theme[accent] : accent
+    readonly property color resolvedAccent: Theme.resolveColor(accent)
     property string downloadUrl: ""
     property string executable: ""
     property bool isInstalled: false
@@ -24,14 +24,18 @@ Rectangle {
     // Propiedades de Estado (Vinculadas al Controller)
     property real progress: 0.0
     property string statusText: ""
-    property bool isInstalling: progress > 0 && progress < 1.0
+    property bool activeOrchestration: {
+        if (progress > 0 && progress < 1.0) return true;
+        var activeKeys = ["emu_status_connecting", "emu_status_downloading", "emu_status_extracting", "emu_status_configuring", "emu_status_uninstalling"];
+        return activeKeys.indexOf(statusText) !== -1;
+    }
     
     signal configClicked()
 
     radius: Theme.radiusMedium
     color: Theme.cardBackground
-    border.color: (isInstalling || isInstalled) ? resolvedAccent : Theme.controlBackground
-    border.width: isInstalling ? Theme.borderThick : Theme.borderThin
+    border.color: (activeOrchestration || isInstalled) ? resolvedAccent : Theme.controlBackground
+    border.width: activeOrchestration ? Theme.borderThick : Theme.borderThin
     clip: true
 
     // Glossy Overlay sutil
@@ -57,10 +61,10 @@ Rectangle {
             Text {
                 anchors.centerIn: parent
                 text: root.icon; font.pixelSize: Theme.fontDisplay
-                opacity: isInstalled || isInstalling ? 1.0 : 0.3
+                opacity: isInstalled || activeOrchestration ? 1.0 : 0.3
             }
             
-            layer.enabled: isInstalled || isInstalling
+            layer.enabled: isInstalled || activeOrchestration
             layer.effect: DropShadow {
                 transparentBorder: true
                 color: Qt.rgba(resolvedAccent.r, resolvedAccent.g, resolvedAccent.b, 0.4)
@@ -91,11 +95,11 @@ Rectangle {
             Rectangle {
                 Layout.topMargin: 5
                 implicitWidth: badgeText.width + 16; implicitHeight: 20; radius: Theme.radiusSmall
-                color: isInstalling ? Theme.accentColor + "20" : (isInstalled ? Theme.panelBackground : Theme.cardBorder)
+                color: activeOrchestration ? Theme.accentColor + "22" : (isInstalled ? Theme.panelBackground : Theme.cardBorder)
                 Text {
                     id: badgeText; anchors.centerIn: parent
-                    text: isInstalling ? (I18n.tp(root.statusText) || I18n.t.status_processing) : I18n.tp(root.statusText)
-                    color: isInstalling ? Theme.accentColor : (isInstalled ? Theme.textMain : Theme.textMuted)
+                    text: activeOrchestration ? (I18n.tp(root.statusText) || I18n.t.status_processing) : I18n.tp(root.statusText)
+                    color: activeOrchestration ? Theme.accentColor : (isInstalled ? Theme.textMain : Theme.textMuted)
                     font.pixelSize: Theme.fontMicro; font.bold: true; font.letterSpacing: 1
                 }
             }
@@ -103,63 +107,81 @@ Rectangle {
 
         // 3. Panel de Acciones (Derecha)
         ColumnLayout {
-            Layout.preferredWidth: 150; spacing: 8
+            Layout.preferredWidth: 160; spacing: 10
             
             // Barra de Progreso Minimalista con Texto de Estado
             ColumnLayout {
-                Layout.fillWidth: true; spacing: 4
-                visible: isInstalling
+                Layout.fillWidth: true; spacing: 8
+                visible: activeOrchestration
                 
                 Text {
-                    text: I18n.tp(root.statusText)
-                    color: resolvedAccent; font.pixelSize: Theme.fontSmall; font.bold: true; font.letterSpacing: 2
+                    text: I18n.tp(root.statusText).toUpperCase()
+                    color: Theme.textAccent; font.pixelSize: Theme.fontMicro; font.bold: true; font.letterSpacing: 1.5
+                    opacity: 0.9
                 }
                 
+                // Barra de Progreso Cálida (Warm/Glass)
                 Rectangle {
-                    Layout.fillWidth: true; height: 3; radius: 1.5; color: Theme.divider
+                    id: progressBarBg
+                    Layout.fillWidth: true; height: 8; radius: 4; color: Theme.transparent; clip: true
+                    
+                    // Capa de fondo traslúcida con pulsación sutil
                     Rectangle {
-                        width: parent.width * progress; height: parent.height; color: resolvedAccent; radius: 1.5
-                        Behavior on width { NumberAnimation { duration: 300 } }
+                        anchors.fill: parent; radius: 4; color: Theme.white
+                        opacity: activeOrchestration ? (progress > 0 ? 0.15 : 0.1) : 0.08
+                        
+                        SequentialAnimation on opacity {
+                            running: activeOrchestration && progress == 0
+                            loops: Animation.Infinite
+                            NumberAnimation { from: 0.15; to: 0.05; duration: 1000 }
+                            NumberAnimation { from: 0.05; to: 0.15; duration: 1000 }
+                        }
+                    }
+                    
+                    // Barra Propiamente Dicha (Progreso)
+                    Rectangle {
+                        id: progressBarFill
+                        width: Math.max(progressBarBg.width * progress, activeOrchestration ? 24 : 0)
+                        height: parent.height; color: resolvedAccent; radius: 4
+                        Behavior on width { NumberAnimation { duration: 450; easing.type: Easing.OutCubic } }
                     }
                 }
             }
 
             Button {
                 id: mainActionBtn
-                Layout.fillWidth: true; Layout.preferredHeight: 36
-                flat: true
+                Layout.fillWidth: true; Layout.preferredHeight: 38
+                flat: true; enabled: !activeOrchestration
                 
                 // Lógica de 4 Estados
                 property string btnText: {
-                    if (isInstalling) return I18n.t.status_processing
+                    if (activeOrchestration) return I18n.t.status_processing
                     if (!isInstalled) return I18n.t.btn_install
                     if (hasUpdate) return I18n.t.btn_update
                     return I18n.t.btn_uninstall
                 }
                 
                 property color btnColor: {
-                    if (isInstalling) return Theme.textMuted
+                    if (activeOrchestration) return Theme.textMuted
                     if (!isInstalled) return Theme.accentColor
                     if (hasUpdate) return Theme.accentColor
-                    return Theme.danger // Preserve red for uninstall
+                    return Theme.danger
                 }
 
                 contentItem: Text {
                     text: mainActionBtn.btnText
                     color: Theme.textMain; font.pixelSize: Theme.fontBody; font.bold: true
                     horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
+                    opacity: mainActionBtn.enabled ? 1.0 : 0.5
                 }
 
                 background: Rectangle {
-                    color: (mainActionBtn.hovered && mainActionBtn.enabled) ? mainActionBtn.btnColor + "22" : Theme.transparent
+                    color: (mainActionBtn.hovered && mainActionBtn.enabled) ? mainActionBtn.btnColor + "33" : Theme.transparent
                     border.color: mainActionBtn.enabled ? mainActionBtn.btnColor : Theme.controlBorder
                     border.width: Theme.borderThin; radius: Theme.radiusSmall
-                    opacity: mainActionBtn.enabled ? 1.0 : 0.3
                 }
 
                 onClicked: {
-                    if (isInstalling) return
-                    
                     if (!isInstalled) {
                         mainController.install_emulator(root.emuId, root.downloadUrl, root.executable)
                     } else if (hasUpdate) {

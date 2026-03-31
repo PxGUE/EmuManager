@@ -52,7 +52,9 @@ pub async fn download_core_async(core_name: String, dest_dir: String, progress_c
     if !dp.exists() { fs::create_dir_all(&dp)?; }
     let zip_p = dp.join(format!("{}{}", core_name, ext));
     
-    if let Some(ref scb) = status_callback { Python::with_gil(|py| { let _ = scb.call1(py, ("CONECTANDO...",)); }); }
+    mango_info!("Orchestra: Iniciando descarga de núcleo '{}'", core_name);
+    if let Some(ref scb) = status_callback { Python::with_gil(|py| { let _ = scb.call1(py, ("emu_status_connecting",)); }); }
+    
     let res = client.get(&url).send().await?;
     let total = res.content_length().unwrap_or(0);
     let mut file = File::create(&zip_p)?;
@@ -60,7 +62,7 @@ pub async fn download_core_async(core_name: String, dest_dir: String, progress_c
     let mut s = res.bytes_stream();
     let mut lp = -0.1;
     
-    if let Some(ref scb) = status_callback { Python::with_gil(|py| { let _ = scb.call1(py, ("DESCARGANDO...",)); }); }
+    if let Some(ref scb) = status_callback { Python::with_gil(|py| { let _ = scb.call1(py, ("emu_status_downloading",)); }); }
     while let Some(chunk) = s.next().await {
         let chunk = chunk?;
         file.write_all(&chunk)?;
@@ -73,7 +75,8 @@ pub async fn download_core_async(core_name: String, dest_dir: String, progress_c
         }
     }
     
-    if let Some(ref scb) = status_callback { Python::with_gil(|py| { let _ = scb.call1(py, ("EXTRAYENDO...",)); }); }
+    mango_info!("Orchestra: Extrayendo núcleo '{}'...", core_name);
+    if let Some(ref scb) = status_callback { Python::with_gil(|py| { let _ = scb.call1(py, ("emu_status_extracting",)); }); }
     let zf = File::open(&zip_p)?;
     let mut arc = ZipArchive::new(zf)?;
     let tf = arc.len();
@@ -105,20 +108,27 @@ pub async fn download_core_async(core_name: String, dest_dir: String, progress_c
         }
     }
     
-    if let Some(ref scb) = status_callback { Python::with_gil(|py| { let _ = scb.call1(py, ("INSTALADO",)); }); }
+    if let Some(ref scb) = status_callback { Python::with_gil(|py| { let _ = scb.call1(py, ("emu_status_installed",)); }); }
     if let Some(ref cb) = progress_callback { Python::with_gil(|py| { let _ = cb.call1(py, (1.0,)); }); }
+    mango_info!("Orchestra: Núcleo '{}' instalado con éxito.", core_name);
     Ok(ext_p)
 }
 
 /// Descarga e instala un emulador con PROGRESO MULTI-FASE REAL
 pub async fn download_emulator_async(url: String, dest_dir: String, expected_filename: String, progress_callback: Option<Py<PyAny>>, status_callback: Option<Py<PyAny>>) -> Result<String, anyhow::Error> {
-    let client = Client::new();
+    let client = Client::builder()
+        .user_agent("EmuManager/M.A.N.G.O")
+        .connect_timeout(std::time::Duration::from_secs(20))
+        .timeout(std::time::Duration::from_secs(1200)) // 20 min para archivos grandes
+        .build()?;
     let dp = Path::new(&dest_dir);
     if !dp.exists() { fs::create_dir_all(&dp)?; }
     let tmp = url.split('/').last().unwrap_or("dl.tmp");
     let dl_p = dp.join(tmp);
     
-    if let Some(ref scb) = status_callback { Python::with_gil(|py| { let _ = scb.call1(py, ("DESCARGANDO...",)); }); }
+    mango_info!("Orchestra: Iniciando misión para emulador '{}'", expected_filename);
+    if let Some(ref scb) = status_callback { Python::with_gil(|py| { let _ = scb.call1(py, ("emu_status_connecting",)); }); }
+    
     let res = client.get(&url).send().await?;
     let total = res.content_length().unwrap_or(0);
     let mut file = File::create(&dl_p)?;
@@ -126,6 +136,7 @@ pub async fn download_emulator_async(url: String, dest_dir: String, expected_fil
     let mut s = res.bytes_stream();
     let mut lp = -0.1;
 
+    if let Some(ref scb) = status_callback { Python::with_gil(|py| { let _ = scb.call1(py, ("emu_status_downloading",)); }); }
     while let Some(chunk) = s.next().await {
         let chunk = chunk?;
         file.write_all(&chunk)?;
@@ -138,7 +149,9 @@ pub async fn download_emulator_async(url: String, dest_dir: String, expected_fil
         }
     }
 
-    if let Some(ref scb) = status_callback { Python::with_gil(|py| { let _ = scb.call1(py, ("EXTRAYENDO...",)); }); }
+    mango_info!("Orchestra: Extrayendo archivos del emulador...");
+    if let Some(ref scb) = status_callback { Python::with_gil(|py| { let _ = scb.call1(py, ("emu_status_extracting",)); }); }
+    
     let ext = tmp.to_lowercase();
     if ext.ends_with(".zip") {
         let zf = File::open(&dl_p)?;
@@ -159,6 +172,7 @@ pub async fn download_emulator_async(url: String, dest_dir: String, expected_fil
         }
     } else if ext.ends_with(".7z") {
         if let Some(ref cb) = progress_callback { Python::with_gil(|py| { let _ = cb.call1(py, (0.85,)); }); }
+        // Nota:sevenz_rust::decompress_file es sincrónica, el hilo se bloqueará aquí hasta completar.
         sevenz_rust::decompress_file(&dl_p, dp)?;
     } else {
         fs::rename(&dl_p, dp.join(&expected_filename))?;
@@ -189,20 +203,14 @@ pub async fn download_emulator_async(url: String, dest_dir: String, expected_fil
         if is_retroarch {
             let exe_dir = exe_path.parent().unwrap();
             
-            // Log de depuración via status (se verá en EmuLog de Python)
+            mango_info!("Orchestra: RetroArch detectado. Generando configuración maestra (Portable)...");
             if let Some(ref scb) = status_callback { 
-                let msg = format!("CONFIGURANDO EN {:?}", exe_dir.file_name().unwrap_or_default());
-                Python::with_gil(|py| { let _ = scb.call1(py, (msg,)); }); 
+                Python::with_gil(|py| { let _ = scb.call1(py, ("emu_status_configuring",)); }); 
             }
             
             let mut cfg_content = String::new();
-            
-            // Calculamos cuántos niveles subir hasta 'data/emulators/' y luego entrar en 'cores'
-            // dp es 'retroarch/', exe_dir puede ser 'retroarch/' o 'retroarch/RetroArch-Win64/'
             let mut relative_parts = String::from(":\\..");
-            if exe_dir != dp {
-                relative_parts.push_str("\\..");
-            }
+            if exe_dir != dp { relative_parts.push_str("\\.."); }
             relative_parts.push_str("\\cores");
 
             cfg_content.push_str(&format!("libretro_directory = \"{}\"\n", relative_parts));
@@ -214,13 +222,11 @@ pub async fn download_emulator_async(url: String, dest_dir: String, expected_fil
             cfg_content.push_str("menu_driver = \"xmb\"\n");
             cfg_content.push_str("menu_show_advanced_settings = \"true\"\n");
             
-            // Forzar creación de rutas
             let _ = fs::create_dir_all(exe_dir.join("cores"));
             let _ = fs::create_dir_all(exe_dir.join("system"));
             let _ = fs::create_dir_all(exe_dir.join("saves"));
             let _ = fs::create_dir_all(exe_dir.join("states"));
 
-            // Escribir archivo con gestión de resultados
             let cfg_path = exe_dir.join("retroarch.cfg");
             let _ = fs::write(&cfg_path, cfg_content);
         }
@@ -241,8 +247,9 @@ pub async fn download_emulator_async(url: String, dest_dir: String, expected_fil
         }
     }
 
-    if let Some(ref scb) = status_callback { Python::with_gil(|py| { let _ = scb.call1(py, ("INSTALADO",)); }); }
+    if let Some(ref scb) = status_callback { Python::with_gil(|py| { let _ = scb.call1(py, ("emu_status_installed",)); }); }
     if let Some(ref cb) = progress_callback { Python::with_gil(|py| { let _ = cb.call1(py, (1.0,)); }); }
+    mango_info!("Orchestra: Emulador '{}' listo en {}", expected_filename, return_path);
     Ok(return_path)
 }
 

@@ -1,5 +1,5 @@
 pub mod scrapers;
-pub use scrapers::ScrapedMetadata;
+pub use scrapers::{ScrapedMetadata, ScrapeQuery, MetadataSource};
 
 pub async fn scrape_game(
     md5: &str,
@@ -12,47 +12,58 @@ pub async fn scrape_game(
     dev_id: &str,
     dev_pass: &str,
     media_dir_base: &str,
-    interrupt_flag: &std::sync::atomic::AtomicBool,
     skip_ss: bool,
 ) -> Option<ScrapedMetadata> {
-    let mut meta = None;
+    let query = ScrapeQuery {
+        md5: md5.to_string(),
+        crc: crc.to_string(),
+        filename: filename.to_string(),
+        platform: platform.to_string(),
+        system_id: system_id.to_string(),
+        media_dir: media_dir_base.to_string(),
+        ss_user: ss_id.to_string(),
+        ss_pass: ss_pass.to_string(),
+        dev_id: dev_id.to_string(),
+        dev_pass: dev_pass.to_string(),
+    };
 
-    // 1. Intentar con ScreenScraper (Metadatos + Portadas) si no está desactivado
+    let mut sources: Vec<Box<dyn MetadataSource>> = Vec::new();
+    
+    // Prioridad 1: Local (Sostenibilidad Local-First)
+    sources.push(Box::new(scrapers::local_nfo::LocalNfoSource));
+
+    // Prioridad 2: ScreenScraper (Metadatos completos)
     if !skip_ss {
-        meta = scrapers::screenscraper::scrape_game(
-            md5, crc, filename, system_id, ss_id, ss_pass, dev_id, dev_pass, media_dir_base, interrupt_flag
-        ).await;
+        sources.push(Box::new(scrapers::screenscraper::ScreenScraperSource));
+    }
+    
+    // Prioridad 3: Libretro (Rescate ante fallos)
+    sources.push(Box::new(scrapers::libretro::LibretroSource));
 
-        if let Some(ref m) = meta {
-            if m.cover_2d_path.is_some() || m.cover_3d_path.is_some() {
-                return meta;
+    let mut final_meta = ScrapedMetadata::default();
+    let mut metadata_found = false;
+
+    for source in sources {
+        if let Some(meta) = source.scrape(&query).await {
+            // Mezcla inteligente de metadatos (llenar huecos)
+            if final_meta.title.is_none() { final_meta.title = meta.title; }
+            if final_meta.developer.is_none() { final_meta.developer = meta.developer; }
+            if final_meta.publisher.is_none() { final_meta.publisher = meta.publisher; }
+            if final_meta.release_date.is_none() { final_meta.release_date = meta.release_date; }
+            if final_meta.genre.is_none() { final_meta.genre = meta.genre; }
+            if final_meta.description.is_none() { final_meta.description = meta.description; }
+            if final_meta.cover_2d_path.is_none() { final_meta.cover_2d_path = meta.cover_2d_path; }
+            if final_meta.cover_3d_path.is_none() { final_meta.cover_3d_path = meta.cover_3d_path; }
+            
+            metadata_found = true;
+            
+            // Si ya tenemos lo crítico (Título + Portada 2D), podemos considerar éxito
+            // No obstante, seguimos iterando si faltan datos como la descripción
+            if final_meta.cover_2d_path.is_some() && final_meta.description.is_some() {
+                break;
             }
         }
-
-        // Trazado de Fallback
-        pyo3::Python::with_gil(|py| {
-            crate::scraping::batch_scraper::log_to_python(py, "debug", &format!(
-                "[MANGO] ScreenScraper sin medios. Activando Protocolo de Rescate (Libretro) para: '{}'", 
-                filename
-            ));
-        });
-    } else {
-        pyo3::Python::with_gil(|py| {
-            crate::scraping::batch_scraper::log_to_python(py, "info", &format!(
-                "[MANGO] Saltando ScreenScraper (Modo Rescate Activo) para: '{}'", 
-                filename
-            ));
-        });
     }
 
-    // 2. Si ScreenScraper falla o no tiene carátula, Fallback a Libretro Thumbnails
-    if let Some(libretro_meta) = scrapers::libretro::scrape_game(filename, platform, media_dir_base, interrupt_flag).await {
-        if let Some(mut existing) = meta {
-            existing.cover_2d_path = libretro_meta.cover_2d_path;
-            return Some(existing);
-        }
-        return Some(libretro_meta);
-    }
-
-    meta
+    if metadata_found { Some(final_meta) } else { None }
 }

@@ -92,11 +92,10 @@ class ScannerManager:
         EmuLog.info(f"Escaneo finalizado. {new_games_count} juegos nuevos registrados.")
         return new_games_count
 
-    def scrape_missing_metadata(self, interrupt_flag, progress_callback: Optional[Callable[[float], None]] = None, status_callback: Optional[Callable[[str], None]] = None):
+    def scrape_missing_metadata(self, progress_callback: Optional[Callable[[float], None]] = None, status_callback: Optional[Callable[[str], None]] = None):
         """
         Busca metadatos y portadas (2D/3D) para las ROMs que aún no tengan.
         Usa el motor M.A.N.G.O para peticiones de ultra-baja latencia.
-        Delegate native interruption to Rust via 'interrupt_flag'.
         """
         if not mango_engine:
             EmuLog.error("El motor M.A.N.G.O. no está disponible para el scraping.")
@@ -110,17 +109,12 @@ class ScannerManager:
         if not roms_path:
             return 0
             
-        # El búnker de datos oficial de EmuManager: Proyecto / data / media
-        project_root = Path(__file__).parent.parent.parent # f:/.../EmuManager
+        project_root = Path(__file__).parent.parent.parent
         media_base = str(project_root / "data" / "media")
         
         if status_callback: status_callback("scrape_starting")
         
         try:
-            def _interrupt_check():
-                return interrupt_flag() if callable(interrupt_flag) else bool(interrupt_flag)
-                
-            # Extraer claves de desarrollador SECRETAS de entorno (Cargadas de .env en app.py)
             import os
             dev_id = os.getenv("SS_DEV_ID", "")
             dev_pass = os.getenv("SS_DEV_PASS", "")
@@ -132,8 +126,7 @@ class ScannerManager:
                 dev_id,
                 dev_pass,
                 media_base,
-                progress_callback,
-                _interrupt_check
+                progress_callback
             )
             
             if status_callback:

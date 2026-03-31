@@ -51,7 +51,6 @@ pub fn run_batch_scrape(
     dev_pass: &str,
     media_dir_base: &str,
     progress_callback: Option<PyObject>,
-    interrupt_flag: Option<PyObject>,
 ) -> PyResult<usize> {
     
     let mut conn = Connection::open(db_path)
@@ -92,16 +91,13 @@ pub fn run_batch_scrape(
         return Ok(0); 
     }
     
-    let runtime = tokio::runtime::Runtime::new().unwrap();
-    let interrupt_arc = Arc::new(AtomicBool::new(false));
-
     // Determinar si debemos usar ScreenScraper basándonos en credenciales + validación
     let ss_available = if ss_id.is_empty() || ss_pass.is_empty() {
         log_to_python(py, "warning", "Credenciales de ScreenScraper no configuradas. Usando modo de rescate (Libretro).");
         false
     } else {
         log_to_python(py, "info", "Validando conexión con ScreenScraper...");
-        let auth_ok = runtime.block_on(async {
+        let auth_ok = crate::RUNTIME.block_on(async {
             let client = reqwest::Client::new();
             let res = client.get("https://www.screenscraper.fr/api2/ssuserInfos.php")
                 .query(&[
@@ -139,7 +135,7 @@ pub fn run_batch_scrape(
 
     // --- M.A.N.G.O NITRO + STABLE PARALLEL MODE ---
     let results = py.allow_threads(|| {
-        runtime.block_on(async {
+        crate::RUNTIME.block_on(async {
             stream::iter(pending.iter().enumerate())
                 .map(|(index, game)| {
                     let prog_cb = progress_arc.clone();
@@ -151,11 +147,9 @@ pub fn run_batch_scrape(
                             tokio::time::sleep(tokio::time::Duration::from_millis(200)).await;
                         }
                         
-                        let dummy_flag = AtomicBool::new(false);
                         let meta = scrape_game(
                             &game.md5, "", &game.filename, &game.platform, &game.system_id,
                             ss_id, ss_pass, dev_id, dev_pass, &game.media_dir,
-                            &dummy_flag,
                             skip_ss,
                         ).await;
                         
@@ -165,7 +159,16 @@ pub fn run_batch_scrape(
                             false
                         };
 
-                        if has_media {
+                        if let Some(ref m) = meta {
+                            // GENERACIÓN DE MINIATURA NATIVA (Async-safe via spawn_blocking)
+                            if let Some(ref p2d) = m.cover_2d_path {
+                                let source = p2d.clone();
+                                let target = p2d.replace("covers/2d", ".cache/thumbs/256w");
+                                let _ = tokio::task::spawn_blocking(move || {
+                                    let _ = crate::tools::thumbnailer::generate_thumbnail(&source, &target, 256);
+                                }).await;
+                            }
+
                             log_to_python_safe("info", &format!("[OK] Carátula obtenida: {}", game_name));
                         } else {
                             log_to_python_safe("warning", &format!("[SKIP] Sin medios para: {}", game_name));

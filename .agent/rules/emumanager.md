@@ -14,9 +14,13 @@ trigger: always_on
 - **Stack Tecnológico:**
     - **Frontend (UI):** Exclusivamente `QML` (Qt Quick) para la vista, orquestado por `PySide6` (Controlador/Modelo). 
     - **Backend (Lógica):** Python (3.11+ para mayor compatibilidad). Uso estricto de `pathlib`.
-    - **Strict I18n:** Prohibido el uso de texto visible hardcodeado en QML o Python. Todo texto debe pasar por `I18n.qml`.
+    - **Strict I18n:** Prohibido el uso de texto visible hardcodeado en QML o Python. Todo texto debe pasar por `I18n.qml`. **Excepción:** Los logs internos (`EmuLog`, `print`, etc.) no están sujetos a esta regla.
     - **Core (Rendimiento):** Rust (vía `PyO3`) para escaneo y hashing (Motor M.A.N.G.O).
     - **Base de Datos:** SQLite3 local con optimización por hilos e índices para grandes colecciones.
 
 - **Estilo de Diseño:**
     - **Zero-Hex Policy:** Prohibido el uso de colores hardcodeados (hex/literal) en QML. `Theme.qml` es la ÚNICA fuente de verdad para el diseño y color. Cualquier nuevo componente o rediseño debe usar o extender `Theme.qml`.
+
+- **Ciclo de Desarrollo & Updates:**
+    - **IS_DEV_MODE:** Mientras no existan releases oficiales en GitHub, `AppConfig.IS_DEV_MODE` debe estar en `True` para evitar llamadas reales a la API y mostrar un estado de "Desarrollo Activo" en la UI.
+    - **Sincronización:** Antes de cada hito, verificar coherencia entre `AppConfig.py`, `Cargo.toml` e `I18n.qml`.

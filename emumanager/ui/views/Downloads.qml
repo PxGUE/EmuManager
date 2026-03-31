@@ -276,7 +276,7 @@ Item {
                 // Actualización masiva de estado para un ID específico
                 for(var i=0; i < emulatorsModel.count; i++) {
                     if(emulatorsModel.get(i).id === emu_id) {
-                        emulatorsModel.setProperty(i, "statusText", I18n.tp(s))
+                        emulatorsModel.setProperty(i, "statusText", s)
                         break
                     }
                 }

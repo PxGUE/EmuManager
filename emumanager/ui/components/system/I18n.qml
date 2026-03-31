@@ -162,6 +162,7 @@ Item {
             "scan_registering": "Registrando: %1",
             "scan_finished": "Escaneo finalizado. %1 juegos nuevos registrados.",
             "scrape_starting": "Iniciando M.A.N.G.O Batch Scraper...",
+            "scrape_friendly": "M.A.N.G.O está trabajando para ti.\nPuedes seguir explorando la app.",
             "scrape_finished": "Scrapeado completado con éxito.",
 
             // Game Details
@@ -215,6 +216,11 @@ Item {
             // Emulator States
             "emu_status_installed": "✓ Instalado",
             "emu_status_available": "Disponible para instalar",
+            "emu_status_connecting": "CONECTANDO",
+            "emu_status_downloading": "DESCARGANDO",
+            "emu_status_extracting": "EXTRAYENDO",
+            "emu_status_configuring": "CONFIGURANDO",
+            "emu_status_uninstalling": "DESINSTALANDO",
 
             // Emulator Repository
             "emu_retroarch_fullname": "Repositorio Universal Libretro",
@@ -359,6 +365,7 @@ Item {
             "scan_registering": "Registering: %1",
             "scan_finished": "Scan finished. %1 new games registered.",
             "scrape_starting": "Starting M.A.N.G.O Batch Scraper...",
+            "scrape_friendly": "M.A.N.G.O is working for you.\nYou can keep browsing the app.",
             "scrape_finished": "Scraping completed successfully.",
 
             // Game Details
@@ -412,6 +419,11 @@ Item {
             // Emulator States
             "emu_status_installed": "✓ Installed",
             "emu_status_available": "Available to install",
+            "emu_status_connecting": "CONNECTING",
+            "emu_status_downloading": "DOWNLOADING",
+            "emu_status_extracting": "EXTRACTING",
+            "emu_status_configuring": "CONFIGURING",
+            "emu_status_uninstalling": "UNINSTALLING",
 
             // Emulator Repository
             "emu_retroarch_fullname": "Universal Libretro Repository",

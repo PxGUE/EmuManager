@@ -92,6 +92,16 @@ class DatabaseManager:
                     FOREIGN KEY (game_id) REFERENCES games (id) ON DELETE CASCADE
                 )
             ''')
+
+            # Tabla: emulator_status (Seguimiento de versiones para M.A.N.G.O Sync)
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS emulator_status (
+                    emu_id TEXT PRIMARY KEY,
+                    installed_tag TEXT,
+                    last_checked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    remote_tag TEXT
+                )
+            ''')
             
             conn.commit()
 

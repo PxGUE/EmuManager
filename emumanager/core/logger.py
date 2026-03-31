@@ -3,7 +3,6 @@ import sys
 import platform
 import psutil
 from logging.handlers import RotatingFileHandler
-from pathlib import Path
 from core.config import AppConfig
 
 # --- CONFIGURACIÓN GLOBAL ---

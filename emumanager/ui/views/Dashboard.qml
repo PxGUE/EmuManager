@@ -126,7 +126,7 @@ Item {
                         ColumnLayout {
                             spacing: 2 // Espacio positivo para que respire
                             Text { 
-                                text: "EmuManager"; color: Theme.textMain; 
+                                text: I18n.t.app_name; color: Theme.textMain; 
                                 font.pixelSize: 42; font.weight: Font.Black; font.letterSpacing: -1.5 
                             }
                             Text { 

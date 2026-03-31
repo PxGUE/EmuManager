@@ -236,7 +236,25 @@ Item {
             "emu_duckstation_fullname": "Emulador de PlayStation 1",
             "emu_duckstation_desc": "Increíble emulador de PSX enfocado en la jugabilidad, velocidad y mantenibilidad a largo plazo. Incluye corrección de perspectiva de texturas.",
             "loading_dots": "Cargando...",
-            "emulators_dots": "Emuladores..."
+            "emulators_dots": "Emuladores...",
+            
+            // Notifications & Updates
+            "mission_accomplished": "Misión Cumplida",
+            "mission_terminated": "Misión Terminada",
+            "emu_installed_ready": "✓ %1 está instalado y listo en %2.",
+            "emu_uninstalled_success": "✓ %1 ha sido desinstalado correctamente.",
+            "update_available": "Actualización Disponible",
+            "app_update_ready": "EmuManager %1 está listo para descargar.",
+            "new_emulator_version": "Nuevo Emulador",
+            "emu_update_msg": "¡%1 tiene una nueva versión: %2!",
+            "system_up_to_date": "SISTEMA AL DÍA ✓",
+            "connection_error": "Error de conexión ⚠",
+            "config_active_caps": "CONFIGURACIÓN ACTIVA",
+            "enter_library_caps": "ENTRAR A LA BIBLIOTECA ❯",
+            "nav_hint": "Puedes seguir navegando mientras M.A.N.G.O trabaja por ti.",
+            "updates_found_msg": "¡%1 Actualizaciones!",
+            "syncing_msg": "Sincronizando...",
+            "ok_btn": "Aceptar"
         },
         "en": {
             // Main Navigation
@@ -439,7 +457,25 @@ Item {
             "emu_duckstation_fullname": "PlayStation 1 Emulator",
             "emu_duckstation_desc": "Incredible PSX emulator focused on playability, speed, and long-term maintainability. Includes texture perspective correction.",
             "loading_dots": "Loading...",
-            "emulators_dots": "Emulators..."
+            "emulators_dots": "Emulators...",
+
+            // Notifications & Updates
+            "mission_accomplished": "Mission Accomplished",
+            "mission_terminated": "Mission Terminated",
+            "emu_installed_ready": "✓ %1 is installed and ready at %2.",
+            "emu_uninstalled_success": "✓ %1 has been uninstalled successfully.",
+            "update_available": "Update Available",
+            "app_update_ready": "EmuManager %1 is ready to download.",
+            "new_emulator_version": "New Emulator",
+            "emu_update_msg": "¡%1 has a new version: %2!",
+            "system_up_to_date": "SYSTEM UP TO DATE ✓",
+            "connection_error": "Connection Error ⚠",
+            "config_active_caps": "ACTIVE CONFIGURATION",
+            "enter_library_caps": "ENTER LIBRARY ❯",
+            "nav_hint": "You can keep browsing while M.A.N.G.O works for you.",
+            "updates_found_msg": "%1 Updates Found!",
+            "syncing_msg": "Syncing...",
+            "ok_btn": "OK"
         }
     })
 }

@@ -4,11 +4,8 @@ GlassPanel 1.0 system/GlassPanel.qml
 AboutStatCard 1.0 cards/AboutStatCard.qml
 ConsoleCard 1.0 cards/ConsoleCard.qml
 DashboardStatCard 1.0 cards/DashboardStatCard.qml
-DashboardMonitor 1.0 cards/DashboardMonitor.qml
-DashboardRecentItem 1.0 cards/DashboardRecentItem.qml
 PlatformPill 1.0 cards/PlatformPill.qml
 DownloadConsoleItem 1.0 items/DownloadConsoleItem.qml
-EmuButton 1.0 base/EmuButton.qml
 EmuFloatingButton 1.0 base/EmuFloatingButton.qml
 EmuSplash 1.0 effects/EmuSplash.qml
 GameBox3D 1.0 effects/GameBox3D.qml

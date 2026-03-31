@@ -2,7 +2,7 @@ try:
     import mango_engine
 except ImportError:
     mango_engine = None
-from typing import List, Dict, Any, Callable, Optional
+from typing import Callable, Optional
 from pathlib import Path
 from backend.database import DatabaseManager
 from core.config import AppConfig

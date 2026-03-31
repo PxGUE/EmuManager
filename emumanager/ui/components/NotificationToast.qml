@@ -81,7 +81,7 @@ Item {
 
             Button {
                 id: closeBtn
-                text: "OK"
+                text: I18n.t.ok_btn
                 implicitWidth: 45; implicitHeight: 28
                 flat: true
                 Layout.alignment: Qt.AlignTop

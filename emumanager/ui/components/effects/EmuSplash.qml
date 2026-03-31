@@ -52,7 +52,7 @@ Rectangle {
             }
             
             Text {
-                text: "EmuManager"
+                text: I18n.t.app_name
                 color: Theme.textMain; font.pixelSize: 20; font.bold: true
                 font.letterSpacing: 4; Layout.alignment: Qt.AlignHCenter
             }

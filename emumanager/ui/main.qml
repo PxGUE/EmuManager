@@ -34,7 +34,10 @@ ApplicationWindow {
             var color = Theme.statusInfo
             if (type === "success") color = Theme.statusSuccess
             else if (type === "error") color = Theme.statusDanger
-            window.pushNotification(title, "M.A.N.G.O Sync", message, color)
+            
+            let tTitle = I18n.t[title] || title
+            let tMessage = I18n.tp(message)
+            window.pushNotification(tTitle, "M.A.N.G.O Sync", tMessage, color)
         }
     }
 

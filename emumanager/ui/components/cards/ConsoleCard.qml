@@ -125,7 +125,7 @@ Item {
                 // 1. Emulador/Core Info
                 ColumnLayout {
                     spacing: 12
-                    Text { text: "CONFIGURACIÓN ACTIVA"; color: Theme.textMuted; font.pixelSize: 9; font.bold: true; font.letterSpacing: 2 }
+                    Text { text: I18n.t.config_active_caps; color: Theme.textMuted; font.pixelSize: 9; font.bold: true; font.letterSpacing: 2 }
                     Row {
                         spacing: 10
                         Repeater {
@@ -170,7 +170,7 @@ Item {
                     
                     Text {
                         anchors.centerIn: parent
-                        text: "ENTRAR A LA BIBLIOTECA ❯"
+                        text: I18n.t.enter_library_caps
                         color: Theme.textMain
                         font.bold: true; font.letterSpacing: 1; font.pixelSize: 11
                     }

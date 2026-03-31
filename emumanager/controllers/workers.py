@@ -1,7 +1,5 @@
-import sys
 import os
 import time
-import requests
 from pathlib import Path
 from PySide6.QtCore import QObject, Slot, Signal
 from core.logger import EmuLog

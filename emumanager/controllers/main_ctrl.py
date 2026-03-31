@@ -1,9 +1,6 @@
-from typing import Optional
 from pathlib import Path
 from PySide6.QtCore import QObject, Slot, Signal, QThread
 from PySide6.QtQml import QmlElement
-import sys
-import os
 
 from core.config import AppConfig
 from core.logger import EmuLog
@@ -182,8 +179,8 @@ class MainController(QObject):
         res = self.orch_ctrl.uninstall_emulator(e)
         if res:
             self.notificationRequested.emit(
-                "Misión Terminada",
-                f"✓ {e.capitalize()} ha sido desinstalado correctamente.",
+                "mission_terminated",
+                f"emu_uninstalled_success|{e.capitalize()}",
                 "info"
             )
         return res
@@ -202,8 +199,8 @@ class MainController(QObject):
         """Notifica éxito de orquestación."""
         if path:
             self.notificationRequested.emit(
-                "Misión Cumplida",
-                f"✓ {emu_id.capitalize()} está instalado y listo en {Path(path).name}.",
+                "mission_accomplished",
+                f"emu_installed_ready|{emu_id.capitalize()}|{Path(path).name}",
                 "success"
             )
 
@@ -248,7 +245,7 @@ class MainController(QObject):
         self._update_thread.started.connect(self._update_worker.run)
         
         EmuLog.info(f"M.A.N.G.O Sync: Iniciando seguimiento para {len(targets)} repositorios...")
-        self.coreDownloadStatusChanged.emit("all", "Sincronizando con GitHub...")
+        self.coreDownloadStatusChanged.emit("all", "syncing_msg")
         self._update_thread.start()
 
     def _handle_update_result(self, results):
@@ -266,8 +263,8 @@ class MainController(QObject):
                 if latest != current:
                     updates_found += 1
                     self.notificationRequested.emit(
-                        "Actualización Disponible",
-                        f"EmuManager v{latest} está listo para descargar.",
+                        "update_available",
+                        f"app_update_ready|{latest}",
                         "info"
                     )
             else:
@@ -283,24 +280,24 @@ class MainController(QObject):
                     updates_found += 1
                     emu_name = item_id.capitalize()
                     self.notificationRequested.emit(
-                        "Nuevo Emulador",
-                        f"¡{emu_name} tiene una nueva versión: {remote_tag}!",
+                        "new_emulator_version",
+                        f"emu_update_msg|{emu_name}|{remote_tag}",
                         "success"
                     )
 
         if updates_found > 0:
             EmuLog.info(f"M.A.N.G.O (Updater): Se han detectado {updates_found} actualizaciones.")
-            self.coreDownloadStatusChanged.emit("all", f"¡{updates_found} Actualizaciones!")
+            self.coreDownloadStatusChanged.emit("all", f"updates_found_msg|{updates_found}")
         else:
             EmuLog.info("M.A.N.G.O (Updater): Ecosistema al día.")
-            self.coreDownloadStatusChanged.emit("all", "SISTEMA AL DÍA ✓")
+            self.coreDownloadStatusChanged.emit("all", "system_up_to_date")
         
         self.gamesUpdated.emit()
 
     def _handle_update_error(self, error):
         """Maneja fallos en la conexión de actualización."""
         EmuLog.error(f"Fallo en motor de sincronización: {error}")
-        self.coreDownloadStatusChanged.emit("all", "Error de conexión ⚠")
+        self.coreDownloadStatusChanged.emit("all", "connection_error")
         self.gamesUpdated.emit()
 
     # Estadísticas

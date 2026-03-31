@@ -241,7 +241,7 @@ Item {
                     ColumnLayout {
                         spacing: 4; Layout.alignment: Qt.AlignHCenter
                         Text { 
-                            text: "EmuManager"; color: Theme.textMain; font.pixelSize: 48; font.weight: Font.Black; font.letterSpacing: -2 
+                            text: I18n.t.app_name; color: Theme.textMain; font.pixelSize: 48; font.weight: Font.Black; font.letterSpacing: -2 
                         }
                         Text { 
                             Layout.alignment: Qt.AlignHCenter

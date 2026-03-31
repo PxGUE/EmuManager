@@ -8,10 +8,6 @@ import "../console_settings"
 
 Item {
     id: downloadsRoot
-    objectName: "downloadsView"
-    
-    // ... (anterior arriba omitido pero se asume igual)
-
     // Funciones de navegación y actualización
     function updateRepositories() {
         var repos = mainController.get_emulator_repositories()
@@ -126,7 +122,7 @@ Item {
 
                         // Mensaje sutil si está activo
                         Text {
-                            visible: isScanning; text: "Puedes seguir navegando mientras M.A.N.G.O trabaja por ti."; 
+                            visible: isScanning; text: I18n.t.nav_hint; 
                             color: Theme.textMuted; font.pixelSize: 8; font.italic: true; Layout.fillWidth: true; wrapMode: Text.WordWrap; opacity: 0.7
                         }
                     }
@@ -180,7 +176,7 @@ Item {
 
                         // Mensaje sutil si está activo
                         Text {
-                            visible: isScraping; text: "Puedes seguir navegando mientras M.A.N.G.O trabaja por ti."; 
+                            visible: isScraping; text: I18n.t.nav_hint; 
                             color: Theme.textMuted; font.pixelSize: 8; font.italic: true; Layout.fillWidth: true; wrapMode: Text.WordWrap; opacity: 0.7
                         }
                     }

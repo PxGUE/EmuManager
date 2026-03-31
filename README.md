@@ -1,10 +1,6 @@
 # <div align="center">🕹️ EmuManager</div>
 
 <div align="center">
-  <img src="emumanager_banner.png" alt="EmuManager Banner" width="100%">
-</div>
-
-<div align="center">
   <br>
   <b>La Orquestación Definitiva para tu Colección de Videojuegos Clásicos.</b><br>
   <i>Potenciado por el motor nativo <b>M.A.N.G.O (Multithreaded Asynchronous Native Game Orchestrator)</b></i>

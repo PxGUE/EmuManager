@@ -114,63 +114,71 @@ QtObject {
     readonly property real fontBody: 13; readonly property real fontHeader: 18
     readonly property real fontTitle: 28; readonly property real fontDisplay: 42
 
-    // --- 🎮 8. EMULATOR ACCENTS (Sync with repositories.json) ---
+    // --- 🎮 8. EMULATOR ACCENTS (Mapeo Estático Robusto) ---
     // ==========================================
-    readonly property color emuRetroArch: "#FF4E11"
-    readonly property color emuDolphin: "#3498DB"
-    readonly property color emuPPSSPP: "#00E5FF"
-    readonly property color emuPCSX2: "#3A7BD5"
-    readonly property color emuRPCS3: "#FFFFFF"
-    readonly property color emuDuckStation: "#FFD700" // Yellow accent for DuckStation
-    
-    // Compatibility aliases
-    readonly property color accentRetroArch: emuRetroArch
-    readonly property color accentDolphin: emuDolphin
-    readonly property color accentPlayStation: emuPPSSPP
-    readonly property color accentNintendo: "#FF4B2B"
-    readonly property color accentSega: "#2C3E50"
-
-    // Mapeo dinámico para plataformas
-    readonly property color platSnes: accentNintendo; readonly property color platNes: accentNintendo
-    readonly property color platGba: "#9D50BB"; readonly property color platN64: "#3A7BD5"
-    readonly property color platPs1: accentPlayStation; readonly property color platPs2: accentPlayStation
-    readonly property color platPsp: "#00AAFF"; readonly property color platDs: "#16A085"
-    readonly property color platGc: "#8E44AD"; readonly property color platWii: "#FFFFFF"
-    readonly property color platMegaDrive: accentSega; readonly property color platDreamcast: "#E67E22"
-    readonly property color platGb: "#81822A"; readonly property color platGbc: "#C51C5B"
+    readonly property color platSnes: "#FF4B2B"
+    readonly property color platNes: "#FF4B2B"
+    readonly property color platGba: "#9B59B6"
+    readonly property color platN64: "#3498DB"
+    readonly property color platPs1: "#00E5FF"
+    readonly property color platPs2: "#00E5FF"
+    readonly property color platPsp: "#00AAFF"
+    readonly property color platDs: "#16A085"
+    readonly property color platGc: "#8E44AD"
+    readonly property color platWii: "#FFFFFF"
+    readonly property color platMegaDrive: "#2C3E50"
+    readonly property color platDreamcast: "#E67E22"
+    readonly property color platGb: "#81822A"
+    readonly property color platGbc: "#C51C5B"
     readonly property color platUnknown: "#95A5A6"
 
     /**
-     * Mapeo inteligente para obtener el color de una consola por su nombre.
+     * Motor de resolución de color infalible (Static Map para evitar errores de ámbito JS)
+     * No recursivo para evitar StackOverflow.
      */
-    function colorForPlatform(name) {
-        if (!name) return theme.accentColor;
-        var p = name.toLowerCase();
-        if (p.includes("gba")) return platGba;
-        if (p.includes("snes") || p.includes("super nintendo")) return platSnes;
-        if (p.includes("n64") || p.includes("nintendo 64")) return platN64;
-        if (p.includes("ds")) return platDs;
-        if (p.includes("gamecube") || p.includes("gc")) return platGc;
-        if (p.includes("wii")) return platWii;
-        if (p.includes("ps1") || p.includes("playstation")) return platPs1;
-        if (p.includes("ps2")) return platPs2;
-        if (p.includes("psp")) return platPsp;
-        if (p.includes("mega drive") || p.includes("genesis")) return platMegaDrive;
-        if (p.includes("dreamcast")) return platDreamcast;
-        if (p.includes("game boy color") || p.includes("gbc")) return platGbc;
-        if (p.includes("game boy") || p.includes("gb")) return platGb;
-        return theme.accentColor;
-    }
+    function colorForPlatform(name) { return resolveColor("", name); }
 
-    /**
-     * Resuelve un color desde un string (nombre de propiedad) o nombre de plataforma.
-     */
-    function resolveColor(c, fallbackPlatform) {
-        if (c === undefined || c === null || c === "") {
-            return colorForPlatform(fallbackPlatform);
-        }
-        if (typeof c !== "string") return c;
-        if (theme[c] !== undefined) return theme[c];
-        return colorForPlatform(c);
+    function resolveColor(c, platform) {
+        // 1. Manejo de tipos ya resueltos (objetos de color o strings hex)
+        if (typeof c === "object") return c;
+        if (typeof c === "string" && (c.startsWith("#") || c.startsWith("rgba"))) return c;
+
+        // 2. Mapeo estático de claves
+        var map = {
+            "platSnes": theme.platSnes,
+            "platNes": theme.platNes,
+            "platGba": theme.platGba,
+            "platN64": theme.platN64,
+            "platPs1": theme.platPs1,
+            "platPs2": theme.platPs2,
+            "platPsp": theme.platPsp,
+            "platDs": theme.platDs,
+            "platGc": theme.platGc,
+            "platWii": theme.platWii,
+            "platMegaDrive": theme.platMegaDrive,
+            "platDreamcast": theme.platDreamcast,
+            "platGb": theme.platGb,
+            "platGbc": theme.platGbc,
+            "accentColor": theme.accentColor
+        };
+
+        // Si la clave 'c' existe en el mapa, devolverla
+        if (c && map[c] !== undefined) return map[c];
+
+        // 3. Si no hay clave o no se encontró, buscar por nombre de plataforma (usando c o platform)
+        var p = (c && c !== "") ? c.toLowerCase() : (platform ? platform.toLowerCase() : "");
+        
+        if (p.includes("snes")) return theme.platSnes;
+        if (p.includes("nes")) return theme.platNes;
+        if (p.includes("gba") || p.includes("advance")) return theme.platGba;
+        if (p.includes("n64")) return theme.platN64;
+        if (p.includes("ps1") || p.includes("playstation")) return theme.platPs1;
+        if (p.includes("ps2")) return theme.platPs2;
+        if (p.includes("psp")) return theme.platPsp;
+        if (p.includes("ds")) return theme.platDs;
+        if (p.includes("gc") || p.includes("cube")) return theme.platGc;
+        if (p.includes("wii")) return theme.platWii;
+        
+        return theme.accentColor;
     }
 }

@@ -342,8 +342,7 @@ class MainController(QObject):
             import mango_engine
             mango_engine.uninstall_emulator(target_dir)
             EmuLog.info(f"M.A.N.G.O Uninstall: Carpeta eliminada: {emu_id}")
-            self._cached_summary = None 
-            self.gamesUpdated.emit()
+            self.notify_library_changed()
         except Exception as e:
             EmuLog.error(f"Error desinstalando emulador {emu_id}: {e}")
 
@@ -463,7 +462,7 @@ class MainController(QObject):
                                 play_count = play_count + 1
                         """, (game_id, duration))
                         conn.commit()
-                    self.gamesUpdated.emit()
+                    self.notify_library_changed()
                 else:
                     EmuLog.debug(f"M.A.N.G.O (Launch): Sesión demasiado corta ({duration}s).")
                 
@@ -614,8 +613,8 @@ class MainController(QObject):
         self.scanProgressChanged.emit(1.0)
         self.scanFinished.emit(count) # <--- FUNDAMENTAL PARA EL RESET DE QML
         
-        # Emitir señal de que se agregaron juegos!
-        self.gamesUpdated.emit()
+        # Limpiar caché y notificar a la UI
+        self.notify_library_changed()
 
     @Slot(result=bool)
     def start_scraping(self):
@@ -715,8 +714,7 @@ class MainController(QObject):
             try:
                 shutil.rmtree(dest_dir)
                 EmuLog.info(f"✓ {emu_id} desinstalado correctamente.")
-                self._cached_summary = None 
-                self.gamesUpdated.emit()
+                self.notify_library_changed()
                 return True
             except Exception as e:
                 EmuLog.error(f"Fallo al desinstalar {emu_id}: {e}")
@@ -727,8 +725,7 @@ class MainController(QObject):
             EmuLog.info(f"✓ La misión de instalación de {emu_id} ha sido un éxito en {path}")
             self.coreDownloadStatusChanged.emit(emu_id, "install_success_tag")
             self.coreDownloadFinished.emit(emu_id, path)
-            self._cached_summary = None 
-            self.gamesUpdated.emit()
+            self.notify_library_changed()
         else:
             EmuLog.error(f"La misión de instalación de {emu_id} ha fallado estrepitosamente.")
             self.coreDownloadStatusChanged.emit(emu_id, "install_failed_tag")
@@ -781,8 +778,7 @@ class MainController(QObject):
     def uninstall_core(self, core_id: str):
         """Solicita la eliminación de un núcleo específico."""
         if self.libretro.uninstall_core(core_id):
-            self._cached_summary = None
-            self.gamesUpdated.emit()
+            self.notify_library_changed()
             EmuLog.info(f"Core {core_id} desinstalado con éxito.")
 
     def _on_core_download_finished(self, path: str):
@@ -793,8 +789,7 @@ class MainController(QObject):
             self.coreDownloadFinished.emit(core_id, path)
             
             # Forzar actualización de UI para mostrar el nuevo core
-            self._cached_summary = None
-            self.gamesUpdated.emit()
+            self.notify_library_changed()
         else:
             self.coreDownloadStatusChanged.emit(core_id, "download_failed")
             self.coreDownloadProgressChanged.emit(core_id, 0.0)
@@ -807,7 +802,13 @@ class MainController(QObject):
         self.scrapeFinished.emit(count)
         
         # Recargar modelos de UI para mostrar portadas nuevas
+        self.notify_library_changed()
+
+    def notify_library_changed(self):
+        """Limpia el caché y notifica que la biblioteca ha cambiado."""
+        self._cached_summary = None
         self.gamesUpdated.emit()
+        self.gamesCountChanged.emit()
 
     @Slot(result=int)
     def get_games_count(self):
@@ -827,24 +828,38 @@ class MainController(QObject):
 
     @Slot(result="QVariantMap")
     def get_dashboard_stats(self):
-        """Retorna un conjunto de estadísticas y datos para el Dashboard premium."""
+        """Retorna un conjunto de estadísticas y datos para el Dashboard premium con nombres limpios de la DB."""
         try:
             import mango_engine
             db_path = str(AppConfig.get_database_path())
             stats = mango_engine.fetch_dashboard_stats(db_path)
             if not stats:
                 raise ValueError("Rust module returned null stats")
+            
+            # --- MAPEO DE NOMBRES LIMPIOS DESDE SQL (SIN PROCESAR EN PYTHON) ---
+            with self.db.get_connection() as conn:
+                cursor = conn.cursor()
+                
+                # 1. Limpiar el último juego jugado
+                if stats.get("last_game") and stats["last_game"].get("id"):
+                    cursor.execute("SELECT display_name FROM games WHERE id = ?", (stats["last_game"]["id"],))
+                    row = cursor.fetchone()
+                    if row and row[0]: stats["last_game"]["title"] = row[0]
+                
+                # 2. Limpiar la lista de juegos recientes
+                if stats.get("recent_games"):
+                    for g in stats["recent_games"]:
+                        if g.get("id"):
+                            cursor.execute("SELECT display_name FROM games WHERE id = ?", (g["id"],))
+                            row = cursor.fetchone()
+                            if row and row[0]: g["title"] = row[0]
+                    
             return stats
         except Exception as e:
             EmuLog.error(f"Error cargando stats del dashboard nativo: {e}")
             return {
-                "total_games": 0,
-                "total_favorites": 0,
-                "total_play_time": "0h 0m",
-                "most_played_system": "N/A",
-                "last_game": None,
-                "recent_games": [],
-                "top_platforms": []
+                "total_games": 0, "total_favorites": 0, "total_play_time": "0h 0m",
+                "most_played_system": "N/A", "last_game": None, "recent_games": [], "top_platforms": []
             }
 
     @Slot(result="QVariantMap")
@@ -914,7 +929,7 @@ class MainController(QObject):
                         "publisher": row[4] or "N/A",
                         "release_date": row[5] or "----",
                         "genre": row[6] or "Varios",
-                        "description": row[7] or "Sin descripción disponible.",
+                        "description": row[7] or "",
                         "cover2d": (row[8] or "").replace("\\", "/"),
                         "cover3d": (row[9] or "").replace("\\", "/"),
                         "isFavorite": bool(row[10])

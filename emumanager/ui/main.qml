@@ -21,6 +21,7 @@ ApplicationWindow {
     property string activeViewId: "dashboardView"
     property real startupProgress: 0.0
     property string startupStatus: I18n.t.initializing
+    property color globalAccentColor: Theme.accentColor
 
     Connections {
         target: controller
@@ -34,7 +35,6 @@ ApplicationWindow {
     }
 
 
-    
     // Alias para compatibilidad con las vistas hijas
     // Referencia para compatibilidad con las vistas hijas
     property QtObject controller: mainController
@@ -63,8 +63,8 @@ ApplicationWindow {
         
         Rectangle {
             id: sidebar; Layout.preferredWidth: 240; Layout.fillHeight: true; color: Theme.sidebarBackground
-            // Subtle border to the right
-            Rectangle { anchors.right: parent.right; width: 1; height: parent.height; color: Theme.cardBorder }
+            // Subtle border to the right (following global accent)
+            Rectangle { anchors.right: parent.right; width: 1; height: parent.height; color: window.globalAccentColor; opacity: 0.2 }
             
             x: isLoaded ? 0 : -50
             Behavior on x { 
@@ -92,7 +92,7 @@ ApplicationWindow {
 
                         contentItem: RowLayout {
                             spacing: 15
-                            Text { text: model.icon; font.pixelSize: 18; opacity: highlighted ? 1.0 : 0.4; color: highlighted ? Theme.accentColor : Theme.textMain }
+                            Text { text: model.icon; font.pixelSize: 18; opacity: highlighted ? 1.0 : 0.4; color: highlighted ? window.globalAccentColor : Theme.textMain }
                             Text { 
                                 text: (I18n.t[model.key] || "").toUpperCase()
                                 color: highlighted ? Theme.textMain : Theme.textDim
@@ -154,5 +154,53 @@ ApplicationWindow {
         id: globalDetails
         visible: false
         onClosed: visible = false
+    }
+
+    // --- 4. SISTEMA DE NOTIFICACIONES GLOBAL (Toast Manager) ---
+    function pushNotification(title, sender, message, color) {
+        var component = Qt.createComponent("components/NotificationToast.qml")
+        
+        function createToast() {
+            if (component.status === Component.Ready) {
+                var props = {
+                    "title": title || "Notificación",
+                    "sender": sender || "Sistema",
+                    "message": message || "",
+                    "accentColor": color || Theme.accentColor,
+                    "z": 1000
+                }
+                var toast = component.createObject(toastStack, props)
+                if (toast) {
+                    toast.closed.connect(function() { toast.destroy() })
+                }
+            } else if (component.status === Component.Error) {
+                console.log("Error cargando NotificationToast:", component.errorString())
+            }
+        }
+
+        if (component.status === Component.Ready) {
+            createToast()
+        } else {
+            component.statusChanged.connect(createToast)
+        }
+    }
+
+    Item {
+        id: notificationContainer
+        anchors.right: parent.right; anchors.bottom: parent.bottom
+        anchors.margins: 20; width: 340; height: parent.height
+        z: 9999; clip: false
+
+        // Notar: Los Toasts se posicionan por su propia x/y dinámicamente o por ColumnLayout
+        // Para simplificar el apilamiento sin romper las animaciones individuales x/y:
+        ColumnLayout {
+            anchors.bottom: parent.bottom; spacing: 10; width: parent.width
+            id: toastStack
+            // El contenedor padre del createObject es notificationContainer, 
+            // pero podemos moverlos al ColumnLayout si queremos apilamiento vertical real.
+            // Para este caso, el pushNotification los crea como hijos de notificationContainer
+            // y el toastRoot en NotificationToast.qml maneja su x inicial.
+            // Ajustamos pushNotification para que el parent sea toastStack.
+        }
     }
 }

@@ -75,7 +75,7 @@ class GameListModel(QAbstractListModel):
         if role == self.PublisherRole: return game.get("publisher", "") or ""
         if role == self.ReleaseDateRole: return game.get("release_date", "") or ""
         if role == self.GenreRole: return game.get("genre", "") or ""
-        if role == self.DescriptionRole: return game.get("description", "") or "Sin descripción disponible."
+        if role == self.DescriptionRole: return game.get("description", "") or ""
         if role == self.IsFavoriteRole: return bool(game.get("is_favorite", 0))
         
         return None

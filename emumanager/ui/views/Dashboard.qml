@@ -267,7 +267,7 @@ Item {
                                 }
                                 
                                 Text { 
-                                    text: heroBox.hasGame ? statsData.last_game.title : "COLECCIÓN LISTA"
+                                    text: heroBox.hasGame ? (statsData.last_game.display_name || statsData.last_game.displayName || statsData.last_game.title) : "COLECCIÓN LISTA"
                                     color: Theme.white; font.pixelSize: 48; font.bold: true; font.letterSpacing: -1
                                     elide: Text.ElideRight; maximumLineCount: 2; wrapMode: Text.WordWrap; Layout.fillWidth: true
                                 }
@@ -335,9 +335,9 @@ Item {
                         Repeater {
                             model: statsData.recent_games || []
                             delegate: RecentGameCard {
-                                gameId: modelData.id
-                                title: modelData.title
-                                platform: modelData.platform
+                        gameId: modelData.id
+                        title: modelData.display_name || modelData.displayName || modelData.title
+                        platform: modelData.platform
                                 cover: modelData.cover
                                 playTime: modelData.playTime
                                 onLaunchRequested: (id) => launchGame(id)

@@ -92,7 +92,10 @@ Popup {
 
                         ColumnLayout {
                             Layout.fillWidth: true; spacing: 2
-                            Text { text: model.name; color: Theme.textMain; font.pixelSize: 13; font.bold: true }
+                            Text { 
+                                text: model.name; color: Theme.textMain; font.pixelSize: 13; font.bold: true
+                                elide: Text.ElideRight; Layout.fillWidth: true
+                            }
                             Text { 
                                 text: model.isInstalled ? I18n.t.core_ready : I18n.t.core_available
                                 color: Theme.textMuted; font.pixelSize: 9 
@@ -107,6 +110,7 @@ Popup {
 
                         Button {
                             id: actionBtn
+                            Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
                             implicitWidth: 100; implicitHeight: 32
                             text: {
                                 if (model.isDownloading) return "..."

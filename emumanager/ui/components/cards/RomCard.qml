@@ -47,7 +47,7 @@ Item {
         id: body
         anchors.fill: parent; radius: Theme.radiusLarge
         color: isHovered ? Theme.panelBackground : Theme.cardBackground
-        border.color: isHovered ? resolvedAccent : Qt.alpha(resolvedAccent, 0.6)
+        border.color: isHovered ? resolvedAccent : Qt.rgba(resolvedAccent.r, resolvedAccent.g, resolvedAccent.b, 0.4)
         border.width: isHovered ? Theme.borderThick : Theme.borderThin
         
         // Efecto de profundidad (gradiente interno)
@@ -141,7 +141,7 @@ Item {
         id: infoBtn
         anchors.top: parent.top; anchors.right: parent.right; anchors.margins: Theme.spaceMedium
         width: 32; height: 32; radius: Theme.radiusCircle
-        color: infoMA.containsMouse ? resolvedAccent : Theme.cardBorder
+        color: infoMA.containsMouse ? resolvedAccent : Qt.rgba(resolvedAccent.r, resolvedAccent.g, resolvedAccent.b, 0.15)
         opacity: isHovered ? 1 : 0
         visible: opacity > 0
         z: 50

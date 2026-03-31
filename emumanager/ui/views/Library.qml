@@ -16,8 +16,9 @@ Item {
 
     property bool showGames: false
     property string activePlatform: "all"
-    property var activeAccentColor: Theme.accentColor
-    readonly property color resolvedActiveAccent: (typeof activeAccentColor === "string" && Theme[activeAccentColor] !== undefined) ? Theme[activeAccentColor] : activeAccentColor
+    property color activeAccentColor: Theme.accentColor
+    onActiveAccentColorChanged: if (showGames) window.globalAccentColor = activeAccentColor
+    onShowGamesChanged: if (!showGames) window.globalAccentColor = Theme.accentColor
 
     // --- FONDO DINÁMICO (Optimizado para Rendimiento) ---
     Rectangle {
@@ -35,43 +36,51 @@ Item {
                 GradientStop { 
                     id: dynamicGradientStop
                     position: 1.0; 
-                    color: Qt.rgba(libraryRoot.resolvedActiveAccent.r, libraryRoot.resolvedActiveAccent.g, libraryRoot.resolvedActiveAccent.b, 0.2)
+                    color: Qt.rgba(libraryRoot.activeAccentColor.r, libraryRoot.activeAccentColor.g, libraryRoot.activeAccentColor.b, 0.2)
                 }
             }
             Behavior on opacity { NumberAnimation { duration: 500 } }
         }
-        
-        // Actualizar color de acento según la consola seleccionada en el carrusel
-        Binding {
-            target: libraryRoot
-            property: "activeAccentColor"
-            value: (consoleModel.count > 0 && !libraryRoot.showGames) ? consoleModel.get(consoleCarousel.currentIndex).accentColor : libraryRoot.activeAccentColor
-            when: !libraryRoot.showGames && consoleModel.count > 0
-        }
     }
 
-    function selectConsole(platform, index, color) {
+    function selectConsole(platform, index, colorKey) {
         activePlatform = platform
-        activeAccentColor = color || Theme.accentColor
+        activeAccentColor = Theme.resolveColor(colorKey, platform)
         gamesModel.update_games()
         gamesModel.filter_by_platform(platform)
         showGames = true
     }
 
     function refreshConsoles() {
+        // 1. Guardar estado actual antes de limpiar
+        var savedPlatform = activePlatform
+        
         consoleModel.clear()
         if (!mainController) return;
         var summary = mainController.get_consoles_summary()
         console.log("M.A.N.G.O (UI): Cargando " + summary.length + " sistemas en la biblioteca.")
+        
+        var newIndex = 0
         for (var i = 0; i < summary.length; i++) {
             consoleModel.append(summary[i])
+            // 2. Intentar encontrar la posición que teníamos antes
+            if (summary[i].platform === savedPlatform) {
+                newIndex = i
+            }
+        }
+
+        // 3. Restaurar posición y color de forma atómica
+        if (consoleModel.count > 0) {
+            consoleCarousel.currentIndex = newIndex
+            var item = consoleModel.get(newIndex)
+            activeAccentColor = Theme.resolveColor(item.accentColor, item.platform)
         }
     }
 
     // No cargar inmediatamente al completar componente para evitar lag inicial
     // Dejamos que el controlador la cargue cuando la DB esté lista (gamesUpdated)
     Component.onCompleted: {
-        if (window.isLoaded) refreshConsoles()
+        // La carga se gestiona a través del Connection.onGamesUpdated
     }
 
     Connections {
@@ -97,6 +106,20 @@ Item {
 
         model: consoleModel; pathItemCount: 5; preferredHighlightBegin: 0.5; preferredHighlightEnd: 0.5; focus: true
         highlightRangeMode: PathView.StrictlyEnforceRange; snapMode: PathView.SnapToItem
+
+        onCurrentIndexChanged: {
+            if (consoleModel.count > 0 && currentIndex !== -1) {
+                var item = consoleModel.get(currentIndex);
+                // El color siempre se actualiza con el carrusel
+                libraryRoot.activeAccentColor = Theme.resolveColor(item.accentColor, item.platform)
+                
+                if (libraryRoot.showGames) {
+                    // Solo actualizamos plataforma y filtros si ya entramos
+                    libraryRoot.activePlatform = item.platform
+                    gamesModel.filter_by_platform(item.platform)
+                }
+            }
+        }
 
         delegate: Item {
             id: delegateRoot; width: libraryRoot.showGames ? 220 : 660; height: libraryRoot.showGames ? 80 : 400
@@ -187,7 +210,7 @@ Item {
         Rectangle {
             anchors.verticalCenter: parent.verticalCenter
             width: parent.width; height: 44; radius: Theme.radiusSmall
-            color: Theme.controlBackground; border.color: searchInput.focus ? libraryRoot.resolvedActiveAccent : Theme.cardBorder; border.width: Theme.borderThin
+            color: Theme.controlBackground; border.color: searchInput.focus ? libraryRoot.activeAccentColor : Qt.rgba(libraryRoot.activeAccentColor.r, libraryRoot.activeAccentColor.g, libraryRoot.activeAccentColor.b, 0.3); border.width: Theme.borderThin
             Behavior on border.color { ColorAnimation { duration: 200 } }
             
             RowLayout {
@@ -223,16 +246,15 @@ Item {
             title: model.title; platform: model.platform
             gameId: model.gameId; isFavorite: model.isFavorite
             cover2d: model.cover2dPath; cover3d: model.cover3dPath
-            accentColor: (activePlatform === "all") ? undefined : libraryRoot.resolvedActiveAccent
+            accentColor: (activePlatform === "all") ? undefined : libraryRoot.activeAccentColor
             onClicked: mainController.launch_game_by_id(model.gameId)
             onInfoClicked: window.openGameDetails(model.gameId)
         }
         Behavior on opacity { NumberAnimation { duration: 500 } }
     }
 
-    // --- BOTÓN VOLVER (Reubicado para no estorbar) ---
     EmuFloatingButton {
-        icon: "⟲"; accentColor: libraryRoot.resolvedActiveAccent; size: 54; visible: showGames
+        icon: "⟲"; accentColor: libraryRoot.activeAccentColor; size: 54; visible: showGames
         anchors.bottom: parent.bottom; anchors.bottomMargin: Theme.spaceExtraLarge
         anchors.right: parent.right; anchors.rightMargin: Theme.spaceExtraLarge
         onClicked: showGames = false

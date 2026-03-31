@@ -152,7 +152,7 @@ Item {
                             id: descText
                             width: descScroll.availableWidth
                             wrapMode: Text.WordWrap
-                            text: detailsRoot.description !== "Sin descripción disponible." ? detailsRoot.description : I18n.t.no_description_template.arg(detailsRoot.platform.toUpperCase())
+                            text: (detailsRoot.description && detailsRoot.description !== "") ? detailsRoot.description : I18n.t.no_description_template.arg(detailsRoot.platform.toUpperCase())
                             color: Theme.textMuted; font.pixelSize: 14; lineHeight: 1.5; horizontalAlignment: Text.AlignJustify
                         }
                     }

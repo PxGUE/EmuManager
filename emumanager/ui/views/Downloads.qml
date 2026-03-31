@@ -99,7 +99,7 @@ Item {
                     enabled: !isAnyOperationRunning
                     onClicked: {
                         isScanning = true
-                        mainController.scan_directories()
+                        mainController.start_full_scan()
                     }
                 }
 
@@ -114,16 +114,21 @@ Item {
                             text: isScanning ? scanLog : (scanVal >= 1.0 ? I18n.t.scan_done : I18n.t.scan_idle)
                             color: isScanning ? Theme.statusSuccess : Theme.textMuted; font.pixelSize: Theme.fontMicro; elide: Text.ElideRight; Layout.fillWidth: true 
                         }
-                    }
-                }
-                
-                // Barra de Progreso integrada (scan)
-                Rectangle {
-                    anchors.bottom: parent.bottom; anchors.left: parent.left; anchors.right: parent.right
-                    height: 4; radius: 2; color: Theme.transparent; visible: isScanning
-                    Rectangle {
-                        width: parent.width * scanVal; height: parent.height; color: Theme.statusSuccess
-                        Behavior on width { NumberAnimation { duration: 300 } }
+
+                        // Barra de Progreso integrada (scan)
+                        Rectangle {
+                            visible: isScanning; Layout.fillWidth: true; height: 4; radius: 2; color: Theme.transparent
+                            Rectangle {
+                                width: parent.width * scanVal; height: parent.height; color: Theme.statusSuccess
+                                Behavior on width { NumberAnimation { duration: 300 } }
+                            }
+                        }
+
+                        // Mensaje sutil si está activo
+                        Text {
+                            visible: isScanning; text: "Puedes seguir navegando mientras M.A.N.G.O trabaja por ti."; 
+                            color: Theme.textMuted; font.pixelSize: 8; font.italic: true; Layout.fillWidth: true; wrapMode: Text.WordWrap; opacity: 0.7
+                        }
                     }
                 }
             }
@@ -163,16 +168,21 @@ Item {
                             text: isScraping ? scrapeLog : (scrapeVal >= 1.0 ? I18n.t.scrape_done : I18n.t.scrape_idle)
                             color: isScraping ? Theme.statusWarning : Theme.textMuted; font.pixelSize: Theme.fontMicro; elide: Text.ElideRight; Layout.fillWidth: true 
                         }
-                    }
-                }
 
-                // Barra de Progreso integrada (scrape)
-                Rectangle {
-                    anchors.bottom: parent.bottom; anchors.left: parent.left; anchors.right: parent.right
-                    height: 4; radius: 2; color: Theme.transparent; visible: isScraping
-                    Rectangle {
-                        width: parent.width * scrapeVal; height: parent.height; color: Theme.statusWarning
-                        Behavior on width { NumberAnimation { duration: 300 } }
+                        // Barra de Progreso integrada (scrape)
+                        Rectangle {
+                            visible: isScraping; Layout.fillWidth: true; height: 4; radius: 2; color: Theme.transparent
+                            Rectangle {
+                                width: parent.width * scrapeVal; height: parent.height; color: Theme.statusWarning
+                                Behavior on width { NumberAnimation { duration: 300 } }
+                            }
+                        }
+
+                        // Mensaje sutil si está activo
+                        Text {
+                            visible: isScraping; text: "Puedes seguir navegando mientras M.A.N.G.O trabaja por ti."; 
+                            color: Theme.textMuted; font.pixelSize: 8; font.italic: true; Layout.fillWidth: true; wrapMode: Text.WordWrap; opacity: 0.7
+                        }
                     }
                 }
             }
@@ -237,11 +247,21 @@ Item {
         
         function onScanProgressChanged(p) { scanVal = p }
         function onScanStatusChanged(s) { scanLog = I18n.tp(s); isScanning = true }
-        function onScanFinished(n) { scanVal = 1.0; scanLog = I18n.t.scan_finished.arg(n); isScanning = false }
+        function onScanFinished(n) { 
+            scanVal = 1.0; 
+            scanLog = I18n.t.scan_finished.arg(n); 
+            isScanning = false 
+            window.pushNotification("Operación Completada", "MANGO", "Se han registrado " + n + " nuevos juegos en tu biblioteca.", Theme.statusSuccess)
+        }
         
         function onScrapeProgressChanged(p) { scrapeVal = p }
         function onScrapeStatusChanged(s) { scrapeLog = I18n.tp(s); isScraping = true }
-        function onScrapeFinished(n) { scrapeVal = 1.0; scrapeLog = I18n.t.scrape_done; isScraping = false }
+        function onScrapeFinished(n) { 
+            scrapeVal = 1.0; 
+            scrapeLog = I18n.t.scrape_done; 
+            isScraping = false 
+            window.pushNotification("Actualización de Media", "MANGO", "Se ha completado el proceso de obtención de metadatos.", Theme.statusWarning)
+        }
 
         // Señales de Core (Actualización de ambos modelos)
         function onCoreDownloadStatusChanged(emu_id, s) {

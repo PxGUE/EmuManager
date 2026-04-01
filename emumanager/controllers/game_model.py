@@ -102,13 +102,14 @@ class GameListModel(QAbstractListModel):
         """Delega la búsqueda en lotes a M.A.N.G.O con Fuzzymatch y filtros."""
         from core.config import AppConfig
         
+        from core.logger import EmuLog
+        
         try:
             import mango_engine
         except ImportError:
             mango_engine = None
             
         if not mango_engine:
-            from core.logger import EmuLog
             EmuLog.warning("M.A.N.G.O (Rust) no disponible. Búsqueda Desactivada.")
             return
             
@@ -116,8 +117,8 @@ class GameListModel(QAbstractListModel):
         try:
             db_path = str(AppConfig.get_database_path())
             self._games = mango_engine.search_games(db_path, query, platform)
+            EmuLog.info(f"M.A.N.G.O (Model): Búsqueda completada para '{query}' en '{platform}'. Resultados: {len(self._games)}")
         except Exception as e:
-            from core.logger import EmuLog
             EmuLog.error(f"Error fatal en búsqueda fuzzymatch: {e}")
             self._games = []
         self.endResetModel()

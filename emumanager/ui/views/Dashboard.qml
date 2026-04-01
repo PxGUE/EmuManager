@@ -25,11 +25,18 @@ Item {
     Connections { 
         target: mainController
         function onScanProgressChanged(p) { 
-            dashboardRoot.scanProgress = p
-            dashboardRoot.isScanning = (p > 0 && p < 1.0) 
+            dashboardRoot.scanProgress = p 
+            if (p > 0 && p < 1.0) dashboardRoot.isScanning = true 
+        }
+        function onScanFinished(n) { 
+            dashboardRoot.isScanning = false 
+            dashboardRoot.scanProgress = 1.0
         }
         function onScrapeProgressChanged(p) {
-            dashboardRoot.isScraping = (p > 0 && p < 1.0)
+            if (p > 0 && p < 1.0) dashboardRoot.isScraping = true
+        }
+        function onScrapeFinished(n) {
+            dashboardRoot.isScraping = false
         }
         function onGamesUpdated() { dashboardRoot.refreshAll() }
     }

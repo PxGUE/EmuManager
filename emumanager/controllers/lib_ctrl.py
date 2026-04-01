@@ -45,7 +45,9 @@ class LibraryController(QObject):
         EmuLog.info(f"M.A.N.G.O (Lib): Escaneo Asíncrono Iniciado en {path}")
         
         self._scan_thread = QThread()
-        self._scan_worker = ScanWorker(self.scanner, path)
+        # Usamos la ruta de la DB centralizada para el worker aislado
+        db_path = Path(AppConfig.get_database_path())
+        self._scan_worker = ScanWorker(db_path, path)
         self._scan_worker.moveToThread(self._scan_thread)
 
         # Conectar Señales
@@ -57,7 +59,7 @@ class LibraryController(QObject):
         self._scan_thread.finished.connect(self._scan_thread.deleteLater)
         self._scan_thread.finished.connect(self._clear_scan_thread)
 
-        self._scan_thread.start()
+        self._scan_thread.start(QThread.LowPriority)
         return True
 
     def _clear_scan_thread(self):

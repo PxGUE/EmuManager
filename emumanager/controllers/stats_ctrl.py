@@ -88,6 +88,12 @@ class StatsController(QObject):
                     "emulatorName": item["emulatorName"]
                 })
             self._cached_summary = summary
+            
+            # Log profesional y legible para el sistema de logs
+            if summary:
+                platforms_str = ", ".join([f"[{s['title']}: {s['gameCount']}]" for s in summary])
+                EmuLog.info(f"M.A.N.G.O (UI): Sincronizados {len(summary)} sistemas en la biblioteca ({platforms_str})")
+            
             return summary
         except Exception as e:
             EmuLog.error(f"Error nativo en resumen de consola: {e}")

@@ -136,6 +136,7 @@ Item {
             "initializing": "INICIALIZANDO...",
             "startup_native": "Activando motor nativo M.A.N.G.O (Rust)...",
             "startup_db": "Verificando integridad de la biblioteca...",
+            "startup_db_sync": "Sincronizando sistemas y estadísticas de juego...",
             "startup_assets": "Optimizando caché de medios y carátulas...",
             
             // System Info Tech Keys
@@ -351,6 +352,7 @@ Item {
             "initializing": "INITIALIZING...",
             "startup_native": "Engaging M.A.N.G.O native engine (Rust)...",
             "startup_db": "Verifying library integrity...",
+            "startup_db_sync": "Synchronizing gaming systems and stats...",
             "startup_assets": "Optimizing media and covers cache...",
             "startup_ready": "Missions initialized. Welcome.",
             "core_downloading": "Downloading %1 using M.A.N.G.O...",

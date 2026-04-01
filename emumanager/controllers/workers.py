@@ -38,14 +38,14 @@ class UpdateWorker(QObject):
             self.error.emit(str(e))
 
 class ScanWorker(QObject):
-    """Trabajador que ejecuta el escaneo en un hilo separado."""
+    """Trabajador profesional con aislamiento de recursos."""
     finished = Signal(int)
     progress = Signal(float)
     status = Signal(str)
 
-    def __init__(self, scanner_manager, directory: str):
+    def __init__(self, db_path: Path, directory: str):
         super().__init__()
-        self.scanner = scanner_manager
+        self.db_path = db_path
         self.directory = directory
         self._is_active = True
 
@@ -56,15 +56,26 @@ class ScanWorker(QObject):
     @Slot()
     def run(self):
         try:
-            count = self.scanner.scan_and_register(
+            # 1. Crear entorno aislado en este hilo
+            from backend.database import DatabaseManager
+            from backend.scanner import ScannerManager
+            
+            # Instanciamos nuestra propia DB y Scanner para evitar colisiones de hilos
+            db = DatabaseManager(self.db_path)
+            scanner = ScannerManager(db)
+            
+            EmuLog.debug(f"ScanWorker: Iniciando escaneo aislado en {self.directory}")
+            
+            count = scanner.scan_and_register(
                 self.directory,
                 progress_callback=self.progress.emit,
                 status_callback=self.status.emit,
                 is_active_check=lambda: self._is_active
             )
+            
             self.finished.emit(count)
         except Exception as e:
-            EmuLog.error(f"Error fatal en hilo de escaneo: {e}")
+            EmuLog.error(f"¡Error Crítico en ScanWorker!: {e}")
             self.finished.emit(0)
 
 
@@ -195,44 +206,44 @@ class StartupWorker(QObject):
     @Slot()
     def run(self):
         try:
-            # 1. Motor Nativo (20%)
+            # 1. Motor Nativo (25%)
             self.status.emit("startup_native")
             time.sleep(0.4) 
             self.ctrl._is_precharged = False
-            self.ctrl.proactive_background_load()
             self.progress.emit(0.25)
             
-            # 2. Base de Datos (50%)
+            # 2. Base de Datos & Motores (50%)
             self.status.emit("startup_db")
-            time.sleep(0.3)
-            # Podríamos disparar un scan rápido aquí si quisiéramos
-            self.progress.emit(0.55)
+            self.ctrl.proactive_background_load()
+            self.progress.emit(0.50)
             
-            # 3. Preparación de Assets (80%)
+            # --- NUEVA FASE: SINCRONIZACIÓN DE BIBLIOTECA (70%) ---
+            self.status.emit("startup_db_sync")
+            self.ctrl.stats_ctrl.get_consoles_summary(use_cache=False)
+            time.sleep(0.3) 
+            self.progress.emit(0.70)
+            
+            # 3. Preparación de Assets (90%)
             self.status.emit("startup_assets")
             try:
                 # Pedimos los juegos a la DB para conocer sus rutas de carátula
-                # Usamos el nuevo método optimizado con límite inicial
-                games = self.ctrl.db.get_all_games(limit=200)
-                # Calentamos solo las primeras 100 (las que el usuario verá primero)
-                count = 0
+                games = self.ctrl.db.get_all_games(limit=100)
+                # Calentamos el caché de archivos
                 for game in games:
-                    if count > 100: break
                     cover_path = game.get('media_path')
                     if cover_path and os.path.exists(cover_path):
-                        # Pre-carga suave en caché del OS
                         try:
                             with open(cover_path, 'rb') as f:
-                                f.read(4096) 
-                            count += 1
+                                f.read(1024) 
                         except: pass
             except Exception as e:
                 EmuLog.debug(f"Aviso en Warm-up: {e}")
             
-            self.progress.emit(0.85)
+            self.progress.emit(0.90)
             
             # 4. Finalización (100%)
             self.status.emit("startup_ready")
+            time.sleep(0.2)
             self.progress.emit(1.0)
             self.finished.emit()
             

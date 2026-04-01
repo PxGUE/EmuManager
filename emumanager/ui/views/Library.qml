@@ -58,7 +58,7 @@ Item {
         consoleModel.clear()
         if (!mainController) return;
         var summary = mainController.get_consoles_summary()
-        console.log("M.A.N.G.O (UI): Cargando " + summary.length + " sistemas en la biblioteca.")
+        if (!summary) return;
         
         var newIndex = 0
         for (var i = 0; i < summary.length; i++) {
@@ -80,7 +80,7 @@ Item {
     // No cargar inmediatamente al completar componente para evitar lag inicial
     // Dejamos que el controlador la cargue cuando la DB esté lista (gamesUpdated)
     Component.onCompleted: {
-        // La carga se gestiona a través del Connection.onGamesUpdated
+        // La carga se gestiona a través de señales (onStartupFinished/onGamesUpdated)
     }
 
     Connections {

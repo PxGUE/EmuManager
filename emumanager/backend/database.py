@@ -16,9 +16,13 @@ class DatabaseManager:
     def get_connection(self) -> sqlite3.Connection:
         conn = sqlite3.connect(
             self.db_path,
-            detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES
+            detect_types=sqlite3.PARSE_DECLTYPES | sqlite3.PARSE_COLNAMES,
+            timeout=30.0 # Esperar hasta 30s si está bloqueada antes de fallar
         )
         conn.row_factory = sqlite3.Row
+        # Habilitar WAL (Write-Ahead Logging) para permitir lectores concurrentes mientras se escribe
+        conn.execute("PRAGMA journal_mode=WAL")
+        conn.execute("PRAGMA synchronous=NORMAL")
         return conn
 
     def _init_db(self):

@@ -242,7 +242,7 @@ Item {
         target: mainController
         
         function onScanProgressChanged(p) { scanVal = p }
-        function onScanStatusChanged(s) { scanLog = I18n.tp(s); isScanning = true }
+        function onScanStatusChanged(s) { scanLog = I18n.tp(s) }
         function onScanFinished(n) { 
             scanVal = 1.0; 
             scanLog = I18n.t.scan_finished.arg(n); 
@@ -251,7 +251,7 @@ Item {
         }
         
         function onScrapeProgressChanged(p) { scrapeVal = p }
-        function onScrapeStatusChanged(s) { scrapeLog = I18n.tp(s); isScraping = true }
+        function onScrapeStatusChanged(s) { scrapeLog = I18n.tp(s) }
         function onScrapeFinished(n) { 
             scrapeVal = 1.0; 
             scrapeLog = I18n.t.scrape_done; 

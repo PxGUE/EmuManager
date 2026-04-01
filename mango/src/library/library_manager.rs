@@ -7,6 +7,7 @@ use std::fs::{self, File};
 use walkdir::WalkDir;
 use rayon::prelude::*;
 use md5;
+use std::sync::Arc;
 
 /// Estructura de mapeo plataforma -> núcleos
 fn get_core_map() -> HashMap<&'static str, Vec<(&'static str, &'static str)>> {
@@ -87,9 +88,9 @@ pub fn get_consoles_summary_native(
 
         if game_count == 0 { continue; }
 
-        // B. Sumar tiempo
+        // B. Sumar tiempo (Usar LEFT JOIN para no filtrar si no hay stats)
         let play_time: i64 = conn.query_row(
-            "SELECT SUM(play_time_seconds) FROM play_stats s JOIN games g ON s.game_id = g.id WHERE g.platform = ?",
+            "SELECT SUM(play_time_seconds) FROM games g LEFT JOIN play_stats s ON g.id = s.game_id WHERE g.platform = ?",
             [&platform],
             |row| row.get(0),
         ).unwrap_or(0);
@@ -205,10 +206,10 @@ pub fn fetch_dashboard_stats(
     // 4. Último Juego Jugado
     let mut last_game_id: i64 = -1;
     if let Ok(mut stmt) = conn.prepare("
-        SELECT g.id, m.title, g.platform, m.cover_2d_path, s.last_played_at
+        SELECT g.id, COALESCE(m.title, g.display_name), g.platform, m.cover_2d_path, s.last_played_at
         FROM games g
-        JOIN game_metadata m ON g.id = m.game_id
-        JOIN play_stats s ON g.id = s.game_id
+        LEFT JOIN game_metadata m ON g.id = m.game_id
+        LEFT JOIN play_stats s ON g.id = s.game_id
         WHERE s.last_played_at IS NOT NULL
         ORDER BY s.last_played_at DESC
         LIMIT 1
@@ -408,6 +409,178 @@ fn peek_zip_platform(path_str: &str) -> String {
     "unknown".to_string()
 }
 
+/// Escanea un directorio buscando juegos y los registra directamente en la base de datos de forma nativa.
+/// Optimiza todo el proceso liberando el GIL y usando un escaneo diferencial (solo hashea nuevos o cambiados).
+pub fn scan_directory_to_db(
+    py: Python<'_>,
+    db_path: String,
+    root_path: String,
+    extensions: Vec<String>,
+    progress_callback: Option<Py<PyAny>>,
+    status_callback: Option<Py<PyAny>>,
+) -> PyResult<usize> {
+    let root = Path::new(&root_path);
+    if !root.exists() {
+        return Ok(0);
+    }
+
+    // 1. Obtención de estado actual de la DB para escaneo diferencial (Súper Rápido)
+    let existing_map: HashMap<String, u64> = {
+        if let Ok(conn) = Connection::open(&db_path) {
+            let mut stmt = conn.prepare("SELECT file_path, file_size FROM games").unwrap();
+            let rows = stmt.query_map([], |row| {
+                Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)? as u64))
+            }).unwrap();
+            rows.filter_map(Result::ok).collect()
+        } else {
+            HashMap::new()
+        }
+    };
+
+    // 2. Recolectar archivos válidos en disco
+    let files: Vec<PathBuf> = WalkDir::new(root)
+        .into_iter()
+        .filter_map(|e| e.ok())
+        .filter(|e| e.file_type().is_file())
+        .map(|e| e.path().to_path_buf())
+        .filter(|p| {
+            if let Some(ext) = p.extension() {
+                let ext_str = ext.to_string_lossy().to_lowercase();
+                extensions.iter().any(|e| e.to_lowercase() == ext_str)
+            } else {
+                false
+            }
+        })
+        .collect();
+
+    let total_files = files.len();
+    if total_files == 0 { return Ok(0); }
+
+    // 3. Reportar Inicio
+    if let Some(sc) = &status_callback {
+        let _ = sc.bind(py).call1(("scan_starting",));
+    }
+
+    // Preparar clones de los callbacks para el pool de hilos
+    let pc_arc_thread = progress_callback.as_ref().map(|cb| cb.clone_ref(py));
+    let sc_arc_thread = status_callback.as_ref().map(|cb| cb.clone_ref(py));
+
+    // 4. Procesar en PARALELO (Liberando el GIL) con filtrado diferencial
+    use std::sync::atomic::{AtomicUsize, Ordering};
+    let results_count = Arc::new(AtomicUsize::new(0));
+
+    let results: Vec<(String, String, u64, String, String)> = py.allow_threads(move || {
+        files.into_par_iter()
+            .filter_map(|p| {
+                let path_str = p.to_string_lossy().to_string();
+                let meta = fs::metadata(&p).ok()?;
+                let size = meta.len();
+
+                // Incrementamos contador de procesados totales
+                let processed = results_count.fetch_add(1, Ordering::SeqCst) + 1;
+
+                // Reporte de progreso cada 20 archivos para dar feedback visual constante
+                if processed % 20 == 0 || processed == total_files {
+                    let progress = (processed as f64 / total_files as f64) * 0.9; // Reservamos el 10% final para la DB
+                    let game_name = p.file_stem().and_then(|s| s.to_str()).unwrap_or("...").to_string();
+                    
+                    // Llamada segura a Python desde el pool de hilos
+                    Python::with_gil(|py| {
+                        if let Some(pc) = &pc_arc_thread { 
+                            let _ = pc.bind(py).call1((progress,)); 
+                        }
+                        if let Some(sc) = &sc_arc_thread { 
+                            let _ = sc.bind(py).call1((format!("scan_identifying|{}", game_name),)); 
+                        }
+                    });
+                }
+
+                // OPTIMIZACIÓN: Si ya está en la DB con el mismo tamaño, saltamos cómputo de Hash
+                if let Some(&old_size) = existing_map.get(&path_str) {
+                    if old_size == size { return None; }
+                }
+
+                let raw_name = p.file_stem()?.to_string_lossy();
+                let display_name = normalize_title(&raw_name);
+                let mut platform = get_platform_from_path(&p);
+                let ext = p.extension().and_then(|e| e.to_str()).unwrap_or("").to_lowercase();
+                
+                if platform.is_none() && ext == "zip" {
+                    let peek = peek_zip_platform(&path_str);
+                    if peek != "unknown" { platform = Some(peek); }
+                }
+                let final_platform = platform.unwrap_or_else(|| get_platform_from_ext(&ext));
+                
+                let mut file = File::open(&p).ok()?;
+                let mut hasher = md5::Context::new();
+                if std::io::copy(&mut file, &mut hasher).is_ok() {
+                    let m = format!("{:x}", hasher.compute());
+                    Some((path_str, m, size, display_name, final_platform))
+                } else {
+                    None
+                }
+            })
+            .collect()
+    });
+
+    if results.is_empty() {
+        if let Some(pc) = &progress_callback { let _ = pc.bind(py).call1((1.0,)); }
+        return Ok(0);
+    }
+
+    // 5. Registrar solo los cambiados/nuevos en la Base de Datos
+    let pc_final = progress_callback.as_ref().map(|cb| cb.clone_ref(py));
+    let sc_final = status_callback.as_ref().map(|cb| cb.clone_ref(py));
+    
+    py.allow_threads(move || {
+        let mut conn = Connection::open(&db_path)
+            .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e.to_string()))?;
+        
+        let tx = conn.transaction()
+            .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e.to_string()))?;
+            
+        let mut new_games = 0;
+        let mut current_idx = 0;
+        let total_new = results.len();
+
+        for (path, m, size, dname, plat) in results {
+            current_idx += 1;
+            
+            let changed = tx.execute(
+                "INSERT OR IGNORE INTO games (file_hash, file_path, display_name, platform, file_size) VALUES (?, ?, ?, ?, ?)",
+                [&m, &path, &dname, &plat, &size.to_string()],
+            ).unwrap_or(0);
+
+            // ASEGURAR METADATOS: Aunque el juego ya exista, nos aseguramos de que tenga 
+            // una entrada en game_metadata para que no desaparezca en los LEFT JOINs
+            let _ = tx.execute(
+                "INSERT OR IGNORE INTO game_metadata (game_id, title) 
+                 SELECT id, ? FROM games WHERE file_hash = ?",
+                [dname.clone(), m.clone()],
+            );
+
+            if changed > 0 {
+                new_games += 1;
+            }
+
+            // Reportar progreso diferencial (del 90% al 100%)
+            if current_idx % 25 == 0 || current_idx == total_new {
+                let progress = 0.9 + ( (current_idx as f64 / total_new as f64) * 0.1 );
+                let game_name = dname.clone();
+                Python::with_gil(|py| {
+                    if let Some(pc) = &pc_final { let _ = pc.bind(py).call1((progress,)); }
+                    if let Some(sc) = &sc_final { 
+                        let _ = sc.bind(py).call1((format!("scan_registering|{}", game_name),)); 
+                    }
+                });
+            }
+        }
+
+        tx.commit().map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e.to_string()))?;
+        Ok(new_games)
+    })
+}
+
 /// Escanea un directorio buscando juegos y calcula sus hashes en paralelo.
 pub fn scan_directory(
     py: Python<'_>,
@@ -435,37 +608,34 @@ pub fn scan_directory(
         })
         .collect();
 
-    // 2. Procesar en PARALELO usando Rayon
-    let results: Vec<(String, String, u64, String, String)> = files.into_par_iter()
-        .filter_map(|p| {
-            let path_str = p.to_string_lossy().to_string();
-            let size = fs::metadata(&p).ok()?.len();
-            
-            // Nombre limpio nativo
-            let raw_name = p.file_stem()?.to_string_lossy();
-            let display_name = normalize_title(&raw_name);
-            
-            // Detección de Plataforma Nativa
-            let mut platform = get_platform_from_path(&p);
-            let ext = p.extension().and_then(|e| e.to_str()).unwrap_or("").to_lowercase();
-            
-            if platform.is_none() && ext == "zip" {
-                let peek = peek_zip_platform(&path_str);
-                if peek != "unknown" { platform = Some(peek); }
-            }
-            
-            let final_platform = platform.unwrap_or_else(|| get_platform_from_ext(&ext));
-            
-            let mut file = File::open(&p).ok()?;
-            let mut hasher = md5::Context::new();
-            if std::io::copy(&mut file, &mut hasher).is_ok() {
-                let m = format!("{:x}", hasher.compute());
-                Some((path_str, m, size, display_name, final_platform))
-            } else {
-                None
-            }
-        })
-        .collect();
+    // 2. Procesar en PARALELO liberando el GIL
+    let results: Vec<(String, String, u64, String, String)> = py.allow_threads(move || {
+        files.into_par_iter()
+            .filter_map(|p| {
+                let path_str = p.to_string_lossy().to_string();
+                let size = fs::metadata(&p).ok()?.len();
+                let raw_name = p.file_stem()?.to_string_lossy();
+                let display_name = normalize_title(&raw_name);
+                let mut platform = get_platform_from_path(&p);
+                let ext = p.extension().and_then(|e| e.to_str()).unwrap_or("").to_lowercase();
+                
+                if platform.is_none() && ext == "zip" {
+                    let peek = peek_zip_platform(&path_str);
+                    if peek != "unknown" { platform = Some(peek); }
+                }
+                let final_platform = platform.unwrap_or_else(|| get_platform_from_ext(&ext));
+                
+                let mut file = File::open(&p).ok()?;
+                let mut hasher = md5::Context::new();
+                if std::io::copy(&mut file, &mut hasher).is_ok() {
+                    let m = format!("{:x}", hasher.compute());
+                    Some((path_str, m, size, display_name, final_platform))
+                } else {
+                    None
+                }
+            })
+            .collect()
+    });
 
     // 3. Empaquetar para Python
     let mut py_results = Vec::with_capacity(results.len());

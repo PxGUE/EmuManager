@@ -28,7 +28,7 @@ pub fn search_games(
         
     let mut sql = "SELECT g.id, g.file_hash, g.file_path, g.display_name, g.platform, m.title, m.cover_2d_path, m.cover_3d_path 
                    FROM games g 
-                   JOIN game_metadata m ON g.id = m.game_id".to_string();
+                   LEFT JOIN game_metadata m ON g.id = m.game_id".to_string();
                    
     let mut params: Vec<String> = Vec::new();
     

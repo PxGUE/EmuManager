@@ -173,6 +173,18 @@ fn start_batch_scrape(
 }
 
 #[pyfunction]
+fn scan_directory_to_db(
+    py: Python<'_>,
+    db_path: String,
+    path: String,
+    extensions: Vec<String>,
+    progress_callback: Option<Py<PyAny>>,
+    status_callback: Option<Py<PyAny>>,
+) -> PyResult<usize> {
+    library::library_manager::scan_directory_to_db(py, db_path, path, extensions, progress_callback, status_callback)
+}
+
+#[pyfunction]
 fn launch_game(
     py: Python<'_>,
     emu_path: String,
@@ -226,6 +238,7 @@ fn mango_engine(_py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(fetch_consoles_summary, m)?)?;
     m.add_function(wrap_pyfunction!(fetch_dashboard_stats, m)?)?;
     m.add_function(wrap_pyfunction!(scan_directory, m)?)?;
+    m.add_function(wrap_pyfunction!(scan_directory_to_db, m)?)?;
     m.add_function(wrap_pyfunction!(start_batch_scrape, m)?)?;
     m.add_function(wrap_pyfunction!(search_games, m)?)?;
     m.add_function(wrap_pyfunction!(launch_game, m)?)?;

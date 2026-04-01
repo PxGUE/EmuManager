@@ -29,6 +29,8 @@ class AppConfigController(QObject):
             return AppConfig.get_screenscraper_user()
         elif service == "screenscraper_pass":
             return AppConfig.get_screenscraper_pass()
+        elif service == "gametdb_mode":
+            return AppConfig.get_gametdb_mode()
         return ""
 
     @Slot(str, str)
@@ -37,6 +39,8 @@ class AppConfigController(QObject):
             AppConfig.set_screenscraper_user(value)
         elif service == "screenscraper_pass":
             AppConfig.set_screenscraper_pass(value)
+        elif service == "gametdb_mode":
+            AppConfig.set_gametdb_mode(value)
 
     @Slot(result=str)
     def select_roms_directory(self):

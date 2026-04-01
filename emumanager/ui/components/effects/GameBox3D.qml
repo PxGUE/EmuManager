@@ -12,6 +12,7 @@ Item {
 
     property real dynamicTiltX: 0
     property real dynamicTiltY: 0
+    property bool isScraping: false
 
     width: 160; height: 220
     
@@ -85,7 +86,7 @@ Item {
                 opacity: 0.5
             }
             Text {
-                text: I18n.t.scrape_friendly
+                text: isScraping ? I18n.t.scrape_friendly : I18n.t.no_cover_yet
                 color: Theme.textMuted; font.pixelSize: 8 // Muy pequeño para que quepa en la caja
                 horizontalAlignment: Text.AlignHCenter; width: parent.width
                 wrapMode: Text.WordWrap; font.letterSpacing: 1

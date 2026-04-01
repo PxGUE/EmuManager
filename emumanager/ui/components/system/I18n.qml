@@ -70,6 +70,17 @@ Item {
             "api_desc": "Introduce tus credenciales para descargar portadas automáticamente.",
             "api_saved": "Configuración guardada. M.A.N.G.O la usará al sincronizar.",
 
+            "api_gametdb": "GameTDB (Base de datos Nintendo)",
+            "api_gametdb_desc": "La 'biblia' de Nintendo. Descarga la base de datos localmente para un scraping ultra-rápido, privado y offline.",
+            "btn_download_db": "DESCARGAR BASE DE DATOS",
+            "btn_update_db": "ACTUALIZAR BASE DE DATOS",
+            "gametdb_db_status": "Estado de la BD local: ",
+            "gametdb_db_not_found": "No descargada",
+            "gametdb_db_ready": "Lista para usar (%1)",
+            "downloading_gametdb_db": "Descargando base de datos de GameTDB...",
+            "extracting_gametdb_db": "Extrayendo base de datos...",
+            "gametdb_db_success": "Base de datos de GameTDB actualizada correctamente.",
+
 
             "about_desc": "EmuManager es software <b>Libre y Gratuito</b>, impulsado por el motor nativo <b>M.A.N.G.O</b>. Diseñado con un enfoque <b>Local-First</b>, garantizamos que tu privacidad es absoluta: tus datos y biblioteca permanecen exclusivamente en tu equipo, sin telemetría ni dependencias de la nube.",
             "os_spec": "SISTEMA OPERATIVO",
@@ -164,6 +175,7 @@ Item {
             "scan_finished": "Escaneo finalizado. %1 juegos nuevos registrados.",
             "scrape_starting": "Iniciando M.A.N.G.O Batch Scraper...",
             "scrape_friendly": "M.A.N.G.O está trabajando para ti.\nPuedes seguir explorando la app.",
+            "no_cover_yet": "Sin carátula disponible.",
             "scrape_finished": "Scrapeado completado con éxito.",
 
             // Game Details
@@ -293,6 +305,17 @@ Item {
             "api_desc": "Enter your credentials to download covers automatically.",
             "api_saved": "Settings saved. M.A.N.G.O will use them when syncing.",
 
+            "api_gametdb": "GameTDB (Nintendo Database)",
+            "api_gametdb_desc": "The Nintendo 'bible'. Download the database locally for ultra-fast, private, and offline scraping.",
+            "btn_download_db": "DOWNLOAD DATABASE",
+            "btn_update_db": "UPDATE DATABASE",
+            "gametdb_db_status": "Local DB status: ",
+            "gametdb_db_not_found": "Not downloaded",
+            "gametdb_db_ready": "Ready to use (%1)",
+            "downloading_gametdb_db": "Downloading GameTDB database...",
+            "extracting_gametdb_db": "Extracting database...",
+            "gametdb_db_success": "GameTDB database updated successfully.",
+
 
             "about_desc": "EmuManager is <b>Free and Open Source</b> software, powered by the <b>M.A.N.G.O</b> native engine. Built with a <b>Local-First</b> approach, we guarantee absolute privacy: your data and library stay exclusively on your device, with no telemetry or cloud dependencies.",
             "os_spec": "OPERATING SYSTEM",
@@ -386,6 +409,7 @@ Item {
             "scan_finished": "Scan finished. %1 new games registered.",
             "scrape_starting": "Starting M.A.N.G.O Batch Scraper...",
             "scrape_friendly": "M.A.N.G.O is working for you.\nYou can keep browsing the app.",
+            "no_cover_yet": "No cover available.",
             "scrape_finished": "Scraping completed successfully.",
 
             // Game Details

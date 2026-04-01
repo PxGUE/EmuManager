@@ -93,6 +93,7 @@ Item {
             sourceImage: cover2d; platform: romCardRoot.platform
             visible: !has3d; isHovered: romCardRoot.isHovered
             accentColor: romCardRoot.resolvedAccent
+            isScraping: mainController.isScraping
             
             // PASAMOS EL TILT
             dynamicTiltX: tiltX

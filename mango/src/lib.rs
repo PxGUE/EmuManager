@@ -6,15 +6,15 @@ use once_cell::sync::Lazy;
 mod emulation;
 mod scraping;
 mod library;
-mod sync;
+pub mod sync;
 mod tools;
 
-/// Runtime global compartido para evitar el coste de creación/destrucción por llamada.
 static RUNTIME: Lazy<Runtime> = Lazy::new(|| {
     Runtime::new().expect("M.A.N.G.O (Fatal): Error al inicializar el Tokio Runtime.")
 });
 
 #[pyfunction]
+#[pyo3(signature = ())]
 fn fetch_cores(py: Python<'_>) -> PyResult<Vec<String>> {
     let res = py.allow_threads(move || { RUNTIME.block_on(emulation::core_manager::fetch_available_cores_async()) });
     match res {
@@ -24,17 +24,16 @@ fn fetch_cores(py: Python<'_>) -> PyResult<Vec<String>> {
 }
 
 #[pyfunction]
+#[pyo3(signature = (core_name, dest_dir, progress_callback=None, status_callback=None))]
 fn download_core(
     py: Python<'_>,
     core_name: String,
     dest_dir: String,
-    progress_callback: Option<Py<PyAny>>,
-    status_callback: Option<Py<PyAny>>
+    progress_callback: Option<PyObject>,
+    status_callback: Option<PyObject>
 ) -> PyResult<String> {
-    let pc = progress_callback.as_ref().map(|cb| cb.clone_ref(py));
-    let sc = status_callback.as_ref().map(|cb| cb.clone_ref(py));
     let res = py.allow_threads(move || {
-        RUNTIME.block_on(emulation::core_manager::download_core_async(core_name, dest_dir, pc, sc))
+        RUNTIME.block_on(emulation::core_manager::download_core_async(core_name, dest_dir, progress_callback, status_callback))
     });
     match res {
         Ok(path) => Ok(path),
@@ -43,18 +42,17 @@ fn download_core(
 }
 
 #[pyfunction]
+#[pyo3(signature = (url, dest_dir, expected_filename, progress_callback=None, status_callback=None))]
 fn download_emulator(
     py: Python<'_>,
     url: String, 
     dest_dir: String, 
     expected_filename: String, 
-    progress_callback: Option<Py<PyAny>>,
-    status_callback: Option<Py<PyAny>>
+    progress_callback: Option<PyObject>,
+    status_callback: Option<PyObject>
 ) -> PyResult<String> {
-    let pc = progress_callback.as_ref().map(|cb| cb.clone_ref(py));
-    let sc = status_callback.as_ref().map(|cb| cb.clone_ref(py));
     let res = py.allow_threads(move || {
-        RUNTIME.block_on(emulation::core_manager::download_emulator_async(url, dest_dir, expected_filename, pc, sc))
+        RUNTIME.block_on(emulation::core_manager::download_emulator_async(url, dest_dir, expected_filename, progress_callback, status_callback))
     });
     match res {
         Ok(path) => Ok(path),
@@ -63,6 +61,7 @@ fn download_emulator(
 }
 
 #[pyfunction]
+#[pyo3(signature = (_emu_id, system_id, portable_url, dest_dir, executable_name, progress_callback=None, status_callback=None))]
 fn install_emulator_orchestra(
     py: Python<'_>,
     _emu_id: String,
@@ -70,8 +69,8 @@ fn install_emulator_orchestra(
     portable_url: String,
     dest_dir: String,
     executable_name: String,
-    progress_callback: Option<Py<PyAny>>,
-    status_callback: Option<Py<PyAny>>
+    progress_callback: Option<PyObject>,
+    status_callback: Option<PyObject>
 ) -> PyResult<String> {
     if !system_id.is_empty() {
         let sid = system_id.clone();
@@ -82,10 +81,8 @@ fn install_emulator_orchestra(
     }
     
     if !portable_url.is_empty() {
-        let pc = progress_callback.as_ref().map(|cb| cb.clone_ref(py));
-        let sc = status_callback.as_ref().map(|cb| cb.clone_ref(py));
         let res = py.allow_threads(move || {
-            RUNTIME.block_on(emulation::core_manager::download_emulator_async(portable_url, dest_dir, executable_name, pc, sc))
+            RUNTIME.block_on(emulation::core_manager::download_emulator_async(portable_url, dest_dir, executable_name, progress_callback, status_callback))
         });
         match res {
             Ok(path) => return Ok(path),
@@ -97,18 +94,17 @@ fn install_emulator_orchestra(
 }
 
 #[pyfunction]
+#[pyo3(signature = (url, dest_dir, expected_filename, progress_callback=None, status_callback=None))]
 fn update_emulator(
     py: Python<'_>,
     url: String, 
     dest_dir: String, 
     expected_filename: String, 
-    progress_callback: Option<Py<PyAny>>,
-    status_callback: Option<Py<PyAny>>
+    progress_callback: Option<PyObject>,
+    status_callback: Option<PyObject>
 ) -> PyResult<String> {
-    let pc = progress_callback.as_ref().map(|cb| cb.clone_ref(py));
-    let sc = status_callback.as_ref().map(|cb| cb.clone_ref(py));
     let res = py.allow_threads(move || {
-        RUNTIME.block_on(emulation::core_manager::update_emulator_async(url, dest_dir, expected_filename, pc, sc))
+        RUNTIME.block_on(emulation::core_manager::update_emulator_async(url, dest_dir, expected_filename, progress_callback, status_callback))
     });
     match res {
         Ok(path) => Ok(path),
@@ -117,6 +113,7 @@ fn update_emulator(
 }
 
 #[pyfunction]
+#[pyo3(signature = (target_path))]
 fn uninstall_emulator(py: Python<'_>, target_path: String) -> PyResult<()> {
     let res = py.allow_threads(move || {
         RUNTIME.block_on(emulation::core_manager::remove_emulator_files_async(target_path))
@@ -128,11 +125,13 @@ fn uninstall_emulator(py: Python<'_>, target_path: String) -> PyResult<()> {
 }
 
 #[pyfunction]
+#[pyo3(signature = (callback))]
 fn set_log_callback(callback: PyObject) {
     tools::logging::set_log_callback(callback);
 }
 
 #[pyfunction]
+#[pyo3(signature = (db_path, emus_path))]
 fn fetch_consoles_summary(
     py: Python<'_>,
     db_path: String,
@@ -142,6 +141,7 @@ fn fetch_consoles_summary(
 }
 
 #[pyfunction]
+#[pyo3(signature = (db_path))]
 fn fetch_dashboard_stats(
     py: Python<'_>,
     db_path: String,
@@ -150,6 +150,7 @@ fn fetch_dashboard_stats(
 }
 
 #[pyfunction]
+#[pyo3(signature = (path, extensions))]
 fn scan_directory(
     py: Python<'_>,
     path: String,
@@ -159,6 +160,7 @@ fn scan_directory(
 }
 
 #[pyfunction]
+#[pyo3(signature = (db_path, ss_id, ss_pass, dev_id, dev_pass, media_dir, progress_cb=None, status_cb=None, gametdb_mode="web".to_string()))]
 fn start_batch_scrape(
     py: Python<'_>,
     db_path: String,
@@ -168,23 +170,27 @@ fn start_batch_scrape(
     dev_pass: String,
     media_dir: String,
     progress_cb: Option<PyObject>,
+    status_cb: Option<PyObject>,
+    gametdb_mode: String,
 ) -> PyResult<usize> {
-    scraping::batch_scraper::run_batch_scrape(py, &db_path, &ss_id, &ss_pass, &dev_id, &dev_pass, &media_dir, progress_cb)
+    scraping::batch_scraper::run_batch_scrape(py, db_path, ss_id, ss_pass, dev_id, dev_pass, media_dir, progress_cb, status_cb, gametdb_mode)
 }
 
 #[pyfunction]
+#[pyo3(signature = (db_path, path, extensions, progress_callback=None, status_callback=None))]
 fn scan_directory_to_db(
     py: Python<'_>,
     db_path: String,
     path: String,
     extensions: Vec<String>,
-    progress_callback: Option<Py<PyAny>>,
-    status_callback: Option<Py<PyAny>>,
+    progress_callback: Option<PyObject>,
+    status_callback: Option<PyObject>,
 ) -> PyResult<usize> {
     library::library_manager::scan_directory_to_db(py, db_path, path, extensions, progress_callback, status_callback)
 }
 
 #[pyfunction]
+#[pyo3(signature = (emu_path, rom_path, core_path=None))]
 fn launch_game(
     py: Python<'_>,
     emu_path: String,
@@ -200,6 +206,7 @@ fn launch_game(
 }
 
 #[pyfunction]
+#[pyo3(signature = (db_path, query, platform))]
 fn search_games(
     py: Python<'_>,
     db_path: String,
@@ -210,20 +217,21 @@ fn search_games(
 }
 
 #[pyfunction]
+#[pyo3(signature = (targets))]
 fn check_all_updates(py: Python<'_>, targets: std::collections::HashMap<String, String>) -> PyResult<PyObject> {
     let results = py.allow_threads(move || {
         RUNTIME.block_on(sync::updates::check_parallel_updates(targets))
     });
     
-    let list = pyo3::types::PyList::empty_bound(py);
+    let list = pyo3::types::PyList::empty(py);
     for r in results {
-        let dict = pyo3::types::PyDict::new_bound(py);
+        let dict = pyo3::types::PyDict::new(py);
         let _ = dict.set_item("id", r.id);
         let _ = dict.set_item("remote_tag", r.remote_tag);
         let _ = dict.set_item("download_url", r.download_url);
         let _ = list.append(dict);
     }
-    Ok(list.into())
+    Ok(list.into_any().unbind())
 }
 
 #[pymodule]

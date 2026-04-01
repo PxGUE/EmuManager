@@ -42,7 +42,6 @@ class MainController(QObject):
     startupProgressChanged = Signal(float)
     startupStatusChanged = Signal(str)
     startupFinished = Signal()
-    startupFinished = Signal()
     notificationRequested = Signal(str, str, str) # (title, message, type)
 
     from PySide6.QtCore import Property
@@ -51,6 +50,10 @@ class MainController(QObject):
     
     @Property(str, constant=True)
     def mangoVersion(self): return self.MANGO_VERSION
+
+    @Property(bool, notify=scrapeStatusChanged)
+    def isScraping(self):
+        return self.lib_ctrl._scrape_thread is not None and self.lib_ctrl._scrape_thread.isRunning()
 
     def __init__(self, parent=None):
         super().__init__(parent)

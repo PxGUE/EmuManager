@@ -8,6 +8,7 @@ use serde_json::Value;
 pub mod screenscraper;
 pub mod libretro;
 pub mod local_nfo;
+pub mod gametdb;
 
 use async_trait::async_trait;
 
@@ -35,6 +36,8 @@ pub struct ScrapeQuery {
     pub ss_pass: String,
     pub dev_id: String,
     pub dev_pass: String,
+    pub serial: String,
+    pub gametdb_mode: String,
 }
 
 #[async_trait]

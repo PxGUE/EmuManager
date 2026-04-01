@@ -77,6 +77,9 @@ class ScannerManager:
             dev_id = os.getenv("SS_DEV_ID", "")
             dev_pass = os.getenv("SS_DEV_PASS", "")
 
+            # Obtenemos el modo de GameTDB desde la configuración
+            gametdb_mode = AppConfig.get_gametdb_mode()
+
             success_count = mango_engine.start_batch_scrape(
                 db_path,
                 ss_id,
@@ -84,7 +87,9 @@ class ScannerManager:
                 dev_id,
                 dev_pass,
                 media_base,
-                progress_callback
+                progress_callback,
+                status_callback,
+                gametdb_mode
             )
             
             if status_callback:

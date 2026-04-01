@@ -141,6 +141,17 @@ class AppConfig:
         return cls.get_app_data_dir() / "db" / "emumanager.db"
 
     @classmethod
+    def get_gametdb_mode(cls) -> str:
+        """Retorna 'web' o 'local' para GameTDB."""
+        return cls._load_config().get("gametdb_mode", "web")
+
+    @classmethod
+    def set_gametdb_mode(cls, mode: str):
+        config = cls._load_config()
+        config["gametdb_mode"] = str(mode)
+        cls._save_config()
+
+    @classmethod
     def get_media_dir(cls, platform: str, media_type: str) -> Path:
         """
         Retorna y asegura la existencia del directorio de medios dinámico.

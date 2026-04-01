@@ -8,6 +8,7 @@ use walkdir::WalkDir;
 use rayon::prelude::*;
 use md5;
 use std::sync::Arc;
+use crate::tools::header_reader;
 
 /// Estructura de mapeo plataforma -> núcleos
 fn get_core_map() -> HashMap<&'static str, Vec<(&'static str, &'static str)>> {
@@ -97,7 +98,7 @@ pub fn get_consoles_summary_native(
 
         // C. Detectar emuladores instalados
         let mut cores = Vec::new();
-        let mut has_retroarch = has_retroarch;
+        let has_retroarch = has_retroarch;
 
         // Check Libretro Cores en disco
         if let Some(suggestions) = core_map.get(platform.as_str()) {
@@ -469,7 +470,7 @@ pub fn scan_directory_to_db(
     use std::sync::atomic::{AtomicUsize, Ordering};
     let results_count = Arc::new(AtomicUsize::new(0));
 
-    let results: Vec<(String, String, u64, String, String)> = py.allow_threads(move || {
+    let results: Vec<(String, String, u64, String, String, Option<String>)> = py.allow_threads(move || {
         files.into_par_iter()
             .filter_map(|p| {
                 let path_str = p.to_string_lossy().to_string();
@@ -487,10 +488,10 @@ pub fn scan_directory_to_db(
                     // Llamada segura a Python desde el pool de hilos
                     Python::with_gil(|py| {
                         if let Some(pc) = &pc_arc_thread { 
-                            let _ = pc.bind(py).call1((progress,)); 
+                            let _: PyResult<Bound<'_, PyAny>> = pc.bind(py).call1((progress,)); 
                         }
                         if let Some(sc) = &sc_arc_thread { 
-                            let _ = sc.bind(py).call1((format!("scan_identifying|{}", game_name),)); 
+                            let _: PyResult<Bound<'_, PyAny>> = sc.bind(py).call1((format!("scan_identifying|{}", game_name),)); 
                         }
                     });
                 }
@@ -511,11 +512,14 @@ pub fn scan_directory_to_db(
                 }
                 let final_platform = platform.unwrap_or_else(|| get_platform_from_ext(&ext));
                 
+                // EXTRAER SERIAL (Nuevo!)
+                let serial = header_reader::extract_serial(&path_str, &final_platform);
+
                 let mut file = File::open(&p).ok()?;
                 let mut hasher = md5::Context::new();
                 if std::io::copy(&mut file, &mut hasher).is_ok() {
                     let m = format!("{:x}", hasher.compute());
-                    Some((path_str, m, size, display_name, final_platform))
+                    Some((path_str, m, size, display_name, final_platform, serial))
                 } else {
                     None
                 }
@@ -543,12 +547,12 @@ pub fn scan_directory_to_db(
         let mut current_idx = 0;
         let total_new = results.len();
 
-        for (path, m, size, dname, plat) in results {
+        for (path, m, size, dname, plat, serial) in results {
             current_idx += 1;
             
             let changed = tx.execute(
-                "INSERT OR IGNORE INTO games (file_hash, file_path, display_name, platform, file_size) VALUES (?, ?, ?, ?, ?)",
-                [&m, &path, &dname, &plat, &size.to_string()],
+                "INSERT OR IGNORE INTO games (file_hash, file_path, display_name, platform, file_size, serial) VALUES (?, ?, ?, ?, ?, ?)",
+                [&m, &path, &dname, &plat, &size.to_string(), &serial.unwrap_or_default()],
             ).unwrap_or(0);
 
             // ASEGURAR METADATOS: Aunque el juego ya exista, nos aseguramos de que tenga 
@@ -568,9 +572,11 @@ pub fn scan_directory_to_db(
                 let progress = 0.9 + ( (current_idx as f64 / total_new as f64) * 0.1 );
                 let game_name = dname.clone();
                 Python::with_gil(|py| {
-                    if let Some(pc) = &pc_final { let _ = pc.bind(py).call1((progress,)); }
+                    if let Some(pc) = &pc_final { 
+                        let _: PyResult<Bound<'_, PyAny>> = pc.bind(py).call1((progress,)); 
+                    }
                     if let Some(sc) = &sc_final { 
-                        let _ = sc.bind(py).call1((format!("scan_registering|{}", game_name),)); 
+                        let _: PyResult<Bound<'_, PyAny>> = sc.bind(py).call1((format!("scan_registering|{}", game_name),)); 
                     }
                 });
             }
@@ -609,7 +615,7 @@ pub fn scan_directory(
         .collect();
 
     // 2. Procesar en PARALELO liberando el GIL
-    let results: Vec<(String, String, u64, String, String)> = py.allow_threads(move || {
+    let results: Vec<(String, String, u64, String, String, Option<String>)> = py.allow_threads(move || {
         files.into_par_iter()
             .filter_map(|p| {
                 let path_str = p.to_string_lossy().to_string();
@@ -625,11 +631,14 @@ pub fn scan_directory(
                 }
                 let final_platform = platform.unwrap_or_else(|| get_platform_from_ext(&ext));
                 
+                // EXTRAER SERIAL (Nuevo!)
+                let serial = header_reader::extract_serial(&path_str, &final_platform);
+
                 let mut file = File::open(&p).ok()?;
                 let mut hasher = md5::Context::new();
                 if std::io::copy(&mut file, &mut hasher).is_ok() {
                     let m = format!("{:x}", hasher.compute());
-                    Some((path_str, m, size, display_name, final_platform))
+                    Some((path_str, m, size, display_name, final_platform, serial))
                 } else {
                     None
                 }
@@ -639,13 +648,14 @@ pub fn scan_directory(
 
     // 3. Empaquetar para Python
     let mut py_results = Vec::with_capacity(results.len());
-    for (path, md5_hex, size, name, plat) in results {
+    for (path, md5_hex, size, name, plat, serial) in results {
         let dict = PyDict::new(py);
         dict.set_item("path", path)?;
         dict.set_item("md5", md5_hex)?;
         dict.set_item("size", size)?;
         dict.set_item("display_name", name)?;
         dict.set_item("platform", plat)?;
+        dict.set_item("serial", serial.unwrap_or_default())?;
         py_results.push(dict.into_any().unbind());
     }
 

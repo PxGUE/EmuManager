@@ -13,6 +13,8 @@ pub async fn scrape_game(
     dev_pass: &str,
     media_dir_base: &str,
     skip_ss: bool,
+    serial: &str,
+    gametdb_mode: &str,
 ) -> Option<ScrapedMetadata> {
     let query = ScrapeQuery {
         md5: md5.to_string(),
@@ -25,12 +27,22 @@ pub async fn scrape_game(
         ss_pass: ss_pass.to_string(),
         dev_id: dev_id.to_string(),
         dev_pass: dev_pass.to_string(),
+        serial: serial.to_string(),
+        gametdb_mode: gametdb_mode.to_string(),
     };
 
     let mut sources: Vec<Box<dyn MetadataSource>> = Vec::new();
     
     // Prioridad 1: Local (Sostenibilidad Local-First)
     sources.push(Box::new(scrapers::local_nfo::LocalNfoSource));
+
+    // Prioridad 1.5: GameTDB (Especialista Nintendo/Sony + Serial)
+    let plat_low = query.platform.to_lowercase();
+    if plat_low == "wii" || plat_low == "gc" || plat_low == "gamecube" || plat_low == "nds" || plat_low == "ds" || plat_low == "3ds" ||
+       plat_low == "snes" || plat_low == "nes" || plat_low == "gba" || plat_low == "gb" || plat_low == "gbc" || plat_low == "n64" ||
+       plat_low == "ps1" || plat_low == "ps2" {
+        sources.push(Box::new(scrapers::gametdb::GameTDBSource));
+    }
 
     // Prioridad 2: ScreenScraper (Metadatos completos)
     if !skip_ss {

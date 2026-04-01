@@ -13,7 +13,11 @@ pub fn log_to_python(py: Python<'_>, level: &str, message: &str) {
         "from core.logger import EmuLog; EmuLog.{}(\"[MANGO] {}\")",
         level, message.replace("\"", "\\\"")
     );
-    let _ = py.run_bound(&script, None, None);
+    if let Ok(m) = py.import_bound("core.logger") {
+        if let Ok(logger) = m.getattr("EmuLog") {
+            let _ = logger.call_method1(level, (format!("[MANGO] {}", message),));
+        }
+    }
 }
 
 // Versión que captura el GIL internamente para mayor seguridad en hilos
@@ -30,6 +34,7 @@ struct PendingGame {
     platform: String,
     system_id: String,
     media_dir: String,
+    serial: String,
 }
 
 fn map_platform_to_sysid(platform: &str) -> String {
@@ -44,22 +49,24 @@ fn map_platform_to_sysid(platform: &str) -> String {
 
 pub fn run_batch_scrape(
     py: Python<'_>,
-    db_path: &str,
-    ss_id: &str,
-    ss_pass: &str,
-    dev_id: &str,
-    dev_pass: &str,
-    media_dir_base: &str,
+    db_path: String,
+    ss_id: String,
+    ss_pass: String,
+    dev_id: String,
+    dev_pass: String,
+    media_dir_base: String,
     progress_callback: Option<PyObject>,
+    status_callback: Option<PyObject>,
+    gametdb_mode: String,
 ) -> PyResult<usize> {
     
-    let mut conn = Connection::open(db_path)
+    let mut conn = Connection::open(&db_path)
         .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("DB Open error: {}", e)))?;
     
     let mut pending = Vec::new();
     {
         let mut stmt = conn.prepare(
-            "SELECT g.id, g.file_hash, g.file_path, g.platform 
+            "SELECT g.id, g.file_hash, g.file_path, g.platform, g.serial 
              FROM games g 
              LEFT JOIN game_metadata m ON g.id = m.game_id
              WHERE m.cover_2d_path IS NULL OR m.cover_2d_path = ''"
@@ -70,13 +77,14 @@ pub fn run_batch_scrape(
             let md5: String = row.get(1)?;
             let file_path: String = row.get(2)?;
             let platform: String = row.get(3)?;
+            let serial: String = row.get::<_, Option<String>>(4)?.unwrap_or_default();
 
             let filename = Path::new(&file_path).file_name().unwrap_or_default().to_string_lossy().to_string();
             let system_id = map_platform_to_sysid(&platform);
-            let media_dir = Path::new(media_dir_base).join(&platform).to_string_lossy().to_string();
+            let media_dir = Path::new(&media_dir_base).join(&platform).to_string_lossy().to_string();
 
             Ok(PendingGame {
-                id, md5, filename, platform, system_id, media_dir,
+                id, md5, filename, platform, system_id, media_dir, serial,
             })
         }).unwrap();
         
@@ -101,11 +109,11 @@ pub fn run_batch_scrape(
             let client = reqwest::Client::new();
             let res = client.get("https://www.screenscraper.fr/api2/ssuserInfos.php")
                 .query(&[
-                    ("devid", dev_id),
-                    ("devpassword", dev_pass),
+                    ("devid", dev_id.as_str()),
+                    ("devpassword", dev_pass.as_str()),
                     ("softname", "EmuManagerApp"),
-                    ("ssid", ss_id),
-                    ("sspassword", ss_pass),
+                    ("ssid", ss_id.as_str()),
+                    ("sspassword", ss_pass.as_str()),
                     ("output", "json")
                 ])
                 .send().await;
@@ -125,32 +133,61 @@ pub fn run_batch_scrape(
         }
     };
 
-    log_to_python(py, "info", &format!("Iniciando scraping masivo optimizado de {} juegos.", total_pending));
+    log_to_python(py, "info", &format!("Iniciando scraping masivo optimizado de {} juegos. (Modo GameTDB: {})", total_pending, gametdb_mode));
     
     let total = total_pending as f64;
     let mut success_count = 0;
 
-    // Clonar callbacks para moverlos a los hilos hilos
+    // Clonar para los hilos
+    let ss_id_arc = Arc::new(ss_id);
+    let ss_pass_arc = Arc::new(ss_pass);
+    let dev_id_arc = Arc::new(dev_id);
+    let dev_pass_arc = Arc::new(dev_pass);
+    let gtdb_mode_arc = Arc::new(gametdb_mode);
+    let media_dir_arc = Arc::new(media_dir_base);
     let progress_arc = Arc::new(progress_callback);
+    let status_arc = Arc::new(status_callback);
 
     // --- M.A.N.G.O NITRO + STABLE PARALLEL MODE ---
     let results = py.allow_threads(|| {
         crate::RUNTIME.block_on(async {
-            stream::iter(pending.iter().enumerate())
-                .map(|(index, game)| {
+            stream::iter(pending.into_iter().enumerate())
+                .map(move |(index, game)| {
                     let prog_cb = progress_arc.clone();
+                    let stat_cb = status_arc.clone();
+                    
                     let game_name = game.filename.clone();
-                    let skip_ss = !ss_available;
+                    let platform = game.platform.to_lowercase();
+                    let skip_ss = (**ss_id_arc).is_empty();
+                    let gtdb_mode_flag = gtdb_mode_arc.clone();
+                    let media_base_dir = media_dir_arc.clone();
+                    
+                    let s_id = ss_id_arc.clone();
+                    let s_pass = ss_pass_arc.clone();
+                    let d_id = dev_id_arc.clone();
+                    let d_pass = dev_pass_arc.clone();
                     
                     async move {
+                        // 1. GESTIÓN ON-DEMAND DE GAMETDB LOCAL
+                        if *gtdb_mode_flag == "local" {
+                            if platform == "wii" || platform == "gc" || platform == "gamecube" || platform == "ds" || platform == "nds" || platform == "3ds" {
+                                let _ = crate::sync::gametdb::download_and_extract_gametdb(
+                                    &*platform, 
+                                    &(*media_base_dir).replace("media", "cache"),
+                                    prog_cb.as_ref().as_ref().map(|cb| Python::with_gil(|py| cb.clone_ref(py))),
+                                    stat_cb.as_ref().as_ref().map(|cb| Python::with_gil(|py| cb.clone_ref(py))),
+                                ).await;
+                            }
+                        }
+
                         if index > 0 && !skip_ss {
                             tokio::time::sleep(tokio::time::Duration::from_millis(200)).await;
                         }
                         
                         let meta = scrape_game(
                             &game.md5, "", &game.filename, &game.platform, &game.system_id,
-                            ss_id, ss_pass, dev_id, dev_pass, &game.media_dir,
-                            skip_ss,
+                            &s_id, &s_pass, &d_id, &d_pass, &game.media_dir,
+                            skip_ss, &game.serial, &*gtdb_mode_flag,
                         ).await;
                         
                         let has_media = if let Some(ref m) = meta {
@@ -178,7 +215,21 @@ pub fn run_batch_scrape(
                             Python::with_gil(|py| {
                                 let p = (index as f64 + 1.0) / total;
                                 let msg = format!("{}: {}", if has_media { "OK" } else { "---" }, game_name);
-                                let _ = cb.call1(py, (p, msg));
+                                let _ = cb.bind(py).call1((p, msg));
+                            });
+                        }
+                        
+                        if let Some(ref cb) = *stat_cb {
+                            Python::with_gil(|py| {
+                                let msg = format!("Scraping {}...", game_name);
+                                let _ = cb.bind(py).call1((msg,));
+                            });
+                        }
+                        
+                        if let Some(ref cb) = *stat_cb {
+                            Python::with_gil(|py| {
+                                let msg = format!("Scraping {}...", game_name);
+                                let _ = cb.bind(py).call1((msg,));
                             });
                         }
                         

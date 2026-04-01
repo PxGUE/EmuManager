@@ -203,6 +203,29 @@ Item {
                     }
                 }
             }
+            // --- GameTDB Section ---
+            Rectangle {
+                width: parent.width; height: 160; radius: Theme.radiusMedium; color: Theme.cardBackground; border.color: Theme.cardBorder; border.width: Theme.borderThin
+                Column {
+                    anchors.fill: parent; anchors.margins: 20; spacing: 15
+                    Text { text: I18n.t.api_gametdb; color: Theme.textMain; font.bold: true }
+                    Text { 
+                        text: I18n.t.api_gametdb_desc; 
+                        color: Theme.textMuted; font.pixelSize: Theme.fontBody; width: parent.width - 40; wrapMode: Text.WordWrap 
+                    }
+                    RowLayout {
+                        width: parent.width
+                        Text { text: "Método:"; color: Theme.textMain; Layout.fillWidth: true }
+                        ComboBox {
+                            model: ["Web (Online)", "Local (Offline)"]
+                            currentIndex: (controller && controller.get_api_credential("gametdb_mode") === "local") ? 1 : 0
+                            onActivated: (index) => {
+                                if(controller) controller.set_api_credential("gametdb_mode", index === 0 ? "web" : "local")
+                            }
+                        }
+                    }
+                }
+            }
             Text { 
                 text: I18n.t.api_saved; 
                 color: Theme.textMuted; opacity: 0.5; font.pixelSize: Theme.fontSmall; font.italic: true; width: parent.width; wrapMode: Text.WordWrap

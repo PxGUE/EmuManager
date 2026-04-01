@@ -48,6 +48,7 @@ class DatabaseManager:
                     display_name TEXT,
                     platform TEXT NOT NULL,
                     file_size INTEGER NOT NULL,
+                    serial TEXT,
                     scanned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             ''')
@@ -72,6 +73,7 @@ class DatabaseManager:
             # Migraciones individuales para asegurar robustez
             for cmd in [
                 "ALTER TABLE games ADD COLUMN display_name TEXT",
+                "ALTER TABLE games ADD COLUMN serial TEXT",
                 "ALTER TABLE game_metadata ADD COLUMN cover_2d_path TEXT",
                 "ALTER TABLE game_metadata ADD COLUMN cover_3d_path TEXT",
                 "ALTER TABLE game_metadata ADD COLUMN is_favorite INTEGER DEFAULT 0"

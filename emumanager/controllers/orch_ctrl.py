@@ -1,6 +1,7 @@
 from PySide6.QtCore import QObject, Signal, Slot, QThread
 from pathlib import Path
 import json
+import os
 import platform as py_platform
 from core.config import AppConfig
 from core.logger import EmuLog

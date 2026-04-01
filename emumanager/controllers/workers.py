@@ -220,6 +220,7 @@ class StartupWorker(QObject):
             # --- NUEVA FASE: SINCRONIZACIÓN DE BIBLIOTECA (70%) ---
             self.status.emit("startup_db_sync")
             self.ctrl.stats_ctrl.get_consoles_summary(use_cache=False)
+            self.ctrl.stats_ctrl.get_dashboard_stats()
             time.sleep(0.3) 
             self.progress.emit(0.70)
             

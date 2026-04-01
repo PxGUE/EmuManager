@@ -38,6 +38,8 @@ class StatsController(QObject):
                             cursor.execute("SELECT display_name FROM games WHERE id = ?", (g["id"],))
                             row = cursor.fetchone()
                             if row and row[0]: g["title"] = row[0]
+            
+            EmuLog.debug(f"M.A.N.G.O (Stats): Dashboard recuperado. Total juegos: {stats.get('total_games', 0)}")
             return stats
         except Exception as e:
             EmuLog.error(f"Error cargando stats del dashboard nativo: {e}")

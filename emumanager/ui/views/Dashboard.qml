@@ -24,6 +24,7 @@ Item {
 
     Connections { 
         target: mainController
+        function onStartupFinished() { dashboardRoot.refreshAll() }
         function onScanProgressChanged(p) { 
             dashboardRoot.scanProgress = p 
             if (p > 0 && p < 1.0) dashboardRoot.isScanning = true 

@@ -191,7 +191,7 @@ class OrchestraController(QObject):
         if path:
             self.coreDownloadStatusChanged.emit(core_id, f"core_install_finished_msg|{Path(path).name}")
             self.coreDownloadFinished.emit(core_id, path)
-            self.notify_library_changed()
+            self.notify_library_changed.emit()
         else:
             self.coreDownloadStatusChanged.emit(core_id, "download_failed")
 
@@ -199,7 +199,7 @@ class OrchestraController(QObject):
     def uninstall_core(self, core_id):
         """Solicita la eliminación de un núcleo específico."""
         if self.libretro.uninstall_core(core_id):
-            self.notify_library_changed()
+            self.notify_library_changed.emit()
             EmuLog.info(f"Core {core_id} desinstalado con éxito.")
 
     @Slot()
@@ -352,7 +352,7 @@ class OrchestraController(QObject):
                     play_count = play_count + 1
             """, (game_id, duration))
             conn.commit()
-        self.notify_library_changed()
+        self.notify_library_changed.emit()
 
     @Slot(str, str, str, result=bool)
     def update_emulator(self, emu_id, url, executable):

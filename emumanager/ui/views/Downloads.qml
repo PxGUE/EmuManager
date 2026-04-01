@@ -27,10 +27,10 @@ Item {
     }
     
     // Estados Centralizados
-    property alias isScraping: mainController.isScraping
-    property alias isScanning: mainController.isScanning
-    property alias scrapeVal: mainController.scrapeProgress
-    property alias scanVal: mainController.scanProgress
+    readonly property bool isScraping: mainController ? mainController.isScraping : false
+    readonly property bool isScanning: mainController ? mainController.isScanning : false
+    readonly property real scrapeVal: mainController ? mainController.scrapeProgress : 0.0
+    readonly property real scanVal: mainController ? mainController.scanProgress : 0.0
     
     // Logs locales para UX inmediata
     property string scrapeLog: ""
@@ -91,7 +91,6 @@ Item {
                     id: scanMA; anchors.fill: parent; hoverEnabled: !isAnyOperationRunning; cursorShape: isAnyOperationRunning ? Qt.ArrowCursor : Qt.PointingHandCursor 
                     enabled: !isAnyOperationRunning
                     onClicked: {
-                        isScanning = true
                         mainController.start_full_scan()
                     }
                 }
@@ -159,7 +158,6 @@ Item {
                     id: mangoMA; anchors.fill: parent; hoverEnabled: !isAnyOperationRunning; cursorShape: isAnyOperationRunning ? Qt.ArrowCursor : Qt.PointingHandCursor 
                     enabled: !isAnyOperationRunning
                     onClicked: {
-                        isScraping = true
                         mainController.start_scraping()
                     }
                 }

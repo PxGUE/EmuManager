@@ -15,30 +15,17 @@ Item {
 
     property var statsData: ({})
     property int totalGames: 0
-    property string engineStatusKey: "status_system_idle"
-    property alias isScanning: mainController.isScanning
-    property alias isScraping: mainController.isScraping
-    property alias isEngineBusy: mainController.isEngineBusy
-    property alias scanProgress: mainController.scanProgress
+    readonly property string engineStatusKey: mainController ? mainController.engineStatusKey : "status_system_idle"
+    readonly property bool isScanning: mainController ? mainController.isScanning : false
+    readonly property bool isScraping: mainController ? mainController.isScraping : false
+    readonly property bool isEngineBusy: mainController ? mainController.isEngineBusy : false
+    readonly property real scanProgress: mainController ? mainController.scanProgress : 0.0
 
     function launchGame(id) { mainController ? mainController.launch_game_by_id(id) : null }
 
     Connections { 
         target: mainController
-        function onStartupProgressChanged(p) { if (p > 0 && p < 1.0) dashboardRoot.engineStatusKey = "initializing" }
-        function onStartupStatusChanged(s) { dashboardRoot.engineStatusKey = s }
-        function onStartupFinished() { 
-            dashboardRoot.engineStatusKey = "status_system_idle"
-            dashboardRoot.refreshAll() 
-        }
-        function onScanStatusChanged(s) { dashboardRoot.engineStatusKey = s }
-        function onScanFinished(n) { dashboardRoot.engineStatusKey = "status_system_idle" }
-        function onScrapeStatusChanged(s) { dashboardRoot.engineStatusKey = s }
-        function onScrapeFinished(n) { dashboardRoot.engineStatusKey = "status_system_idle" }
-        function onCoreDownloadStatusChanged(id, s) { dashboardRoot.engineStatusKey = s }
-        function onCoreDownloadFinished(id, p) { dashboardRoot.engineStatusKey = "status_system_idle" }
-        function onGamesUpdated() { dashboardRoot.refreshAll() }
-    }
+        function onStartupFinished() { dashboardRoot.refreshAll() }
         function onGamesUpdated() { dashboardRoot.refreshAll() }
     }
 
@@ -137,6 +124,7 @@ Item {
                                 text: I18n.t.app_name; color: Theme.textMain; 
                                 font.pixelSize: 42; font.weight: Font.Black; font.letterSpacing: -1.5 
                             }
+                            Text { 
                                 text: I18n.tp("app_version_label|" + mainController.appVersion); color: Theme.accentElectric; 
                                 font.pixelSize: 12; font.bold: true; font.letterSpacing: 5; opacity: 0.9 
                             }

@@ -26,6 +26,7 @@ class MainController(QObject):
 
     # --- SEÑALES (Agregador para QML) ---
     language_changed = Signal(str)
+    engineActivityChanged = Signal()
     scanProgressChanged = Signal(float)
     scanStatusChanged = Signal(str)
     scanFinished = Signal(int)
@@ -54,23 +55,29 @@ class MainController(QObject):
     # --- ATRIBUTOS DE ESTADO ---
     _scan_progress = 0.0
     _scrape_progress = 0.0
+    _is_scanning = False
+    _is_scraping = False
+    _is_orchestrating = False
+    _engine_status_key = "status_system_idle"
 
-    @Property(bool, notify=scanStatusChanged)
-    def isScanning(self):
-        return self.lib_ctrl._scan_thread is not None and self.lib_ctrl._scan_thread.isRunning()
+    @Property(str, notify=engineActivityChanged)
+    def engineStatusKey(self): 
+        if not self.isEngineBusy:
+            return "status_system_idle"
+        return self._engine_status_key
 
-    @Property(bool, notify=scrapeStatusChanged)
-    def isScraping(self):
-        return self.lib_ctrl._scrape_thread is not None and self.lib_ctrl._scrape_thread.isRunning()
+    @Property(bool, notify=engineActivityChanged)
+    def isScanning(self): return self._is_scanning
 
-    @Property(bool, notify=coreDownloadStatusChanged)
-    def isOrchestrating(self):
-        return (self.orch_ctrl._emu_thread and self.orch_ctrl._emu_thread.isRunning()) or \
-               (self.orch_ctrl._core_thread and self.orch_ctrl._core_thread.isRunning())
+    @Property(bool, notify=engineActivityChanged)
+    def isScraping(self): return self._is_scraping
 
-    @Property(bool, notify=startupProgressChanged)
+    @Property(bool, notify=engineActivityChanged)
+    def isOrchestrating(self): return self._is_orchestrating
+
+    @Property(bool, notify=engineActivityChanged)
     def isEngineBusy(self):
-        return self.isScanning or self.isScraping or self.isOrchestrating
+        return bool(self._is_scanning or self._is_scraping or self._is_orchestrating)
 
     @Property(float, notify=scanProgressChanged)
     def scanProgress(self): return self._scan_progress
@@ -107,10 +114,10 @@ class MainController(QObject):
         
         # Biblioteca
         self.lib_ctrl.scanProgressChanged.connect(self._on_scan_progress)
-        self.lib_ctrl.scanStatusChanged.connect(self.scanStatusChanged.emit)
+        self.lib_ctrl.scanStatusChanged.connect(self._on_scan_status)
         self.lib_ctrl.scanFinished.connect(self._on_scan_finished)
         self.lib_ctrl.scrapeProgressChanged.connect(self._on_scrape_progress)
-        self.lib_ctrl.scrapeStatusChanged.connect(self.scrapeStatusChanged.emit)
+        self.lib_ctrl.scrapeStatusChanged.connect(self._on_scrape_status)
         self.lib_ctrl.scrapeFinished.connect(self._on_scrape_finished)
         self.lib_ctrl.gamesUpdated.connect(self.notify_library_changed)
         self.lib_ctrl.gamesCountChanged.connect(self.gamesCountChanged.emit)
@@ -168,34 +175,63 @@ class MainController(QObject):
     # --- DELEGACIÓN DE SLOTS (Compatibilidad con QML) ---
     
     # Biblioteca
-    @Slot(result=bool)
-    def start_full_scan(self): return self.lib_ctrl.start_full_scan()
-    
-    @Slot(result=bool)
-    def start_scraping(self): return self.lib_ctrl.start_scraping()
+    @Slot()
+    def start_full_scan(self):
+        self._is_scanning = True
+        self._engine_status_key = "initializing"
+        self.engineActivityChanged.emit()
+        self.lib_ctrl.start_full_scan()
+
+    @Slot()
+    def start_scraping(self):
+        self._is_scraping = True
+        self._engine_status_key = "initializing"
+        self.engineActivityChanged.emit()
+        self.lib_ctrl.start_scraping()
     
     @Slot()
     def stop_scraping(self): self.lib_ctrl.stop_scraping()
-    
+
     @Slot(float)
     def _on_scan_progress(self, p):
         self._scan_progress = p
         self.scanProgressChanged.emit(p)
 
+    @Slot(str)
+    def _on_scan_status(self, s):
+        if not self._is_scanning: return
+        self._engine_status_key = s
+        self.scanStatusChanged.emit(s)
+        self.engineActivityChanged.emit()
+
     @Slot(int)
     def _on_scan_finished(self, n):
+        self._is_scanning = False
         self._scan_progress = 1.0
+        self._engine_status_key = "status_system_idle"
         self.scanFinished.emit(n)
+        self.engineActivityChanged.emit()
+        self.notify_library_changed()
 
     @Slot(float)
     def _on_scrape_progress(self, p):
         self._scrape_progress = p
         self.scrapeProgressChanged.emit(p)
 
+    @Slot(str)
+    def _on_scrape_status(self, s):
+        if not self._is_scraping: return
+        self._engine_status_key = s
+        self.scrapeStatusChanged.emit(s)
+        self.engineActivityChanged.emit()
+
     @Slot(int)
     def _on_scrape_finished(self, n):
+        self._is_scraping = False
         self._scrape_progress = 1.0
+        self._engine_status_key = "status_system_idle"
         self.scrapeFinished.emit(n)
+        self.engineActivityChanged.emit()
 
     @Slot(str, result="QVariantList")
     def search_library(self, q): return self.lib_ctrl.search(q)

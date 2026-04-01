@@ -426,11 +426,12 @@ pub fn scan_directory_to_db(
     }
 
     // 1. Obtención de estado actual de la DB para escaneo diferencial (Súper Rápido)
-    let existing_map: HashMap<String, u64> = {
+    // Mantenemos mapa de Path -> (Size, Serial) para saber si necesitamos re-procesar
+    let existing_map: HashMap<String, (u64, String)> = {
         if let Ok(conn) = Connection::open(&db_path) {
-            let mut stmt = conn.prepare("SELECT file_path, file_size FROM games").unwrap();
+            let mut stmt = conn.prepare("SELECT file_path, file_size, COALESCE(serial, '') FROM games").unwrap();
             let rows = stmt.query_map([], |row| {
-                Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)? as u64))
+                Ok((row.get::<_, String>(0)?, (row.get::<_, i64>(1)? as u64, row.get::<_, String>(2)?)))
             }).unwrap();
             rows.filter_map(Result::ok).collect()
         } else {
@@ -469,6 +470,13 @@ pub fn scan_directory_to_db(
     // 4. Procesar en PARALELO (Liberando el GIL) con filtrado diferencial
     use std::sync::atomic::{AtomicUsize, Ordering};
     let results_count = Arc::new(AtomicUsize::new(0));
+    
+    // Inyectar estado inicial de preparación
+    Python::with_gil(|py| {
+        if let Some(sc) = &status_callback {
+            let _: PyResult<Bound<'_, PyAny>> = sc.bind(py).call1(("scan_preparing",));
+        }
+    });
 
     let results: Vec<(String, String, u64, String, String, Option<String>)> = py.allow_threads(move || {
         files.into_par_iter()
@@ -480,8 +488,8 @@ pub fn scan_directory_to_db(
                 // Incrementamos contador de procesados totales
                 let processed = results_count.fetch_add(1, Ordering::SeqCst) + 1;
 
-                // Reporte de progreso cada 20 archivos para dar feedback visual constante
-                if processed % 20 == 0 || processed == total_files {
+                // Reporte de progreso cada 5 archivos para dar feedback visual constante
+                if processed % 5 == 0 || processed == total_files {
                     let progress = (processed as f64 / total_files as f64) * 0.9; // Reservamos el 10% final para la DB
                     let game_name = p.file_stem().and_then(|s| s.to_str()).unwrap_or("...").to_string();
                     
@@ -496,9 +504,9 @@ pub fn scan_directory_to_db(
                     });
                 }
 
-                // OPTIMIZACIÓN: Si ya está en la DB con el mismo tamaño, saltamos cómputo de Hash
-                if let Some(&old_size) = existing_map.get(&path_str) {
-                    if old_size == size { return None; }
+                // OPTIMIZACIÓN: Si ya está en la DB con el mismo tamaño Y YA TIENE SERIAL, saltamos
+                if let Some((old_size, old_serial)) = existing_map.get(&path_str) {
+                    if *old_size == size && !old_serial.is_empty() { return None; }
                 }
 
                 let raw_name = p.file_stem()?.to_string_lossy();
@@ -550,9 +558,14 @@ pub fn scan_directory_to_db(
         for (path, m, size, dname, plat, serial) in results {
             current_idx += 1;
             
+            let serial_str = serial.unwrap_or_default();
             let changed = tx.execute(
-                "INSERT OR IGNORE INTO games (file_hash, file_path, display_name, platform, file_size, serial) VALUES (?, ?, ?, ?, ?, ?)",
-                [&m, &path, &dname, &plat, &size.to_string(), &serial.unwrap_or_default()],
+                "INSERT INTO games (file_hash, file_path, display_name, platform, file_size, serial) 
+                 VALUES (?1, ?2, ?3, ?4, ?5, ?6)
+                 ON CONFLICT(file_hash) DO UPDATE SET 
+                    serial = CASE WHEN serial IS NULL OR serial = '' THEN ?6 ELSE serial END,
+                    file_path = ?2",
+                [&m, &path, &dname, &plat, &size.to_string(), &serial_str],
             ).unwrap_or(0);
 
             // ASEGURAR METADATOS: Aunque el juego ya exista, nos aseguramos de que tenga 

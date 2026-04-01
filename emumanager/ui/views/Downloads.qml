@@ -26,21 +26,18 @@ Item {
         id: emulatorsModel
     }
     
-    // Estados
-    property bool isScraping: false
-    property bool isScanning: false
-    property real scrapeVal: 0.0
-    property real scanVal: 0.0
+    // Estados Centralizados
+    property alias isScraping: mainController.isScraping
+    property alias isScanning: mainController.isScanning
+    property alias scrapeVal: mainController.scrapeProgress
+    property alias scanVal: mainController.scanProgress
+    
+    // Logs locales para UX inmediata
     property string scrapeLog: ""
     property string scanLog: ""
-    property string scrapeStatus: I18n.t.ready_caps
-    property string scanStatus: I18n.t.waiting_caps
-    property bool isInstallingEmulator: false
-    property bool isInstallingCores: false
-    property bool isUpdatingSystem: false
     
     // UX: Estado centralizado para bloqueo de concurrencia
-    readonly property bool isAnyOperationRunning: isScanning || isScraping || isInstallingEmulator || isInstallingCores
+    readonly property bool isAnyOperationRunning: mainController.isEngineBusy
 
     Rectangle { anchors.fill: parent; color: Theme.viewBackground }
 
@@ -101,29 +98,43 @@ Item {
 
                 RowLayout {
                     anchors.fill: parent; anchors.margins: Theme.spaceMedium; spacing: Theme.spaceMedium
-                    Text { text: "📡"; font.pixelSize: Theme.fontTitle; opacity: scanMA.containsMouse || isScanning ? 1.0 : 0.7 }
+                    
+                    // Icono con indicador de actividad
+                    Item {
+                        Layout.preferredWidth: 40; Layout.fillHeight: true
+                        Text { 
+                            anchors.centerIn: parent; text: "📡"; font.pixelSize: Theme.fontTitle
+                            opacity: scanMA.containsMouse || isScanning ? 1.0 : 0.4
+                        }
+                        // Pulso de Actividad
+                        Rectangle {
+                            visible: isScanning; width: 8; height: 8; radius: 4; color: Theme.statusSuccess
+                            anchors.right: parent.right; anchors.top: parent.top; anchors.topMargin: 10
+                            SequentialAnimation on opacity {
+                                loops: Animation.Infinite; NumberAnimation { from: 1; to: 0; duration: 800 }
+                                NumberAnimation { from: 0; to: 1; duration: 800 }
+                            }
+                        }
+                    }
+
                     ColumnLayout {
-                        spacing: 2
+                        Layout.fillWidth: true; spacing: 4
                         Text { text: I18n.t.library; color: Theme.statusSuccess; font.pixelSize: Theme.fontSmall; font.bold: true; font.letterSpacing: 1.5 }
                         Text { text: I18n.t.sync_roms; color: Theme.textMain; font.pixelSize: Theme.fontBody; font.bold: true }
-                        Text { 
-                            text: isScanning ? scanLog : (scanVal >= 1.0 ? I18n.t.scan_done : I18n.t.scan_idle)
-                            color: isScanning ? Theme.statusSuccess : Theme.textMuted; font.pixelSize: Theme.fontMicro; elide: Text.ElideRight; Layout.fillWidth: true 
-                        }
-
-                        // Barra de Progreso integrada (scan)
-                        Rectangle {
-                            visible: isScanning; Layout.fillWidth: true; height: 4; radius: 2; color: Theme.transparent
-                            Rectangle {
-                                width: parent.width * scanVal; height: parent.height; color: Theme.statusSuccess
-                                Behavior on width { NumberAnimation { duration: 300 } }
+                        
+                        // Barra de Progreso Maestra
+                        ProgressBar {
+                            visible: isScanning; value: scanVal; Layout.fillWidth: true; Layout.preferredHeight: 6
+                            background: Rectangle { color: Theme.transparent; radius: 3; border.color: Theme.cardBorder }
+                            contentItem: Item {
+                                Rectangle { width: parent.width * parent.visualPosition; height: parent.height; radius: 3; color: Theme.statusSuccess }
                             }
                         }
 
-                        // Mensaje sutil si está activo
-                        Text {
-                            visible: isScanning; text: I18n.t.nav_hint; 
-                            color: Theme.textMuted; font.pixelSize: 8; font.italic: true; Layout.fillWidth: true; wrapMode: Text.WordWrap; opacity: 0.7
+                        Text { 
+                            text: isScanning ? scanLog : (scanVal >= 1.0 ? I18n.t.scan_done : I18n.t.scan_idle)
+                            color: isScanning ? Theme.statusSuccess : Theme.textMuted
+                            font.pixelSize: Theme.fontMicro; font.bold: isScanning; elide: Text.ElideRight; Layout.fillWidth: true 
                         }
                     }
                 }
@@ -155,29 +166,43 @@ Item {
 
                 RowLayout {
                     anchors.fill: parent; anchors.margins: Theme.spaceMedium; spacing: Theme.spaceMedium
-                    Text { text: "🥭"; font.pixelSize: Theme.fontTitle; opacity: mangoMA.containsMouse || isScraping ? 1.0 : 0.7 }
+                    
+                    // Icono con indicador de actividad
+                    Item {
+                        Layout.preferredWidth: 40; Layout.fillHeight: true
+                        Text { 
+                            anchors.centerIn: parent; text: "🥭"; font.pixelSize: Theme.fontTitle
+                            opacity: mangoMA.containsMouse || isScraping ? 1.0 : 0.4
+                        }
+                        // Pulso de Actividad
+                        Rectangle {
+                            visible: isScraping; width: 8; height: 8; radius: 4; color: Theme.statusWarning
+                            anchors.right: parent.right; anchors.top: parent.top; anchors.topMargin: 10
+                            SequentialAnimation on opacity {
+                                loops: Animation.Infinite; NumberAnimation { from: 1; to: 0; duration: 800 }
+                                NumberAnimation { from: 0; to: 1; duration: 800 }
+                            }
+                        }
+                    }
+
                     ColumnLayout {
-                        spacing: 2
+                        Layout.fillWidth: true; spacing: 4
                         Text { text: I18n.t.mango_monitor; color: Theme.statusWarning; font.pixelSize: Theme.fontSmall; font.bold: true; font.letterSpacing: 1.5 }
                         Text { text: I18n.t.sync_media; color: Theme.textMain; font.pixelSize: Theme.fontBody; font.bold: true }
-                        Text { 
-                            text: isScraping ? scrapeLog : (scrapeVal >= 1.0 ? I18n.t.scrape_done : I18n.t.scrape_idle)
-                            color: isScraping ? Theme.statusWarning : Theme.textMuted; font.pixelSize: Theme.fontMicro; elide: Text.ElideRight; Layout.fillWidth: true 
-                        }
 
-                        // Barra de Progreso integrada (scrape)
-                        Rectangle {
-                            visible: isScraping; Layout.fillWidth: true; height: 4; radius: 2; color: Theme.transparent
-                            Rectangle {
-                                width: parent.width * scrapeVal; height: parent.height; color: Theme.statusWarning
-                                Behavior on width { NumberAnimation { duration: 300 } }
+                        // Barra de Progreso Maestra
+                        ProgressBar {
+                            visible: isScraping; value: scrapeVal; Layout.fillWidth: true; Layout.preferredHeight: 6
+                            background: Rectangle { color: Theme.transparent; radius: 3; border.color: Theme.cardBorder }
+                            contentItem: Item {
+                                Rectangle { width: parent.width * parent.visualPosition; height: parent.height; radius: 3; color: Theme.statusWarning }
                             }
                         }
 
-                        // Mensaje sutil si está activo
-                        Text {
-                            visible: isScraping; text: I18n.t.nav_hint; 
-                            color: Theme.textMuted; font.pixelSize: 8; font.italic: true; Layout.fillWidth: true; wrapMode: Text.WordWrap; opacity: 0.7
+                        Text { 
+                            text: isScraping ? scrapeLog : (scrapeVal >= 1.0 ? I18n.t.scrape_done : I18n.t.scrape_idle)
+                            color: isScraping ? Theme.statusWarning : Theme.textMuted
+                            font.pixelSize: Theme.fontMicro; font.bold: isScraping; elide: Text.ElideRight; Layout.fillWidth: true 
                         }
                     }
                 }
@@ -241,35 +266,27 @@ Item {
     Connections {
         target: mainController
         
-        function onScanProgressChanged(p) { scanVal = p }
         function onScanStatusChanged(s) { scanLog = I18n.tp(s) }
         function onScanFinished(n) { 
-            scanVal = 1.0; 
             scanLog = I18n.t.scan_finished.arg(n); 
-            isScanning = false 
             window.pushNotification("Operación Completada", "MANGO", "Se han registrado " + n + " nuevos juegos en tu biblioteca.", Theme.statusSuccess)
         }
         
-        function onScrapeProgressChanged(p) { scrapeVal = p }
         function onScrapeStatusChanged(s) { scrapeLog = I18n.tp(s) }
         function onScrapeFinished(n) { 
-            scrapeVal = 1.0; 
             scrapeLog = I18n.t.scrape_done; 
-            isScraping = false 
             window.pushNotification("Actualización de Media", "MANGO", "Se ha completado el proceso de obtención de metadatos.", Theme.statusWarning)
         }
 
         // Señales de Core (Actualización de ambos modelos)
         function onCoreDownloadStatusChanged(emu_id, s) {
             if (emu_id === "all") {
-                // Simular actualizaciones si es necesario
                 for(var i=0; i < emulatorsModel.count; i++) {
                     if (emulatorsModel.get(i).isInstalled) {
                         emulatorsModel.setProperty(i, "hasUpdate", true)
                     }
                 }
             } else {
-                // Actualización masiva de estado para un ID específico
                 for(var i=0; i < emulatorsModel.count; i++) {
                     if(emulatorsModel.get(i).id === emu_id) {
                         emulatorsModel.setProperty(i, "statusText", s)
@@ -280,49 +297,21 @@ Item {
         }
 
         function onCoreDownloadProgressChanged(emu_id, p) {
-            // 1. Actualizar Galería de Emuladores
             for(var i=0; i < emulatorsModel.count; i++) {
                 if(emulatorsModel.get(i).id === emu_id) {
                     emulatorsModel.setProperty(i, "progress", p)
                     break
                 }
             }
-            
-            // Detectar si estamos bajando un núcleo (ID de núcleo suele ser distinto a IDs de emuladores)
-            // o si p > 0.
-            if (p > 0 && p < 1.0) {
-                // Si el ID no está en el modelo de emuladores, es probable que sea un CORE de RetroArch
-                let foundInEmu = false
-                for(var k=0; k < emulatorsModel.count; k++) {
-                   if(emulatorsModel.get(k).id === emu_id) { foundInEmu = true; break; }
-                }
-                if (!foundInEmu) isInstallingCores = true
-            }
-            
-            // Actualizar estado global de instalación
-            let installing = false
-            for(var j=0; j < emulatorsModel.count; j++) {
-                let prog = emulatorsModel.get(j).progress
-                if (prog > 0 && prog < 1.0) {
-                    installing = true
-                    break
-                }
-            }
-            isInstallingEmulator = installing
-
-            // 2. Actualizar Popup de Cores (Si está en el módulo)
             retroArchPopup.updateProgress(emu_id, p)
         }
+
         function onCoreDownloadFinished(emu_id, path) {
             updateRepositories() 
             retroArchPopup.markFinished(emu_id)
-            isInstallingEmulator = false
-            isInstallingCores = false
         }
 
-        function onGamesUpdated() {
-            updateRepositories()
-        }
+        function onGamesUpdated() { updateRepositories() }
     }
 }
 

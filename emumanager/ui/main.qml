@@ -114,7 +114,7 @@ ApplicationWindow {
                     }
                 }
                 Item { Layout.fillHeight: true }
-                Text { text: "v" + mainController.appVersion + "-MANGO"; color: Theme.textMuted; opacity: 0.3; font.pixelSize: 9; Layout.alignment: Qt.AlignHCenter }
+                Text { text: I18n.tp("app_version_label|" + mainController.appVersion) + "-MANGO"; color: Theme.textMuted; opacity: 0.3; font.pixelSize: 9; Layout.alignment: Qt.AlignHCenter }
             }
         }
 

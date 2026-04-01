@@ -32,18 +32,39 @@ impl MetadataSource for ScreenScraperSource {
             .build()
             .ok()?;
 
-        // 1. MD5 Search
-        let mut search_params = query_params.clone();
-        search_params.push(("crc", query.crc.as_str()));
-        search_params.push(("md5", query.md5.as_str()));
-        
         let url_infos = "https://www.screenscraper.fr/api2/jeuInfos.php";
         let mut response_json: Option<Value> = None;
 
-        if let Ok(res) = client.get(url_infos).query(&search_params).send().await {
-            if res.status().is_success() {
-                if let Ok(json) = res.json::<Value>().await {
-                    response_json = Some(json);
+        // 1. Serial Search (NUEVA PRIORIDAD MÁXIMA)
+        if !query.serial.is_empty() {
+            let mut serial_params = query_params.clone();
+            serial_params.push(("romserial", query.serial.as_str()));
+            if !query.system_id.is_empty() {
+                serial_params.push(("systemeid", query.system_id.as_str()));
+            }
+
+            if let Ok(res) = client.get(url_infos).query(&serial_params).send().await {
+                if res.status().is_success() {
+                    if let Ok(json) = res.json::<Value>().await {
+                        if json.get("response").and_then(|r| r.get("jeu")).is_some() {
+                            response_json = Some(json);
+                        }
+                    }
+                }
+            }
+        }
+
+        // 2. MD5 Search Fallback
+        if response_json.is_none() {
+            let mut search_params = query_params.clone();
+            search_params.push(("crc", query.crc.as_str()));
+            search_params.push(("md5", query.md5.as_str()));
+            
+            if let Ok(res) = client.get(url_infos).query(&search_params).send().await {
+                if res.status().is_success() {
+                    if let Ok(json) = res.json::<Value>().await {
+                        response_json = Some(json);
+                    }
                 }
             }
         }

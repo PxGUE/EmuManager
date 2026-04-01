@@ -51,9 +51,32 @@ class MainController(QObject):
     @Property(str, constant=True)
     def mangoVersion(self): return self.MANGO_VERSION
 
+    # --- ATRIBUTOS DE ESTADO ---
+    _scan_progress = 0.0
+    _scrape_progress = 0.0
+
+    @Property(bool, notify=scanStatusChanged)
+    def isScanning(self):
+        return self.lib_ctrl._scan_thread is not None and self.lib_ctrl._scan_thread.isRunning()
+
     @Property(bool, notify=scrapeStatusChanged)
     def isScraping(self):
         return self.lib_ctrl._scrape_thread is not None and self.lib_ctrl._scrape_thread.isRunning()
+
+    @Property(bool, notify=coreDownloadStatusChanged)
+    def isOrchestrating(self):
+        return (self.orch_ctrl._emu_thread and self.orch_ctrl._emu_thread.isRunning()) or \
+               (self.orch_ctrl._core_thread and self.orch_ctrl._core_thread.isRunning())
+
+    @Property(bool, notify=startupProgressChanged)
+    def isEngineBusy(self):
+        return self.isScanning or self.isScraping or self.isOrchestrating
+
+    @Property(float, notify=scanProgressChanged)
+    def scanProgress(self): return self._scan_progress
+
+    @Property(float, notify=scrapeProgressChanged)
+    def scrapeProgress(self): return self._scrape_progress
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -83,12 +106,12 @@ class MainController(QObject):
         self.config_ctrl.language_changed.connect(self.language_changed.emit)
         
         # Biblioteca
-        self.lib_ctrl.scanProgressChanged.connect(self.scanProgressChanged.emit)
+        self.lib_ctrl.scanProgressChanged.connect(self._on_scan_progress)
         self.lib_ctrl.scanStatusChanged.connect(self.scanStatusChanged.emit)
-        self.lib_ctrl.scanFinished.connect(self.scanFinished.emit)
-        self.lib_ctrl.scrapeProgressChanged.connect(self.scrapeProgressChanged.emit)
+        self.lib_ctrl.scanFinished.connect(self._on_scan_finished)
+        self.lib_ctrl.scrapeProgressChanged.connect(self._on_scrape_progress)
         self.lib_ctrl.scrapeStatusChanged.connect(self.scrapeStatusChanged.emit)
-        self.lib_ctrl.scrapeFinished.connect(self.scrapeFinished.emit)
+        self.lib_ctrl.scrapeFinished.connect(self._on_scrape_finished)
         self.lib_ctrl.gamesUpdated.connect(self.notify_library_changed)
         self.lib_ctrl.gamesCountChanged.connect(self.gamesCountChanged.emit)
         
@@ -154,6 +177,26 @@ class MainController(QObject):
     @Slot()
     def stop_scraping(self): self.lib_ctrl.stop_scraping()
     
+    @Slot(float)
+    def _on_scan_progress(self, p):
+        self._scan_progress = p
+        self.scanProgressChanged.emit(p)
+
+    @Slot(int)
+    def _on_scan_finished(self, n):
+        self._scan_progress = 1.0
+        self.scanFinished.emit(n)
+
+    @Slot(float)
+    def _on_scrape_progress(self, p):
+        self._scrape_progress = p
+        self.scrapeProgressChanged.emit(p)
+
+    @Slot(int)
+    def _on_scrape_finished(self, n):
+        self._scrape_progress = 1.0
+        self.scrapeFinished.emit(n)
+
     @Slot(str, result="QVariantList")
     def search_library(self, q): return self.lib_ctrl.search(q)
     

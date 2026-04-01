@@ -54,8 +54,7 @@ Item {
             "system_preferences": "PREFERENCIAS DE SISTEMA",
             "global_language": "Idioma Global",
             "global_language_desc": "Elige el idioma de la interfaz",
-            "auto_theme": "Tema Automático",
-            "auto_theme_desc": "Sincronizar luz/oscuridad automáticamente",
+
             
             "paths_scanning": "RUTAS Y ESCANEO",
             "roms_path": "CARPETA DE ROMS",
@@ -97,6 +96,8 @@ Item {
             "empty_library": "BIBLIOTECA VACÍA",
             "empty_library_desc": "No se han detectado juegos todavía.\nVe a Configuración para añadir rutas de escaneo.",
             "configure_paths_btn": "CONFIGURAR RUTAS",
+            "gametdb_method": "Método:",
+            "app_version_label": "Versión %1",
             "search_placeholder": "Búsqueda instantánea...",
             "stats_total_games": "COLECCIÓN",
             "stats_play_time": "TIEMPO JUGADO",
@@ -169,6 +170,8 @@ Item {
 
             // Scan & Scrape Workers
             "scan_starting": "Escaneando archivos con M.A.N.G.O...",
+            "scan_preparing": "Preparando motor de identificación...",
+            "scan_identifying": "Identificando: %1",
             "scan_no_roms": "No se encontraron ROMs soportadas.",
             "scan_no_path": "Se intentó escanear pero no hay ruta configurada.",
             "scan_registering": "Registrando: %1",
@@ -289,8 +292,7 @@ Item {
             "system_preferences": "SYSTEM PREFERENCES",
             "global_language": "Global Language",
             "global_language_desc": "Select the interface language",
-            "auto_theme": "Automatic Theme",
-            "auto_theme_desc": "Sync light/dark mode automatically",
+
             
             "paths_scanning": "PATHS & SCANNING",
             "roms_path": "ROMS FOLDER",
@@ -331,6 +333,8 @@ Item {
             "empty_library": "EMPTY LIBRARY",
             "empty_library_desc": "No games detected yet.\nGo to Settings to add scan paths.",
             "configure_paths_btn": "CONFIGURE PATHS",
+            "gametdb_method": "Method:",
+            "app_version_label": "Version %1",
             "search_placeholder": "Instant search...",
             "stats_total_games": "TOTAL GAMES",
             "stats_play_time": "PLAY TIME",
@@ -403,6 +407,8 @@ Item {
 
             // Scan & Scrape Workers
             "scan_starting": "Scanning files with M.A.N.G.O...",
+            "scan_preparing": "Preparing identification engine...",
+            "scan_identifying": "Identifying: %1",
             "scan_no_roms": "No supported ROMs found.",
             "scan_no_path": "Scan attempt failed: No path configured.",
             "scan_registering": "Registering: %1",

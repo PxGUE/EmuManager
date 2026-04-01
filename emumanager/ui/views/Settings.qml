@@ -114,7 +114,7 @@ Item {
                     }
                 } 
             }
-            SettingsItem { width: parent.width; title: I18n.t.auto_theme; description: I18n.t.auto_theme_desc; controlArea: Switch { checked: true; Material.accent: Theme.accentColor } }
+
             Item { Layout.fillHeight: true }
         }
 
@@ -215,7 +215,7 @@ Item {
                     }
                     RowLayout {
                         width: parent.width
-                        Text { text: "Método:"; color: Theme.textMain; Layout.fillWidth: true }
+                        Text { text: I18n.t.gametdb_method; color: Theme.textMain; Layout.fillWidth: true }
                         ComboBox {
                             model: ["Web (Online)", "Local (Offline)"]
                             currentIndex: (controller && controller.get_api_credential("gametdb_mode") === "local") ? 1 : 0
@@ -268,7 +268,7 @@ Item {
                         }
                         Text { 
                             Layout.alignment: Qt.AlignHCenter
-                            text: "v" + mainController.appVersion; color: Theme.accentElectric; font.pixelSize: 14; font.bold: true; font.letterSpacing: 6; opacity: 0.8
+                            text: I18n.tp("app_version_label|" + mainController.appVersion); color: Theme.accentElectric; font.pixelSize: 14; font.bold: true; font.letterSpacing: 6; opacity: 0.8
                         }
                     }
                 }

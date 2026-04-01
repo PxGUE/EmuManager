@@ -15,30 +15,30 @@ Item {
 
     property var statsData: ({})
     property int totalGames: 0
-    property bool isScanning: false
-    property bool isScraping: false
-    property bool isEngineBusy: isScanning || isScraping
-    property real scanProgress: 0.0
+    property string engineStatusKey: "status_system_idle"
+    property alias isScanning: mainController.isScanning
+    property alias isScraping: mainController.isScraping
+    property alias isEngineBusy: mainController.isEngineBusy
+    property alias scanProgress: mainController.scanProgress
 
-    function launchGame(id) { mainController.launch_game_by_id(id) }
+    function launchGame(id) { mainController ? mainController.launch_game_by_id(id) : null }
 
     Connections { 
         target: mainController
-        function onStartupFinished() { dashboardRoot.refreshAll() }
-        function onScanProgressChanged(p) { 
-            dashboardRoot.scanProgress = p 
-            if (p > 0 && p < 1.0) dashboardRoot.isScanning = true 
+        function onStartupProgressChanged(p) { if (p > 0 && p < 1.0) dashboardRoot.engineStatusKey = "initializing" }
+        function onStartupStatusChanged(s) { dashboardRoot.engineStatusKey = s }
+        function onStartupFinished() { 
+            dashboardRoot.engineStatusKey = "status_system_idle"
+            dashboardRoot.refreshAll() 
         }
-        function onScanFinished(n) { 
-            dashboardRoot.isScanning = false 
-            dashboardRoot.scanProgress = 1.0
-        }
-        function onScrapeProgressChanged(p) {
-            if (p > 0 && p < 1.0) dashboardRoot.isScraping = true
-        }
-        function onScrapeFinished(n) {
-            dashboardRoot.isScraping = false
-        }
+        function onScanStatusChanged(s) { dashboardRoot.engineStatusKey = s }
+        function onScanFinished(n) { dashboardRoot.engineStatusKey = "status_system_idle" }
+        function onScrapeStatusChanged(s) { dashboardRoot.engineStatusKey = s }
+        function onScrapeFinished(n) { dashboardRoot.engineStatusKey = "status_system_idle" }
+        function onCoreDownloadStatusChanged(id, s) { dashboardRoot.engineStatusKey = s }
+        function onCoreDownloadFinished(id, p) { dashboardRoot.engineStatusKey = "status_system_idle" }
+        function onGamesUpdated() { dashboardRoot.refreshAll() }
+    }
         function onGamesUpdated() { dashboardRoot.refreshAll() }
     }
 
@@ -137,8 +137,7 @@ Item {
                                 text: I18n.t.app_name; color: Theme.textMain; 
                                 font.pixelSize: 42; font.weight: Font.Black; font.letterSpacing: -1.5 
                             }
-                            Text { 
-                                text: "v" + mainController.appVersion; color: Theme.accentElectric; 
+                                text: I18n.tp("app_version_label|" + mainController.appVersion); color: Theme.accentElectric; 
                                 font.pixelSize: 12; font.bold: true; font.letterSpacing: 5; opacity: 0.9 
                             }
                         }
@@ -170,24 +169,56 @@ Item {
                             }
                         }
 
-                        // --- HEARTBEAT PILL (Cian) ---
+                        // --- SUBTLE STATUS HUD ---
                         Rectangle {
-                            id: statusPill
-                            width: 150; height: 42; radius: 21
-                            color: isEngineBusy ? Qt.alpha(Theme.accentElectric, 0.15) : Qt.alpha(Theme.accentElectric, 0.05)
-                            border.color: isEngineBusy ? Theme.accentElectric : Qt.alpha(Theme.accentElectric, 0.4); border.width: 1.5
+                            id: statusSubtle
+                            width: 180; height: 50; radius: 14; 
+                            color: Theme.backgroundPod
+                            border.color: isEngineBusy ? Qt.alpha(Theme.accentElectric, 0.4) : Qt.alpha(Theme.accentElectric, 0.15)
+                            border.width: 1
                             
                             RowLayout {
-                                anchors.centerIn: parent; spacing: 12
-                                Rectangle { 
-                                    id: heartbeat; width: 10; height: 10; radius: 5; color: Theme.accentElectric
-                                    SequentialAnimation on scale { loops: Animation.Infinite; NumberAnimation { from: 1; to: 1.4; duration: 1000; easing.type: Easing.OutSine } NumberAnimation { from: 1.4; to: 1; duration: 1000; easing.type: Easing.InSine } }
-                                    Rectangle { anchors.fill: parent; radius: 5; color: Theme.transparent; border.color: Theme.accentElectric; border.width: 1; scale: heartbeat.scale * 1.6; opacity: 1.6 - heartbeat.scale }
+                                anchors.fill: parent; anchors.leftMargin: 15; anchors.rightMargin: 15; spacing: 12
+                                
+                                // Discrete Status Dot
+                                Rectangle {
+                                    width: 8; height: 8; radius: 4; 
+                                    color: Theme.accentElectric
+                                    opacity: isEngineBusy ? 1.0 : 0.3
+                                    
+                                    SequentialAnimation on opacity {
+                                        running: isEngineBusy; loops: Animation.Infinite
+                                        NumberAnimation { from: 1.0; to: 0.2; duration: 1200; easing.type: Easing.InOutSine }
+                                        NumberAnimation { from: 0.2; to: 1.0; duration: 1200; easing.type: Easing.InOutSine }
+                                    }
+
+                                    // Subtle Glow
+                                    Rectangle {
+                                        anchors.centerIn: parent; width: parent.width * 2.5; height: width; radius: width/2
+                                        color: Theme.accentElectric; opacity: isEngineBusy ? 0.2 : 0.0
+                                    }
                                 }
-                                Text { 
-                                    text: isEngineBusy ? I18n.t.status_active_protocol : I18n.t.status_system_idle; 
-                                    color: Theme.accentElectric; font.pixelSize: 10; font.bold: true; font.letterSpacing: 2 
+                                
+                                ColumnLayout {
+                                    spacing: -2; Layout.fillWidth: true
+                                    Text { 
+                                        text: I18n.t.engine_name || "M.A.N.G.O"; 
+                                        color: Theme.textMuted; font.pixelSize: 8; font.bold: true; font.letterSpacing: 1; Layout.alignment: Qt.AlignLeft 
+                                    }
+                                    Text { 
+                                        text: (I18n.tp(engineStatusKey)).toUpperCase(); 
+                                        color: Theme.textMain; 
+                                        font.pixelSize: 10; font.bold: true; font.letterSpacing: 1
+                                        elide: Text.ElideRight; Layout.fillWidth: true
+                                    }
                                 }
+                            }
+
+                            // Thin Progress Line (only when busy)
+                            Rectangle {
+                                anchors.bottom: parent.bottom; anchors.bottomMargin: 4; anchors.horizontalCenter: parent.horizontalCenter
+                                width: parent.width - 30; height: 2; radius: 1; color: Theme.accentElectric; opacity: isEngineBusy ? 0.5 : 0.0
+                                visible: isEngineBusy
                             }
                         }
                     }

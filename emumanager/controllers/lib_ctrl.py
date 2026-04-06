@@ -44,6 +44,9 @@ class LibraryController(QObject):
 
         EmuLog.info(f"M.A.N.G.O (Lib): Escaneo Asíncrono Iniciado en {path}")
         
+        self.scanProgressChanged.emit(0.0)
+        self.scanStatusChanged.emit("scan_starting")
+        
         self._scan_thread = QThread()
         # Usamos la ruta de la DB centralizada para el worker aislado
         db_path = Path(AppConfig.get_database_path())
@@ -133,27 +136,29 @@ class LibraryController(QObject):
             with self.db.get_connection() as conn:
                 cursor = conn.cursor()
                 cursor.execute("""
-                    SELECT g.id, g.platform, m.title, m.developer, m.publisher, 
+                    SELECT g.id, g.platform, g.display_name, m.title, m.developer, m.publisher, 
                            m.release_date, m.genre, m.description, 
                            m.cover_2d_path, m.cover_3d_path, m.is_favorite
                     FROM games g
-                    JOIN game_metadata m ON g.id = m.game_id
+                    LEFT JOIN game_metadata m ON g.id = m.game_id
                     WHERE g.id = ?
                 """, (game_id,))
                 row = cursor.fetchone()
                 if row:
+                    # Priorizar display_name si existe
+                    display_title = row[2] or row[3]
                     return {
                         "id": row[0],
                         "platform": row[1],
-                        "title": row[2],
-                        "developer": row[3] or "Desconocido",
-                        "publisher": row[4] or "N/A",
-                        "release_date": row[5] or "----",
-                        "genre": row[6] or "Varios",
-                        "description": row[7] or "",
-                        "cover2d": (row[8] or "").replace("\\", "/"),
-                        "cover3d": (row[9] or "").replace("\\", "/"),
-                        "isFavorite": bool(row[10])
+                        "title": display_title,
+                        "developer": row[4] or "Desconocido",
+                        "publisher": row[5] or "N/A",
+                        "release_date": row[6] or "----",
+                        "genre": row[7] or "Varios",
+                        "description": row[8] or "",
+                        "cover2d": (row[9] or "").replace("\\", "/"),
+                        "cover3d": (row[10] or "").replace("\\", "/"),
+                        "isFavorite": bool(row[11])
                     }
         except Exception as e:
             EmuLog.error(f"Error cargando detalle del juego {game_id}: {e}")

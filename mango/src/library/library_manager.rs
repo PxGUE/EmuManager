@@ -207,7 +207,7 @@ pub fn fetch_dashboard_stats(
     // 4. Último Juego Jugado
     let mut last_game_id: i64 = -1;
     if let Ok(mut stmt) = conn.prepare("
-        SELECT g.id, COALESCE(m.title, g.display_name), g.platform, m.cover_2d_path, s.last_played_at
+        SELECT g.id, COALESCE(g.display_name, m.title), g.platform, m.cover_2d_path, s.last_played_at
         FROM games g
         LEFT JOIN game_metadata m ON g.id = m.game_id
         LEFT JOIN play_stats s ON g.id = s.game_id
@@ -270,11 +270,11 @@ pub fn fetch_dashboard_stats(
 
     // 6. Juegos Recientes
     if let Ok(mut stmt) = conn.prepare("
-        SELECT g.id, m.title, g.platform, m.cover_2d_path, s.last_played_at, 
+        SELECT g.id, COALESCE(g.display_name, m.title), g.platform, m.cover_2d_path, s.last_played_at, 
                COALESCE(s.play_time_seconds, 0) as playtime
         FROM games g
-        JOIN game_metadata m ON g.id = m.game_id
-        JOIN play_stats s ON g.id = s.game_id
+        LEFT JOIN game_metadata m ON g.id = m.game_id
+        LEFT JOIN play_stats s ON g.id = s.game_id
         WHERE g.id != ?1 AND s.last_played_at IS NOT NULL
         ORDER BY playtime DESC, g.id DESC
         LIMIT 6

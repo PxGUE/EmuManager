@@ -99,7 +99,14 @@ class MainController(QObject):
         self.stats_ctrl = StatsController(self.db, self)
         self.config_ctrl = AppConfigController(self)
         
-        # 3. Conexión de Señales Internas para Propagación a QML
+        # 3. Temporizador de "Debounce" para señales de biblioteca
+        from PySide6.QtCore import QTimer
+        self._library_update_timer = QTimer(self)
+        self._library_update_timer.setSingleShot(True)
+        self._library_update_timer.setInterval(250) # 250ms de pausa antes de notificar cambios
+        self._library_update_timer.timeout.connect(self._do_notify_library_changed)
+        
+        # 4. Conexión de Señales Internas para Propagación a QML
         self._connect_signals()
         
         # Estados internos
@@ -177,6 +184,10 @@ class MainController(QObject):
     # Biblioteca
     @Slot()
     def start_full_scan(self):
+        # Reset de progreso para evitar que la barra aparezca llena de sesiones previas
+        self._scan_progress = 0.0
+        self.scanProgressChanged.emit(0.0)
+        
         self._is_scanning = True
         self._engine_status_key = "initializing"
         self.engineActivityChanged.emit()
@@ -184,6 +195,10 @@ class MainController(QObject):
 
     @Slot()
     def start_scraping(self):
+        # Reset de estado para garantizar que el motor arranque de cero en la UI
+        self._scrape_progress = 0.0
+        self.scrapeProgressChanged.emit(0.0)
+        
         self._is_scraping = True
         self._engine_status_key = "initializing"
         self.engineActivityChanged.emit()
@@ -209,6 +224,7 @@ class MainController(QObject):
         self._is_scanning = False
         self._scan_progress = 1.0
         self._engine_status_key = "status_system_idle"
+        self.scanProgressChanged.emit(1.0)
         self.scanFinished.emit(n)
         self.engineActivityChanged.emit()
         self.notify_library_changed()
@@ -230,6 +246,7 @@ class MainController(QObject):
         self._is_scraping = False
         self._scrape_progress = 1.0
         self._engine_status_key = "status_system_idle"
+        self.scrapeProgressChanged.emit(1.0)
         self.scrapeFinished.emit(n)
         self.engineActivityChanged.emit()
 
@@ -427,7 +444,12 @@ class MainController(QObject):
 
     # --- UTILIDADES ---
     def notify_library_changed(self):
-        """Impacto global de cambios en la biblioteca."""
+        """Dispara el temporizador de notificación (Debounce)."""
+        self._library_update_timer.start()
+
+    def _do_notify_library_changed(self):
+        """Impacto global de cambios en la biblioteca tras periodo de calma."""
+        EmuLog.debug("M.A.N.G.O (UI): Sincronizando estado global de la biblioteca...")
         self.stats_ctrl.clear_cache()
         self.gamesUpdated.emit()
         self.gamesCountChanged.emit()

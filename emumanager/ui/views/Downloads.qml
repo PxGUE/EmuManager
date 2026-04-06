@@ -29,8 +29,10 @@ Item {
     // Estados Centralizados
     readonly property bool isScraping: mainController ? mainController.isScraping : false
     readonly property bool isScanning: mainController ? mainController.isScanning : false
-    readonly property real scrapeVal: mainController ? mainController.scrapeProgress : 0.0
-    readonly property real scanVal: mainController ? mainController.scanProgress : 0.0
+    // Propiedades de Progreso (Actualizadas por señales para máxima reactividad)
+    // Propiedades de Progreso (Vinculación Directa al Motor Nativo)
+    property real scrapeVal: mainController.scrapeProgress
+    property real scanVal: mainController.scanProgress
     
     // Logs locales para UX inmediata
     property string scrapeLog: ""
@@ -125,8 +127,9 @@ Item {
                         ProgressBar {
                             visible: isScanning; value: scanVal; Layout.fillWidth: true; Layout.preferredHeight: 6
                             background: Rectangle { color: Theme.transparent; radius: 3; border.color: Theme.cardBorder }
-                            contentItem: Item {
-                                Rectangle { width: parent.width * parent.visualPosition; height: parent.height; radius: 3; color: Theme.statusSuccess }
+                            contentItem: Rectangle { 
+                                width: parent.visualPosition * parent.width
+                                height: parent.height; radius: 3; color: Theme.statusSuccess 
                             }
                         }
 
@@ -192,8 +195,9 @@ Item {
                         ProgressBar {
                             visible: isScraping; value: scrapeVal; Layout.fillWidth: true; Layout.preferredHeight: 6
                             background: Rectangle { color: Theme.transparent; radius: 3; border.color: Theme.cardBorder }
-                            contentItem: Item {
-                                Rectangle { width: parent.width * parent.visualPosition; height: parent.height; radius: 3; color: Theme.statusWarning }
+                            contentItem: Rectangle { 
+                                width: parent.visualPosition * parent.width
+                                height: parent.height; radius: 3; color: Theme.statusWarning 
                             }
                         }
 

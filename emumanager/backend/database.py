@@ -120,7 +120,7 @@ class DatabaseManager:
         query = '''
             SELECT g.id, g.file_path, g.display_name, g.platform, m.title, m.cover_2d_path as media_path, m.is_favorite
             FROM games g
-            JOIN game_metadata m ON g.id = m.game_id
+            LEFT JOIN game_metadata m ON g.id = m.game_id
             LEFT JOIN play_stats s ON g.id = s.game_id
             ORDER BY COALESCE(s.play_time_seconds, 0) DESC, COALESCE(g.display_name, m.title) ASC
         '''
@@ -135,7 +135,7 @@ class DatabaseManager:
         query = '''
             SELECT g.id, g.file_path, g.display_name, g.platform, m.title, m.cover_2d_path, m.is_favorite
             FROM games g
-            JOIN game_metadata m ON g.id = m.game_id
+            LEFT JOIN game_metadata m ON g.id = m.game_id
             LEFT JOIN play_stats s ON g.id = s.game_id
             WHERE g.platform = ?
             ORDER BY COALESCE(s.play_time_seconds, 0) DESC, COALESCE(g.display_name, m.title) ASC
@@ -148,7 +148,7 @@ class DatabaseManager:
         query = '''
             SELECT g.id, g.file_path, g.display_name, g.platform, m.title, m.cover_2d_path, m.is_favorite
             FROM games g
-            JOIN game_metadata m ON g.id = m.game_id
+            LEFT JOIN game_metadata m ON g.id = m.game_id
             WHERE g.display_name LIKE ? OR m.title LIKE ?
             ORDER BY COALESCE(g.display_name, m.title) ASC
             LIMIT 100

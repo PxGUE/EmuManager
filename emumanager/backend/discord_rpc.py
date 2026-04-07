@@ -70,7 +70,7 @@ class DiscordRPCManager:
             try:
                 self.rpc.clear()
                 EmuLog.info("Discord RPC: Estado limpiado.")
-            except:
+            except Exception:
                 pass
 
     def disconnect(self):
@@ -80,7 +80,7 @@ class DiscordRPCManager:
             try:
                 self.rpc.close()
                 EmuLog.info("Discord RPC: Desconectado.")
-            except:
+            except Exception:
                 pass
         self._is_connected = False
         self.rpc = None

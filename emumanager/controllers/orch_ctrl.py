@@ -78,7 +78,7 @@ class OrchestraController(QObject):
                 
                 if not is_installed and mango_engine and system_id:
                     try: is_installed = mango_engine.check_system_installed(system_id)
-                    except: pass
+                    except Exception: pass
                 
                 # Estado de Actualización
                 emu_data = updates_map.get(emu_id, {})

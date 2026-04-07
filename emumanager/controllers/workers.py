@@ -227,7 +227,7 @@ class StartupWorker(QObject):
                 # Comprobar si Discord RPC está habilitado y conectar en background
                 if hasattr(self.ctrl.orch_ctrl, 'discord_rpc'):
                     self.ctrl.orch_ctrl.discord_rpc.connect()
-            except: pass
+            except Exception: pass
             
             # Si el motor detectó cambios, podrías inyectar datos aquí
             if data:
@@ -239,10 +239,6 @@ class StartupWorker(QObject):
             self.status.emit("startup_ready")
             time.sleep(0.4)
             self.progress.emit(1.0)
-            self.finished.emit()
-            
-        except Exception as e:
-            EmuLog.error(f"Error crítico en StartupWorker: {e}")
             self.finished.emit()
             
         except Exception as e:

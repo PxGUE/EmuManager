@@ -1,9 +1,20 @@
 import sys
 import os
+import platform
+import warnings
 from pathlib import Path
 from PySide6.QtWidgets import QApplication
 from PySide6.QtQml import QQmlApplicationEngine
 from dotenv import load_dotenv
+
+# --- OPTIMIZACIÓN DE ASYNCIO EN WINDOWS ---
+if sys.platform == 'win32':
+    import asyncio
+    # Usamos SelectorEventLoop en Windows para evitar errores de tuberías cerradas al salir.
+    # Es una solución estructural más limpia que parchear el destructor del transporte.
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+    # Silenciamos warnings de recursos que ya no deberían ocurrir pero por higiene de consola:
+    warnings.filterwarnings("ignore", category=ResourceWarning, message="unclosed transport")
 
 # --- CARGAR SECRETOS (SS_DEV_ID, SS_DEV_PASS) ---
 # Buscamos .env o secrets.env en la raíz del proyecto
@@ -37,7 +48,6 @@ if str(backend_dir) not in sys.path:
     sys.path.insert(0, str(backend_dir))
 
 # AGREGAR MOTOR NATIVO BINARIO (Linux/Windows)
-import platform
 os_name = platform.system().lower()
 
 # Buscamos el motor nativo en dos ubicaciones posibles:

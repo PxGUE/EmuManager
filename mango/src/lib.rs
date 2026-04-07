@@ -1,25 +1,27 @@
 use pyo3::prelude::*;
-use pyo3::types::PyDict;
+use pyo3::types::{PyDict, PyList};
 use tokio::runtime::Runtime;
 use once_cell::sync::Lazy;
+use std::collections::HashMap;
 
-mod emulation;
-mod scraping;
-mod library;
+pub mod emulation;
+pub mod scraping;
+pub mod library;
 pub mod sync;
-mod tools;
+pub mod tools;
 
 static RUNTIME: Lazy<Runtime> = Lazy::new(|| {
     Runtime::new().expect("M.A.N.G.O (Fatal): Error al inicializar el Tokio Runtime.")
 });
 
+fn to_py_err(err: anyhow::Error) -> PyErr {
+    pyo3::exceptions::PyRuntimeError::new_err(err.to_string())
+}
+
 #[pyfunction]
 fn fetch_cores(py: Python<'_>) -> PyResult<Vec<String>> {
     let res = py.allow_threads(move || { RUNTIME.block_on(emulation::core_manager::fetch_available_cores_async()) });
-    match res {
-        Ok(cores) => Ok(cores),
-        Err(e) => Err(pyo3::exceptions::PyRuntimeError::new_err(e.to_string())),
-    }
+    res.map_err(to_py_err)
 }
 
 #[pyfunction]
@@ -34,10 +36,7 @@ fn download_core(
     let res = py.allow_threads(move || {
         RUNTIME.block_on(emulation::core_manager::download_core_async(core_name, dest_dir, progress_callback, status_callback))
     });
-    match res {
-        Ok(path) => Ok(path),
-        Err(e) => Err(pyo3::exceptions::PyRuntimeError::new_err(e.to_string())),
-    }
+    res.map_err(to_py_err)
 }
 
 #[pyfunction]
@@ -53,10 +52,7 @@ fn download_emulator(
     let res = py.allow_threads(move || {
         RUNTIME.block_on(emulation::core_manager::download_emulator_async(url, dest_dir, expected_filename, progress_callback, status_callback))
     });
-    match res {
-        Ok(path) => Ok(path),
-        Err(e) => Err(pyo3::exceptions::PyRuntimeError::new_err(e.to_string())),
-    }
+    res.map_err(to_py_err)
 }
 
 #[pyfunction]
@@ -74,10 +70,7 @@ fn install_emulator_orchestra(
     let res = py.allow_threads(move || {
         RUNTIME.block_on(emulation::core_manager::install_emulator_orchestra_async(emu_id, system_id, url, dest_dir, executable, progress_callback, status_callback))
     });
-    match res {
-        Ok(path) => Ok(path),
-        Err(e) => Err(pyo3::exceptions::PyRuntimeError::new_err(e.to_string())),
-    }
+    res.map_err(to_py_err)
 }
 
 #[pyfunction]
@@ -95,10 +88,7 @@ fn update_emulator(
     let res = py.allow_threads(move || {
         RUNTIME.block_on(emulation::core_manager::update_emulator_async(id, version, url, dest_dir, executable, progress_callback, status_callback))
     });
-    match res {
-        Ok(path) => Ok(path),
-        Err(e) => Err(pyo3::exceptions::PyRuntimeError::new_err(e.to_string())),
-    }
+    res.map_err(to_py_err)
 }
 
 #[pyfunction]
@@ -107,16 +97,13 @@ fn uninstall_emulator(
     dest_dir: String
 ) -> PyResult<()> {
     let res = py.allow_threads(move || {
-        emulation::core_manager::remove_emulator_files_async(dest_dir)
+        RUNTIME.block_on(emulation::core_manager::remove_emulator_files_async(dest_dir))
     });
-    match res {
-        Ok(_) => Ok(()),
-        Err(e) => Err(pyo3::exceptions::PyRuntimeError::new_err(e.to_string())),
-    }
+    res.map_err(to_py_err)
 }
 
 #[pyfunction]
-fn set_log_callback(_py: Python<'_>, callback: Py<PyAny>) {
+fn set_log_callback(callback: Py<PyAny>) {
     tools::logging::set_log_callback(callback);
 }
 
@@ -213,24 +200,24 @@ fn precharge_ecosystem(
 }
 
 #[pyfunction]
-fn check_all_updates(py: Python<'_>, targets: std::collections::HashMap<String, String>) -> PyResult<PyObject> {
+fn check_all_updates(py: Python<'_>, targets: HashMap<String, String>) -> PyResult<Py<PyList>> {
     let results = py.allow_threads(move || {
         RUNTIME.block_on(sync::updates::check_parallel_updates(targets))
     });
     
-    let list = pyo3::types::PyList::empty(py);
+    let list = PyList::empty(py);
     for r in results {
-        let dict = pyo3::types::PyDict::new(py);
+        let dict = PyDict::new(py);
         let _ = dict.set_item("id", r.id);
         let _ = dict.set_item("remote_tag", r.remote_tag);
         let _ = dict.set_item("download_url", r.download_url);
         let _ = list.append(dict);
     }
-    Ok(list.into_any().unbind())
+    Ok(list.into())
 }
 
 #[pymodule]
-fn mango_engine(_py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
+fn mango_engine(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(fetch_cores, m)?)?;
     m.add_function(wrap_pyfunction!(download_core, m)?)?;
     m.add_function(wrap_pyfunction!(download_emulator, m)?)?;

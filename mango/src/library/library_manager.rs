@@ -489,11 +489,17 @@ pub fn scan_directory_to_db(
     // Mantenemos mapa de Path -> (Size, Serial) para saber si necesitamos re-procesar
     let existing_map: HashMap<String, (u64, String)> = {
         if let Ok(conn) = Connection::open(&db_path) {
-            let mut stmt = conn.prepare("SELECT file_path, file_size, COALESCE(serial, '') FROM games").unwrap();
-            let rows = stmt.query_map([], |row| {
-                Ok((row.get::<_, String>(0)?, (row.get::<_, i64>(1)? as u64, row.get::<_, String>(2)?)))
-            }).unwrap();
-            rows.filter_map(Result::ok).collect()
+            if let Ok(mut stmt) = conn.prepare("SELECT file_path, file_size, COALESCE(serial, '') FROM games") {
+                if let Ok(rows) = stmt.query_map([], |row| {
+                    Ok((row.get::<_, String>(0)?, (row.get::<_, i64>(1)? as u64, row.get::<_, String>(2)?)))
+                }) {
+                    rows.filter_map(Result::ok).collect()
+                } else {
+                    HashMap::new()
+                }
+            } else {
+                HashMap::new()
+            }
         } else {
             HashMap::new()
         }

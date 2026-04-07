@@ -4,14 +4,13 @@ use once_cell::sync::Lazy;
 
 static LOG_CALLBACK: Lazy<Mutex<Option<PyObject>>> = Lazy::new(|| Mutex::new(None));
 
-#[pyfunction]
 pub fn set_log_callback(callback: PyObject) {
-    let mut cb = LOG_CALLBACK.lock().unwrap();
+    let mut cb = LOG_CALLBACK.lock().unwrap_or_else(|e| e.into_inner());
     *cb = Some(callback);
 }
 
 pub fn log_to_python(level: &str, msg: &str) {
-    let cb_opt = LOG_CALLBACK.lock().unwrap();
+    let cb_opt = LOG_CALLBACK.lock().unwrap_or_else(|e| e.into_inner());
     if let Some(ref callback) = *cb_opt {
         Python::with_gil(|py| {
             let _ = callback.call1(py, (level, msg));

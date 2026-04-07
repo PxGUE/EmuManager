@@ -334,6 +334,7 @@ Item {
             "copyright": "© 2026 PAIDEX | EMUMANAGER TEAM | MIT LICENSE",
 
             // Library & Dashboard
+            "recent_activity": "RECENT ACTIVITY",
             "empty_library": "EMPTY LIBRARY",
             "empty_library_desc": "No games detected yet.\nGo to Settings to add scan paths.",
             "configure_paths_btn": "CONFIGURE PATHS",

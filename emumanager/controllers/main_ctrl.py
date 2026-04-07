@@ -169,7 +169,7 @@ class MainController(QObject):
         try:
             import mango_engine
             db_path = str(self.db.db_path)
-            media_path = str(AppConfig.get_media_path())
+            media_path = str(AppConfig.get_app_data_dir() / "media")
             emus_path = str(AppConfig.get_emulators_path())
             
             # La magia sucede aquí: Rust hace todo en paralelo liberando el GIL

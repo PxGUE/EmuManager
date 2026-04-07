@@ -8,12 +8,9 @@ use std::thread;
 use std::time::Duration;
 use futures::stream::{self, StreamExt};
 
+
 pub fn log_to_python(py: Python<'_>, level: &str, message: &str) {
-    let script = format!(
-        "from core.logger import EmuLog; EmuLog.{}(\"[MANGO] {}\")",
-        level, message.replace("\"", "\\\"")
-    );
-    if let Ok(m) = py.import_bound("core.logger") {
+    if let Ok(m) = py.import("core.logger") {
         if let Ok(logger) = m.getattr("EmuLog") {
             let _ = logger.call_method1(level, (format!("[MANGO] {}", message),));
         }

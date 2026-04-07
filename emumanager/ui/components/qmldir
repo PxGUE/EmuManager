@@ -12,3 +12,4 @@ GameBox3D 1.0 effects/GameBox3D.qml
 RomCard 1.0 cards/RomCard.qml
 RecentGameCard 1.0 cards/RecentGameCard.qml
 SettingsItem 1.0 items/SettingsItem.qml
+CollapsibleSection 1.0 items/CollapsibleSection.qml

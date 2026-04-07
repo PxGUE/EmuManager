@@ -179,80 +179,87 @@ Item {
         }
 
         // --- PANEL 2: SERVICIOS ---
-        Column {
-            Layout.fillWidth: true; Layout.fillHeight: true; spacing: Theme.spaceLarge
-            Text { text: I18n.t.external_resources; color: Theme.accentColor; font.pixelSize: Theme.fontSmall; font.bold: true; font.letterSpacing: 2 }
-            Rectangle {
-                width: parent.width; height: 260; radius: Theme.radiusMedium; color: Theme.cardBackground; border.color: Theme.cardBorder; border.width: Theme.borderThin
-                Column {
-                    anchors.fill: parent; anchors.margins: 20; spacing: 15
-                    Text { text: I18n.t.api_screenscraper; color: Theme.textMain; font.bold: true }
-                    Text { 
-                        text: I18n.t.api_desc; 
-                        color: Theme.textMuted; font.pixelSize: Theme.fontBody; width: parent.width - 40; wrapMode: Text.WordWrap 
-                    }
-                    TextField { 
-                        id: userField; placeholderText: I18n.t.username_placeholder; width: parent.width; 
-                        text: controller ? controller.get_api_credential("screenscraper_user") : ""
-                        onEditingFinished: if(controller) controller.set_api_credential("screenscraper_user", text) 
-                    }
-                    TextField { 
-                        id: passField; placeholderText: I18n.t.password_placeholder; echoMode: TextInput.Password; width: parent.width; 
-                        text: controller ? controller.get_api_credential("screenscraper_pass") : ""
-                        onEditingFinished: if(controller) controller.set_api_credential("screenscraper_pass", text) 
+        ScrollView {
+            id: servicesScroll
+            Layout.fillWidth: true; Layout.fillHeight: true; clip: true
+            ScrollBar.vertical.policy: ScrollBar.AsNeeded
+            contentWidth: availableWidth
+
+            Column {
+                width: servicesScroll.availableWidth - 20
+                anchors.horizontalCenter: parent.horizontalCenter
+                spacing: Theme.spaceLarge
+                topPadding: 10; bottomPadding: 20
+                
+                Text { text: I18n.t.external_resources; color: Theme.accentColor; font.pixelSize: Theme.fontSmall; font.bold: true; font.letterSpacing: 2 }
+                
+                // --- ScreenScraper Section ---
+                CollapsibleSection {
+                    title: I18n.t.api_screenscraper
+                    description: I18n.t.api_desc
+                    iconEmoji: "🖼️"
+                    expanded: false
+                    sectionContent: Column {
+                        width: parent.width; spacing: 15
+                        TextField { 
+                            id: userField; placeholderText: I18n.t.username_placeholder; width: parent.width; 
+                            text: controller ? controller.get_api_credential("screenscraper_user") : ""
+                            onEditingFinished: if(controller) controller.set_api_credential("screenscraper_user", text) 
+                        }
+                        TextField { 
+                            id: passField; placeholderText: I18n.t.password_placeholder; echoMode: TextInput.Password; width: parent.width; 
+                            text: controller ? controller.get_api_credential("screenscraper_pass") : ""
+                            onEditingFinished: if(controller) controller.set_api_credential("screenscraper_pass", text) 
+                        }
                     }
                 }
-            }
-            // --- GameTDB Section ---
-            Rectangle {
-                width: parent.width; height: 160; radius: Theme.radiusMedium; color: Theme.cardBackground; border.color: Theme.cardBorder; border.width: Theme.borderThin
-                Column {
-                    anchors.fill: parent; anchors.margins: 20; spacing: 15
-                    Text { text: I18n.t.api_gametdb; color: Theme.textMain; font.bold: true }
-                    Text { 
-                        text: I18n.t.api_gametdb_desc; 
-                        color: Theme.textMuted; font.pixelSize: Theme.fontBody; width: parent.width - 40; wrapMode: Text.WordWrap 
-                    }
-                    RowLayout {
-                        width: parent.width
-                        Text { text: I18n.t.gametdb_method; color: Theme.textMain; Layout.fillWidth: true }
-                        ComboBox {
-                            model: ["Web (Online)", "Local (Offline)"]
-                            currentIndex: (controller && controller.get_api_credential("gametdb_mode") === "local") ? 1 : 0
-                            onActivated: (index) => {
-                                if(controller) controller.set_api_credential("gametdb_mode", index === 0 ? "web" : "local")
+
+                // --- GameTDB Section ---
+                CollapsibleSection {
+                    title: I18n.t.api_gametdb
+                    description: I18n.t.api_gametdb_desc
+                    iconEmoji: "🎲"
+                    expanded: false
+                    sectionContent: Column {
+                        width: parent.width; spacing: 15
+                        RowLayout {
+                            width: parent.width
+                            Text { text: I18n.t.gametdb_method; color: Theme.textMain; Layout.fillWidth: true }
+                            ComboBox {
+                                model: ["Web (Online)", "Local (Offline)"]
+                                currentIndex: (controller && controller.get_api_credential("gametdb_mode") === "local") ? 1 : 0
+                                onActivated: (index) => {
+                                    if(controller) controller.set_api_credential("gametdb_mode", index === 0 ? "web" : "local")
+                                }
                             }
                         }
                     }
                 }
-            }
-            // --- Discord Presence ---
-            Rectangle {
-                width: parent.width; height: 100; radius: Theme.radiusMedium; color: Theme.cardBackground; border.color: Theme.cardBorder; border.width: Theme.borderThin
-                RowLayout {
-                    anchors.fill: parent; anchors.margins: 20; spacing: 15
-                    ColumnLayout {
-                        Layout.fillWidth: true; spacing: 5
-                        Text { text: I18n.t.discord_presence; color: Theme.textMain; font.bold: true }
-                        Text { 
-                            text: I18n.t.discord_presence_desc; 
-                            color: Theme.textMuted; font.pixelSize: Theme.fontBody; Layout.fillWidth: true; wrapMode: Text.WordWrap 
-                        }
-                    }
-                    Switch {
-                        checked: controller ? controller.get_api_credential("discord_rpc") === "true" : true
-                        onToggled: {
-                            if(controller) controller.set_api_credential("discord_rpc", checked ? "true" : "false")
+
+                // --- Discord Presence ---
+                CollapsibleSection {
+                    title: I18n.t.discord_presence
+                    description: I18n.t.discord_presence_desc
+                    iconEmoji: "🎮"
+                    expanded: false
+                    sectionContent: RowLayout {
+                        width: parent.width; spacing: 15
+                        Text { text: I18n.t.discord_presence; color: Theme.textMain; font.bold: true; Layout.fillWidth: true }
+                        Switch {
+                            checked: controller ? controller.get_api_credential("discord_rpc") === "true" : true
+                            onToggled: {
+                                if(controller) controller.set_api_credential("discord_rpc", checked ? "true" : "false")
+                            }
                         }
                     }
                 }
-            }
 
-            Text { 
-                text: I18n.t.api_saved; 
-                color: Theme.textMuted; opacity: 0.5; font.pixelSize: Theme.fontSmall; font.italic: true; width: parent.width; wrapMode: Text.WordWrap
+                Text { 
+                    text: I18n.t.api_saved; 
+                    color: Theme.textMuted; opacity: 0.5; font.pixelSize: Theme.fontSmall; font.italic: true; width: parent.width; wrapMode: Text.WordWrap
+                }
+                Item { Layout.preferredHeight: 50; width: 1 } // Bottom padding
             }
-            Item { Layout.fillHeight: true }
         }
 
 

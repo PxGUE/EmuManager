@@ -286,19 +286,23 @@ Item {
         anchors.left: parent.left; anchors.right: parent.right
         anchors.leftMargin: 60; anchors.rightMargin: 60; anchors.topMargin: 20
         
-        cellWidth: width / Math.max(1, Math.floor(width / 240))
-        cellHeight: cellWidth * 1.5
+        cellWidth: Math.floor(width / Math.max(1, Math.floor(width / 220)))
+        cellHeight: 340
         clip: true; visible: showGames; opacity: showGames ? 1 : 0
         model: gamesModel
         cacheBuffer: 1000 
         
-        delegate: RomCard {
-            title: model.title; platform: model.platform
-            gameId: model.gameId; isFavorite: model.isFavorite
-            cover2d: model.cover2dPath; cover3d: model.cover3dPath
-            accentColor: (activePlatform === "all") ? undefined : libraryRoot.activeAccentColor
-            onClicked: mainController.launch_game_by_id(model.gameId)
-            onInfoClicked: window.openGameDetails(model.gameId)
+        delegate: Item {
+            width: romGallery.cellWidth; height: romGallery.cellHeight
+            RomCard {
+                anchors.centerIn: parent
+                title: model.title; platform: model.platform
+                gameId: model.gameId; isFavorite: model.isFavorite
+                cover2d: model.cover2dPath; cover3d: model.cover3dPath
+                accentColor: (activePlatform === "all") ? undefined : libraryRoot.activeAccentColor
+                onClicked: mainController.launch_game_by_id(model.gameId)
+                onInfoClicked: window.openGameDetails(model.gameId)
+            }
         }
         Behavior on opacity { NumberAnimation { duration: 500 } }
     }

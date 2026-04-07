@@ -201,34 +201,36 @@ pub async fn download_emulator_async(url: String, dest_dir: String, expected_fil
     let return_path = if let Some(exe_path) = real_exe_path {
         let is_retroarch = expected_filename.to_lowercase().ends_with("retroarch.exe");
         if is_retroarch {
-            let exe_dir = exe_path.parent().unwrap();
-            
-            mango_info!("Orchestra: RetroArch detectado. Generando configuración maestra (Portable)...");
-            if let Some(ref scb) = status_callback { 
-                Python::with_gil(|py| { let _ = scb.call1(py, ("emu_status_configuring",)); }); 
+            if let Some(exe_dir) = exe_path.parent() {
+                mango_info!("Orchestra: RetroArch detectado. Generando configuración maestra (Portable)...");
+                if let Some(ref scb) = status_callback { 
+                    Python::with_gil(|py| { let _ = scb.call1(py, ("emu_status_configuring",)); }); 
+                }
+                
+                let mut cfg_content = String::new();
+                let mut relative_parts = String::from(":\\..");
+                if exe_dir != dp { relative_parts.push_str("\\.."); }
+                relative_parts.push_str("\\cores");
+
+                cfg_content.push_str(&format!("libretro_directory = \"{}\"\n", relative_parts));
+                cfg_content.push_str("system_directory = \":\\system\"\n");
+                cfg_content.push_str("savefile_directory = \":\\saves\"\n");
+                cfg_content.push_str("savestate_directory = \":\\states\"\n");
+                cfg_content.push_str("video_driver = \"gl\"\n");
+                cfg_content.push_str("config_save_on_exit = \"true\"\n");
+                cfg_content.push_str("menu_driver = \"xmb\"\n");
+                cfg_content.push_str("menu_show_advanced_settings = \"true\"\n");
+                
+                let _ = fs::create_dir_all(exe_dir.join("cores"));
+                let _ = fs::create_dir_all(exe_dir.join("system"));
+                let _ = fs::create_dir_all(exe_dir.join("saves"));
+                let _ = fs::create_dir_all(exe_dir.join("states"));
+
+                let cfg_path = exe_dir.join("retroarch.cfg");
+                let _ = fs::write(&cfg_path, cfg_content);
+            } else {
+                mango_error!("Orchestra: Fallo al localizar la ruta padre de RetroArch.");
             }
-            
-            let mut cfg_content = String::new();
-            let mut relative_parts = String::from(":\\..");
-            if exe_dir != dp { relative_parts.push_str("\\.."); }
-            relative_parts.push_str("\\cores");
-
-            cfg_content.push_str(&format!("libretro_directory = \"{}\"\n", relative_parts));
-            cfg_content.push_str("system_directory = \":\\system\"\n");
-            cfg_content.push_str("savefile_directory = \":\\saves\"\n");
-            cfg_content.push_str("savestate_directory = \":\\states\"\n");
-            cfg_content.push_str("video_driver = \"gl\"\n");
-            cfg_content.push_str("config_save_on_exit = \"true\"\n");
-            cfg_content.push_str("menu_driver = \"xmb\"\n");
-            cfg_content.push_str("menu_show_advanced_settings = \"true\"\n");
-            
-            let _ = fs::create_dir_all(exe_dir.join("cores"));
-            let _ = fs::create_dir_all(exe_dir.join("system"));
-            let _ = fs::create_dir_all(exe_dir.join("saves"));
-            let _ = fs::create_dir_all(exe_dir.join("states"));
-
-            let cfg_path = exe_dir.join("retroarch.cfg");
-            let _ = fs::write(&cfg_path, cfg_content);
         }
         exe_path.to_string_lossy().to_string()
     } else {

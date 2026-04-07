@@ -31,15 +31,15 @@ Item {
     readonly property bool isScanning: mainController ? mainController.isScanning : false
     // Propiedades de Progreso (Actualizadas por señales para máxima reactividad)
     // Propiedades de Progreso (Vinculación Directa al Motor Nativo)
-    property real scrapeVal: mainController.scrapeProgress
-    property real scanVal: mainController.scanProgress
+    property real scrapeVal: mainController ? mainController.scrapeProgress : 0.0
+    property real scanVal: mainController ? mainController.scanProgress : 0.0
     
     // Logs locales para UX inmediata
     property string scrapeLog: ""
     property string scanLog: ""
     
     // UX: Estado centralizado para bloqueo de concurrencia
-    readonly property bool isAnyOperationRunning: mainController.isEngineBusy
+    readonly property bool isAnyOperationRunning: mainController ? mainController.isEngineBusy : false
 
     Rectangle { anchors.fill: parent; color: Theme.viewBackground }
 

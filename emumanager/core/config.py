@@ -160,3 +160,13 @@ class AppConfig:
         media_dir = cls.get_app_data_dir() / "media" / platform.lower() / media_type
         media_dir.mkdir(parents=True, exist_ok=True)
         return media_dir
+
+    @classmethod
+    def get_discord_rpc_enabled(cls) -> bool:
+        return cls._load_config().get("discord_rpc_enabled", True)
+
+    @classmethod
+    def set_discord_rpc_enabled(cls, enabled: bool):
+        config = cls._load_config()
+        config["discord_rpc_enabled"] = bool(enabled)
+        cls._save_config()

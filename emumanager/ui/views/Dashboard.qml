@@ -125,8 +125,9 @@ Item {
                                 font.pixelSize: 42; font.weight: Font.Black; font.letterSpacing: -1.5 
                             }
                             Text { 
-                                text: I18n.tp("app_version_label|" + mainController.appVersion); color: Theme.accentElectric; 
-                                font.pixelSize: 12; font.bold: true; font.letterSpacing: 5; opacity: 0.9 
+                                Layout.alignment: Qt.AlignHCenter
+                                text: mainController ? I18n.tp("app_version_label|" + mainController.appVersion) : ""
+                                color: Theme.accentElectric; font.pixelSize: 12; font.bold: true; font.letterSpacing: 5; opacity: 0.9 
                             }
                         }
                     }

@@ -31,6 +31,8 @@ class AppConfigController(QObject):
             return AppConfig.get_screenscraper_pass()
         elif service == "gametdb_mode":
             return AppConfig.get_gametdb_mode()
+        elif service == "discord_rpc":
+            return str(AppConfig.get_discord_rpc_enabled()).lower()
         return ""
 
     @Slot(str, str)
@@ -41,6 +43,8 @@ class AppConfigController(QObject):
             AppConfig.set_screenscraper_pass(value)
         elif service == "gametdb_mode":
             AppConfig.set_gametdb_mode(value)
+        elif service == "discord_rpc":
+            AppConfig.set_discord_rpc_enabled(value.lower() == "true")
 
     @Slot(result=str)
     def select_roms_directory(self):

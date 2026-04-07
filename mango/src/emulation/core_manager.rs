@@ -253,8 +253,30 @@ pub async fn download_emulator_async(url: String, dest_dir: String, expected_fil
     Ok(return_path)
 }
 
-pub async fn update_emulator_async(u: String, d: String, e: String, c: Option<Py<PyAny>>, s: Option<Py<PyAny>>) -> Result<String, anyhow::Error> {
-    download_emulator_async(u, d, e, c, s).await
+pub async fn install_emulator_orchestra_async(
+    _emu_id: String,
+    _system_id: String,
+    url: String,
+    dest_dir: String,
+    executable: String,
+    progress_callback: Option<Py<PyAny>>,
+    status_callback: Option<Py<PyAny>>,
+) -> Result<String, anyhow::Error> {
+    // Por ahora, EmuManager prefiere consistencia local-first
+    // En el futuro podemos intentar install_via_system(system_id) si estamos en Linux.
+    download_emulator_async(url, dest_dir, executable, progress_callback, status_callback).await
+}
+
+pub async fn update_emulator_async(
+    _id: String,
+    _version: String,
+    url: String,
+    dest_dir: String,
+    executable: String,
+    progress_callback: Option<Py<PyAny>>,
+    status_callback: Option<Py<PyAny>>,
+) -> Result<String, anyhow::Error> {
+    download_emulator_async(url, dest_dir, executable, progress_callback, status_callback).await
 }
 
 pub async fn remove_emulator_files_async(t: String) -> Result<(), anyhow::Error> {

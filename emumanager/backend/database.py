@@ -157,8 +157,19 @@ class DatabaseManager:
             return [dict(row) for row in conn.execute(query, (f'%{search_query}%', f'%{search_query}%')).fetchall()]
 
     def update_game_favorite(self, game_id: int, is_favorite: bool):
-        """Marca o desmarca un juego como favorito."""
+        """Marca o desmarca un juego como favorito, creando la entrada en metadata si no existe."""
         val = 1 if is_favorite else 0
         with self.get_connection() as conn:
-            conn.execute("UPDATE game_metadata SET is_favorite = ? WHERE game_id = ?", (val, game_id))
+            # Primero intentamos obtener el título del juego de la tabla principal para el fallback
+            row = conn.execute("SELECT display_name, file_path FROM games WHERE id = ?", (game_id,)).fetchone()
+            if not row:
+                return # El juego no existe en la base de datos
+
+            fallback_title = row["display_name"] or Path(row["file_path"]).stem
+            
+            conn.execute('''
+                INSERT INTO game_metadata (game_id, is_favorite, title)
+                VALUES (?, ?, ?)
+                ON CONFLICT(game_id) DO UPDATE SET is_favorite = excluded.is_favorite
+            ''', (game_id, val, fallback_title))
             conn.commit()

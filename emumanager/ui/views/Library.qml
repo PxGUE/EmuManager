@@ -90,6 +90,9 @@ Item {
             refreshConsoles() 
             if (libraryRoot.showGames) gamesModel.filter_by_platform(libraryRoot.activePlatform)
         }
+        function onFavoriteToggled(game_id, is_favorite) {
+            gamesModel.set_favorite_locally(game_id, is_favorite)
+        }
     }
 
     ListModel { id: consoleModel }
@@ -193,37 +196,84 @@ Item {
         }
     }
 
-    // --- BARRA DE BÚSQUEDA (M.A.N.G.O FUZZYMATCH) ---
-    Rectangle {
+    // --- CABECERA DE BÚSQUEDA Y ACCIONES (Rediseño Centrado) ---
+    Item {
         id: searchContainer
         anchors.top: consoleCarousel.bottom
-        anchors.left: parent.left; anchors.right: parent.right
-        anchors.leftMargin: 30; anchors.rightMargin: 30
-        height: showGames ? 60 : 0
+        anchors.left: parent.left
+        anchors.right: parent.right
+        height: showGames ? 70 : 0
         visible: showGames
         opacity: showGames ? 1 : 0
-        color: Theme.viewBackground // Changed from "transparent"
-        property color activeAccentColor: Theme.accentColor
         Behavior on height { NumberAnimation { duration: 400; easing.type: Easing.OutQuint } }
         Behavior on opacity { NumberAnimation { duration: 400 } }
 
-        Rectangle {
-            anchors.verticalCenter: parent.verticalCenter
-            width: parent.width; height: 44; radius: Theme.radiusSmall
-            color: Theme.controlBackground; border.color: searchInput.focus ? libraryRoot.activeAccentColor : Qt.rgba(libraryRoot.activeAccentColor.r, libraryRoot.activeAccentColor.g, libraryRoot.activeAccentColor.b, 0.3); border.width: Theme.borderThin
-            Behavior on border.color { ColorAnimation { duration: 200 } }
-            
-            RowLayout {
-                anchors.fill: parent; anchors.leftMargin: Theme.spaceMedium; anchors.rightMargin: Theme.spaceSmall; spacing: Theme.spaceMedium
-                Text { text: "🔍"; color: searchInput.focus ? Theme.accentColor : Theme.textMuted; font.pixelSize: Theme.fontHeader }
-                TextField {
-                    id: searchInput
-                    Layout.fillWidth: true
-                    color: Theme.textMain
-                    placeholderText: I18n.t.search_placeholder
-                    background: Item {} // Remover el subrayado por defecto
-                    font.pixelSize: Theme.fontBody; font.letterSpacing: 1
-                    onTextEdited: gamesModel.search_games(text, activePlatform)
+        RowLayout {
+            anchors.horizontalCenter: parent.horizontalCenter
+            height: parent.height
+            spacing: 25
+
+            // 1. BOTÓN REGRESAR
+            Rectangle {
+                width: 44; height: 44; radius: 12
+                color: backMA.hovered ? Qt.alpha(libraryRoot.activeAccentColor, 0.2) : Theme.controlBackground
+                border.color: Qt.alpha(libraryRoot.activeAccentColor, 0.3); border.width: 1
+                Text { text: "◀"; color: Theme.textMain; anchors.centerIn: parent; font.pixelSize: 14; opacity: 0.8 }
+                MouseArea { id: backMA; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: showGames = false }
+            }
+
+            // 2. BARRA DE BÚSQUEDA (Centrada y proporcianal)
+            Rectangle {
+                width: 500; height: 44; radius: 12
+                color: Theme.controlBackground
+                border.color: searchInput.focus ? libraryRoot.activeAccentColor : Qt.alpha(libraryRoot.activeAccentColor, 0.2)
+                border.width: 1
+                
+                RowLayout {
+                    anchors.fill: parent; anchors.leftMargin: 15; anchors.rightMargin: 10; spacing: 12
+                    Text { 
+                        text: "🔍"
+                        font.pixelSize: 16
+                        color: searchInput.focus ? libraryRoot.activeAccentColor : Theme.textMuted
+                    }
+                    TextField {
+                        id: searchInput
+                        Layout.fillWidth: true
+                        color: Theme.textMain
+                        placeholderText: I18n.t.search_placeholder
+                        background: Item {}
+                        font.pixelSize: 14
+                        onTextEdited: gamesModel.search_games(text, activePlatform)
+                    }
+                    Text { 
+                        text: "✕"
+                        color: Theme.textMuted
+                        font.bold: true
+                        visible: searchInput.text !== ""
+                        opacity: clearMA.hovered ? 1.0 : 0.5
+                        MouseArea { 
+                            id: clearMA
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            onClicked: {
+                                searchInput.text = ""
+                                gamesModel.search_games("", activePlatform)
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 3. FILTRO DE FAVORITOS
+            Rectangle {
+                width: 44; height: 44; radius: 12
+                color: gamesModel.showFavoritesOnly ? libraryRoot.activeAccentColor : (favFilterMA.hovered ? Qt.alpha(libraryRoot.activeAccentColor, 0.2) : Theme.controlBackground)
+                border.color: gamesModel.showFavoritesOnly ? Theme.transparent : Qt.alpha(libraryRoot.activeAccentColor, 0.3)
+                border.width: 1
+                Text { text: "❤️"; anchors.centerIn: parent; font.pixelSize: 16; opacity: gamesModel.showFavoritesOnly ? 1.0 : 0.6 }
+                MouseArea { 
+                    id: favFilterMA; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor 
+                    onClicked: gamesModel.showFavoritesOnly = !gamesModel.showFavoritesOnly
                 }
             }
         }
@@ -233,9 +283,9 @@ Item {
     GridView {
         id: romGallery
         anchors.top: searchContainer.bottom; anchors.bottom: parent.bottom
-        anchors.left: parent.left; anchors.right: parent.right; anchors.margins: 30; anchors.topMargin: Theme.spaceMedium
+        anchors.left: parent.left; anchors.right: parent.right
+        anchors.leftMargin: 60; anchors.rightMargin: 60; anchors.topMargin: 20
         
-        // Distribución perfecta: Ajusta el ancho de celda para llenar el espacio proporcionalmente
         cellWidth: width / Math.max(1, Math.floor(width / 240))
         cellHeight: cellWidth * 1.5
         clip: true; visible: showGames; opacity: showGames ? 1 : 0
@@ -251,12 +301,5 @@ Item {
             onInfoClicked: window.openGameDetails(model.gameId)
         }
         Behavior on opacity { NumberAnimation { duration: 500 } }
-    }
-
-    EmuFloatingButton {
-        icon: "⟲"; accentColor: libraryRoot.activeAccentColor; size: 54; visible: showGames
-        anchors.bottom: parent.bottom; anchors.bottomMargin: Theme.spaceExtraLarge
-        anchors.right: parent.right; anchors.rightMargin: Theme.spaceExtraLarge
-        onClicked: showGames = false
     }
 }

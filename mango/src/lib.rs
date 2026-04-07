@@ -1,6 +1,6 @@
 use pyo3::prelude::*;
+use pyo3::types::PyDict;
 use tokio::runtime::Runtime;
-use std::sync::Arc;
 use once_cell::sync::Lazy;
 
 mod emulation;
@@ -14,7 +14,6 @@ static RUNTIME: Lazy<Runtime> = Lazy::new(|| {
 });
 
 #[pyfunction]
-#[pyo3(signature = ())]
 fn fetch_cores(py: Python<'_>) -> PyResult<Vec<String>> {
     let res = py.allow_threads(move || { RUNTIME.block_on(emulation::core_manager::fetch_available_cores_async()) });
     match res {
@@ -29,8 +28,8 @@ fn download_core(
     py: Python<'_>,
     core_name: String,
     dest_dir: String,
-    progress_callback: Option<PyObject>,
-    status_callback: Option<PyObject>
+    progress_callback: Option<Py<PyAny>>,
+    status_callback: Option<Py<PyAny>>
 ) -> PyResult<String> {
     let res = py.allow_threads(move || {
         RUNTIME.block_on(emulation::core_manager::download_core_async(core_name, dest_dir, progress_callback, status_callback))
@@ -48,8 +47,8 @@ fn download_emulator(
     url: String, 
     dest_dir: String, 
     expected_filename: String, 
-    progress_callback: Option<PyObject>,
-    status_callback: Option<PyObject>
+    progress_callback: Option<Py<PyAny>>,
+    status_callback: Option<Py<PyAny>>
 ) -> PyResult<String> {
     let res = py.allow_threads(move || {
         RUNTIME.block_on(emulation::core_manager::download_emulator_async(url, dest_dir, expected_filename, progress_callback, status_callback))
@@ -61,50 +60,19 @@ fn download_emulator(
 }
 
 #[pyfunction]
-#[pyo3(signature = (_emu_id, system_id, portable_url, dest_dir, executable_name, progress_callback=None, status_callback=None))]
+#[pyo3(signature = (emu_id, system_id, url, dest_dir, executable, progress_callback=None, status_callback=None))]
 fn install_emulator_orchestra(
     py: Python<'_>,
-    _emu_id: String,
+    emu_id: String,
     system_id: String,
-    portable_url: String,
+    url: String,
     dest_dir: String,
-    executable_name: String,
-    progress_callback: Option<PyObject>,
-    status_callback: Option<PyObject>
-) -> PyResult<String> {
-    if !system_id.is_empty() {
-        let sid = system_id.clone();
-        if let Ok(_) = py.allow_threads(move || RUNTIME.block_on(emulation::orchestrator::install_via_system(&sid))) {
-            if let Some(path) = emulation::orchestrator::find_system_executable(&executable_name) { return Ok(path); }
-            return Ok("SYSTEM_INSTALLED".to_string());
-        }
-    }
-    
-    if !portable_url.is_empty() {
-        let res = py.allow_threads(move || {
-            RUNTIME.block_on(emulation::core_manager::download_emulator_async(portable_url, dest_dir, executable_name, progress_callback, status_callback))
-        });
-        match res {
-            Ok(path) => return Ok(path),
-            Err(e) => return Err(pyo3::exceptions::PyRuntimeError::new_err(format!("Fallo total: {}", e))),
-        }
-    }
-    
-    Err(pyo3::exceptions::PyRuntimeError::new_err("No hay ID de sistema ni URL portable disponible."))
-}
-
-#[pyfunction]
-#[pyo3(signature = (url, dest_dir, expected_filename, progress_callback=None, status_callback=None))]
-fn update_emulator(
-    py: Python<'_>,
-    url: String, 
-    dest_dir: String, 
-    expected_filename: String, 
-    progress_callback: Option<PyObject>,
-    status_callback: Option<PyObject>
+    executable: String,
+    progress_callback: Option<Py<PyAny>>,
+    status_callback: Option<Py<PyAny>>
 ) -> PyResult<String> {
     let res = py.allow_threads(move || {
-        RUNTIME.block_on(emulation::core_manager::update_emulator_async(url, dest_dir, expected_filename, progress_callback, status_callback))
+        RUNTIME.block_on(emulation::core_manager::install_emulator_orchestra_async(emu_id, system_id, url, dest_dir, executable, progress_callback, status_callback))
     });
     match res {
         Ok(path) => Ok(path),
@@ -113,10 +81,33 @@ fn update_emulator(
 }
 
 #[pyfunction]
-#[pyo3(signature = (target_path))]
-fn uninstall_emulator(py: Python<'_>, target_path: String) -> PyResult<()> {
+#[pyo3(signature = (id, version, url, dest_dir, executable, progress_callback=None, status_callback=None))]
+fn update_emulator(
+    py: Python<'_>,
+    id: String,
+    version: String,
+    url: String,
+    dest_dir: String,
+    executable: String,
+    progress_callback: Option<Py<PyAny>>,
+    status_callback: Option<Py<PyAny>>
+) -> PyResult<String> {
     let res = py.allow_threads(move || {
-        RUNTIME.block_on(emulation::core_manager::remove_emulator_files_async(target_path))
+        RUNTIME.block_on(emulation::core_manager::update_emulator_async(id, version, url, dest_dir, executable, progress_callback, status_callback))
+    });
+    match res {
+        Ok(path) => Ok(path),
+        Err(e) => Err(pyo3::exceptions::PyRuntimeError::new_err(e.to_string())),
+    }
+}
+
+#[pyfunction]
+fn uninstall_emulator(
+    py: Python<'_>,
+    dest_dir: String
+) -> PyResult<()> {
+    let res = py.allow_threads(move || {
+        emulation::core_manager::remove_emulator_files_async(dest_dir)
     });
     match res {
         Ok(_) => Ok(()),
@@ -125,13 +116,11 @@ fn uninstall_emulator(py: Python<'_>, target_path: String) -> PyResult<()> {
 }
 
 #[pyfunction]
-#[pyo3(signature = (callback))]
-fn set_log_callback(callback: PyObject) {
+fn set_log_callback(_py: Python<'_>, callback: Py<PyAny>) {
     tools::logging::set_log_callback(callback);
 }
 
 #[pyfunction]
-#[pyo3(signature = (db_path, emus_path))]
 fn fetch_consoles_summary(
     py: Python<'_>,
     db_path: String,
@@ -141,7 +130,6 @@ fn fetch_consoles_summary(
 }
 
 #[pyfunction]
-#[pyo3(signature = (db_path))]
 fn fetch_dashboard_stats(
     py: Python<'_>,
     db_path: String,
@@ -150,7 +138,6 @@ fn fetch_dashboard_stats(
 }
 
 #[pyfunction]
-#[pyo3(signature = (path, extensions))]
 fn scan_directory(
     py: Python<'_>,
     path: String,
@@ -169,8 +156,8 @@ fn start_batch_scrape(
     dev_id: String,
     dev_pass: String,
     media_dir: String,
-    progress_cb: Option<PyObject>,
-    status_cb: Option<PyObject>,
+    progress_cb: Option<Py<PyAny>>,
+    status_cb: Option<Py<PyAny>>,
     gametdb_mode: String,
 ) -> PyResult<usize> {
     scraping::batch_scraper::run_batch_scrape(py, db_path, ss_id, ss_pass, dev_id, dev_pass, media_dir, progress_cb, status_cb, gametdb_mode)
@@ -183,8 +170,8 @@ fn scan_directory_to_db(
     db_path: String,
     path: String,
     extensions: Vec<String>,
-    progress_callback: Option<PyObject>,
-    status_callback: Option<PyObject>,
+    progress_callback: Option<Py<PyAny>>,
+    status_callback: Option<Py<PyAny>>,
 ) -> PyResult<usize> {
     library::library_manager::scan_directory_to_db(py, db_path, path, extensions, progress_callback, status_callback)
 }
@@ -206,7 +193,6 @@ fn launch_game(
 }
 
 #[pyfunction]
-#[pyo3(signature = (db_path, query, platform))]
 fn search_games(
     py: Python<'_>,
     db_path: String,
@@ -217,7 +203,16 @@ fn search_games(
 }
 
 #[pyfunction]
-#[pyo3(signature = (targets))]
+fn precharge_ecosystem(
+    py: Python<'_>,
+    db_path: String,
+    media_path: String,
+    emulators_path: String,
+) -> PyResult<PyObject> {
+    library::library_manager::precharge_ecosystem(py, &db_path, &media_path, &emulators_path)
+}
+
+#[pyfunction]
 fn check_all_updates(py: Python<'_>, targets: std::collections::HashMap<String, String>) -> PyResult<PyObject> {
     let results = py.allow_threads(move || {
         RUNTIME.block_on(sync::updates::check_parallel_updates(targets))
@@ -251,5 +246,6 @@ fn mango_engine(_py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(search_games, m)?)?;
     m.add_function(wrap_pyfunction!(launch_game, m)?)?;
     m.add_function(wrap_pyfunction!(check_all_updates, m)?)?;
+    m.add_function(wrap_pyfunction!(precharge_ecosystem, m)?)?;
     Ok(())
 }

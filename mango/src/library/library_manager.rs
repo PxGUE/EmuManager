@@ -9,6 +9,7 @@ use rayon::prelude::*;
 use md5;
 use std::sync::Arc;
 use crate::tools::header_reader;
+use chrono;
 
 /// Estructura de mapeo plataforma -> núcleos
 fn get_core_map() -> HashMap<&'static str, Vec<(&'static str, &'static str)>> {
@@ -309,6 +310,65 @@ pub fn fetch_dashboard_stats(
     }
 
     Ok(dict.into_any().unbind())
+}
+
+/// Realiza una carga masiva y optimizada de todo lo necesario para el arranque.
+/// Combina estadísticas, calentamiento de caché de archivos y verificación de emuladores.
+pub fn precharge_ecosystem(
+    py: Python<'_>,
+    db_path: &str,
+    media_path: &str,
+    emulators_path: &str,
+) -> PyResult<PyObject> {
+    // 1. Obtener estadísticas base de la DB (Bloqueante pero rápido)
+    let stats = fetch_dashboard_stats(py, db_path)?;
+    
+    // 2. Calentamiento de archivos (Paralelo - Rayon)
+    // Leemos los primeros bytes de las carátulas para forzar el caché del OS
+    let media_root = PathBuf::from(media_path);
+    if media_root.exists() {
+        let entries: Vec<PathBuf> = WalkDir::new(media_root)
+            .max_depth(3)
+            .into_iter()
+            .filter_map(|e| e.ok())
+            .filter(|e| e.file_type().is_file())
+            .take(100) // Solo las primeras 100 para no demorar el arranque
+            .map(|e| e.path().to_path_buf())
+            .collect();
+
+        // Lectura paralela real liberando el GIL
+        py.allow_threads(move || {
+            entries.into_par_iter().for_each(|p| {
+                if let Ok(mut f) = File::open(p) {
+                    use std::io::Read;
+                    let mut buf = [0u8; 4096];
+                    let _ = f.read(&mut buf);
+                }
+            });
+        });
+    }
+
+    // 3. Verificación de salud de Emuladores (Paralelo)
+    let emu_root = PathBuf::from(emulators_path);
+    let mut emu_status = Vec::new();
+    if emu_root.exists() {
+        let targets = vec!["retroarch", "dolphin", "pcsx2", "ppsspp", "duckstation"];
+        for target in targets {
+            let p = emu_root.join(target);
+            if p.exists() {
+                emu_status.push(target);
+            }
+        }
+    }
+
+    // 4. Integrar todo en el diccionario final
+    let main_dict = stats.bind(py).downcast::<PyDict>()
+        .map_err(|_| pyo3::exceptions::PyRuntimeError::new_err("Error interno al castear stats"))?;
+    
+    main_dict.set_item("installed_emulators", emu_status)?;
+    main_dict.set_item("precharge_timestamp", chrono::Local::now().to_rfc3339())?;
+
+    Ok(main_dict.clone().into_any().unbind())
 }
 
 /// Limpia el nombre de un archivo eliminando tags de región y corchetes.

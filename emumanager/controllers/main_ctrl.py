@@ -35,6 +35,7 @@ class MainController(QObject):
     scrapeFinished = Signal(int)
     gamesUpdated = Signal()
     gamesCountChanged = Signal()
+    favoriteToggled = Signal(int, bool)
     
     coreDownloadProgressChanged = Signal(str, float)
     coreDownloadStatusChanged = Signal(str, str)
@@ -162,6 +163,22 @@ class MainController(QObject):
         except Exception as e:
             EmuLog.error(f"Error en carga proactiva: {e}")
 
+    @Slot(result='QVariant')
+    def precharge_ecosystem(self):
+        """Llamada unificada al motor nativo para una carga de alta fidelidad."""
+        try:
+            import mango_engine
+            db_path = str(self.db.db_path)
+            media_path = str(AppConfig.get_media_path())
+            emus_path = str(AppConfig.get_emulators_path())
+            
+            # La magia sucede aquí: Rust hace todo en paralelo liberando el GIL
+            data = mango_engine.precharge_ecosystem(db_path, media_path, emus_path)
+            return data
+        except Exception as e:
+            EmuLog.error(f"M.A.N.G.O Engine: Error en precarga nativa: {e}")
+            return {}
+
     @Slot()
     def start_startup_sequence(self):
         """Dispara la secuencia de arranque oficial."""
@@ -254,7 +271,9 @@ class MainController(QObject):
     def search_library(self, q): return self.lib_ctrl.search(q)
     
     @Slot(int, bool)
-    def toggle_favorite(self, i, f): self.lib_ctrl.toggle_favorite(i, f)
+    def toggle_favorite(self, i, f): 
+        self.lib_ctrl.toggle_favorite(i, f)
+        self.favoriteToggled.emit(i, f)
     
     @Slot(int, result="QVariantMap")
     def get_game_details(self, i): return self.lib_ctrl.get_game_details(i)

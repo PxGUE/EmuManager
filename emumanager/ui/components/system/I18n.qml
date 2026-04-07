@@ -68,6 +68,8 @@ Item {
             "api_screenscraper": "API de ScreenScraper",
             "api_desc": "Introduce tus credenciales para descargar portadas automáticamente.",
             "api_saved": "Configuración guardada. M.A.N.G.O la usará al sincronizar.",
+            "discord_presence": "Discord Rich Presence",
+            "discord_presence_desc": "Muestra el título y la plataforma en tu perfil de Discord.",
 
             "api_gametdb": "GameTDB (Base de datos Nintendo)",
             "api_gametdb_desc": "La 'biblia' de Nintendo. Descarga la base de datos localmente para un scraping ultra-rápido, privado y offline.",
@@ -306,6 +308,8 @@ Item {
             "api_screenscraper": "ScreenScraper API",
             "api_desc": "Enter your credentials to download covers automatically.",
             "api_saved": "Settings saved. M.A.N.G.O will use them when syncing.",
+            "discord_presence": "Discord Rich Presence",
+            "discord_presence_desc": "Show the title and platform on your Discord profile.",
 
             "api_gametdb": "GameTDB (Nintendo Database)",
             "api_gametdb_desc": "The Nintendo 'bible'. Download the database locally for ultra-fast, private, and offline scraping.",

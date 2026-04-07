@@ -6,6 +6,7 @@ import platform as py_platform
 from core.config import AppConfig
 from core.logger import EmuLog
 from controllers.workers import EmulatorInstallWorker, CoreDownloadWorker, LaunchWorker, EmulatorUninstallWorker
+from backend.discord_rpc import DiscordRPCManager
 
 class OrchestraController(QObject):
     """
@@ -28,6 +29,10 @@ class OrchestraController(QObject):
         self._core_worker = None
         self._active_launches = {} # Track de hilos de juego para evitar GC
         self._installed_versions = {} # Cache local de versiones registradas
+        
+        # Iniciar Discord RPC
+        self.discord_rpc = DiscordRPCManager()
+        self.discord_rpc.set_enabled(AppConfig.get_discord_rpc_enabled())
 
     @Slot(result='QVariantList')
     def get_emulator_repositories(self):
@@ -241,9 +246,18 @@ class OrchestraController(QObject):
             
             self._active_launches[game_id] = (thread, worker) # Persistencia para evitar GC
             
+            # Actualizar Discord RPC
+            with self.db.get_connection() as conn:
+                game_data = conn.execute("SELECT display_name FROM games WHERE id = ?", (game_id,)).fetchone()
+                game_title = game_data["display_name"] if game_data else Path(game_path).stem
+            
+            self.discord_rpc.set_enabled(AppConfig.get_discord_rpc_enabled())
+            self.discord_rpc.update_presence(game_title, platform_id)
+            
             def cleanup_launch(duration):
                 if game_id in self._active_launches: del self._active_launches[game_id]
                 self._update_play_stats(game_id, duration)
+                self.discord_rpc.clear_presence()
                 thread.quit()
 
             worker.finished.connect(cleanup_launch)
@@ -404,6 +418,7 @@ class OrchestraController(QObject):
 
 
     def shutdown(self):
+        self.discord_rpc.disconnect()
         if self._emu_thread and self._emu_thread.isRunning():
             self._emu_thread.quit()
         if self._core_thread and self._core_thread.isRunning():

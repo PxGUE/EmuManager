@@ -26,13 +26,27 @@ class GameListModel(QAbstractListModel):
         super().__init__(parent)
         self.db = DatabaseManager()
         self._games = []
-        self._all_games = [] # Cache para filtrado rápido
+        self._all_results = [] # Resultados brutos del motor
+        self._show_favorites_only = False
 
     countChanged = Signal()
-    
+
     @Property(int, notify=countChanged)
     def count(self):
         return len(self._games)
+
+    @Property(bool, notify=countChanged)
+    def showFavoritesOnly(self):
+        return self._show_favorites_only
+
+    @showFavoritesOnly.setter
+    def showFavoritesOnly(self, val):
+        if self._show_favorites_only != val:
+            self.beginResetModel()
+            self._show_favorites_only = val
+            self._apply_filter()
+            self.endResetModel()
+            self.countChanged.emit()
 
     def roleNames(self):
         return {
@@ -116,10 +130,48 @@ class GameListModel(QAbstractListModel):
         self.beginResetModel()
         try:
             db_path = str(AppConfig.get_database_path())
-            self._games = mango_engine.search_games(db_path, query, platform)
+            self._all_results = mango_engine.search_games(db_path, query, platform)
+            self._apply_filter()
             EmuLog.info(f"M.A.N.G.O (Model): Búsqueda completada para '{query}' en '{platform}'. Resultados: {len(self._games)}")
         except Exception as e:
             EmuLog.error(f"Error fatal en búsqueda fuzzymatch: {e}")
+            self._all_results = []
             self._games = []
         self.endResetModel()
         self.countChanged.emit()
+
+    def _apply_filter(self):
+        """Aplica el filtro de favoritos sobre los resultados actuales."""
+        if self._show_favorites_only:
+            self._games = [g for g in self._all_results if bool(g.get("is_favorite", 0))]
+        else:
+            self._games = self._all_results
+
+    @Slot(int, bool)
+    def set_favorite_locally(self, game_id, is_favorite):
+        """Actualiza el estado de favorito solo en memoria para una respuesta instantánea."""
+        try:
+            target_id = int(game_id)
+            # Actualizar en el buffer global
+            for g in self._all_results:
+                if int(g.get("id", -1)) == target_id:
+                    g["is_favorite"] = 1 if is_favorite else 0
+                    break
+            
+            # Si estamos filtrando, debemos re-aplicar y resetear
+            if self._show_favorites_only:
+                self.beginResetModel()
+                self._apply_filter()
+                self.endResetModel()
+                self.countChanged.emit()
+                return
+
+            # Si no estamos filtrando, basta con notificar el cambio de fila
+            for i, game in enumerate(self._games):
+                if int(game.get("id", -1)) == target_id:
+                    game["is_favorite"] = 1 if is_favorite else 0
+                    idx = self.index(i, 0)
+                    self.dataChanged.emit(idx, idx, [self.IsFavoriteRole])
+                    return 
+        except Exception as e:
+            EmuLog.error(f"Error en set_favorite_locally: {e}")

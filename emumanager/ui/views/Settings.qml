@@ -226,6 +226,28 @@ Item {
                     }
                 }
             }
+            // --- Discord Presence ---
+            Rectangle {
+                width: parent.width; height: 100; radius: Theme.radiusMedium; color: Theme.cardBackground; border.color: Theme.cardBorder; border.width: Theme.borderThin
+                RowLayout {
+                    anchors.fill: parent; anchors.margins: 20; spacing: 15
+                    ColumnLayout {
+                        Layout.fillWidth: true; spacing: 5
+                        Text { text: I18n.t.discord_presence; color: Theme.textMain; font.bold: true }
+                        Text { 
+                            text: I18n.t.discord_presence_desc; 
+                            color: Theme.textMuted; font.pixelSize: Theme.fontBody; Layout.fillWidth: true; wrapMode: Text.WordWrap 
+                        }
+                    }
+                    Switch {
+                        checked: controller ? controller.get_api_credential("discord_rpc") === "true" : true
+                        onToggled: {
+                            if(controller) controller.set_api_credential("discord_rpc", checked ? "true" : "false")
+                        }
+                    }
+                }
+            }
+
             Text { 
                 text: I18n.t.api_saved; 
                 color: Theme.textMuted; opacity: 0.5; font.pixelSize: Theme.fontSmall; font.italic: true; width: parent.width; wrapMode: Text.WordWrap
@@ -268,7 +290,8 @@ Item {
                         }
                         Text { 
                             Layout.alignment: Qt.AlignHCenter
-                            text: I18n.tp("app_version_label|" + mainController.appVersion); color: Theme.accentElectric; font.pixelSize: 14; font.bold: true; font.letterSpacing: 6; opacity: 0.8
+                            text: mainController ? I18n.tp("app_version_label|" + mainController.appVersion) : ""
+                            color: Theme.accentElectric; font.pixelSize: 14; font.bold: true; font.letterSpacing: 6; opacity: 0.8
                         }
                     }
                 }
@@ -301,7 +324,7 @@ Item {
 
                 // --- 4. ENGINE FOOTER ---
                 Text { 
-                    Layout.alignment: Qt.AlignHCenter; text: I18n.t.powered_by.arg(mainController.mangoVersion); 
+                    Layout.alignment: Qt.AlignHCenter; text: mainController ? I18n.t.powered_by.arg(mainController.mangoVersion) : ""; 
                     color: Theme.textMuted; opacity: 0.3; font.pixelSize: 9; font.bold: true; font.letterSpacing: 3 
                 }
             }

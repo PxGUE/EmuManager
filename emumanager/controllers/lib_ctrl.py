@@ -128,7 +128,8 @@ class LibraryController(QObject):
     @Slot(int, bool)
     def toggle_favorite(self, game_id, is_favorite):
         self.db.update_game_favorite(game_id, is_favorite)
-        self.gamesUpdated.emit()
+        # self.gamesUpdated.emit() -> Removido para evitar recarga total de la UI. 
+        # El modelo se actualiza vía favoriteToggled en MainController.
 
     @Slot(int, result="QVariantMap")
     def get_game_details(self, game_id):

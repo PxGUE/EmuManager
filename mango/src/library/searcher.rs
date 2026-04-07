@@ -13,6 +13,7 @@ struct GameRow {
     platform: String,
     cover_2d: String,
     cover_3d: String,
+    is_favorite: bool,
     score: i64,
 }
 
@@ -26,7 +27,7 @@ pub fn search_games(
     let conn = Connection::open(db_path)
         .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("DB Open error: {}", e)))?;
         
-    let mut sql = "SELECT g.id, g.file_hash, g.file_path, g.display_name, g.platform, m.title, m.cover_2d_path, m.cover_3d_path 
+    let mut sql = "SELECT g.id, g.file_hash, g.file_path, g.display_name, g.platform, m.title, m.cover_2d_path, m.cover_3d_path, m.is_favorite 
                    FROM games g 
                    LEFT JOIN game_metadata m ON g.id = m.game_id".to_string();
                    
@@ -50,6 +51,7 @@ pub fn search_games(
             title: row.get::<_, Option<String>>(5)?.unwrap_or_default(),
             cover_2d: row.get::<_, Option<String>>(6)?.unwrap_or_default(),
             cover_3d: row.get::<_, Option<String>>(7)?.unwrap_or_default(),
+            is_favorite: row.get::<_, Option<i32>>(8)?.unwrap_or(0) == 1,
             score: 0,
         })
     }).map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("Query execution error: {}", e)))?;
@@ -100,6 +102,7 @@ pub fn search_games(
         dict.set_item("platform", g.platform)?;
         dict.set_item("cover_2d_path", g.cover_2d)?;
         dict.set_item("cover_3d_path", g.cover_3d)?;
+        dict.set_item("is_favorite", g.is_favorite)?;
         py_list.push(dict.into_any().unbind());
     }
 

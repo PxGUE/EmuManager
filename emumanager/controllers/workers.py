@@ -206,46 +206,43 @@ class StartupWorker(QObject):
     @Slot()
     def run(self):
         try:
-            # 1. Motor Nativo (25%)
+            # 1. Activación de Motores & Logs (10%)
             self.status.emit("startup_native")
-            time.sleep(0.4) 
-            self.ctrl._is_precharged = False
-            self.progress.emit(0.25)
-            
-            # 2. Base de Datos & Motores (50%)
-            self.status.emit("startup_db")
             self.ctrl.proactive_background_load()
-            self.progress.emit(0.50)
-            
-            # --- NUEVA FASE: SINCRONIZACIÓN DE BIBLIOTECA (70%) ---
-            self.status.emit("startup_db_sync")
-            self.ctrl.stats_ctrl.get_consoles_summary(use_cache=False)
-            self.ctrl.stats_ctrl.get_dashboard_stats()
             time.sleep(0.3) 
-            self.progress.emit(0.70)
+            self.progress.emit(0.10)
             
-            # 3. Preparación de Assets (90%)
-            self.status.emit("startup_assets")
+            # --- PROTOCOLO DE PRECARGA NATIVO: M.A.N.G.O (60%) ---
+            # Aquí es donde Rust toma el control y hace la carga pesada en hilos paralelos.
+            self.status.emit("startup_db")
+            
+            # Llamada unificada: DB Stats + Asset Warmup + Emu Cache
+            data = self.ctrl.precharge_ecosystem()
+            
+            self.progress.emit(0.60)
+            
+            # 3. Servicios y Conectividad (85%)
+            self.status.emit("startup_services")
             try:
-                # Pedimos los juegos a la DB para conocer sus rutas de carátula
-                games = self.ctrl.db.get_all_games(limit=100)
-                # Calentamos el caché de archivos
-                for game in games:
-                    cover_path = game.get('media_path')
-                    if cover_path and os.path.exists(cover_path):
-                        try:
-                            with open(cover_path, 'rb') as f:
-                                f.read(1024) 
-                        except: pass
-            except Exception as e:
-                EmuLog.debug(f"Aviso en Warm-up: {e}")
+                # Comprobar si Discord RPC está habilitado y conectar en background
+                if hasattr(self.ctrl.orch_ctrl, 'discord_rpc'):
+                    self.ctrl.orch_ctrl.discord_rpc.connect()
+            except: pass
             
-            self.progress.emit(0.90)
+            # Si el motor detectó cambios, podrías inyectar datos aquí
+            if data:
+                EmuLog.debug(f"Protocolo de Precarga completado con {data.get('total_games', 0)} juegos.")
+                
+            self.progress.emit(0.85)
             
-            # 4. Finalización (100%)
+            # 4. Finalización de Estructura de UI (100%)
             self.status.emit("startup_ready")
-            time.sleep(0.2)
+            time.sleep(0.4)
             self.progress.emit(1.0)
+            self.finished.emit()
+            
+        except Exception as e:
+            EmuLog.error(f"Error crítico en StartupWorker: {e}")
             self.finished.emit()
             
         except Exception as e:

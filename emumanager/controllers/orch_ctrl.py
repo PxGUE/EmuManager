@@ -29,6 +29,7 @@ class OrchestraController(QObject):
         self._core_worker = None
         self._active_launches = {} # Track de hilos de juego para evitar GC
         self._installed_versions = {} # Cache local de versiones registradas
+        self._exe_cache = {} # Cache de ejecutables localizados
         
         # Iniciar Discord RPC
         self.discord_rpc = DiscordRPCManager()
@@ -151,6 +152,9 @@ class OrchestraController(QObject):
         if path:
             EmuLog.info(f"✓ La misión de instalación de {emu_id} ha sido un éxito en {path}")
             
+            # Invalidar cache de ejecutable
+            self.clear_executable_cache(emu_id)
+
             # Registrar versión instalada si es un update
             remote_data = self.get_installed_tags().get(emu_id)
             if remote_data and remote_data.get("remote_tag"):
@@ -288,10 +292,30 @@ class OrchestraController(QObject):
             return ra_exe, None
         return None, None
 
+    @Slot()
+    @Slot(str)
+    def clear_executable_cache(self, emu_id=None):
+        """Limpia la caché de ejecutables. Si no se pasa emu_id, limpia todo."""
+        if emu_id:
+            emu_id = emu_id.lower()
+            if emu_id in self._exe_cache:
+                del self._exe_cache[emu_id]
+        else:
+            self._exe_cache.clear()
+
     def _find_emulator_executable(self, emu_id):
         """Ayudante para localizar el binario de un emulador."""
         is_win = py_platform.system() == "Windows"
         emu_id = emu_id.lower()
+
+        # 1. Verificar caché
+        if emu_id in self._exe_cache:
+            cached_path = self._exe_cache[emu_id]
+            if cached_path.exists():
+                return cached_path
+            else:
+                del self._exe_cache[emu_id]
+
         executables = {
             "retroarch": "retroarch.exe" if is_win else "RetroArch.AppImage",
             "dolphin": "Dolphin.exe" if is_win else "Dolphin.AppImage",
@@ -306,11 +330,19 @@ class OrchestraController(QObject):
         if not emu_dir.exists(): return None
         
         # Búsqueda recursiva suave
-        if (emu_dir / exe_name).exists(): return emu_dir / exe_name
-        for sub in emu_dir.iterdir():
-            if sub.is_dir() and (sub / exe_name).exists():
-                return sub / exe_name
-        return None
+        found_path = None
+        if (emu_dir / exe_name).exists():
+            found_path = emu_dir / exe_name
+        else:
+            for sub in emu_dir.iterdir():
+                if sub.is_dir() and (sub / exe_name).exists():
+                    found_path = sub / exe_name
+                    break
+
+        if found_path:
+            self._exe_cache[emu_id] = found_path
+
+        return found_path
 
     @Slot(str, result=bool)
     def uninstall_emulator(self, emu_id):
@@ -331,6 +363,7 @@ class OrchestraController(QObject):
 
         def _on_uninstall_finished(eid, success):
             if success:
+                self.clear_executable_cache(eid)
                 self.notify_library_changed.emit()
             else:
                 self.coreDownloadStatusChanged.emit(eid, "install_failed_tag")

@@ -198,3 +198,8 @@ class AppConfig:
         config = cls._load_config()
         config["discord_rpc_enabled"] = bool(enabled)
         cls._save_config()
+
+    @classmethod
+    def get_discord_client_id(cls) -> str:
+        """Retorna el Client ID de Discord, priorizando variable de entorno."""
+        return os.getenv("DISCORD_CLIENT_ID", "1225883652615147540")

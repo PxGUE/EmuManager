@@ -1,5 +1,6 @@
 import time
 from core.logger import EmuLog
+from core.config import AppConfig
 
 try:
     from pypresence import Presence
@@ -11,7 +12,6 @@ class DiscordRPCManager:
     """
     Gestiona la conexión y actualización del estado de Discord Rich Presence.
     """
-    CLIENT_ID = "1225883652615147540" # Placeholder ID para EmuManager
 
     def __init__(self):
         self.rpc = None
@@ -29,7 +29,8 @@ class DiscordRPCManager:
         if self._is_connected: return True
         
         try:
-            self.rpc = Presence(self.CLIENT_ID)
+            client_id = AppConfig.get_discord_client_id()
+            self.rpc = Presence(client_id)
             self.rpc.connect()
             self._is_connected = True
             EmuLog.info("Discord RPC: Conectado con éxito.")

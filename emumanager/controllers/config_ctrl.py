@@ -8,6 +8,7 @@ class AppConfigController(QObject):
     Controlador especializado en ajustes, credenciales y configuración del sistema.
     """
     language_changed = Signal(str)
+    emulators_path_changed = Signal()
     
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -64,6 +65,7 @@ class AppConfigController(QObject):
         )
         if directory:
             AppConfig.set_emulators_path(directory)
+            self.emulators_path_changed.emit()
             EmuLog.info(f"Configurada nueva ruta de Emuladores: {directory}")
             return directory
         return AppConfig.get_emulators_path()

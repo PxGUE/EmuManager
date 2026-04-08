@@ -131,7 +131,6 @@ class MainController(QObject):
         self.lib_ctrl.gamesCountChanged.connect(self.gamesCountChanged.emit)
         
         # Orquesta (Emuladores/Cores)
-        self.config_ctrl.emulators_path_changed.connect(self.orch_ctrl.clear_executable_cache)
         self.orch_ctrl.coreDownloadProgressChanged.connect(self.coreDownloadProgressChanged.emit)
         self.orch_ctrl.coreDownloadStatusChanged.connect(self.coreDownloadStatusChanged.emit)
         self.orch_ctrl.coreDownloadFinished.connect(self.coreDownloadFinished.emit)

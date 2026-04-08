@@ -31,6 +31,106 @@ fn get_core_map() -> HashMap<&'static str, Vec<(&'static str, &'static str)>> {
     m
 }
 
+/// Detecta la ruta real de RetroArch basándose en la base de emuladores.
+fn detect_retroarch(emu_base: &Path) -> Option<PathBuf> {
+    let ra_base = emu_base.join("retroarch");
+    
+    #[cfg(target_os = "windows")]
+    let ra_exe_name = "retroarch.exe";
+    #[cfg(not(target_os = "windows"))]
+    let ra_exe_name = "RetroArch.AppImage";
+    
+    if ra_base.join(ra_exe_name).exists() {
+        return Some(ra_base.join(ra_exe_name));
+    } else if let Ok(entries) = fs::read_dir(&ra_base) {
+        for entry in entries.flatten() {
+            if entry.path().is_dir() && entry.path().join(ra_exe_name).exists() {
+                return Some(entry.path().join(ra_exe_name));
+            }
+        }
+    }
+    None
+}
+
+/// Formatea una duración en segundos a un string legible (ej: 1h 30m o 45m).
+fn format_duration(seconds: i64) -> String {
+    let h = seconds / 3600;
+    let m = (seconds % 3600) / 60;
+    if h > 0 {
+        format!("{}h {}m", h, m)
+    } else if m > 0 {
+        format!("{}m", m)
+    } else {
+        "0h".to_string()
+    }
+}
+
+/// Determina los emuladores disponibles para una plataforma.
+fn get_platform_emulators(
+    platform: &str,
+    emu_base: &Path,
+    cores_dir: &Path,
+    core_map: &HashMap<&str, Vec<(&str, &str)>>,
+    has_retroarch: bool,
+) -> (bool, String) {
+    let mut cores = Vec::new();
+
+    // Check Libretro Cores en disco
+    if let Some(suggestions) = core_map.get(platform) {
+        for (cid, cname) in suggestions {
+            let core_filename = format!("{}_libretro", cid);
+            let core_path = cores_dir.join(platform);
+
+            #[cfg(target_os = "windows")]
+            let dot_ext = ".dll";
+            #[cfg(not(target_os = "windows"))]
+            let dot_ext = ".so";
+
+            if core_path.join(format!("{}{}", core_filename, dot_ext)).exists() {
+                cores.push(cname.to_string());
+            }
+        }
+    }
+
+    // Check Standalone específicos
+    let mut standalones = Vec::new();
+    let standalone_id = match platform {
+        "gc" | "wii" => Some("dolphin"),
+        "psp" => Some("ppsspp"),
+        "ps2" => Some("pcsx2"),
+        "ps1" => Some("duckstation"),
+        "ps3" => Some("rpcs3"),
+        "switch" => Some("ryujinx"),
+        "vita" => Some("vita3k"),
+        _ => None
+    };
+
+    if let Some(id) = standalone_id {
+        if emu_base.join(id).exists() {
+            standalones.push(id.to_uppercase());
+        }
+    }
+
+    // Formatear texto de emuladores
+    let mut final_list = Vec::new();
+    if has_retroarch {
+        if !cores.is_empty() {
+            final_list.push(format!("RetroArch ({})", cores.join(", ")));
+        } else {
+            final_list.push("RetroArch".to_string());
+        }
+    } else if !cores.is_empty() {
+        final_list.push(format!("Cores Libretro: {}", cores.join(", ")));
+    }
+
+    final_list.extend(standalones);
+
+    let has_any = !final_list.is_empty();
+    let emu_text = if has_any { final_list.join(" | ") } else { "Sin emuladores".to_string() };
+
+    (has_any, emu_text)
+}
+
 /// Genera el resumen de consolas consultando la BD de forma nativa.
 pub fn get_consoles_summary_native(
     py: Python<'_>,
@@ -42,38 +142,15 @@ pub fn get_consoles_summary_native(
 
     let core_map = get_core_map();
     let emu_base = Path::new(emulators_path);
-    let ra_base = emu_base.join("retroarch");
-    
-    // Detección Inteligente de RetroArch (misma lógica que core_manager)
-    #[cfg(target_os = "windows")]
-    let ra_exe_name = "retroarch.exe";
-    #[cfg(not(target_os = "windows"))]
-    let ra_exe_name = "RetroArch.AppImage";
-    
-    let mut real_ra_path = None;
-    if ra_base.join(ra_exe_name).exists() {
-        real_ra_path = Some(ra_base.join(ra_exe_name));
-    } else if let Ok(entries) = fs::read_dir(&ra_base) {
-        for entry in entries.flatten() {
-            if entry.path().is_dir() && entry.path().join(ra_exe_name).exists() {
-                real_ra_path = Some(entry.path().join(ra_exe_name));
-                break;
-            }
-        }
-    }
-
-    let has_retroarch = real_ra_path.is_some();
-    // Nueva ruta global de cores
+    let has_retroarch = detect_retroarch(emu_base).is_some();
     let cores_dir = emu_base.join("cores");
 
     // 1. Obtener lista de plataformas con juegos
     let mut stmt = conn.prepare("SELECT DISTINCT platform FROM games")
         .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e.to_string()))?;
 
-    let platforms_iter = stmt.query_map([], |row| row.get(0))
-        .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e.to_string()))?;
-    
-    let platforms: Vec<String> = platforms_iter
+    let platforms: Vec<String> = stmt.query_map([], |row| row.get(0))
+        .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e.to_string()))?
         .filter_map(Result::ok)
         .collect();
 
@@ -90,88 +167,21 @@ pub fn get_consoles_summary_native(
 
         if game_count == 0 { continue; }
 
-        // B. Sumar tiempo (Usar LEFT JOIN para no filtrar si no hay stats)
+        // B. Sumar tiempo
         let play_time: i64 = conn.query_row(
             "SELECT SUM(play_time_seconds) FROM games g LEFT JOIN play_stats s ON g.id = s.game_id WHERE g.platform = ?",
             [&platform],
             |row| row.get(0),
         ).unwrap_or(0);
 
-        // C. Detectar emuladores instalados
-        let mut cores = Vec::new();
-        let has_retroarch = has_retroarch;
+        // C. Detectar emuladores instalados y formatear
+        let (has_any, emu_text) = get_platform_emulators(&platform, emu_base, &cores_dir, &core_map, has_retroarch);
 
-        // Check Libretro Cores en disco
-        if let Some(suggestions) = core_map.get(platform.as_str()) {
-            for (cid, cname) in suggestions {
-                let core_filename = format!("{}_libretro", cid);
-                let core_path = cores_dir.join(&platform);
-                
-                #[cfg(target_os = "windows")]
-                let dot_ext = ".dll";
-                #[cfg(not(target_os = "windows"))]
-                let dot_ext = ".so";
-                
-                if core_path.join(format!("{}{}", core_filename, dot_ext)).exists() {
-                    cores.push(cname.to_string());
-                }
-            }
-        }
-
-        // Check Standalone específicos
-        let mut standalones = Vec::new();
-        let standalone_id = match platform.as_str() {
-            "gc" | "wii" => Some("dolphin"),
-            "psp" => Some("ppsspp"),
-            "ps2" => Some("pcsx2"),
-            "ps1" => Some("duckstation"),
-            "ps3" => Some("rpcs3"),
-            "switch" => Some("ryujinx"),
-            "vita" => Some("vita3k"),
-            _ => None
-        };
-
-        if let Some(id) = standalone_id {
-            if emu_base.join(id).exists() {
-                standalones.push(id.to_uppercase());
-            }
-        }
-
-        // D. Formatear texto de emuladores (Lógica Inteligente)
-        let mut final_list = Vec::new();
-        if has_retroarch {
-            if !cores.is_empty() {
-                final_list.push(format!("RetroArch ({})", cores.join(", ")));
-            } else {
-                final_list.push("RetroArch".to_string());
-            }
-        } else if !cores.is_empty() {
-            final_list.push(format!("Cores Libretro: {}", cores.join(", ")));
-        }
-        
-        final_list.extend(standalones);
-        
-        let has_any = !final_list.is_empty();
-        let emu_text = if has_any { final_list.join(" | ") } else { "Sin emuladores".to_string() };
-
-        // E. Formatear tiempo dinámico
-        let play_time_str = {
-            let h = play_time / 3600;
-            let m = (play_time % 3600) / 60;
-            if h > 0 {
-                format!("{}h {}m", h, m)
-            } else if m > 0 {
-                format!("{}m", m)
-            } else {
-                "0h".to_string()
-            }
-        };
-
-        // F. Empaquetar para Python
+        // D. Empaquetar para Python
         let dict = PyDict::new(py);
         dict.set_item("platform", &platform)?;
         dict.set_item("gameCount", game_count.to_string())?;
-        dict.set_item("playTime", play_time_str)?;
+        dict.set_item("playTime", format_duration(play_time))?;
         dict.set_item("hasCore", has_any)?;
         dict.set_item("emulatorName", emu_text)?;
         
@@ -201,9 +211,7 @@ pub fn fetch_dashboard_stats(
 
     // 3. Tiempo Total
     let total_sec: i64 = conn.query_row("SELECT SUM(play_time_seconds) FROM play_stats", [], |row| row.get(0)).unwrap_or(0);
-    let hours = total_sec / 3600;
-    let minutes = (total_sec % 3600) / 60;
-    dict.set_item("total_play_time", format!("{}h {}m", hours, minutes))?;
+    dict.set_item("total_play_time", format_duration(total_sec))?;
 
     // 4. Último Juego Jugado
     let mut last_game_id: i64 = -1;
@@ -292,16 +300,12 @@ pub fn fetch_dashboard_stats(
         }) {
             for row_res in rows {
                 if let Ok((id, title, plat, cover, sec)) = row_res {
-                    let h = sec / 3600;
-                    let m = (sec % 3600) / 60;
-                    let pt_str = if h > 0 { format!("{}h {}m", h, m) } else { format!("{}m", m) };
-                    
                     let rd = PyDict::new(py);
                     rd.set_item("id", id)?;
                     rd.set_item("title", title)?;
                     rd.set_item("platform", plat)?;
                     rd.set_item("cover", cover)?;
-                    rd.set_item("playTime", pt_str)?;
+                    rd.set_item("playTime", format_duration(sec))?;
                     recent.push(rd.into_any().unbind());
                 }
             }

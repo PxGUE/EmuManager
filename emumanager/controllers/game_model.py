@@ -101,11 +101,6 @@ class GameListModel(QAbstractListModel):
         
         return None
 
-    @Slot()
-    def update_games(self):
-        """Carga o refresca todos los juegos de la base de datos."""
-        self.search_games("", "all")
-
     @Slot(str)
     def filter_by_platform(self, platform):
         """Filtra la lista de juegos por plataforma (p.ej. 'snes', 'ps1' o 'all')."""

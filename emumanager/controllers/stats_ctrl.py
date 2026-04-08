@@ -3,6 +3,7 @@ from core.config import AppConfig
 from core.logger import EmuLog
 import platform as py_platform
 import os
+import json
 
 class StatsController(QObject):
     """
@@ -40,10 +41,12 @@ class StatsController(QObject):
                         ids_to_fetch.add(g["id"])
 
                 if ids_to_fetch:
-                    # Consulta única para todos los títulos
-                    id_list = list(ids_to_fetch)
-                    placeholders = ",".join("?" for _ in id_list)
-                    cursor.execute(f"SELECT id, display_name FROM games WHERE id IN ({placeholders})", id_list)
+                    # Consulta única para todos los títulos (vía JSON para evitar SQLi)
+                    json_ids = json.dumps(list(ids_to_fetch))
+                    cursor.execute(
+                        "SELECT id, display_name FROM games WHERE id IN (SELECT value FROM json_each(?))",
+                        (json_ids,)
+                    )
                     name_map = {row[0]: row[1] for row in cursor.fetchall() if row[1]}
 
                     # Asignar títulos de vuelta al objeto stats

@@ -2,7 +2,7 @@ import sys
 from pathlib import Path
 
 def toggle_dev_mode(state: bool):
-    config_path = Path(__file__).resolve().parent.parent / "core" / "config.py"
+    config_path = Path(__file__).resolve().parent.parent.parent / "core" / "config.py"
     if not config_path.exists():
         print(f"Error: No se encontró {config_path}")
         sys.exit(1)

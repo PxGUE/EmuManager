@@ -1,0 +1,4 @@
+python emumanager/scripts/releases/toggle_dev_mode.py off
+./emumanager/scripts/releases/package-windows-portable.bat
+./emumanager/scripts/releases/package-windows-standalone.bat
+python emumanager/scripts/releases/toggle_dev_mode.py on

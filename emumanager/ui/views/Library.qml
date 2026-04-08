@@ -266,13 +266,13 @@ Item {
             // 3. FILTRO DE FAVORITOS
             Rectangle {
                 width: 44; height: 44; radius: 12
-                color: gamesModel.showFavoritesOnly ? libraryRoot.activeAccentColor : (favFilterMA.hovered ? Qt.alpha(libraryRoot.activeAccentColor, 0.2) : Theme.controlBackground)
-                border.color: gamesModel.showFavoritesOnly ? Theme.transparent : Qt.alpha(libraryRoot.activeAccentColor, 0.3)
+                color: (gamesModel && gamesModel.showFavoritesOnly) ? libraryRoot.activeAccentColor : (favFilterMA.hovered ? Qt.alpha(libraryRoot.activeAccentColor, 0.2) : Theme.controlBackground)
+                border.color: (gamesModel && gamesModel.showFavoritesOnly) ? Theme.transparent : Qt.alpha(libraryRoot.activeAccentColor, 0.3)
                 border.width: 1
-                Text { text: "❤️"; anchors.centerIn: parent; font.pixelSize: 16; opacity: gamesModel.showFavoritesOnly ? 1.0 : 0.6 }
+                Text { text: "❤️"; anchors.centerIn: parent; font.pixelSize: 16; opacity: (gamesModel && gamesModel.showFavoritesOnly) ? 1.0 : 0.6 }
                 MouseArea { 
                     id: favFilterMA; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor 
-                    onClicked: gamesModel.showFavoritesOnly = !gamesModel.showFavoritesOnly
+                    onClicked: if (gamesModel) gamesModel.showFavoritesOnly = !gamesModel.showFavoritesOnly
                 }
             }
         }

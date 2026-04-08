@@ -143,3 +143,4 @@ class StatsController(QObject):
 
     def clear_cache(self):
         self._cached_summary = None
+        self.db.clear_count_cache()

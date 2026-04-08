@@ -46,7 +46,6 @@ Item {
     function selectConsole(platform, index, colorKey) {
         activePlatform = platform
         activeAccentColor = Theme.resolveColor(colorKey, platform)
-        gamesModel.update_games()
         gamesModel.filter_by_platform(platform)
         showGames = true
     }

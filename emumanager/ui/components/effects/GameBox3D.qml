@@ -76,21 +76,51 @@ Item {
         }
 
         // PLACEHOLDER: Mensaje amigable si no hay imagen (Scraping en curso)
-        Column {
-            anchors.centerIn: parent; width: parent.width * 0.8
-            spacing: Theme.spaceSmall; visible: sourceImage === ""
+        Rectangle {
+            id: placeholderRoot
+            anchors.fill: parent
+            color: Theme.cardBackground
+            visible: sourceImage === ""
             z: 3
             
-            Text {
-                text: "✨"; font.pixelSize: 32; anchors.horizontalCenter: parent.horizontalCenter
-                opacity: 0.5
-            }
-            Text {
-                text: isScraping ? I18n.t.scrape_friendly : I18n.t.no_cover_yet
-                color: Theme.textMuted; font.pixelSize: 8 // Muy pequeño para que quepa en la caja
-                horizontalAlignment: Text.AlignHCenter; width: parent.width
-                wrapMode: Text.WordWrap; font.letterSpacing: 1
-                lineHeight: 1.2
+            Column {
+                anchors.centerIn: parent; width: parent.width * 0.85
+                spacing: Theme.spaceSmall
+
+                Text {
+                    id: placeholderIcon
+                    text: isScraping ? "✨" : "🖼️"
+                    font.pixelSize: 32
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    color: accentColor
+                    opacity: 0.6
+
+                    SequentialAnimation on opacity {
+                        running: isScraping
+                        loops: Animation.Infinite
+                        NumberAnimation { from: 0.3; to: 0.8; duration: 1000; easing.type: Easing.InOutQuad }
+                        NumberAnimation { from: 0.8; to: 0.3; duration: 1000; easing.type: Easing.InOutQuad }
+                    }
+
+                    SequentialAnimation on scale {
+                        running: isScraping
+                        loops: Animation.Infinite
+                        NumberAnimation { from: 0.9; to: 1.1; duration: 1000; easing.type: Easing.InOutQuad }
+                        NumberAnimation { from: 1.1; to: 0.9; duration: 1000; easing.type: Easing.InOutQuad }
+                    }
+                }
+
+                Text {
+                    text: isScraping ? I18n.t.scrape_friendly : I18n.t.no_cover_yet
+                    color: Theme.textMuted
+                    font.pixelSize: 9
+                    font.bold: true
+                    horizontalAlignment: Text.AlignHCenter
+                    width: parent.width
+                    wrapMode: Text.WordWrap
+                    font.letterSpacing: 0.5
+                    lineHeight: 1.1
+                }
             }
         }
 

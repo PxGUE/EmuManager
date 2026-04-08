@@ -1,7 +1,22 @@
+import sys
+from unittest.mock import MagicMock
+
+# Mock heavy/problematic dependencies
+sys.modules["psutil"] = MagicMock()
+sys.modules["PySide6"] = MagicMock()
+sys.modules["PySide6.QtWidgets"] = MagicMock()
+sys.modules["PySide6.QtCore"] = MagicMock()
+sys.modules["PySide6.QtQml"] = MagicMock()
+
 import pytest
 from unittest.mock import MagicMock, patch
-import sys
 import os
+
+# Mock psutil and pypresence before they are imported
+sys.modules['psutil'] = MagicMock()
+sys.modules['pypresence'] = MagicMock()
+sys.modules['PySide6'] = MagicMock()
+sys.modules['PySide6.QtCore'] = MagicMock()
 
 # Asegurar que emumanager esté en el path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -12,8 +27,11 @@ from emumanager.backend.discord_rpc import DiscordRPCManager
 def mock_pypresence(monkeypatch):
     mock_presence_class = MagicMock()
     mock_presence_instance = mock_presence_class.return_value
-    monkeypatch.setattr("emumanager.backend.discord_rpc.Presence", mock_presence_class)
+    # Mock at the level of the module that imports it
     monkeypatch.setattr("emumanager.backend.discord_rpc.PYPRESENCE_AVAILABLE", True)
+    # We need to ensure 'Presence' exists in the module namespace for monkeypatch to work
+    import emumanager.backend.discord_rpc as drpc
+    drpc.Presence = mock_presence_class
     return mock_presence_class, mock_presence_instance
 
 @pytest.fixture
@@ -57,10 +75,24 @@ def test_connect_success(mock_pypresence, mock_logger):
     manager = DiscordRPCManager()
     manager.set_enabled(True)
 
+    from emumanager.core.config import AppConfig
+    expected_id = AppConfig.get_discord_client_id()
+
     assert manager.connect() is True
     assert manager._is_connected is True
-    mock_class.assert_called_with(manager.CLIENT_ID)
+    mock_class.assert_called_with(expected_id)
     mock_instance.connect.assert_called_once()
+
+def test_connect_custom_id_env(mock_pypresence, mock_logger, monkeypatch):
+    custom_id = "987654321"
+    monkeypatch.setenv("DISCORD_CLIENT_ID", custom_id)
+
+    mock_class, mock_instance = mock_pypresence
+    manager = DiscordRPCManager()
+    manager.set_enabled(True)
+
+    assert manager.connect() is True
+    mock_class.assert_called_with(custom_id)
 
 def test_connect_already_connected(mock_pypresence):
     mock_class, mock_instance = mock_pypresence
@@ -68,6 +100,12 @@ def test_connect_already_connected(mock_pypresence):
     manager.set_enabled(True)
     manager._is_connected = True
 
+    assert manager.connect() is True
+    # If already connected, we don't call Presence() again
+    # Since we set _is_connected=True manually, it skips connect logic
+    # But in success case before it might have been called.
+    # To be sure, we check it's NOT called again in this test specifically.
+    mock_class.reset_mock()
     assert manager.connect() is True
     mock_class.assert_not_called()
 

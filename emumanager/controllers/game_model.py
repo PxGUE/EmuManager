@@ -101,11 +101,6 @@ class GameListModel(QAbstractListModel):
         
         return None
 
-    @Slot()
-    def update_games(self):
-        """Carga o refresca todos los juegos de la base de datos."""
-        self.search_games("", "all")
-
     @Slot(str)
     def filter_by_platform(self, platform):
         """Filtra la lista de juegos por plataforma (p.ej. 'snes', 'ps1' o 'all')."""
@@ -150,15 +145,23 @@ class GameListModel(QAbstractListModel):
     @Slot(int, bool)
     def set_favorite_locally(self, game_id, is_favorite):
         """Actualiza el estado de favorito solo en memoria para una respuesta instantánea."""
+        from core.logger import EmuLog
         try:
             target_id = int(game_id)
-            # Actualizar en el buffer global
+            new_val = 1 if is_favorite else 0
+
+            # 1. Actualizar siempre el buffer maestro (_all_results)
+            target_game = None
             for g in self._all_results:
                 if int(g.get("id", -1)) == target_id:
-                    g["is_favorite"] = 1 if is_favorite else 0
+                    g["is_favorite"] = new_val
+                    target_game = g
                     break
             
-            # Si estamos filtrando, debemos re-aplicar y resetear
+            if not target_game:
+                return
+
+            # 2. Si estamos filtrando favoritos, re-aplicamos y reseteamos el modelo
             if self._show_favorites_only:
                 self.beginResetModel()
                 self._apply_filter()
@@ -166,12 +169,11 @@ class GameListModel(QAbstractListModel):
                 self.countChanged.emit()
                 return
 
-            # Si no estamos filtrando, basta con notificar el cambio de fila
+            # 3. Si no filtramos favoritos, buscamos en la vista actual (_games) para notificar
             for i, game in enumerate(self._games):
-                if int(game.get("id", -1)) == target_id:
-                    game["is_favorite"] = 1 if is_favorite else 0
+                if game is target_game:
                     idx = self.index(i, 0)
                     self.dataChanged.emit(idx, idx, [self.IsFavoriteRole])
-                    return 
+                    break
         except Exception as e:
             EmuLog.error(f"Error en set_favorite_locally: {e}")

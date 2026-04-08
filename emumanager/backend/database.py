@@ -11,7 +11,12 @@ class DatabaseManager:
         self.db_path = db_path
         # Asegurar que el directorio data/ existe
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
+        self._count_cache = None
         self._init_db()
+
+    def clear_count_cache(self):
+        """Invalida el caché de conteo de ROMs."""
+        self._count_cache = None
 
     def get_connection(self) -> sqlite3.Connection:
         conn = sqlite3.connect(
@@ -118,8 +123,12 @@ class DatabaseManager:
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_metadata_title ON game_metadata(title)")
 
     def count_all_roms(self) -> int:
+        if self._count_cache is not None:
+            return self._count_cache
+
         with self.get_connection() as conn:
-            return conn.execute("SELECT COUNT(*) FROM games").fetchone()[0]
+            self._count_cache = conn.execute("SELECT COUNT(*) FROM games").fetchone()[0]
+            return self._count_cache
 
     def get_all_games(self, limit: int = 0):
         """Retorna todos los juegos con su metadata básica (usado para warm-up)."""

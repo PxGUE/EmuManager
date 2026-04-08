@@ -17,7 +17,7 @@ python -m nuitka --onefile ^
     --output-filename=EmuManager ^
     --include-data-dir=./emumanager/ui=ui ^
     --include-data-dir=./emumanager/resources=resources ^
-    --include-data-dir=./mango/bin=mango/bin ^
+    --include-data-dir=./mango/bin/windows=mango/bin/windows ^
     ./emumanager/app.py
 
 

@@ -21,82 +21,70 @@ if sys.platform == 'win32':
 # MODO ESTÁNDAR (Seguro para Instaladores y AppImage)
 # Define una carpeta de datos persistente en el perfil del usuario (~/.local/share o %APPDATA%)
 # --- DETECTAR SI ESTAMOS EN MODO CONGELADO (BUILD) ---
-# Nuitka Onefile extrae a una carpeta temporal, pero sys.frozen o banderas internas deben estar presentes.
-_is_frozen_standard = getattr(sys, 'frozen', False) or '__nuitka_binary__' in sys.modules or os.environ.get('NUITKA_ONEFILE_PARENT') is not None
-# Detección por "Evidencia Física" de carpeta temporal o AppImage
-_is_in_temp = "AppData\\Local\\Temp\\onefile_" in str(Path(__file__).resolve())
-_is_appimage = "APPIMAGE" in os.environ
+_exe_name = os.path.basename(sys.executable).lower()
+_is_python = _exe_name in ["python.exe", "pythonw.exe", "python", "python3"]
+IS_FROZEN = not _is_python or getattr(sys, 'frozen', False) or '__nuitka_binary__' in sys.modules
 
-IS_FROZEN = _is_frozen_standard or _is_in_temp or _is_appimage
-
+# --- RESOLUCIÓN DE DIRECTORIO DE DATOS PERSISTENTES ---
 if IS_FROZEN:
-    if os.name == 'nt':
-        # Windows: C:\Users\Nombre\AppData\Roaming\EmuManager
-        appdata = os.getenv('APPDATA')
-        root_dir = Path(appdata).resolve() / "EmuManager" if appdata else Path.home() / "AppData" / "Roaming" / "EmuManager"
+    appdata = os.getenv('APPDATA')
+    if appdata:
+        root_dir = Path(appdata).resolve() / "EmuManager"
     else:
-        # Linux: /home/usuario/.local/share/EmuManager
-        root_dir = Path.home() / ".local" / "share" / "EmuManager"
+        root_dir = Path.home() / "AppData" / "Roaming" / "EmuManager"
 else:
-    # En desarrollo usamos la raíz del proyecto para mayor comodidad
+    # Desarrollo: Subir un nivel desde emumanager/
     root_dir = Path(__file__).resolve().parent.parent
 
-
+# Cargar configuración y secretos
 load_dotenv(root_dir / ".env")
 load_dotenv(root_dir / "secrets.env")
 
-
-# --- CONFIGURACIÓN DE RUTAS ---
+# --- RESOLUCIÓN DE DIRECTORIO DEL PAQUETE (Assets internos) ---
+# En Nuitka Onefile, __file__ es la clave para llegar a los assets extraídos
+_script_path = Path(__file__).resolve()
 if IS_FROZEN:
-    # En modo empaquetado, Path(__file__) es el directorio de extracción (Onefile) o el .dist (Standalone)
-    base_dir = Path(__file__).resolve().parent
-    
-    # Buscamos la carpeta UI (Ahora plana en la raíz del paquete)
-    if (base_dir / "ui").exists():
-        ui_root = base_dir
-    elif (base_dir / "emumanager" / "ui").exists():
-        ui_root = base_dir / "emumanager"
+    # Intentar detectar la raíz del bundle (donde están ui/, resources/, etc.)
+    if (_script_path.parent / "ui").exists():
+        ui_root = _script_path.parent
+    elif (_script_path.parent.parent / "ui").exists():
+        ui_root = _script_path.parent.parent
     else:
-        ui_root = base_dir 
+        ui_root = _script_path.parent
 else:
-    # En desarrollo
-    ui_root = Path(__file__).resolve().parent
+    ui_root = _script_path.parent
 
-# Registrar la raíz de la app en la configuración para que todos los controladores la usen
+# Registrar la raíz de la app
 from core.config import AppConfig
 AppConfig.set_app_root(ui_root)
 
+# Asegurar que la raíz esté en el path para importaciones internas
 if str(ui_root) not in sys.path:
     sys.path.insert(0, str(ui_root))
 
-# Agregar backend al path
-backend_dir = ui_root / "backend"
-if str(backend_dir) not in sys.path:
-    sys.path.insert(0, str(backend_dir))
-
-# AGREGAR MOTOR NATIVO BINARIO (Linux/Windows)
+# AGREGAR MOTOR NATIVO BINARIO
 os_name = platform.system().lower()
-
-# En un paquete Onefile/Standalone, mango debe estar relativo a la raíz del paquete
 if IS_FROZEN:
-    base_dir = Path(__file__).resolve().parent
-    # El mapeo nuevo es plano: mango/mango_engine.pyd
+    # En el bundle, buscamos la carpeta 'mango' que incluimos en el script de release
     possible_bins = [
-        base_dir / "mango",
-        base_dir / "emumanager" / "mango", 
-        ui_root / "mango"
+        ui_root / "mango",
+        ui_root / "emumanager" / "mango",
+        Path(sys.executable).parent / "mango"
     ]
-    bin_path = base_dir # Default fallback
+    bin_path = None
     for p in possible_bins:
         if p.exists():
             bin_path = p
             break
+    
+    if bin_path:
+        if str(bin_path) not in sys.path:
+            sys.path.insert(0, str(bin_path))
 else:
     # Desarrollo
     bin_path = ui_root.parent / "mango" / "bin" / os_name
-
-if bin_path.exists() and str(bin_path) not in sys.path:
-    sys.path.insert(0, str(bin_path))
+    if bin_path.exists() and str(bin_path) not in sys.path:
+        sys.path.insert(0, str(bin_path))
 
 
 # --- IMPORTACIONES DEL SISTEMA ---

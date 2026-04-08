@@ -30,16 +30,25 @@ class AppConfig:
         Usa rutas estándar del sistema en modo empaquetado para evitar errores de solo lectura.
         """
         import sys
-        if getattr(sys, 'frozen', False) or "APPIMAGE" in os.environ:
+        
+        # Detección Robusta (Igual que en app.py)
+        _exe_name = os.path.basename(sys.executable).lower()
+        _is_python = _exe_name in ["python.exe", "pythonw.exe", "python", "python3"]
+        is_frozen = not _is_python or getattr(sys, 'frozen', False) or '__nuitka_binary__' in sys.modules
+        
+        if is_frozen:
             if os.name == 'nt':
+                # Windows: C:\Users\Nombre\AppData\Roaming\EmuManager
                 appdata = os.getenv('APPDATA')
                 base_dir = Path(appdata).resolve() / "EmuManager" if appdata else Path.home() / "AppData" / "Roaming" / "EmuManager"
             else:
+                # Linux: /home/usuario/.local/share/EmuManager
                 base_dir = Path.home() / ".local" / "share" / "EmuManager"
             
             data_dir = base_dir / "data"
         else:
             # Desarrollo: una carpeta 'data' en la raíz del proyecto
+            # Asumimos que core/config.py está en emumanager/core/
             project_root = Path(__file__).resolve().parent.parent.parent
             data_dir = project_root / "data"
 

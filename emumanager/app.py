@@ -101,6 +101,7 @@ if bin_path.exists() and str(bin_path) not in sys.path:
 
 # --- IMPORTACIONES DEL SISTEMA ---
 from controllers.main_ctrl import MainController
+from controllers.game_model import GameListModel  # noqa: F401 (Necesario para que PyQt6 registre el @QmlElement)
 
 # --- INICIALIZACIÓN DE ECOSISTEMA DE DATOS ---
 def init_storage():

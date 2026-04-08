@@ -185,7 +185,7 @@ Rectangle {
                     if (!isInstalled) {
                         mainController.install_emulator(root.emuId, root.downloadUrl, root.executable)
                     } else if (hasUpdate) {
-                        mainController.update_emulator(root.emuId, root.downloadUrl, root.executable)
+                        mainController.install_emulator(root.emuId, root.downloadUrl, root.executable)
                     } else {
                         mainController.uninstall_emulator(root.emuId)
                     }

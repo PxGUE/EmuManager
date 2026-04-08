@@ -157,7 +157,6 @@ class MainController(QObject):
                 EmuLog.warning("M.A.N.G.O: Motor nativo no detectado.")
 
             # Warm-up de estadísticas
-            self.stats_ctrl.get_consoles_summary(use_cache=False)
             self._is_precharged = True
             EmuLog.info(f"M.A.N.G.O: Inicialización del Orquestador v{self.EMUMANAGER_VERSION} completada.")
         except Exception as e:

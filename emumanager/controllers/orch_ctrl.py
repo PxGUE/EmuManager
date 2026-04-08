@@ -37,75 +37,72 @@ class OrchestraController(QObject):
         self.discord_rpc = DiscordRPCManager()
         self.discord_rpc.set_enabled(AppConfig.get_discord_rpc_enabled())
 
-    @Slot(result='QVariantList')
-    def get_emulator_repositories(self):
-        """Lee el manifiesto de emuladores y verifica su estado local y de sistema."""
+    def _get_manifest(self):
+        """Lee el archivo de catálogos y devuelve su JSON, o una lista vacía si falla."""
         repo_path = AppConfig.get_asset_path("resources", "repositories.json")
-        
         if not repo_path.exists():
             EmuLog.error(f"¡Catálogo crítico no encontrado en {repo_path}!")
             return []
-        
         try:
             with open(repo_path, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-            
-            os_name = py_platform.system().lower()
-            base_path = Path(AppConfig.get_emulators_path() or ".")
-            
-            try:
-                import mango_engine
-            except ImportError:
-                mango_engine = None
-
-            # Obtener estados de actualización desde la DB
-            updates_map = self.get_installed_tags()
-
-            for emu in data.get("emulators", []):
-                emu_id = emu.get("id", "")
-                orchestra = emu.get("orchestration", {})
-                
-                # Resoluciones de sistema
-                os_orchestra = orchestra.get(os_name, {})
-                system_id = os_orchestra.get("id", "")
-                portable_url = orchestra.get("portable", {}).get(os_name, "")
-                executable_name = emu.get("executable", {}).get(os_name, "")
-                
-                emu["systemId"] = system_id
-                emu["downloadUrl"] = portable_url
-                emu["executable"] = executable_name
-                
-                # Verificar Instalación
-                local_path = base_path / emu_id / executable_name
-                is_installed = local_path.exists()
-                
-                if not is_installed and mango_engine and system_id:
-                    try: is_installed = mango_engine.check_system_installed(system_id)
-                    except Exception: pass
-                
-                # Estado de Actualización
-                emu_data = updates_map.get(emu_id, {})
-                has_update = False
-                if is_installed and emu_data.get("remote_tag"):
-                    has_update = emu_data["installed_tag"] != emu_data["remote_tag"]
-
-                emu["isInstalled"] = is_installed
-                emu["hasUpdate"] = has_update
-                emu["localPath"] = str(local_path) if is_installed else ""
-                emu["progress"] = 0.0
-                
-                # Texto de estado inteligente
-                if is_installed:
-                    e_status = "btn_update" if has_update else "emu_status_installed"
-                else:
-                    e_status = "emu_status_available"
-                
-                emu["statusText"] = e_status
-                
-            return data.get("emulators", [])
+                return json.load(f).get("emulators", [])
         except Exception as e:
             EmuLog.error(f"Error cargando repositories.json: {e}")
             return []
+
+    def _check_system_installed(self, emu_id, executable_name, system_id, base_path, mango=None):
+        """Verifica localmente y a través de M.A.N.G.O (Rust) si un motor está instalado."""
+        local_path = base_path / emu_id / executable_name
+        is_installed = local_path.exists()
+        if not is_installed and mango and system_id:
+            try: is_installed = mango.check_system_installed(system_id)
+            except Exception: pass
+        return is_installed, local_path
+
+    @Slot(result='QVariantList')
+    def get_emulator_repositories(self):
+        """Devuelve el catálogo de emuladores con el estado en vivo de instalación y actualizaciones."""
+        emulators = self._get_manifest()
+        if not emulators: return []
+            
+        os_name = py_platform.system().lower()
+        base_path = Path(AppConfig.get_emulators_path() or ".")
+        
+        try: import mango_engine
+        except ImportError: mango_engine = None
+
+        updates_map = self.get_installed_tags()
+
+        for emu in emulators:
+            emu_id = emu.get("id", "")
+            orchestra = emu.get("orchestration", {})
+            
+            # Resoluciones
+            os_orchestra = orchestra.get(os_name, {})
+            system_id = os_orchestra.get("id", "")
+            emu["systemId"] = system_id
+            emu["downloadUrl"] = orchestra.get("portable", {}).get(os_name, "")
+            emu["executable"] = emu.get("executable", {}).get(os_name, "")
+            
+            is_installed, local_path = self._check_system_installed(
+                emu_id, emu["executable"], system_id, base_path, mango_engine
+            )
+            
+            emu_data = updates_map.get(emu_id, {})
+            has_update = is_installed and emu_data.get("remote_tag") and (emu_data["installed_tag"] != emu_data["remote_tag"])
+
+            emu["isInstalled"] = is_installed
+            emu["hasUpdate"] = has_update
+            emu["localPath"] = str(local_path) if is_installed else ""
+            emu["progress"] = 0.0
+            
+            # Asignación de textos automáticos
+            if is_installed:
+                emu["statusText"] = "btn_update" if has_update else "emu_status_installed"
+            else:
+                emu["statusText"] = "emu_status_available"
+                
+        return emulators
 
     @Slot(str, str, str, result=bool)
     def install_emulator(self, emu_id, url="", executable=""):
@@ -389,13 +386,6 @@ class OrchestraController(QObject):
             """, (game_id, duration))
             conn.commit()
         self.notify_library_changed.emit()
-
-    @Slot(str, str, str, result=bool)
-    def update_emulator(self, emu_id, url, executable):
-        """Proxy para install_emulator con limpieza previa si es necesario."""
-        # Por ahora podemos reutilizar install_emulator ya que el worker de M.A.N.G.O
-        # maneja sobreescritura. En el futuro podríamos añadir backups.
-        return self.install_emulator(emu_id, url, executable)
 
     def get_installed_tags(self):
         """Consulta la base de datos para obtener el historial de versiones."""

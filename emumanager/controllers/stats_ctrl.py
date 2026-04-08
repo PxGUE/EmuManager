@@ -24,20 +24,36 @@ class StatsController(QObject):
             stats = mango_engine.fetch_dashboard_stats(db_path)
             if not stats: return {}
             
-            # Mapear nombres directamente de SQL
+            # Mapear nombres directamente de SQL (Optimización Batch para evitar N+1)
             with self.db.get_connection() as conn:
                 cursor = conn.cursor()
-                if stats.get("last_game") and stats["last_game"].get("id"):
-                    cursor.execute("SELECT display_name FROM games WHERE id = ?", (stats["last_game"]["id"],))
-                    row = cursor.fetchone()
-                    if row and row[0]: stats["last_game"]["title"] = row[0]
                 
-                if stats.get("recent_games"):
-                    for g in stats["recent_games"]:
-                        if g.get("id"):
-                            cursor.execute("SELECT display_name FROM games WHERE id = ?", (g["id"],))
-                            row = cursor.fetchone()
-                            if row and row[0]: g["title"] = row[0]
+                # Recopilar todos los IDs necesarios
+                ids_to_fetch = set()
+                last_game = stats.get("last_game")
+                if last_game and last_game.get("id"):
+                    ids_to_fetch.add(last_game["id"])
+
+                recent_games = stats.get("recent_games", [])
+                for g in recent_games:
+                    if g.get("id"):
+                        ids_to_fetch.add(g["id"])
+
+                if ids_to_fetch:
+                    # Consulta única para todos los títulos
+                    id_list = list(ids_to_fetch)
+                    placeholders = ",".join("?" for _ in id_list)
+                    cursor.execute(f"SELECT id, display_name FROM games WHERE id IN ({placeholders})", id_list)
+                    name_map = {row[0]: row[1] for row in cursor.fetchall() if row[1]}
+
+                    # Asignar títulos de vuelta al objeto stats
+                    if last_game and last_game.get("id") in name_map:
+                        last_game["title"] = name_map[last_game["id"]]
+
+                    for g in recent_games:
+                        gid = g.get("id")
+                        if gid in name_map:
+                            g["title"] = name_map[gid]
             
             EmuLog.debug(f"M.A.N.G.O (Stats): Dashboard recuperado. Total juegos: {stats.get('total_games', 0)}")
             return stats

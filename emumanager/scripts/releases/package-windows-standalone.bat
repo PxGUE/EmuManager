@@ -1,8 +1,8 @@
 @echo off
 echo 🚀 Starting EmuManager Windows Packaging (Standalone Folder)...
 
-REM Ir a la raíz del proyecto (asumiendo que el script está en EmuManager\emumanager\releases\)
-pushd %~dp0\..\..
+REM Ir a la raíz del proyecto (subir 3 niveles desde scripts/releases)
+pushd %~dp0..\..\..
 
 REM Limpiar versiones anteriores
 if exist release\Windows\Standalone rmdir /s /q release\Windows\Standalone

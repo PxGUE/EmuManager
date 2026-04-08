@@ -98,37 +98,57 @@ class LibretroManager:
             
         try:
             available_raw = mango_engine.fetch_cores()
-            filtered_results = []
+            available_set = set(available_raw)
             
             # Determinar extensión local
             import platform as py_platform
-            is_win = py_platform.system() == "Windows"
-            core_ext = ".dll" if is_win else ".so"
+            system = py_platform.system()
+            if system == "Windows":
+                core_ext = ".dll"
+            elif system == "Darwin":
+                core_ext = ".dylib"
+            else:
+                core_ext = ".so"
+
+            # Optimización: Pre-escanear cores instalados para evitar I/O en el bucle
+            installed_set = set()
+            if self.cores_path.is_dir():
+                for p_dir in self.cores_path.iterdir():
+                    if p_dir.is_dir():
+                        p_name = p_dir.name.lower()
+                        for f in p_dir.iterdir():
+                            if f.is_file():
+                                # Guardamos en minúsculas para búsqueda case-insensitive
+                                installed_set.add(f"{p_name}/{f.name.lower()}")
+
+            unique_results = []
+            seen_ids = set()
             
             # Buscamos en nuestra base de datos para las plataformas activas
             for platform in active_platforms:
-                suggestions = CORE_DATABASE.get(platform.lower(), [])
+                platform_lower = platform.lower()
+                suggestions = CORE_DATABASE.get(platform_lower, [])
+
                 for core_id, display_name in suggestions:
                     # El core_id de Libretro suele terminar en _libretro en el buildbot
                     search_id = f"{core_id}_libretro"
-                    if search_id in available_raw:
-                        # Comprobar si ya existe físicamente en cores/PLATFORMA/arch_libretro.ext
-                        core_file = self.cores_path / platform.lower() / f"{search_id}{core_ext}"
+
+                    # Evitar procesar el mismo core varias veces (de-duplicación temprana)
+                    if search_id in seen_ids:
+                        continue
+
+                    if search_id in available_set:
+                        # Comprobar si ya existe físicamente usando el caché del escaneo (case-insensitive)
+                        core_rel_path = f"{platform_lower}/{search_id}{core_ext}".lower()
+                        is_installed = core_rel_path in installed_set
                         
-                        filtered_results.append({
+                        seen_ids.add(search_id)
+                        unique_results.append({
                             "id": search_id,
                             "name": display_name,
                             "platform": platform,
-                            "isInstalled": core_file.exists()
+                            "isInstalled": is_installed
                         })
-            
-            # Eliminar duplicados si una plataforma comparte cores (ej. GB y GBC)
-            seen = set()
-            unique_results = []
-            for item in filtered_results:
-                if item["id"] not in seen:
-                    seen.add(item["id"])
-                    unique_results.append(item)
                     
             return unique_results
             

@@ -65,17 +65,13 @@ fn format_duration(seconds: i64) -> String {
     }
 }
 
-/// Determina los emuladores disponibles para una plataforma.
-fn get_platform_emulators(
+/// Obtiene los núcleos Libretro disponibles para una plataforma dada.
+fn get_available_libretro_cores(
     platform: &str,
-    emu_base: &Path,
     cores_dir: &Path,
     core_map: &HashMap<&str, Vec<(&str, &str)>>,
-    has_retroarch: bool,
-) -> (bool, String) {
+) -> Vec<String> {
     let mut cores = Vec::new();
-
-    // Check Libretro Cores en disco
     if let Some(suggestions) = core_map.get(platform) {
         for (cid, cname) in suggestions {
             let core_filename = format!("{}_libretro", cid);
@@ -91,8 +87,14 @@ fn get_platform_emulators(
             }
         }
     }
+    cores
+}
 
-    // Check Standalone específicos
+/// Obtiene los emuladores standalone disponibles para una plataforma dada.
+fn get_available_standalones(
+    platform: &str,
+    emu_base: &Path,
+) -> Vec<String> {
     let mut standalones = Vec::new();
     let standalone_id = match platform {
         "gc" | "wii" => Some("dolphin"),
@@ -110,8 +112,15 @@ fn get_platform_emulators(
             standalones.push(id.to_uppercase());
         }
     }
+    standalones
+}
 
-    // Formatear texto de emuladores
+/// Formatea la lista de emuladores disponibles en un string legible.
+fn format_emulator_list(
+    cores: Vec<String>,
+    standalones: Vec<String>,
+    has_retroarch: bool,
+) -> (bool, String) {
     let mut final_list = Vec::new();
     if has_retroarch {
         if !cores.is_empty() {
@@ -129,6 +138,19 @@ fn get_platform_emulators(
     let emu_text = if has_any { final_list.join(" | ") } else { "Sin emuladores".to_string() };
 
     (has_any, emu_text)
+}
+
+/// Determina los emuladores disponibles para una plataforma.
+fn get_platform_emulators(
+    platform: &str,
+    emu_base: &Path,
+    cores_dir: &Path,
+    core_map: &HashMap<&str, Vec<(&str, &str)>>,
+    has_retroarch: bool,
+) -> (bool, String) {
+    let cores = get_available_libretro_cores(platform, cores_dir, core_map);
+    let standalones = get_available_standalones(platform, emu_base);
+    format_emulator_list(cores, standalones, has_retroarch)
 }
 
 /// Genera el resumen de consolas consultando la BD de forma nativa.

@@ -1,4 +1,3 @@
-import os
 import time
 from pathlib import Path
 from dataclasses import dataclass
@@ -250,9 +249,6 @@ class StartupWorker(QObject):
         except Exception as e:
             EmuLog.error(f"Error crítico en StartupWorker: {e}")
             self.finished.emit()
-
-
-# EmulatorUpdateWorker ELIMINADO: La lógica está unificada en EmulatorInstallWorker (Orchestra).
 
 
 class EmulatorUninstallWorker(QObject):

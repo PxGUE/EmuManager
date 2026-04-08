@@ -7,8 +7,21 @@ class AppConfig:
     APP_NAME = "EmuManager"
     APP_VERSION = "0.3.5 - alpha"
     MANGO_VERSION = "0.2.1 - alpha"
-    IS_DEV_MODE = True # Desarrollo activo: Bypass de comprobaciones reales
+    IS_DEV_MODE = False # Desarrollo activo: Bypass de comprobaciones reales
     _config_cache: Optional[dict] = None
+    _app_root: Optional[Path] = None
+
+    @classmethod
+    def set_app_root(cls, root: Path):
+        cls._app_root = root
+
+    @classmethod
+    def get_asset_path(cls, *parts) -> Path:
+        """Retorna una ruta absoluta a un recurso/activo del proyecto."""
+        if cls._app_root:
+            return cls._app_root.joinpath(*parts)
+        # Fallback para casos donde no se inicializó
+        return Path(__file__).resolve().parent.parent.joinpath(*parts)
 
     @classmethod
     def get_app_data_dir(cls) -> Path:

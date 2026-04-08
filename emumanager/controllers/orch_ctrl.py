@@ -37,7 +37,7 @@ class OrchestraController(QObject):
     @Slot(result='QVariantList')
     def get_emulator_repositories(self):
         """Lee el manifiesto de emuladores y verifica su estado local y de sistema."""
-        repo_path = Path(__file__).resolve().parent.parent / "resources" / "repositories.json"
+        repo_path = AppConfig.get_asset_path("resources", "repositories.json")
         
         if not repo_path.exists():
             EmuLog.error(f"¡Catálogo crítico no encontrado en {repo_path}!")

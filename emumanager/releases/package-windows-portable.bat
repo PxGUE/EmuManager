@@ -14,7 +14,7 @@ python -m nuitka --onefile ^
     --show-progress ^
     --enable-plugin=pyside6 ^
     --include-qt-plugins=qml,iconengines,imageformats ^
-    --windows-disable-console ^
+    --windows-console-mode=force ^
     --windows-icon-from-ico=emumanager/ui/assets/logo.ico ^
     --company-name="PxGUE" ^
     --product-name="EmuManager" ^
@@ -23,9 +23,9 @@ python -m nuitka --onefile ^
     --file-description="Modern Retro Game Emulator Manager" ^
     --copyright="Copyright 2026 PxGUE" ^
     --output-filename=EmuManager ^
-    --include-data-dir=./emumanager/ui=emumanager/ui ^
-    --include-data-dir=./emumanager/resources=emumanager/resources ^
-    --include-data-dir=./mango/bin/windows=mango/bin/windows ^
+    --include-data-dir=./emumanager/ui=ui ^
+    --include-data-dir=./emumanager/resources=resources ^
+    --include-data-dir=./mango/bin/windows=mango ^
     ./emumanager/app.py
 
 

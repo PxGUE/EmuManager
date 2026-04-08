@@ -20,7 +20,16 @@ if sys.platform == 'win32':
 # Buscamos .env o secrets.env en la raíz del proyecto
 # MODO ESTÁNDAR (Seguro para Instaladores y AppImage)
 # Define una carpeta de datos persistente en el perfil del usuario (~/.local/share o %APPDATA%)
-if getattr(sys, 'frozen', False) or "APPIMAGE" in os.environ:
+# --- DETECTAR SI ESTAMOS EN MODO CONGELADO (BUILD) ---
+# Nuitka Onefile extrae a una carpeta temporal, pero sys.frozen o banderas internas deben estar presentes.
+_is_frozen_standard = getattr(sys, 'frozen', False) or '__nuitka_binary__' in sys.modules or os.environ.get('NUITKA_ONEFILE_PARENT') is not None
+# Detección por "Evidencia Física" de carpeta temporal o AppImage
+_is_in_temp = "AppData\\Local\\Temp\\onefile_" in str(Path(__file__).resolve())
+_is_appimage = "APPIMAGE" in os.environ
+
+IS_FROZEN = _is_frozen_standard or _is_in_temp or _is_appimage
+
+if IS_FROZEN:
     if os.name == 'nt':
         # Windows: C:\Users\Nombre\AppData\Roaming\EmuManager
         appdata = os.getenv('APPDATA')
@@ -38,21 +47,24 @@ load_dotenv(root_dir / "secrets.env")
 
 
 # --- CONFIGURACIÓN DE RUTAS ---
-if getattr(sys, 'frozen', False):
-    # En modo empaquetado (Nuitka), Path(__file__) apunta al directorio de extracción temporal
+if IS_FROZEN:
+    # En modo empaquetado, Path(__file__) es el directorio de extracción (Onefile) o el .dist (Standalone)
     base_dir = Path(__file__).resolve().parent
-    # Nuitka suele aplanar el script principal a la raíz del paquete
-    current_dir = base_dir 
     
-    # Prioridad 1: Estructura empaquetada (emumanager/ui)
-    if (base_dir / "emumanager" / "ui").exists():
+    # Buscamos la carpeta UI (Ahora plana en la raíz del paquete)
+    if (base_dir / "ui").exists():
+        ui_root = base_dir
+    elif (base_dir / "emumanager" / "ui").exists():
         ui_root = base_dir / "emumanager"
     else:
-        ui_root = base_dir # Fallback si se aplanó todo
+        ui_root = base_dir 
 else:
     # En desarrollo
-    current_dir = Path(__file__).resolve().parent
-    ui_root = current_dir
+    ui_root = Path(__file__).resolve().parent
+
+# Registrar la raíz de la app en la configuración para que todos los controladores la usen
+from core.config import AppConfig
+AppConfig.set_app_root(ui_root)
 
 if str(ui_root) not in sys.path:
     sys.path.insert(0, str(ui_root))
@@ -65,13 +77,20 @@ if str(backend_dir) not in sys.path:
 # AGREGAR MOTOR NATIVO BINARIO (Linux/Windows)
 os_name = platform.system().lower()
 
-# En un paquete Onefile/Standalone, mango/bin debe estar relativo a la raíz del paquete
-if getattr(sys, 'frozen', False):
-    # En el release, mango está al mismo nivel que emumanager o en la raíz
-    bin_path = ui_root / "mango" / "bin" / os_name
-    if not bin_path.exists():
-        # Intento 2: Raíz absoluta del paquete
-        bin_path = Path(__file__).resolve().parent / "mango" / "bin" / os_name
+# En un paquete Onefile/Standalone, mango debe estar relativo a la raíz del paquete
+if IS_FROZEN:
+    base_dir = Path(__file__).resolve().parent
+    # El mapeo nuevo es plano: mango/mango_engine.pyd
+    possible_bins = [
+        base_dir / "mango",
+        base_dir / "emumanager" / "mango", 
+        ui_root / "mango"
+    ]
+    bin_path = base_dir # Default fallback
+    for p in possible_bins:
+        if p.exists():
+            bin_path = p
+            break
 else:
     # Desarrollo
     bin_path = ui_root.parent / "mango" / "bin" / os_name
@@ -135,4 +154,13 @@ def main():
     sys.exit(app.exec())
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as e:
+        import traceback
+        error_msg = f"Error Crítico al iniciar EmuManager:\n\n{str(e)}\n\n{traceback.format_exc()}"
+        print(error_msg)
+        if os.name == 'nt':
+            import ctypes
+            ctypes.windll.user32.MessageBoxW(0, error_msg, "Error de Inicio - EmuManager", 0x10)
+        sys.exit(1)

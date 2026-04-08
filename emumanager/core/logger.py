@@ -15,31 +15,36 @@ def setup_logger(name: str):
     logger = logging.getLogger(name)
     logger.setLevel(logging.DEBUG)
     
-    # Evitar duplicidad
-    if not logger.handlers:
-        # 1. Handler para Consola (INFO) - Limpio para desarrollo
-        console_handler = logging.StreamHandler(sys.stdout)
-        console_handler.setFormatter(LOG_FORMAT)
-        console_handler.setLevel(logging.INFO)
-        logger.addHandler(console_handler)
-        
-        # 2. Handler Profesional con ROTACIÓN (DEBUG) - 5MB x 3 archivos
-        log_file = AppConfig.get_app_data_dir() / "logs" / "emumanager.log"
-        
-        # Asegurar que la carpeta de logs existe antes de abrir el archivo
-        log_file.parent.mkdir(parents=True, exist_ok=True)
+    # IMPORTANTE: Desactivar propagación al root logger para evitar duplicados
+    # si otras librerías (como PySide) también inician logs.
+    logger.propagate = False
+    
+    # Limpieza total para evitar duplicidad (especialmente útil en tests)
+    if logger.handlers:
+        logger.handlers.clear()
 
-        file_handler = RotatingFileHandler(
+    # 1. Handler para Consola (INFO) - Limpio para desarrollo
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setFormatter(LOG_FORMAT)
+    console_handler.setLevel(logging.INFO)
+    logger.addHandler(console_handler)
+    
+    # 2. Handler Profesional con ROTACIÓN (DEBUG) - 5MB x 3 archivos
+    log_file = AppConfig.get_app_data_dir() / "logs" / "emumanager.log"
+    
+    # Asegurar que la carpeta de logs existe antes de abrir el archivo
+    log_file.parent.mkdir(parents=True, exist_ok=True)
 
-            log_file, 
-            maxBytes=5*1024*1024, # 5MB
-            backupCount=3, 
-            encoding='utf-8'
-        )
-        file_handler.setFormatter(LOG_FORMAT)
-        file_handler.setLevel(logging.DEBUG)
-        logger.addHandler(file_handler)
-        
+    file_handler = RotatingFileHandler(
+        log_file, 
+        maxBytes=5*1024*1024, # 5MB
+        backupCount=3, 
+        encoding='utf-8'
+    )
+    file_handler.setFormatter(LOG_FORMAT)
+    file_handler.setLevel(logging.DEBUG)
+    logger.addHandler(file_handler)
+    
     return logger
 
 # Instancia global principal

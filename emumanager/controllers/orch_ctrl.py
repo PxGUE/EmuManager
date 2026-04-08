@@ -350,14 +350,31 @@ class OrchestraController(QObject):
 
     @Slot(str)
     def open_emulator_folder(self, emu_id):
-        """Abre la carpeta del emulador en el explorador del sistema."""
+        """Abre la carpeta del emulador en el explorador del sistema de forma segura."""
         import sys, subprocess
-        target_path = Path(AppConfig.get_emulators_path()) / emu_id
-        if not target_path.exists(): target_path = Path(AppConfig.get_emulators_path())
+        
         try:
-            if sys.platform == "linux": subprocess.run(["xdg-open", str(target_path)])
-            elif sys.platform == "win32": os.startfile(str(target_path))
-        except Exception as e: EmuLog.error(f"No se pudo abrir la carpeta: {e}")
+            base_emus_path = Path(AppConfig.get_emulators_path()).resolve()
+            # Sanitizar emu_id para evitar saltos (..) o rutas absolutas maliciosas
+            target_path = (base_emus_path / emu_id.lstrip('/')).resolve()
+            
+            # Verificación de seguridad: El path debe estar dentro del directorio de emuladores
+            try:
+                target_path.relative_to(base_emus_path)
+            except ValueError:
+                EmuLog.error(f"⚠️ Intento de acceso no autorizado bloqueado: {emu_id}")
+                target_path = base_emus_path
+                
+            if not target_path.exists():
+                target_path = base_emus_path
+
+            EmuLog.debug(f"Abriendo carpeta: {target_path}")
+            if sys.platform == "linux":
+                subprocess.run(["xdg-open", str(target_path)], check=False)
+            elif sys.platform == "win32":
+                os.startfile(str(target_path))
+        except Exception as e:
+            EmuLog.error(f"No se pudo abrir la carpeta: {e}")
 
     def _update_play_stats(self, game_id, duration):
         if duration < 1: return

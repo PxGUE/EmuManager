@@ -49,6 +49,17 @@ CORE_DATABASE = {
     "gbc": [("gambatte", "Gambatte (Game Boy Color)")]
 }
 
+def _build_core_platform_map() -> Dict[str, str]:
+    """Crea un mapeo inverso core_id -> plataforma optimizado."""
+    mapping = {}
+    for platform, cores in CORE_DATABASE.items():
+        for core_id, _ in cores:
+            if core_id not in mapping:
+                mapping[core_id] = platform
+    return mapping
+
+_CORE_PLATFORM_MAP = _build_core_platform_map()
+
 class LibretroManager:
     """Gestiona cores y configuraciones de Libretro para la emulación."""
     def __init__(self, emus_base_path: Path):
@@ -128,10 +139,7 @@ class LibretroManager:
     def _get_platform_for_core(self, core_id: str) -> str:
         """Busca a qué plataforma pertenece un core_id (limpio o con _libretro)."""
         clean_id = core_id.replace("_libretro", "")
-        for platform, cores in CORE_DATABASE.items():
-            if any(c[0] == clean_id for c in cores):
-                return platform
-        return "unknown"
+        return _CORE_PLATFORM_MAP.get(clean_id, "unknown")
 
     def download_core(self, core_name: str, progress_callback=None, status_callback=None) -> Optional[str]:
         """

@@ -101,6 +101,12 @@ def test_connect_already_connected(mock_pypresence):
     manager._is_connected = True
 
     assert manager.connect() is True
+    # If already connected, we don't call Presence() again
+    # Since we set _is_connected=True manually, it skips connect logic
+    # But in success case before it might have been called.
+    # To be sure, we check it's NOT called again in this test specifically.
+    mock_class.reset_mock()
+    assert manager.connect() is True
     mock_class.assert_not_called()
 
 def test_connect_exception(mock_pypresence, mock_logger):

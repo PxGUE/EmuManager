@@ -170,7 +170,22 @@ class AppConfig:
         Retorna y asegura la existencia del directorio de medios dinámico.
         Ejemplo: data/media/gba/covers/2d
         """
-        media_dir = cls.get_app_data_dir() / "media" / platform.lower() / media_type
+        # Sanitización de seguridad contra Path Traversal
+        # Evitamos que se usen rutas absolutas o saltos de directorio (..)
+        # platform y media_type pueden contener subdirectorios legítimos (ej: covers/2d)
+
+        base_media_dir = (cls.get_app_data_dir() / "media").resolve()
+
+        # Unimos las partes de forma segura
+        # Al usar platform.lstrip('/') nos aseguramos de que no sea tratada como ruta absoluta por Path()
+        media_dir = (base_media_dir / platform.lower().lstrip('/') / media_type.lstrip('/')).resolve()
+
+        # Verificación: El path resultante debe ser estrictamente un hijo de base_media_dir
+        try:
+            media_dir.relative_to(base_media_dir)
+        except ValueError:
+            raise ValueError(f"Intento de Path Traversal detectado: {platform}/{media_type}")
+
         media_dir.mkdir(parents=True, exist_ok=True)
         return media_dir
 

@@ -130,11 +130,13 @@ class DatabaseManager:
             LEFT JOIN play_stats s ON g.id = s.game_id
             ORDER BY COALESCE(s.play_time_seconds, 0) DESC, COALESCE(g.display_name, m.title) ASC
         '''
+        params = []
         if limit > 0:
-            query += f" LIMIT {limit}"
+            query += " LIMIT ?"
+            params.append(limit)
             
         with self.get_connection() as conn:
-            return [dict(row) for row in conn.execute(query).fetchall()]
+            return [dict(row) for row in conn.execute(query, params).fetchall()]
 
     def get_games_by_platform(self, platform: str):
         """Retorna juegos filtrados por plataforma."""

@@ -1,8 +1,16 @@
-import os
 import time
 from pathlib import Path
+from dataclasses import dataclass
 from PySide6.QtCore import QObject, Slot, Signal
 from core.logger import EmuLog
+
+@dataclass
+class EmulatorInstallConfig:
+    emu_id: str
+    system_id: str
+    url: str
+    dest_dir: str
+    executable: str
 
 class UpdateWorker(QObject):
     """Verifica actualizaciones consolidadas (App + Emuladores) vía M.A.N.G.O."""
@@ -150,47 +158,44 @@ class EmulatorInstallWorker(QObject):
     progress = Signal(str, float)
     status = Signal(str, str)
 
-    def __init__(self, emu_id: str, system_id: str, url: str, dest_dir: str, executable: str):
+    def __init__(self, config: EmulatorInstallConfig):
         super().__init__()
-        self.emu_id = emu_id
-        self.system_id = system_id
-        self.url = url
-        self.dest_dir = dest_dir
-        self.executable = executable
+        self.config = config
 
     @Slot()
     def run(self):
+        emu_id = self.config.emu_id
         try:
             import mango_engine
             def progress_cb(p: float):
-                self.progress.emit(self.emu_id, p)
+                self.progress.emit(emu_id, p)
             def status_cb(s: str):
-                EmuLog.debug(f"M.A.N.G.O Orchestra ({self.emu_id}): {s}")
-                self.status.emit(self.emu_id, s)
+                EmuLog.debug(f"M.A.N.G.O Orchestra ({emu_id}): {s}")
+                self.status.emit(emu_id, s)
             
-            EmuLog.info(f"M.A.N.G.O Orchestra: Instalando '{self.emu_id}' (System: {self.system_id or 'N/A'})")
+            EmuLog.info(f"M.A.N.G.O Orchestra: Instalando '{emu_id}' (System: {self.config.system_id or 'N/A'})")
             
             path = mango_engine.install_emulator_orchestra(
-                self.emu_id, 
-                self.system_id or "", 
-                self.url or "", 
-                self.dest_dir, 
-                self.executable, 
+                emu_id,
+                self.config.system_id or "",
+                self.config.url or "",
+                self.config.dest_dir,
+                self.config.executable,
                 progress_cb,
                 status_cb
             )
             
             if path:
-                EmuLog.info(f"Éxito en orquestación de '{self.emu_id}' -> {path}")
-                self.status.emit(self.emu_id, "install_success")
-                self.finished.emit(self.emu_id, path)
+                EmuLog.info(f"Éxito en orquestación de '{emu_id}' -> {path}")
+                self.status.emit(emu_id, "install_success")
+                self.finished.emit(emu_id, path)
             else:
-                self.status.emit(self.emu_id, "install_failed")
-                self.finished.emit(self.emu_id, "")
+                self.status.emit(emu_id, "install_failed")
+                self.finished.emit(emu_id, "")
         except Exception as e:
             EmuLog.error(f"Error en M.A.N.G.O Orchestra: {e}")
-            self.status.emit(self.emu_id, f"install_error|{str(e)}")
-            self.finished.emit(self.emu_id, "")
+            self.status.emit(emu_id, f"install_error|{str(e)}")
+            self.finished.emit(emu_id, "")
 
 
 class StartupWorker(QObject):
@@ -244,9 +249,6 @@ class StartupWorker(QObject):
         except Exception as e:
             EmuLog.error(f"Error crítico en StartupWorker: {e}")
             self.finished.emit()
-
-
-# EmulatorUpdateWorker ELIMINADO: La lógica está unificada en EmulatorInstallWorker (Orchestra).
 
 
 class EmulatorUninstallWorker(QObject):

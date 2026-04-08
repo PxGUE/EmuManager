@@ -5,7 +5,10 @@ import os
 import platform as py_platform
 from core.config import AppConfig
 from core.logger import EmuLog
-from controllers.workers import EmulatorInstallWorker, CoreDownloadWorker, LaunchWorker, EmulatorUninstallWorker
+from controllers.workers import (
+    EmulatorInstallWorker, CoreDownloadWorker, LaunchWorker,
+    EmulatorUninstallWorker, EmulatorInstallConfig
+)
 from backend.discord_rpc import DiscordRPCManager
 
 class OrchestraController(QObject):
@@ -128,8 +131,9 @@ class OrchestraController(QObject):
 
         EmuLog.info(f"M.A.N.G.O Orchestra: Iniciando misión para {emu_id}...")
         
+        config = EmulatorInstallConfig(emu_id, system_id, url, str(dest_dir), executable)
         self._emu_thread = QThread()
-        self._emu_worker = EmulatorInstallWorker(emu_id, system_id, url, str(dest_dir), executable)
+        self._emu_worker = EmulatorInstallWorker(config)
         self._emu_worker.moveToThread(self._emu_thread)
 
         self._emu_thread.started.connect(self._emu_worker.run)

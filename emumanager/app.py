@@ -101,7 +101,6 @@ if bin_path.exists() and str(bin_path) not in sys.path:
 
 # --- IMPORTACIONES DEL SISTEMA ---
 from controllers.main_ctrl import MainController
-from controllers.game_model import GameListModel
 
 # --- INICIALIZACIÓN DE ECOSISTEMA DE DATOS ---
 def init_storage():

@@ -99,9 +99,10 @@ chmod +x build/AppDir/AppRun
 
 # 9. BUILD FINAL APPIMAGE
 echo "📦 Finalizing AppImage..."
-ARCH=x86_64 ./appimagetool build/AppDir release/EmuManager.AppImage
+mkdir -p release/Linux
+ARCH=x86_64 ./appimagetool build/AppDir release/Linux/EmuManager.AppImage
 
 # 10. FINAL PERMISSIONS & CLEANUP
-chmod +x release/EmuManager.AppImage
+chmod +x release/Linux/EmuManager.AppImage
 
-echo "✅ Success! Your professional AppImage is ready at: release/EmuManager.AppImage"
+echo "✅ Success! Your professional AppImage is ready at: release/Linux/EmuManager.AppImage"

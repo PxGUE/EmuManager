@@ -38,28 +38,43 @@ load_dotenv(root_dir / "secrets.env")
 
 
 # --- CONFIGURACIÓN DE RUTAS ---
-current_dir = Path(__file__).resolve().parent
-if str(current_dir) not in sys.path:
-    sys.path.insert(0, str(current_dir))
+if getattr(sys, 'frozen', False):
+    # En modo empaquetado (Nuitka), Path(__file__) apunta al directorio de extracción temporal
+    base_dir = Path(__file__).resolve().parent
+    # Nuitka suele aplanar el script principal a la raíz del paquete
+    current_dir = base_dir 
+    
+    # Prioridad 1: Estructura empaquetada (emumanager/ui)
+    if (base_dir / "emumanager" / "ui").exists():
+        ui_root = base_dir / "emumanager"
+    else:
+        ui_root = base_dir # Fallback si se aplanó todo
+else:
+    # En desarrollo
+    current_dir = Path(__file__).resolve().parent
+    ui_root = current_dir
+
+if str(ui_root) not in sys.path:
+    sys.path.insert(0, str(ui_root))
 
 # Agregar backend al path
-backend_dir = current_dir / "backend"
+backend_dir = ui_root / "backend"
 if str(backend_dir) not in sys.path:
     sys.path.insert(0, str(backend_dir))
 
 # AGREGAR MOTOR NATIVO BINARIO (Linux/Windows)
 os_name = platform.system().lower()
 
-# Buscamos el motor nativo en dos ubicaciones posibles:
-# 1. Al lado del binario (Estructura optimizada de Windows)
-# 2. En la carpeta superior (Estructura de Desarrollo y AppImage)
-bin_path_prod = current_dir / "mango" / "bin" / os_name
-bin_path_dev = current_dir.parent / "mango" / "bin" / os_name
-
-if bin_path_prod.exists():
-    bin_path = bin_path_prod
+# En un paquete Onefile/Standalone, mango/bin debe estar relativo a la raíz del paquete
+if getattr(sys, 'frozen', False):
+    # En el release, mango está al mismo nivel que emumanager o en la raíz
+    bin_path = ui_root / "mango" / "bin" / os_name
+    if not bin_path.exists():
+        # Intento 2: Raíz absoluta del paquete
+        bin_path = Path(__file__).resolve().parent / "mango" / "bin" / os_name
 else:
-    bin_path = bin_path_dev
+    # Desarrollo
+    bin_path = ui_root.parent / "mango" / "bin" / os_name
 
 if bin_path.exists() and str(bin_path) not in sys.path:
     sys.path.insert(0, str(bin_path))
@@ -106,7 +121,7 @@ def main():
     # También registramos los modelos para que QML los vea globalmente si se desea
     # (En este caso los seguiremos instanciando en QML pero vinculados al controlador global)
     
-    qml_file = current_dir / "ui" / "main.qml"
+    qml_file = ui_root / "ui" / "main.qml"
     
     # Cargamos la interfaz principal
     engine.load(str(qml_file))

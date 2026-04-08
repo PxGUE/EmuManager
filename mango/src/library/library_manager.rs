@@ -557,6 +557,48 @@ fn identify_game_file(p: &Path) -> Option<ScannedGame> {
     }
 }
 
+/// Inserta o actualiza el registro de un juego en la base de datos.
+fn upsert_game_record(tx: &rusqlite::Transaction<'_>, game: &ScannedGame) -> Result<usize> {
+    let serial_owned = game.serial.clone().unwrap_or_default();
+    let changed = tx.execute(
+        "INSERT INTO games (file_hash, file_path, display_name, platform, file_size, serial)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6)
+         ON CONFLICT(file_hash) DO UPDATE SET
+            serial = CASE WHEN serial IS NULL OR serial = '' THEN ?6 ELSE serial END,
+            file_path = ?2",
+        [&game.hash, &game.path, &game.display_name, &game.platform, &game.size.to_string(), &serial_owned],
+    ).unwrap_or(0);
+
+    let _ = tx.execute(
+        "INSERT OR IGNORE INTO game_metadata (game_id, title)
+         SELECT id, ? FROM games WHERE file_hash = ?",
+        [game.display_name.clone(), game.hash.clone()],
+    );
+
+    Ok(changed)
+}
+
+/// Informa del progreso de registro a los callbacks de Python.
+fn report_registration_progress(
+    pc: &Option<Py<PyAny>>,
+    sc: &Option<Py<PyAny>>,
+    current_idx: usize,
+    total: usize,
+    game_name: &str,
+) {
+    if current_idx % 25 == 0 || current_idx == total {
+        let progress = 0.9 + ((current_idx as f64 / total as f64) * 0.1);
+        Python::with_gil(|py| {
+            if let Some(pc_cb) = pc {
+                let _ = pc_cb.bind(py).call1((progress,));
+            }
+            if let Some(sc_cb) = sc {
+                let _ = sc_cb.bind(py).call1((format!("scan_registering|{}", game_name),));
+            }
+        });
+    }
+}
+
 /// Registra una lista de juegos escaneados en la base de datos de forma masiva.
 fn register_scanned_games(
     py: Python<'_>,
@@ -582,39 +624,10 @@ fn register_scanned_games(
 
         for game in results {
             current_idx += 1;
-            
-            let serial_str = game.serial.unwrap_or_default();
-            let changed = tx.execute(
-                "INSERT INTO games (file_hash, file_path, display_name, platform, file_size, serial) 
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6)
-                 ON CONFLICT(file_hash) DO UPDATE SET 
-                    serial = CASE WHEN serial IS NULL OR serial = '' THEN ?6 ELSE serial END,
-                    file_path = ?2",
-                [&game.hash, &game.path, &game.display_name, &game.platform, &game.size.to_string(), &serial_str],
-            ).unwrap_or(0);
-
-            let _ = tx.execute(
-                "INSERT OR IGNORE INTO game_metadata (game_id, title) 
-                 SELECT id, ? FROM games WHERE file_hash = ?",
-                [game.display_name.clone(), game.hash.clone()],
-            );
-
-            if changed > 0 {
+            if upsert_game_record(&tx, &game).unwrap_or(0) > 0 {
                 new_games += 1;
             }
-
-            if current_idx % 25 == 0 || current_idx == total_new {
-                let progress = 0.9 + ( (current_idx as f64 / total_new as f64) * 0.1 );
-                let game_name = game.display_name.clone();
-                Python::with_gil(|py| {
-                    if let Some(pc) = &pc_final { 
-                        let _ = pc.bind(py).call1((progress,));
-                    }
-                    if let Some(sc) = &sc_final { 
-                        let _ = sc.bind(py).call1((format!("scan_registering|{}", game_name),));
-                    }
-                });
-            }
+            report_registration_progress(&pc_final, &sc_final, current_idx, total_new, &game.display_name);
         }
 
         tx.commit().map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e.to_string()))?;

@@ -29,87 +29,93 @@ class DatabaseManager:
         """Inicializa la base de datos completa de EmuManager."""
         with self.get_connection() as conn:
             cursor = conn.cursor()
-            
-            # Tabla: scan_paths
-            cursor.execute('''
-                CREATE TABLE IF NOT EXISTS scan_paths (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    path TEXT UNIQUE NOT NULL,
-                    added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            ''')
-            
-            # Tabla: games (Identidad inmutable basada en hash del archivo)
-            cursor.execute('''
-                CREATE TABLE IF NOT EXISTS games (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    file_hash TEXT UNIQUE NOT NULL,
-                    file_path TEXT NOT NULL,
-                    display_name TEXT,
-                    platform TEXT NOT NULL,
-                    file_size INTEGER NOT NULL,
-                    serial TEXT,
-                    scanned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-                )
-            ''')
-            
-            # Tabla: game_metadata (Scraping y presentacion)
-            cursor.execute('''
-                CREATE TABLE IF NOT EXISTS game_metadata (
-                    game_id INTEGER PRIMARY KEY,
-                    title TEXT NOT NULL,
-                    developer TEXT,
-                    publisher TEXT,
-                    release_date TEXT,
-                    genre TEXT,
-                    description TEXT,
-                    cover_2d_path TEXT,
-                    cover_3d_path TEXT,
-                    is_favorite INTEGER DEFAULT 0,
-                    FOREIGN KEY (game_id) REFERENCES games (id) ON DELETE CASCADE
-                )
-            ''')
-            
-            # Migraciones individuales para asegurar robustez
-            for cmd in [
-                "ALTER TABLE games ADD COLUMN display_name TEXT",
-                "ALTER TABLE games ADD COLUMN serial TEXT",
-                "ALTER TABLE game_metadata ADD COLUMN cover_2d_path TEXT",
-                "ALTER TABLE game_metadata ADD COLUMN cover_3d_path TEXT",
-                "ALTER TABLE game_metadata ADD COLUMN is_favorite INTEGER DEFAULT 0"
-            ]:
-                try:
-                    cursor.execute(cmd)
-                except sqlite3.OperationalError:
-                    pass # La columna ya existe
-
-            # Índices para Optimización Masiva (Crucial para colecciones > 10,000 juegos)
-            cursor.execute("CREATE INDEX IF NOT EXISTS idx_games_platform ON games(platform)")
-            cursor.execute("CREATE INDEX IF NOT EXISTS idx_games_filepath ON games(file_path)")
-            cursor.execute("CREATE INDEX IF NOT EXISTS idx_metadata_title ON game_metadata(title)")
-            
-            # Tabla: play_stats (Telemetría pura local)
-            cursor.execute('''
-                CREATE TABLE IF NOT EXISTS play_stats (
-                    game_id INTEGER PRIMARY KEY,
-                    play_time_seconds INTEGER DEFAULT 0,
-                    last_played_at TIMESTAMP,
-                    play_count INTEGER DEFAULT 0,
-                    FOREIGN KEY (game_id) REFERENCES games (id) ON DELETE CASCADE
-                )
-            ''')
-
-            # Tabla: emulator_status (Seguimiento de versiones para M.A.N.G.O Sync)
-            cursor.execute('''
-                CREATE TABLE IF NOT EXISTS emulator_status (
-                    emu_id TEXT PRIMARY KEY,
-                    installed_tag TEXT,
-                    last_checked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                    remote_tag TEXT
-                )
-            ''')
-            
+            self._create_tables(cursor)
+            self._apply_migrations(cursor)
+            self._create_indexes(cursor)
             conn.commit()
+
+    def _create_tables(self, cursor: sqlite3.Cursor):
+        """Crea las tablas básicas de la base de datos."""
+        # Tabla: scan_paths
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS scan_paths (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                path TEXT UNIQUE NOT NULL,
+                added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+
+        # Tabla: games (Identidad inmutable basada en hash del archivo)
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS games (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                file_hash TEXT UNIQUE NOT NULL,
+                file_path TEXT NOT NULL,
+                display_name TEXT,
+                platform TEXT NOT NULL,
+                file_size INTEGER NOT NULL,
+                serial TEXT,
+                scanned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ''')
+
+        # Tabla: game_metadata (Scraping y presentacion)
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS game_metadata (
+                game_id INTEGER PRIMARY KEY,
+                title TEXT NOT NULL,
+                developer TEXT,
+                publisher TEXT,
+                release_date TEXT,
+                genre TEXT,
+                description TEXT,
+                cover_2d_path TEXT,
+                cover_3d_path TEXT,
+                is_favorite INTEGER DEFAULT 0,
+                FOREIGN KEY (game_id) REFERENCES games (id) ON DELETE CASCADE
+            )
+        ''')
+
+        # Tabla: play_stats (Telemetría pura local)
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS play_stats (
+                game_id INTEGER PRIMARY KEY,
+                play_time_seconds INTEGER DEFAULT 0,
+                last_played_at TIMESTAMP,
+                play_count INTEGER DEFAULT 0,
+                FOREIGN KEY (game_id) REFERENCES games (id) ON DELETE CASCADE
+            )
+        ''')
+
+        # Tabla: emulator_status (Seguimiento de versiones para M.A.N.G.O Sync)
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS emulator_status (
+                emu_id TEXT PRIMARY KEY,
+                installed_tag TEXT,
+                last_checked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                remote_tag TEXT
+            )
+        ''')
+
+    def _apply_migrations(self, cursor: sqlite3.Cursor):
+        """Aplica migraciones individuales para asegurar robustez."""
+        for cmd in [
+            "ALTER TABLE games ADD COLUMN display_name TEXT",
+            "ALTER TABLE games ADD COLUMN serial TEXT",
+            "ALTER TABLE game_metadata ADD COLUMN cover_2d_path TEXT",
+            "ALTER TABLE game_metadata ADD COLUMN cover_3d_path TEXT",
+            "ALTER TABLE game_metadata ADD COLUMN is_favorite INTEGER DEFAULT 0"
+        ]:
+            try:
+                cursor.execute(cmd)
+            except sqlite3.OperationalError:
+                pass # La columna ya existe
+
+    def _create_indexes(self, cursor: sqlite3.Cursor):
+        """Crea índices para optimización de consultas."""
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_games_platform ON games(platform)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_games_filepath ON games(file_path)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_metadata_title ON game_metadata(title)")
 
     def count_all_roms(self) -> int:
         with self.get_connection() as conn:

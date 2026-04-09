@@ -1,49 +1,8 @@
-import sys
-import os
-from unittest.mock import MagicMock, patch, PropertyMock
+import unittest.mock as mock
+from unittest.mock import MagicMock, patch
 from pathlib import Path
-
-# Mock psutil, PySide6, and pypresence before they are imported
-mock_pyside6 = MagicMock()
-mock_qtcore = MagicMock()
-
-class MockSignal:
-    def __init__(self, *args, **kwargs):
-        self._instances = {}
-    def __get__(self, instance, owner):
-        if instance is None: return self
-        if instance not in self._instances:
-            m = MagicMock()
-            # Add emit to the mock if it doesn't have it (it should by default)
-            self._instances[instance] = m
-        return self._instances[instance]
-
-# Create a functional QObject mock
-class MockQObject:
-    def __init__(self, *args, **kwargs):
-        pass
-
-def mock_slot(*args, **kwargs):
-    if len(args) == 1 and callable(args[0]):
-        return args[0]
-    return lambda x: x
-
-mock_qtcore.Signal = MockSignal
-mock_qtcore.Slot = mock_slot
-mock_qtcore.QObject = MockQObject
-
-sys.modules['PySide6'] = mock_pyside6
-sys.modules['PySide6.QtCore'] = mock_qtcore
-sys.modules['psutil'] = MagicMock()
-sys.modules['pypresence'] = MagicMock()
-sys.modules['mango_engine'] = MagicMock()
-
-# Add emumanager to sys.path and also emumanager/ so 'from backend...' works
-root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-sys.path.insert(0, root_dir)
-sys.path.insert(0, os.path.join(root_dir, 'emumanager'))
-
 import pytest
+
 from emumanager.controllers.workers import (
     UpdateWorker, ScanWorker, ScrapeWorker, CoreDownloadWorker,
     EmulatorInstallWorker, StartupWorker, EmulatorUninstallWorker,

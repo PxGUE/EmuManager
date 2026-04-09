@@ -1,12 +1,6 @@
-import sys
 import unittest.mock as mock
 import pytest
-
-# Mocking dependencies
-sys.modules['backend.database'] = mock.MagicMock()
-sys.modules['core.config'] = mock.MagicMock()
-sys.modules['core.logger'] = mock.MagicMock()
-
+# dependencies are now handled by conftest.py or mocker
 from emumanager.controllers.game_model import GameListModel
 
 @pytest.fixture
@@ -33,14 +27,14 @@ def test_favorite_toggle_updates_memory(model):
     assert model._id_to_game[2]["is_favorite"] == 0
 
 def test_favorite_toggle_emits_data_changed(model):
-    with mock.patch.object(model, 'dataChanged') as mock_emit:
-        model.set_favorite_locally(3, True)
-        # Metroid is at index 2
-        mock_emit.emit.assert_called()
-        args, _ = mock_emit.emit.call_args
-        assert args[0].row() == 2
-        assert args[1].row() == 2
-        assert GameListModel.IsFavoriteRole in args[2]
+    # We don't patch, we trust the conftest mock
+    model.set_favorite_locally(3, True)
+    # Metroid is at index 2
+    model.dataChanged.emit.assert_called()
+    args, _ = model.dataChanged.emit.call_args
+    assert args[0].row() == 2
+    assert args[1].row() == 2
+    assert GameListModel.IsFavoriteRole in args[2]
 
 def test_favorites_only_filter(model):
     model.showFavoritesOnly = True

@@ -10,6 +10,7 @@ class AppConfig:
     IS_DEV_MODE = True # Desarrollo activo: Bypass de comprobaciones reales
     _config_cache: Optional[dict] = None
     _app_root: Optional[Path] = None
+    _custom_data_dir: Optional[Path] = None
 
     @classmethod
     def set_app_root(cls, root: Path):
@@ -29,6 +30,9 @@ class AppConfig:
         Retorna el directorio de datos local de la aplicación.
         Usa rutas estándar del sistema en modo empaquetado para evitar errores de solo lectura.
         """
+        if cls._custom_data_dir:
+            return cls._custom_data_dir
+
         import sys
         
         # Detección Robusta (Igual que en app.py)

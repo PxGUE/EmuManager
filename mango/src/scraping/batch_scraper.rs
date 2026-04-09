@@ -1,11 +1,11 @@
-use crate::scraping::scraper::{scrape_game, ScrapedMetadata};
+use crate::scraping::scraper::scrape_game;
 use rusqlite::{params, Connection};
-use std::sync::atomic::{AtomicBool, Ordering};
+// use std::sync::atomic::{AtomicBool, Ordering}; (Removed unused)
 use std::sync::Arc;
 use pyo3::prelude::*;
 use std::path::Path;
-use std::thread;
-use std::time::Duration;
+// use std::thread; (Removed unused)
+// use std::time::Duration; (Removed unused)
 use futures::stream::{self, StreamExt};
 
 
@@ -57,7 +57,7 @@ pub fn run_batch_scrape(
     gametdb_mode: String,
 ) -> PyResult<usize> {
     
-    let mut conn = Connection::open(&db_path)
+    let conn = Connection::open(&db_path)
         .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("DB Open error: {}", e)))?;
     
     let mut pending = Vec::new();
@@ -97,7 +97,7 @@ pub fn run_batch_scrape(
     }
     
     // Determinar si debemos usar ScreenScraper basándonos en credenciales + validación
-    let ss_available = if ss_id.is_empty() || ss_pass.is_empty() {
+    let _ss_available = if ss_id.is_empty() || ss_pass.is_empty() {
         log_to_python(py, "warning", "Credenciales de ScreenScraper no configuradas. Usando modo de rescate (Libretro).");
         false
     } else {

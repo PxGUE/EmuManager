@@ -1,18 +1,7 @@
-import sys
-import os
+import unittest.mock as mock
 from unittest.mock import MagicMock, patch
 from pathlib import Path
-
-# Mock psutil, PySide6, and pypresence before they are imported
-sys.modules['psutil'] = MagicMock()
-sys.modules['PySide6'] = MagicMock()
-sys.modules['PySide6.QtCore'] = MagicMock()
-sys.modules['pypresence'] = MagicMock()
-
 import pytest
-
-# Add emumanager to sys.path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from emumanager.backend.libretro import LibretroManager
 

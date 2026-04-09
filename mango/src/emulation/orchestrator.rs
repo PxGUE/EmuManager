@@ -1,3 +1,4 @@
+#[cfg(target_os = "linux")]
 use std::process::Command;
 use anyhow::Error;
 
@@ -51,15 +52,14 @@ pub async fn install_via_system(id: &str) -> Result<(), Error> {
         if !status.success() {
             return Err(anyhow::anyhow!("Fallo en la instalación vía Flatpak. Código: {:?}", status.code()));
         }
+        Ok(())
     }
 
     #[cfg(target_os = "windows")]
     {
         // En Windows no usamos orquestadores de sistema por políticas de portabilidad
-        return Err(anyhow::anyhow!("Orquestación de sistema desactivada en Windows."));
+        Err(anyhow::anyhow!("Orquestación de sistema desactivada en Windows."))
     }
-
-    Ok(())
 }
 
 /// Busca ejecutables en el PATH (Usado solo para autodetección si Flatpak falla).

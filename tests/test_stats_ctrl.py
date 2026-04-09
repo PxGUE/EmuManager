@@ -1,29 +1,7 @@
-import sys
-import os
+import unittest.mock as mock
 from unittest.mock import MagicMock, patch
-
-# Mock PySide6 before it is imported in the controller
-class MockQObject:
-    def __init__(self, parent=None, **kwargs):
-        pass
-
-mock_qtcore = MagicMock()
-mock_qtcore.QObject = MockQObject
-mock_qtcore.Slot = lambda *args, **kwargs: lambda func: func
-mock_qtcore.Signal = lambda *args, **kwargs: MagicMock()
-
-sys.modules['PySide6'] = MagicMock()
-sys.modules['PySide6.QtCore'] = mock_qtcore
-
-# Mock other potential dependencies if needed
-sys.modules['pypresence'] = MagicMock()
-sys.modules['psutil'] = MagicMock()
-
 import pytest
 from pathlib import Path
-
-# Add emumanager to sys.path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from emumanager.controllers.stats_ctrl import StatsController
 from emumanager.backend.database import DatabaseManager

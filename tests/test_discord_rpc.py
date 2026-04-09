@@ -1,25 +1,7 @@
-import sys
-from unittest.mock import MagicMock
-
-# Mock heavy/problematic dependencies
-sys.modules["psutil"] = MagicMock()
-sys.modules["PySide6"] = MagicMock()
-sys.modules["PySide6.QtWidgets"] = MagicMock()
-sys.modules["PySide6.QtCore"] = MagicMock()
-sys.modules["PySide6.QtQml"] = MagicMock()
-
-import pytest
+import unittest.mock as mock
 from unittest.mock import MagicMock, patch
 import os
-
-# Mock psutil and pypresence before they are imported
-sys.modules['psutil'] = MagicMock()
-sys.modules['pypresence'] = MagicMock()
-sys.modules['PySide6'] = MagicMock()
-sys.modules['PySide6.QtCore'] = MagicMock()
-
-# Asegurar que emumanager esté en el path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+import pytest
 
 from emumanager.backend.discord_rpc import DiscordRPCManager
 

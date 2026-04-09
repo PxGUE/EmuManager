@@ -153,7 +153,7 @@ class GameListModel(QAbstractListModel):
             self._games = [g for g in self._all_results if bool(g.get("is_favorite", 0))]
         else:
             self._games = self._all_results
-
+        
         # Reconstruir mapa de ID a índice en la vista actual
         self._id_to_index_in_view = {int(g.get("id", -1)): i for i, g in enumerate(self._games)}
 

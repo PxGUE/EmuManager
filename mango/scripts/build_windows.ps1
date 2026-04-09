@@ -16,6 +16,7 @@ if (-not (Test-Path $out_dir)) {
 Write-Host "--- Compilando M.A.N.G.O. Engine para $os_name (Windows) ---" -ForegroundColor Cyan
 
 # Compilar con maturin (vía Python para mayor compatibilidad)
+$env:PYO3_USE_ABI3_FORWARD_COMPATIBILITY = 1
 python -m maturin build --release
 
 # Buscar el binario en la carpeta target y moverlo al destino final (.dll -> .pyd)

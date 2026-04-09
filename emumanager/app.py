@@ -122,7 +122,14 @@ def main():
     # Silenciar avisos de perfiles de color de libpng (iCCP warnings)
     os.environ["QT_LOGGING_RULES"] = "qt.gui.imageio=false"
     
+    from PySide6.QtGui import QIcon
     app = QApplication(sys.argv)
+    
+    # --- CONFIGURACIÓN DE IDENTIDAD VISUAL ---
+    icon_path = ui_root / "ui" / "assets" / "logo.ico"
+    if icon_path.exists():
+        app.setWindowIcon(QIcon(str(icon_path)))
+    
     engine = QQmlApplicationEngine()
     
     # --- REGISTRAR CONTROLADOR GLOBAL ---

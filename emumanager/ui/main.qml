@@ -13,8 +13,150 @@ ApplicationWindow {
     width: 1280; height: 800
     title: "EmuManager"
     
+    flags: Qt.Window | Qt.FramelessWindowHint
+    
     Material.theme: Material.Dark
     Material.accent: Theme.accentColor
+
+    // --- CUSTOM TITLE BAR (PREMIUM ELEGANCE) ---
+    header: Rectangle {
+        id: titleBar
+        height: 40
+        color: Theme.sidebarBackground
+        z: 9999
+        
+        // Window Dragging
+        DragHandler {
+            onActiveChanged: if (active) window.startSystemMove()
+        }
+        
+        RowLayout {
+            anchors.fill: parent
+            anchors.leftMargin: 20
+            anchors.rightMargin: 12
+            spacing: 15
+            
+            // Logo con resplandor suave
+            Item {
+                Layout.preferredWidth: 22; Layout.preferredHeight: 22
+                Image {
+                    id: logoImg
+                    source: "assets/logo.svg"
+                    anchors.fill: parent
+                    fillMode: Image.PreserveAspectFit
+                    smooth: true
+                    opacity: 0.9
+                }
+                // Sutil resplandor ambiental
+                Rectangle {
+                    anchors.centerIn: parent; width: 15; height: 15
+                    radius: 7.5; color: Theme.accentColor; z: -1; opacity: 0.15
+                    layer.enabled: true
+                    layer.effect: FastBlur { radius: 8 }
+                }
+            }
+            
+            Text {
+                text: window.title.toUpperCase()
+                color: Theme.textMain
+                font.pixelSize: 10
+                font.letterSpacing: 3
+                font.bold: true
+                opacity: 0.7
+                Layout.fillWidth: true
+            }
+            
+            // Minimalist Window Controls
+            Row {
+                spacing: 2
+                Layout.alignment: Qt.AlignVCenter
+                
+                // Helper para botones elegantes
+                component WinButton : Rectangle {
+                    id: btnRoot
+                    property string icon: ""
+                    property color hoverColor: Theme.accentColor
+                    property color hoverBg: "#1affffff" // Fondo sutil por defecto
+                    property alias pixelSize: iconTxt.font.pixelSize
+                    signal clicked()
+                    
+                    width: 40; height: 32; radius: 6
+                    color: hoverHandler.hovered ? btnRoot.hoverBg : "transparent"
+                    Behavior on color { ColorAnimation { duration: 200; easing.type: Easing.OutCubic } }
+                    
+                    Text {
+                        id: iconTxt
+                        anchors.centerIn: parent
+                        text: btnRoot.icon
+                        color: hoverHandler.hovered ? (btnRoot.hoverBg === Theme.statusDanger ? "#ffffff" : btnRoot.hoverColor) : Theme.textMain
+                        opacity: hoverHandler.hovered ? 1.0 : 0.6
+                        font.pixelSize: 16
+                        Behavior on color { ColorAnimation { duration: 200 } }
+                        Behavior on opacity { NumberAnimation { duration: 200 } }
+                    }
+                    
+                    HoverHandler { id: hoverHandler }
+                    TapHandler { onTapped: btnRoot.clicked() }
+                }
+
+                WinButton { 
+                    icon: "−"; pixelSize: 20
+                    onClicked: window.showMinimized() 
+                }
+                
+                WinButton { 
+                    icon: window.visibility === Window.Maximized ? "❐" : "⬜"
+                    pixelSize: 12
+                    onClicked: window.visibility === Window.Maximized ? window.showNormal() : window.showMaximized() 
+                }
+
+                WinButton { 
+                    icon: "✕"; pixelSize: 14
+                    hoverBg: Theme.statusDanger // Fondo rojo vivo al cerrar
+                    onClicked: window.close() 
+                }
+            }
+        }
+        
+        // Línea divisoria elegante (Glass line)
+        Rectangle {
+            anchors.bottom: parent.bottom; width: parent.width; height: 1
+            gradient: Gradient {
+                orientation: Gradient.Horizontal
+                GradientStop { position: 0.0; color: "transparent" }
+                GradientStop { position: 0.5; color: Theme.divider }
+                GradientStop { position: 1.0; color: "transparent" }
+            }
+            opacity: 0.3
+        }
+    }
+
+    // --- RESIZING HANDLERS ---
+    MouseArea {
+        id: topResize; height: 4; anchors { top: parent.top; left: parent.left; right: parent.right }
+        cursorShape: Qt.SizeVerCursor
+        onPressed: window.startSystemResize(Qt.TopEdge)
+    }
+    MouseArea {
+        id: bottomResize; height: 4; anchors { bottom: parent.bottom; left: parent.left; right: parent.right }
+        cursorShape: Qt.SizeVerCursor
+        onPressed: window.startSystemResize(Qt.BottomEdge)
+    }
+    MouseArea {
+        id: leftResize; width: 4; anchors { top: parent.top; bottom: parent.bottom; left: parent.left }
+        cursorShape: Qt.SizeHorCursor
+        onPressed: window.startSystemResize(Qt.LeftEdge)
+    }
+    MouseArea {
+        id: rightResize; width: 4; anchors { top: parent.top; bottom: parent.bottom; right: parent.right }
+        cursorShape: Qt.SizeHorCursor
+        onPressed: window.startSystemResize(Qt.RightEdge)
+    }
+    MouseArea {
+        id: bottomRightResize; width: 8; height: 8; anchors { bottom: parent.bottom; right: parent.right }
+        cursorShape: Qt.SizeFDiagCursor
+        onPressed: window.startSystemResize(Qt.RightEdge | Qt.BottomEdge)
+    }
 
     // --- MOTOR DE PROGRESO DE ARRANQUE REAL ---
     property bool isLoaded: false

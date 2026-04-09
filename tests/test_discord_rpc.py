@@ -180,6 +180,18 @@ def test_clear_presence_success(mock_pypresence, mock_logger):
     mock_instance.clear.assert_called_once()
     mock_logger.info.assert_called_with("Discord RPC: Estado limpiado.")
 
+def test_clear_presence_exception(mock_pypresence, mock_logger):
+    mock_class, mock_instance = mock_pypresence
+    manager = DiscordRPCManager()
+    manager.rpc = mock_instance
+    manager._is_connected = True
+
+    mock_instance.clear.side_effect = Exception("Clear error")
+    manager.clear_presence()
+
+    mock_logger.debug.assert_called_with("Discord RPC: Error al limpiar presencia (¿Discord cerrado?): Clear error")
+    assert manager._is_connected is False
+
 def test_disconnect(mock_pypresence, mock_logger):
     mock_class, mock_instance = mock_pypresence
     manager = DiscordRPCManager()
@@ -191,3 +203,16 @@ def test_disconnect(mock_pypresence, mock_logger):
     assert manager._is_connected is False
     assert manager.rpc is None
     mock_logger.info.assert_called_with("Discord RPC: Desconectado.")
+
+def test_disconnect_exception(mock_pypresence, mock_logger):
+    mock_class, mock_instance = mock_pypresence
+    manager = DiscordRPCManager()
+    manager.rpc = mock_instance
+    manager._is_connected = True
+
+    mock_instance.close.side_effect = Exception("Disconnect error")
+    manager.disconnect()
+
+    mock_logger.debug.assert_called_with("Discord RPC: Error al desconectar: Disconnect error")
+    assert manager._is_connected is False
+    assert manager.rpc is None

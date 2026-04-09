@@ -369,6 +369,10 @@ class MainController(QObject):
     def _handle_update_result(self, results):
         """Procesa los resultados de actualización y dispara notificaciones."""
         updates_found = 0
+        remote_tags_to_save = {}
+
+        # 1. Obtener estado actual una sola vez (Evitar N+1)
+        installed_map = self.orch_ctrl.get_installed_tags()
         
         for res in results:
             item_id = res.get("id")
@@ -387,12 +391,11 @@ class MainController(QObject):
                     )
             else:
                 # Lógica para emuladores
-                installed_map = self.orch_ctrl.get_installed_tags()
                 emu_data = installed_map.get(item_id, {})
                 installed_tag = emu_data.get("installed_tag", "")
                 
-                # Siempre guardar el remote_tag para que la UI se entere del hasUpdate
-                self.orch_ctrl.save_remote_tag(item_id, remote_tag)
+                # Coleccionar remote_tag para guardado por lotes
+                remote_tags_to_save[item_id] = remote_tag
                 
                 if installed_tag != remote_tag:
                     updates_found += 1
@@ -402,6 +405,10 @@ class MainController(QObject):
                         f"emu_update_msg|{emu_name}|{remote_tag}",
                         "success"
                     )
+
+        # 2. Guardar todos los tags remotos en una sola transacción
+        if remote_tags_to_save:
+            self.orch_ctrl.save_remote_tags_batch(remote_tags_to_save)
 
         if updates_found > 0:
             EmuLog.info(f"M.A.N.G.O (Updater): Se han detectado {updates_found} actualizaciones.")

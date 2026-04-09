@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import List, Dict, Optional
+from typing import List, Optional
 
 try:
     import mango_engine
@@ -49,7 +49,7 @@ CORE_DATABASE = {
     "gbc": [("gambatte", "Gambatte (Game Boy Color)")]
 }
 
-def _build_core_platform_map() -> Dict[str, str]:
+def _build_core_platform_map() -> dict[str, str]:
     """Crea un mapeo inverso core_id -> plataforma optimizado."""
     mapping = {}
     for platform, cores in CORE_DATABASE.items():
@@ -87,7 +87,7 @@ class LibretroManager:
         cores = CORE_DATABASE.get(platform.lower(), [])
         return cores[0][0] if cores else None
 
-    def fetch_filtered_cores(self, active_platforms: List[str]) -> List[Dict[str, str]]:
+    def fetch_filtered_cores(self, active_platforms: List[str]) -> List[dict[str, str]]:
         """
         Obtiene la lista de cores disponibles, pero los filtra para mostrar solo los
         que corresponden a consolas que el usuario tiene juegos (active_platforms).

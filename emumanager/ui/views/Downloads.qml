@@ -135,48 +135,17 @@ Item {
                         Text { text: I18n.t.library; color: Theme.statusSuccess; font.pixelSize: Theme.fontSmall; font.bold: true; font.letterSpacing: 1.5 }
                         Text { text: I18n.t.sync_roms; color: Theme.textMain; font.pixelSize: Theme.fontBody; font.bold: true }
                         
-                        // Barra de Progreso Maestra (KINETIC STYLE)
-                        Item {
-                            Layout.fillWidth: true; Layout.preferredHeight: 8; visible: isScanning
-                            clip: true // Asegura que el pulso no se salga de los bordes redondeados
-                            
-                            // Track (Fondo)
-                            Rectangle {
-                                anchors.fill: parent; radius: 4; color: Theme.backgroundVoid; opacity: 0.5
-                                border.color: Theme.cardBorder; border.width: 1
-                            }
+                        // Barra de Progreso Maestra (LEAN PORSCHE STYLE)
+                        Rectangle {
+                            Layout.fillWidth: true; Layout.preferredHeight: 6; visible: isScanning
+                            radius: 3; color: Theme.backgroundVoid; opacity: 0.8
+                            border.color: Theme.cardBorder; border.width: 1
+                            clip: true
 
-                            // Progress Fill
-                            Rectangle {
-                                id: progressFill
-                                height: parent.height; radius: 4; color: Theme.statusSuccess
-                                width: Math.max(parent.width * (scanVal || 0.0), scanVal < 0.01 ? indeterminateBar.width : 0)
-                                
-                                Behavior on width { NumberAnimation { duration: 400; easing.type: Easing.OutCubic } }
-                                
-                                // Glow effect
-                                layer.enabled: true
-                                layer.effect: MultiEffect {
-                                    shadowEnabled: true; shadowBlur: 0.5; shadowColor: Theme.statusSuccess; shadowOpacity: 0.4
-                                }
-                            }
-
-                            // Indeterminate Pulse (Only while collecting/starting)
-                            Rectangle {
-                                id: indeterminateBar
-                                width: 120; height: parent.height; radius: 4
-                                visible: scanVal < 0.05
-                                gradient: Gradient {
-                                    orientation: Gradient.Horizontal
-                                    GradientStop { position: 0.0; color: Theme.transparent }
-                                    GradientStop { position: 0.5; color: Qt.alpha(Theme.statusSuccess, 0.6) }
-                                    GradientStop { position: 1.0; color: Theme.transparent }
-                                }
-                                
-                                SequentialAnimation on x {
-                                    running: indeterminateBar.visible; loops: Animation.Infinite
-                                    NumberAnimation { from: -130; to: parent.width + 10; duration: 1200; easing.type: Easing.InOutSine }
-                                }
+                            Rectangle { 
+                                id: scanFill
+                                height: parent.height; radius: 3; color: Theme.statusSuccess 
+                                width: parent.width * (scanVal || 0.0)
                             }
                         }
 
@@ -238,47 +207,19 @@ Item {
                         Text { text: I18n.t.mango_monitor; color: Theme.statusWarning; font.pixelSize: Theme.fontSmall; font.bold: true; font.letterSpacing: 1.5 }
                         Text { text: I18n.t.sync_media; color: Theme.textMain; font.pixelSize: Theme.fontBody; font.bold: true }
 
-                        // Barra de Progreso Maestra para Scraping
-                        Item {
-                            Layout.fillWidth: true; Layout.preferredHeight: 8; visible: isScraping
+                        // Barra de Progreso Maestra para Scraping (LEAN PORSCHE STYLE)
+                        Rectangle {
+                            Layout.fillWidth: true; Layout.preferredHeight: 6; visible: isScraping
+                            radius: 3; color: Theme.backgroundVoid; opacity: 0.8
+                            border.color: Theme.cardBorder; border.width: 1
                             clip: true
-                            
-                            // Track
-                            Rectangle {
-                                anchors.fill: parent; radius: 4; color: Theme.backgroundVoid; opacity: 0.5
-                                border.color: Theme.cardBorder; border.width: 1
-                            }
 
-                            // Progress Fill
-                            Rectangle {
+                            Rectangle { 
                                 id: scrapeFill
-                                height: parent.height; radius: 4; color: Theme.statusWarning
-                                width: Math.max(parent.width * (scrapeVal || 0.0), scrapeVal < 0.01 ? indeterminateScrape.width : 0)
+                                height: parent.height; radius: 3; color: Theme.statusWarning 
+                                width: parent.width * (scrapeVal || 0.0)
                                 
-                                Behavior on width { NumberAnimation { duration: 400; easing.type: Easing.OutCubic } }
-                                
-                                // Glow
-                                layer.enabled: true
-                                layer.effect: MultiEffect {
-                                    shadowEnabled: true; shadowBlur: 0.5; shadowColor: Theme.statusWarning; shadowOpacity: 0.4
-                                }
-                            }
-
-                            // Pulse
-                            Rectangle {
-                                id: indeterminateScrape
-                                width: 120; height: parent.height; radius: 4
-                                visible: scrapeVal < 0.01
-                                gradient: Gradient {
-                                    orientation: Gradient.Horizontal
-                                    GradientStop { position: 0.0; color: Theme.transparent }
-                                    GradientStop { position: 0.5; color: Qt.alpha(Theme.statusWarning, 0.6) }
-                                    GradientStop { position: 1.0; color: Theme.transparent }
-                                }
-                                SequentialAnimation on x {
-                                    running: indeterminateScrape.visible; loops: Animation.Infinite
-                                    NumberAnimation { from: -130; to: parent.width + 10; duration: 1500; easing.type: Easing.InOutSine }
-                                }
+                                Behavior on width { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
                             }
                         }
 

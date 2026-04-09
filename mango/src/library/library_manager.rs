@@ -689,6 +689,11 @@ pub fn scan_directory_to_db(
         return Ok(0);
     }
 
+    // Configurar pool de hilos de Rayon para no asfixiar el sistema
+    let num_cpus = num_cpus::get();
+    let threads = (num_cpus - 2).max(1);
+    let _ = rayon::ThreadPoolBuilder::new().num_threads(threads).build_global();
+
     let existing_map = get_existing_games_map(&db_path);
     
     let sc_cloned = status_callback.as_ref().map(|cb| Python::with_gil(|py| cb.clone_ref(py)));
@@ -728,13 +733,12 @@ pub fn scan_directory_to_db(
 
                 let processed = results_count.fetch_add(1, Ordering::SeqCst) + 1;
                 
-                // Throttle: Cada 100ms para no saturar el GIL en paralelo
+                // Throttle: Cada 250ms para total fluidez
                 let now_ms = start_time.elapsed().as_millis() as u64;
                 let last = last_update_ms.load(Ordering::Relaxed);
                 
-                if (now_ms - last > 100) || processed == total_files {
-                    // Intentar actualizar el timestamp para ser el "dueño" del reporte actual
-                    if last_update_ms.compare_exchange(last, now_ms, Ordering::SeqCst, Ordering::Relaxed).is_ok() || processed == total_files {
+                if (now_ms - last > 250) || processed == total_files {
+                    if last_update_ms.compare_exchange(last, now_ms, Ordering::SeqCst, Ordering::Relaxed).is_ok() {
                         let progress = (processed as f64 / total_files as f64) * 0.9;
                         let game_name = p.file_stem().and_then(|s| s.to_str()).unwrap_or("...").to_string();
 

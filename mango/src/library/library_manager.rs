@@ -526,21 +526,37 @@ fn get_existing_games_map(db_path: &str) -> HashMap<String, (u64, String)> {
 }
 
 /// Recolecta todos los archivos en un directorio que coincidan con las extensiones permitidas.
-fn collect_files_to_scan(root: &Path, extensions: &[String]) -> Vec<PathBuf> {
-    WalkDir::new(root)
-        .into_iter()
-        .filter_map(|e| e.ok())
-        .filter(|e| e.file_type().is_file())
-        .map(|e| e.path().to_path_buf())
-        .filter(|p| {
-            if let Some(ext) = p.extension() {
-                let ext_str = ext.to_string_lossy().to_lowercase();
-                extensions.iter().any(|e| e.to_lowercase() == ext_str)
-            } else {
-                false
+fn collect_files_to_scan(
+    root: &Path, 
+    extensions: &[String], 
+    sc: &Option<Py<PyAny>>
+) -> Vec<PathBuf> {
+    let mut files = Vec::new();
+    let mut count = 0;
+    let mut last_update = std::time::Instant::now();
+    
+    for entry in WalkDir::new(root).into_iter().filter_map(|e| e.ok()) {
+        if entry.file_type().is_file() {
+            let path = entry.path();
+            if let Some(ext) = path.extension().and_then(|e| e.to_str()) {
+                if extensions.contains(&ext.to_lowercase()) {
+                    files.push(path.to_path_buf());
+                    count += 1;
+                    
+                    // Throttle: Max 1 actualización cada 100ms durante la recolección
+                    if count % 100 == 0 && last_update.elapsed().as_millis() > 100 {
+                        Python::with_gil(|py| {
+                            if let Some(status_cb) = sc {
+                                let _ = status_cb.bind(py).call1((format!("scan_collecting|{}", count),));
+                            }
+                        });
+                        last_update = std::time::Instant::now();
+                    }
+                }
             }
-        })
-        .collect()
+        }
+    }
+    files
 }
 
 /// Identifica un archivo de juego, extrayendo metadatos y calculando su hash.
@@ -608,14 +624,15 @@ fn report_registration_progress(
     total: usize,
     game_name: &str,
 ) {
-    if current_idx % 25 == 0 || current_idx == total {
+    if current_idx % 5 == 0 || current_idx == total {
         let progress = 0.9 + ((current_idx as f64 / total as f64) * 0.1);
         Python::with_gil(|py| {
             if let Some(pc_cb) = pc {
                 let _ = pc_cb.bind(py).call1((progress,));
             }
             if let Some(sc_cb) = sc {
-                let _ = sc_cb.bind(py).call1((format!("scan_registering|{}", game_name),));
+                let status = format!("scan_registering|{} ({}/{})", game_name, current_idx, total);
+                let _ = sc_cb.bind(py).call1((status,));
             }
         });
     }
@@ -673,25 +690,34 @@ pub fn scan_directory_to_db(
     }
 
     let existing_map = get_existing_games_map(&db_path);
-    let files = collect_files_to_scan(root, &extensions);
+    
+    let sc_cloned = status_callback.as_ref().map(|cb| Python::with_gil(|py| cb.clone_ref(py)));
+    let files = collect_files_to_scan(root, &extensions, &sc_cloned);
     let total_files = files.len();
-    if total_files == 0 { return Ok(0); }
+    
+    if total_files == 0 { 
+        if let Some(sc) = &status_callback {
+            let _ = sc.bind(py).call1(("scan_no_roms",));
+        }
+        if let Some(pc) = &progress_callback {
+            let _ = pc.bind(py).call1((1.0,));
+        }
+        return Ok(0); 
+    }
 
+    // Reportar total final de la recolección
     if let Some(sc) = &status_callback {
-        let _ = sc.bind(py).call1(("scan_starting",));
+        let _ = sc.bind(py).call1((format!("scan_collecting|{}", total_files),));
     }
 
     let pc_arc_thread = progress_callback.as_ref().map(|cb| cb.clone_ref(py));
     let sc_arc_thread = status_callback.as_ref().map(|cb| cb.clone_ref(py));
 
-    use std::sync::atomic::{AtomicUsize, Ordering};
+    use std::sync::atomic::{AtomicUsize, AtomicU64, Ordering};
     let results_count = Arc::new(AtomicUsize::new(0));
+    let last_update_ms = Arc::new(AtomicU64::new(0));
 
-    Python::with_gil(|py| {
-        if let Some(sc) = &status_callback {
-            let _ = sc.bind(py).call1(("scan_preparing",));
-        }
-    });
+    let start_time = std::time::Instant::now();
 
     let results: Vec<ScannedGame> = py.allow_threads(move || {
         files.into_par_iter()
@@ -701,19 +727,27 @@ pub fn scan_directory_to_db(
                 let size = meta.len();
 
                 let processed = results_count.fetch_add(1, Ordering::SeqCst) + 1;
+                
+                // Throttle: Cada 100ms para no saturar el GIL en paralelo
+                let now_ms = start_time.elapsed().as_millis() as u64;
+                let last = last_update_ms.load(Ordering::Relaxed);
+                
+                if (now_ms - last > 100) || processed == total_files {
+                    // Intentar actualizar el timestamp para ser el "dueño" del reporte actual
+                    if last_update_ms.compare_exchange(last, now_ms, Ordering::SeqCst, Ordering::Relaxed).is_ok() || processed == total_files {
+                        let progress = (processed as f64 / total_files as f64) * 0.9;
+                        let game_name = p.file_stem().and_then(|s| s.to_str()).unwrap_or("...").to_string();
 
-                if processed % 5 == 0 || processed == total_files {
-                    let progress = (processed as f64 / total_files as f64) * 0.9;
-                    let game_name = p.file_stem().and_then(|s| s.to_str()).unwrap_or("...").to_string();
-
-                    Python::with_gil(|py| {
-                        if let Some(pc) = &pc_arc_thread {
-                            let _ = pc.bind(py).call1((progress,));
-                        }
-                        if let Some(sc) = &sc_arc_thread {
-                            let _ = sc.bind(py).call1((format!("scan_identifying|{}", game_name),));
-                        }
-                    });
+                        Python::with_gil(|py| {
+                            if let Some(pc) = &pc_arc_thread {
+                                let _ = pc.bind(py).call1((progress,));
+                            }
+                            if let Some(sc) = &sc_arc_thread {
+                                let status = format!("scan_identifying|{} ({}/{})", game_name, processed, total_files);
+                                let _ = sc.bind(py).call1((status,));
+                            }
+                        });
+                    }
                 }
 
                 if let Some((old_size, old_serial)) = existing_map.get(&path_str) {
@@ -727,6 +761,9 @@ pub fn scan_directory_to_db(
 
     if results.is_empty() {
         if let Some(pc) = &progress_callback { let _ = pc.bind(py).call1((1.0,)); }
+        if let Some(sc) = &status_callback { 
+            let _ = sc.bind(py).call1((format!("scan_finished_msg|{}", 0),)); 
+        }
         return Ok(0);
     }
 
@@ -744,7 +781,7 @@ pub fn scan_directory(
         return Ok(Vec::new());
     }
 
-    let files = collect_files_to_scan(root, &extensions);
+    let files = collect_files_to_scan(root, &extensions, &None);
 
     let results: Vec<ScannedGame> = py.allow_threads(move || {
         files.into_par_iter()

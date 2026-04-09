@@ -203,11 +203,13 @@ Item {
                                 }
                             }
 
-                            // Thin Progress Line (only when busy)
+                            // Dynamic Progress Line (reflects scan or scrape progress)
                             Rectangle {
                                 anchors.bottom: parent.bottom; anchors.bottomMargin: 4; anchors.horizontalCenter: parent.horizontalCenter
-                                width: parent.width - 30; height: 2; radius: 1; color: Theme.accentElectric; opacity: isEngineBusy ? 0.5 : 0.0
+                                width: (parent.width - 30) * (isScanning ? scanProgress : (isScraping ? mainController.scrapeProgress : 1.0))
+                                height: 2; radius: 1; color: Theme.accentElectric; opacity: isEngineBusy ? 0.8 : 0.0
                                 visible: isEngineBusy
+                                Behavior on width { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
                             }
                         }
                     }

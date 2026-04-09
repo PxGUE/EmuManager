@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Controls.Material
+import QtQuick.Effects
 import EmuManager.Controllers 1.0
 import "../components"
 import "../console_settings"
@@ -123,20 +124,55 @@ Item {
                         Text { text: I18n.t.library; color: Theme.statusSuccess; font.pixelSize: Theme.fontSmall; font.bold: true; font.letterSpacing: 1.5 }
                         Text { text: I18n.t.sync_roms; color: Theme.textMain; font.pixelSize: Theme.fontBody; font.bold: true }
                         
-                        // Barra de Progreso Maestra
-                        ProgressBar {
-                            visible: isScanning; value: scanVal; Layout.fillWidth: true; Layout.preferredHeight: 6
-                            background: Rectangle { color: Theme.transparent; radius: 3; border.color: Theme.cardBorder }
-                            contentItem: Rectangle { 
-                                width: parent.visualPosition * parent.width
-                                height: parent.height; radius: 3; color: Theme.statusSuccess 
+                        // Barra de Progreso Maestra (KINETIC STYLE)
+                        Item {
+                            Layout.fillWidth: true; Layout.preferredHeight: 8; visible: isScanning
+                            clip: true // Asegura que el pulso no se salga de los bordes redondeados
+                            
+                            // Track (Fondo)
+                            Rectangle {
+                                anchors.fill: parent; radius: 4; color: Theme.backgroundVoid; opacity: 0.5
+                                border.color: Theme.cardBorder; border.width: 1
+                            }
+
+                            // Progress Fill
+                            Rectangle {
+                                id: progressFill
+                                height: parent.height; radius: 4; color: Theme.statusSuccess
+                                width: Math.max(parent.width * (scanVal || 0.0), scanVal < 0.01 ? indeterminateBar.width : 0)
+                                
+                                Behavior on width { NumberAnimation { duration: 400; easing.type: Easing.OutCubic } }
+                                
+                                // Glow effect
+                                layer.enabled: true
+                                layer.effect: MultiEffect {
+                                    shadowEnabled: true; shadowBlur: 0.5; shadowColor: Theme.statusSuccess; shadowOpacity: 0.4
+                                }
+                            }
+
+                            // Indeterminate Pulse (Only while collecting/starting)
+                            Rectangle {
+                                id: indeterminateBar
+                                width: 120; height: parent.height; radius: 4
+                                visible: scanVal < 0.05
+                                gradient: Gradient {
+                                    orientation: Gradient.Horizontal
+                                    GradientStop { position: 0.0; color: Theme.transparent }
+                                    GradientStop { position: 0.5; color: Qt.alpha(Theme.statusSuccess, 0.6) }
+                                    GradientStop { position: 1.0; color: Theme.transparent }
+                                }
+                                
+                                SequentialAnimation on x {
+                                    running: indeterminateBar.visible; loops: Animation.Infinite
+                                    NumberAnimation { from: -130; to: parent.width + 10; duration: 1200; easing.type: Easing.InOutSine }
+                                }
                             }
                         }
 
                         Text { 
-                            text: isScanning ? scanLog : (scanVal >= 1.0 ? I18n.t.scan_done : I18n.t.scan_idle)
+                            text: isScanning ? (scanLog || I18n.t.initializing) : (scanVal >= 1.0 ? I18n.t.scan_done : I18n.t.scan_idle)
                             color: isScanning ? Theme.statusSuccess : Theme.textMuted
-                            font.pixelSize: Theme.fontMicro; font.bold: isScanning; elide: Text.ElideRight; Layout.fillWidth: true 
+                            font.pixelSize: Theme.fontSmall; font.bold: isScanning; elide: Text.ElideRight; Layout.fillWidth: true 
                         }
                     }
                 }
@@ -191,20 +227,54 @@ Item {
                         Text { text: I18n.t.mango_monitor; color: Theme.statusWarning; font.pixelSize: Theme.fontSmall; font.bold: true; font.letterSpacing: 1.5 }
                         Text { text: I18n.t.sync_media; color: Theme.textMain; font.pixelSize: Theme.fontBody; font.bold: true }
 
-                        // Barra de Progreso Maestra
-                        ProgressBar {
-                            visible: isScraping; value: scrapeVal; Layout.fillWidth: true; Layout.preferredHeight: 6
-                            background: Rectangle { color: Theme.transparent; radius: 3; border.color: Theme.cardBorder }
-                            contentItem: Rectangle { 
-                                width: parent.visualPosition * parent.width
-                                height: parent.height; radius: 3; color: Theme.statusWarning 
+                        // Barra de Progreso Maestra para Scraping
+                        Item {
+                            Layout.fillWidth: true; Layout.preferredHeight: 8; visible: isScraping
+                            clip: true
+                            
+                            // Track
+                            Rectangle {
+                                anchors.fill: parent; radius: 4; color: Theme.backgroundVoid; opacity: 0.5
+                                border.color: Theme.cardBorder; border.width: 1
+                            }
+
+                            // Progress Fill
+                            Rectangle {
+                                id: scrapeFill
+                                height: parent.height; radius: 4; color: Theme.statusWarning
+                                width: Math.max(parent.width * (scrapeVal || 0.0), scrapeVal < 0.01 ? indeterminateScrape.width : 0)
+                                
+                                Behavior on width { NumberAnimation { duration: 400; easing.type: Easing.OutCubic } }
+                                
+                                // Glow
+                                layer.enabled: true
+                                layer.effect: MultiEffect {
+                                    shadowEnabled: true; shadowBlur: 0.5; shadowColor: Theme.statusWarning; shadowOpacity: 0.4
+                                }
+                            }
+
+                            // Pulse
+                            Rectangle {
+                                id: indeterminateScrape
+                                width: 120; height: parent.height; radius: 4
+                                visible: scrapeVal < 0.01
+                                gradient: Gradient {
+                                    orientation: Gradient.Horizontal
+                                    GradientStop { position: 0.0; color: Theme.transparent }
+                                    GradientStop { position: 0.5; color: Qt.alpha(Theme.statusWarning, 0.6) }
+                                    GradientStop { position: 1.0; color: Theme.transparent }
+                                }
+                                SequentialAnimation on x {
+                                    running: indeterminateScrape.visible; loops: Animation.Infinite
+                                    NumberAnimation { from: -130; to: parent.width + 10; duration: 1500; easing.type: Easing.InOutSine }
+                                }
                             }
                         }
 
                         Text { 
-                            text: isScraping ? scrapeLog : (scrapeVal >= 1.0 ? I18n.t.scrape_done : I18n.t.scrape_idle)
+                            text: isScraping ? (scrapeLog || I18n.t.initializing) : (scrapeVal >= 1.0 ? I18n.t.scrape_finished : I18n.t.scrape_friendly)
                             color: isScraping ? Theme.statusWarning : Theme.textMuted
-                            font.pixelSize: Theme.fontMicro; font.bold: isScraping; elide: Text.ElideRight; Layout.fillWidth: true 
+                            font.pixelSize: Theme.fontSmall; font.bold: isScraping; elide: Text.ElideRight; Layout.fillWidth: true 
                         }
                     }
                 }

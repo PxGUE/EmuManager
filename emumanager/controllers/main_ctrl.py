@@ -203,6 +203,7 @@ class MainController(QObject):
         # Reset de progreso para evitar que la barra aparezca llena de sesiones previas
         self._scan_progress = 0.0
         self.scanProgressChanged.emit(0.0)
+        self.scanStatusChanged.emit("initializing")
         
         self._is_scanning = True
         self._engine_status_key = "initializing"
@@ -214,6 +215,7 @@ class MainController(QObject):
         # Reset de estado para garantizar que el motor arranque de cero en la UI
         self._scrape_progress = 0.0
         self.scrapeProgressChanged.emit(0.0)
+        self.scrapeStatusChanged.emit("initializing")
         
         self._is_scraping = True
         self._engine_status_key = "initializing"

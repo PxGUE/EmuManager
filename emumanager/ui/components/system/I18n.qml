@@ -173,6 +173,7 @@ Item {
             // Scan & Scrape Workers
             "scan_starting": "Escaneando archivos con M.A.N.G.O...",
             "scan_preparing": "Preparando motor de identificación...",
+            "scan_collecting": "Recopilando archivos: %1 encontrados",
             "scan_identifying": "Identificando: %1",
             "scan_no_roms": "No se encontraron ROMs soportadas.",
             "scan_no_path": "Se intentó escanear pero no hay ruta configurada.",
@@ -413,6 +414,7 @@ Item {
             // Scan & Scrape Workers
             "scan_starting": "Scanning files with M.A.N.G.O...",
             "scan_preparing": "Preparing identification engine...",
+            "scan_collecting": "Collecting files: %1 found",
             "scan_identifying": "Identifying: %1",
             "scan_no_roms": "No supported ROMs found.",
             "scan_no_path": "Scan attempt failed: No path configured.",

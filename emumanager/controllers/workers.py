@@ -1,4 +1,3 @@
-import time
 from pathlib import Path
 from dataclasses import dataclass
 from PySide6.QtCore import QObject, Slot, Signal
@@ -28,7 +27,6 @@ class UpdateWorker(QObject):
             from core.config import AppConfig
             if AppConfig.IS_DEV_MODE:
                 EmuLog.info("M.A.N.G.O Sync: Modo Desarrollo Detectado. Saltando comprobación nativa.")
-                time.sleep(0.5)
                 self.finished.emit([]) # No hay actualizaciones en modo dev
                 return
 
@@ -214,7 +212,6 @@ class StartupWorker(QObject):
             # 1. Activación de Motores & Logs (10%)
             self.status.emit("startup_native")
             self.ctrl.proactive_background_load()
-            time.sleep(0.3) 
             self.progress.emit(0.10)
             
             # --- PROTOCOLO DE PRECARGA NATIVO: M.A.N.G.O (60%) ---
@@ -242,7 +239,6 @@ class StartupWorker(QObject):
             
             # 4. Finalización de Estructura de UI (100%)
             self.status.emit("startup_ready")
-            time.sleep(0.4)
             self.progress.emit(1.0)
             self.finished.emit()
             

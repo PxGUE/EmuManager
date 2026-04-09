@@ -1,4 +1,5 @@
 import sqlite3
+import json
 from typing import Optional
 from pathlib import Path
 from core.config import AppConfig
@@ -190,3 +191,16 @@ class DatabaseManager:
                 ON CONFLICT(game_id) DO UPDATE SET is_favorite = excluded.is_favorite
             ''', (game_id, val, fallback_title))
             conn.commit()
+
+    def get_game_titles_map(self, game_ids: list) -> dict:
+        """Retorna un mapeo de ID -> display_name para una lista de IDs usando optimización JSON."""
+        if not game_ids:
+            return {}
+
+        json_ids = json.dumps(list(game_ids))
+        query = "SELECT id, display_name FROM games WHERE id IN (SELECT value FROM json_each(?))"
+
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(query, (json_ids,))
+            return {row[0]: row[1] for row in cursor.fetchall() if row[1]}

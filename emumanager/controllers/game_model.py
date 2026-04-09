@@ -27,6 +27,8 @@ class GameListModel(QAbstractListModel):
         self.db = DatabaseManager()
         self._games = []
         self._all_results = [] # Resultados brutos del motor
+        self._id_to_game = {} # Mapa ID -> Objeto Juego para acceso O(1)
+        self._id_to_index_in_view = {} # Mapa ID -> Índice en _games para notificaciones
         self._show_favorites_only = False
 
     countChanged = Signal()
@@ -110,7 +112,6 @@ class GameListModel(QAbstractListModel):
     def search_games(self, query: str, platform: str):
         """Delega la búsqueda en lotes a M.A.N.G.O con Fuzzymatch y filtros."""
         from core.config import AppConfig
-        
         from core.logger import EmuLog
         
         try:
@@ -126,12 +127,18 @@ class GameListModel(QAbstractListModel):
         try:
             db_path = str(AppConfig.get_database_path())
             self._all_results = mango_engine.search_games(db_path, query, platform)
+
+            # Reconstruir el mapa de IDs para acceso O(1)
+            self._id_to_game = {int(g.get("id", -1)): g for g in self._all_results}
+
             self._apply_filter()
             EmuLog.info(f"M.A.N.G.O (Model): Búsqueda completada para '{query}' en '{platform}'. Resultados: {len(self._games)}")
         except Exception as e:
             EmuLog.error(f"Error fatal en búsqueda fuzzymatch: {e}")
             self._all_results = []
+            self._id_to_game = {}
             self._games = []
+            self._id_to_index_in_view = {}
         self.endResetModel()
         self.countChanged.emit()
 
@@ -142,6 +149,9 @@ class GameListModel(QAbstractListModel):
         else:
             self._games = self._all_results
 
+        # Actualizar el mapa de índices de la vista actual para notificaciones rápidas
+        self._id_to_index_in_view = {int(g.get("id", -1)): i for i, g in enumerate(self._games)}
+
     @Slot(int, bool)
     def set_favorite_locally(self, game_id, is_favorite):
         """Actualiza el estado de favorito solo en memoria para una respuesta instantánea."""
@@ -150,16 +160,12 @@ class GameListModel(QAbstractListModel):
             target_id = int(game_id)
             new_val = 1 if is_favorite else 0
 
-            # 1. Actualizar siempre el buffer maestro (_all_results)
-            target_game = None
-            for g in self._all_results:
-                if int(g.get("id", -1)) == target_id:
-                    g["is_favorite"] = new_val
-                    target_game = g
-                    break
-            
+            # 1. Actualizar siempre el buffer maestro (_all_results) usando el mapa O(1)
+            target_game = self._id_to_game.get(target_id)
             if not target_game:
                 return
+
+            target_game["is_favorite"] = new_val
 
             # 2. Si estamos filtrando favoritos, re-aplicamos y reseteamos el modelo
             if self._show_favorites_only:
@@ -169,11 +175,11 @@ class GameListModel(QAbstractListModel):
                 self.countChanged.emit()
                 return
 
-            # 3. Si no filtramos favoritos, buscamos en la vista actual (_games) para notificar
-            for i, game in enumerate(self._games):
-                if game is target_game:
-                    idx = self.index(i, 0)
-                    self.dataChanged.emit(idx, idx, [self.IsFavoriteRole])
-                    break
+            # 3. Si no filtramos favoritos, usamos el mapa de índices para notificar en O(1)
+            view_idx = self._id_to_index_in_view.get(target_id)
+            if view_idx is not None:
+                idx = self.index(view_idx, 0)
+                self.dataChanged.emit(idx, idx, [self.IsFavoriteRole])
+
         except Exception as e:
             EmuLog.error(f"Error en set_favorite_locally: {e}")

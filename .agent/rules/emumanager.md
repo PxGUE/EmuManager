@@ -5,22 +5,23 @@ trigger: always_on
 # Reglas de Proyecto: EmuManager
 
 - **Filosofía Core:**
-    - **FOSS & Privacidad:** La app es gratuita, de código abierto y "Local-First". 
-    - **Simplicidad:** "Fácil de configurar, fácil de usar". El objetivo es que la app sea una alternativa sencilla y fluida a otros frontends complejos.
-    - **Robustez:** M.A.N.G.O y EmuManager deben ser sólidos para garantizar una experiencia sin fricciones ("Black Box Architecture": lógica pesada en `QThreads`).
-    - **Integridad de Datos:** NUNCA modifiques, muevas ni renombres las ROMs. Lee las rutas absolutas del usuario y guárdalas en SQLite.
-    - **Gestión de APIs:** El usuario provee sus propias credenciales (ej. ScreenScraper, RetroAchievements).
+    - **FOSS & Privacidad:** App gratuita, código abierto y "Local-First". 
+    - **Simplicidad & Elegancia:** "Fácil de configurar, espectacular al usar". La interfaz debe ser intuitiva pero con un acabado premium que la distinga de frontends tradicionales.
+    - **Excelencia Visual (Premium UX):** El diseño DEBE wow-ear al usuario. Usar estéticas modernas (Glassmorphism, gradientes vibrantes, desenfoques dinámicos).
+    - **Robustez Híbrida:** M.A.N.G.O (Rust) para potencia bruta y Python (PySide6) para fluidez. El UI nunca debe bloquearse (0 stutters).
+    - **Gestión de Datos:** Respeto total a la librería del usuario. Las optimizaciones destructivas (ej. compresión) solo se realizan bajo petición explícita.
 
 - **Stack Tecnológico:**
-    - **Frontend (UI):** Exclusivamente `QML` (Qt Quick) para la vista, orquestado por `PySide6` (Controlador/Modelo). 
-    - **Backend (Lógica):** Python (3.11+ para mayor compatibilidad). Uso estricto de `pathlib`.
-    - **Strict I18n:** Prohibido el uso de texto visible hardcodeado en QML o Python. Todo texto debe pasar por `I18n.qml`. **Excepción:** Los logs internos (`EmuLog`, `print`, etc.) no están sujetos a esta regla.
-    - **Core (Rendimiento):** Rust (vía `PyO3`) para escaneo y hashing (Motor M.A.N.G.O).
-    - **Base de Datos:** SQLite3 local con optimización por hilos e índices para grandes colecciones.
+    - **Frontend (UI):** `QML` (Qt Quick). Se prefiere el uso de componentes personalizados que aprovechen `GraphicalEffects` y `PropertyAnimation`.
+    - **Backend (Lógica):** Python (3.11+). Se permite `asyncio` para tareas de red (Scraping) si mejora la legibilidad frente a `QThreads`.
+    - **Flexible I18n:** Todo texto final debe ir en `I18n.qml`. Se permite texto hardcodeado marcado con `// TODO: i18n` durante el desarrollo de nuevas features.
+    - **Core (Performance):** Rust (Motor M.A.N.G.O) para el trabajo sucio (escaneo, hashing, parsing de headers).
 
-- **Estilo de Diseño:**
-    - **Zero-Hex Policy:** Prohibido el uso de colores hardcodeados (hex/literal) en QML. `Theme.qml` es la ÚNICA fuente de verdad para el diseño y color. Cualquier nuevo componente o rediseño debe usar o extender `Theme.qml`.
+- **Estilo de Diseño (Aesthetics Engine):**
+    - **Dynamic Design System:** `Theme.qml` es el núcleo, pero es "vivo". Se permite la manipulación dinámica de colores (opacidad, brillo, mezclas) directamente en el componente para lograr efectos visuales ricos.
+    - **Rich UI Policy:** Prohibido el uso de colores planos y básicos sin intención. Se priorizan sombras suaves, capas de profundidad y transiciones fluidas.
+    - **Micro-interacciones:** Cada elemento interactivo debe reaccionar al usuario (hover, click, focus) con animaciones sutiles.
 
 - **Ciclo de Desarrollo & Updates:**
-    - **IS_DEV_MODE:** Mientras no existan releases oficiales en GitHub, `AppConfig.IS_DEV_MODE` debe estar en `True` para evitar llamadas reales a la API y mostrar un estado de "Desarrollo Activo" en la UI.
-    - **Sincronización:** Antes de cada hito, verificar coherencia entre `AppConfig.py`, `Cargo.toml` e `I18n.qml`.
+    - **IS_DEV_MODE:** Activo durante el desarrollo para evitar desgaste de APIs y facilitar el testing local.
+    - **Coherencia de Versión:** Sincronizar siempre `AppConfig.py`, `Cargo.toml` e `I18n.qml` antes de cerrar una versión.

@@ -29,6 +29,8 @@ class GameListModel(QAbstractListModel):
         self.db = DatabaseManager()
         self._games = []
         self._all_results = [] # Resultados brutos del motor
+        self._id_to_game = {} # Mapa ID -> Objeto Juego para acceso O(1)
+        self._id_to_index_in_view = {} # Mapa ID -> Índice en _games para notificaciones
         self._show_favorites_only = False
 
         # O(1) Lookup Maps
@@ -115,7 +117,6 @@ class GameListModel(QAbstractListModel):
     def search_games(self, query: str, platform: str):
         """Delega la búsqueda en lotes a M.A.N.G.O con Fuzzymatch y filtros."""
         from core.config import AppConfig
-        
         from core.logger import EmuLog
         
         try:
@@ -140,6 +141,7 @@ class GameListModel(QAbstractListModel):
         except Exception as e:
             EmuLog.error(f"Error fatal en búsqueda fuzzymatch: {e}")
             self._all_results = []
+            self._id_to_game = {}
             self._games = []
             self._id_to_game = {}
         self.endResetModel()

@@ -23,14 +23,20 @@ Item {
 
     // Función para traducir patrones complejos (ej: "core_downloading|SNES")
     function tp(s) {
-        if (!s) return ""
-        let parts = s.split("|")
-        let key = parts[0]
-        let res = t[key] || key
-        if (parts.length > 1 && typeof res === "string") {
-            return res.replace("%1", parts[1])
+        if (!s) return "";
+        let parts = s.split("|");
+        let key = parts[0];
+        let res = t[key];
+        if (res === undefined) {
+            // If the key is not in translations, and we have an argument, just return the argument.
+            // This guarantees we see at least the progress details rather than the raw snake_case key.
+            if (parts.length > 1) return parts[1];
+            return key;
         }
-        return res
+        if (parts.length > 1 && typeof res === "string") {
+            return res.replace("%1", parts[1]);
+        }
+        return res;
     }
 
     readonly property var texts: ({

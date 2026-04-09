@@ -560,6 +560,7 @@ fn collect_files_to_scan(
 }
 
 /// Identifica un archivo de juego, extrayendo metadatos y calculando su hash.
+/// Identifica un archivo de juego, extrayendo metadatos y calculando su hash.
 fn identify_game_file(p: &Path) -> Option<ScannedGame> {
     let path_str = p.to_string_lossy().to_string();
     let meta = fs::metadata(p).ok()?;
@@ -580,19 +581,38 @@ fn identify_game_file(p: &Path) -> Option<ScannedGame> {
 
     let mut file = File::open(p).ok()?;
     let mut hasher = md5::Context::new();
-    if std::io::copy(&mut file, &mut hasher).is_ok() {
-        let hash = format!("{:x}", hasher.compute());
-        Some(ScannedGame {
-            path: path_str,
-            hash,
-            size,
-            display_name,
-            platform: final_platform,
-            serial,
-        })
+
+    use std::io::{Read, Seek, SeekFrom};
+    const MAX_READ_SIZE: u64 = 16 * 1024 * 1024; // 16 MB
+
+    if size <= MAX_READ_SIZE {
+        if std::io::copy(&mut file, &mut hasher).is_err() {
+            return None;
+        }
     } else {
-        None
+        // Hashing parcial para ROMs gigantes (saltos)
+        let mut buf = vec![0; 8 * 1024 * 1024]; // 8MB de cabecera
+        if let Ok(n) = file.read(&mut buf) {
+            hasher.consume(&buf[..n]);
+        }
+
+        let mid_pos = size / 2;
+        if file.seek(SeekFrom::Start(mid_pos)).is_ok() {
+            if let Ok(n) = file.read(&mut buf) {
+                hasher.consume(&buf[..n]);
+            }
+        }
     }
+
+    let hash = format!("{:x}", hasher.compute());
+    Some(ScannedGame {
+        path: path_str,
+        hash,
+        size,
+        display_name,
+        platform: final_platform,
+        serial,
+    })
 }
 
 /// Inserta o actualiza el registro de un juego en la base de datos.

@@ -76,15 +76,14 @@ Item {
         }
     }
 
-    // No cargar inmediatamente al completar componente para evitar lag inicial
-    // Dejamos que el controlador la cargue cuando la DB esté lista (gamesUpdated)
-    Component.onCompleted: {
-        // La carga se gestiona a través de señales (onStartupFinished/onGamesUpdated)
-    }
+    // La carga se gestiona exclusivamente por señales (onGamesUpdated) 
+    // garantizando un flujo de datos reactivo y limpio.
+    Component.onCompleted: { }
 
     Connections {
         target: mainController
         function onScanFinished(count) { refreshConsoles() }
+        function onLanguage_changed() { refreshConsoles() } // Corregido para coincidir con la señal de Python
         function onGamesUpdated() { 
             refreshConsoles() 
             if (libraryRoot.showGames) gamesModel.filter_by_platform(libraryRoot.activePlatform)

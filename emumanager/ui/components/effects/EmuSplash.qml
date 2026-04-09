@@ -15,25 +15,30 @@ Rectangle {
     property string statusText: I18n.t.initializing
     property real progress: 0.0
     
-    // Transición de Salida Cinematográfica
+    // Estados Internos de la Animación Cinematográfica
+    readonly property bool isActuallyDone: isLoaded && introTimer.finished
+    property bool introPhase: false
+    
+    onProgressChanged: {
+        if (progress >= 1.0 && !introPhase) {
+            introPhase = true
+            introTimer.start()
+        }
+    }
+
+    // Transición de Salida Final (Revelación del Dashboard)
     visible: opacity > 0
-    opacity: isLoaded ? 0 : 1
-    Behavior on opacity { NumberAnimation { duration: 1000; easing.type: Easing.InOutQuad } }
+    opacity: isActuallyDone ? 0 : 1
+    Behavior on opacity { NumberAnimation { duration: 1500; easing.type: Easing.InOutCubic } }
 
     ColumnLayout {
         id: splashContent
         anchors.centerIn: parent
-        spacing: 30
+        spacing: 40
         
-        // Efecto de Zoom Out al terminar la carga
-        scale: isLoaded ? 1.2 : 1.0
-        opacity: isLoaded ? 0 : 1
-        Behavior on scale { NumberAnimation { duration: 1200; easing.type: Easing.OutCubic } }
-        Behavior on opacity { NumberAnimation { duration: 800 } }
-
-        // --- EL NUEVO LOGO PREMIUM ---
+        // --- SECCIÓN LOGO (Atemporal y Sobrio) ---
         ColumnLayout {
-            Layout.alignment: Qt.AlignCenter; spacing: 4
+            Layout.alignment: Qt.AlignCenter; spacing: 15
             
             Image {
                 source: "../../assets/logo.svg"
@@ -41,42 +46,64 @@ Rectangle {
                 Layout.alignment: Qt.AlignCenter
                 fillMode: Image.PreserveAspectFit
                 smooth: true; antialiasing: true
-                asynchronous: true
+                opacity: introPhase ? 0.4 : 1.0
+                Behavior on opacity { NumberAnimation { duration: 1000 } }
                 
-                // Sutil respiro del logo
+                // Respiración muy sutil durante carga
                 SequentialAnimation on scale {
-                    running: !isLoaded; loops: Animation.Infinite
-                    NumberAnimation { from: 1.0; to: 1.05; duration: 2000; easing.type: Easing.InOutQuad }
-                    NumberAnimation { from: 1.05; to: 1.0; duration: 2000; easing.type: Easing.InOutQuad }
+                    running: !introPhase; loops: Animation.Infinite
+                    NumberAnimation { from: 1.0; to: 1.02; duration: 3000; easing.type: Easing.InOutQuad }
+                    NumberAnimation { from: 1.02; to: 1.0; duration: 3000; easing.type: Easing.InOutQuad }
                 }
             }
-            
+
+            // --- TEXTO DE BIENVENIDA (Minimalista) ---
             Text {
-                text: I18n.t.app_name
-                color: Theme.textMain; font.pixelSize: 20; font.bold: true
-                font.letterSpacing: 4; Layout.alignment: Qt.AlignHCenter
+                text: "WELCOME"
+                color: Theme.textMain
+                font.pixelSize: 14
+                font.bold: true
+                font.letterSpacing: 12
+                Layout.alignment: Qt.AlignHCenter
+                opacity: introPhase ? 1.0 : 0.0
+                scale: introPhase ? 1.0 : 0.95
+                
+                Behavior on opacity { NumberAnimation { duration: 1200; easing.type: Easing.InOutQuad } }
+                Behavior on scale { NumberAnimation { duration: 2000; easing.type: Easing.OutCubic } }
             }
         }
 
-        // CONTROL DE CARGA
+        // --- SECCIÓN CONTROL DE CARGA (Desvanecimiento Elegante) ---
         Column {
-            Layout.alignment: Qt.AlignCenter; spacing: 12; width: 180
+            id: loadingControls
+            Layout.alignment: Qt.AlignCenter; spacing: 15; width: 240
+            opacity: introPhase ? 0 : 1
+            visible: opacity > 0
+            Behavior on opacity { NumberAnimation { duration: 800 } }
             
             Rectangle {
-                width: parent.width; height: 4; radius: 2; color: Theme.cardBackground
+                width: parent.width; height: 2; radius: 1; color: Theme.cardBackground
                 clip: true
                 Rectangle {
-                    width: Math.max(2, parent.width * progress); height: parent.height; radius: 2; color: Theme.accentColor
-                    Behavior on width { NumberAnimation { duration: 400; easing.type: Easing.OutCubic } }
+                    width: Math.max(4, parent.width * progress); height: parent.height; color: Theme.accentColor
+                    Behavior on width { NumberAnimation { duration: 600; easing.type: Easing.OutQuint } }
                 }
             }
             
             Text {
-                width: parent.width
-                horizontalAlignment: Text.AlignHCenter
+                width: parent.width; horizontalAlignment: Text.AlignHCenter
                 text: statusText.toUpperCase()
-                color: Theme.textMuted; font.pixelSize: 8; font.bold: true; font.letterSpacing: 2
+                color: Theme.textMuted; font.pixelSize: 8; font.bold: true; font.letterSpacing: 4
             }
         }
+    }
+
+    // Temporizador para controlar la duración de la bienvenida
+    Timer {
+        id: introTimer
+        property bool finished: false
+        interval: 2000 // Tiempo justo para leer el mensaje sin cansar
+        repeat: false
+        onTriggered: finished = true
     }
 }

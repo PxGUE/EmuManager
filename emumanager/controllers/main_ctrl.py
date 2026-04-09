@@ -45,6 +45,7 @@ class MainController(QObject):
     startupStatusChanged = Signal(str)
     startupFinished = Signal()
     notificationRequested = Signal(str, str, str) # (title, message, type)
+    libraryChangedRequested = Signal(bool, bool) # (force_sync, clear_cache)
 
     from PySide6.QtCore import Property
     @Property(str, constant=True)
@@ -109,6 +110,7 @@ class MainController(QObject):
         
         # 4. Conexión de Señales Internas para Propagación a QML
         self._connect_signals()
+        self.libraryChangedRequested.connect(self.notify_library_changed)
         
         # Estados internos
         self._startup_thread = None
@@ -190,7 +192,6 @@ class MainController(QObject):
         self._startup_worker.progress.connect(self.startupProgressChanged.emit)
         self._startup_worker.status.connect(self.startupStatusChanged.emit)
         self._startup_worker.finished.connect(self.startupFinished.emit)
-        self._startup_worker.finished.connect(self.notify_library_changed) 
         self._startup_worker.finished.connect(self._startup_thread.quit)
         self._startup_thread.started.connect(self._startup_worker.run)
         self._startup_thread.start()
@@ -470,14 +471,19 @@ class MainController(QObject):
         self.config_ctrl.set_api_credential("screenscraper_pass", p)
 
     # --- UTILIDADES ---
-    def notify_library_changed(self):
+    def notify_library_changed(self, force_sync=False, clear_cache=True):
         """Dispara el temporizador de notificación (Debounce)."""
-        self._library_update_timer.start()
+        if force_sync:
+            self._do_notify_library_changed(clear_cache)
+        else:
+            # El timer siempre limpia cache por defecto para seguridad
+            self._library_update_timer.start()
 
-    def _do_notify_library_changed(self):
+    def _do_notify_library_changed(self, clear_cache=True):
         """Impacto global de cambios en la biblioteca tras periodo de calma."""
         EmuLog.debug("M.A.N.G.O (UI): Sincronizando estado global de la biblioteca...")
-        self.stats_ctrl.clear_cache()
+        if clear_cache:
+            self.stats_ctrl.clear_cache()
         self.gamesUpdated.emit()
         self.gamesCountChanged.emit()
 

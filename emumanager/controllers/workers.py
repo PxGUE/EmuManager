@@ -221,26 +221,27 @@ class StartupWorker(QObject):
             # Llamada unificada: DB Stats + Asset Warmup + Emu Cache
             data = self.ctrl.precharge_ecosystem()
             
-            self.progress.emit(0.60)
+            # --- MEJORA ARQUITECTÓNICA: Pre-calentamiento de Caché de Interfaz ---
+            # Forzamos que el controlador genere el sumario de consolas AHORA.
+            # Esto evita que la UI se bloquee o se vea vacía al entrar.
+            self.ctrl.stats_ctrl.get_consoles_summary(False) 
             
-            # 3. Servicios y Conectividad (85%)
+            # Notificamos a la biblioteca que los datos están listos en memoria
+            # SINCRO-READY: Forzamos aviso pero SIN limpiar la caché que acabamos de generar (Optimización Total)
+            self.ctrl.libraryChangedRequested.emit(True, False) 
+            
+            self.progress.emit(0.90)
+            
+            # 3. Servicios y Conectividad (90%)
             self.status.emit("startup_services")
             try:
-                # Comprobar si Discord RPC está habilitado y conectar en background
                 if hasattr(self.ctrl.orch_ctrl, 'discord_rpc'):
                     self.ctrl.orch_ctrl.discord_rpc.connect()
             except Exception as e:
-                EmuLog.debug(f"Startup: No se pudo iniciar Discord RPC durante el arranque: {e}")
+                EmuLog.debug(f"Startup: No se pudo iniciar Discord RPC: {e}")
             
-            # Si el motor detectó cambios, podrías inyectar datos aquí
-            if data:
-                EmuLog.debug(f"Protocolo de Precarga completado con {data.get('total_games', 0)} juegos.")
-                
-            self.progress.emit(0.85)
-            
-            # 4. Finalización de Estructura de UI (100%)
-            self.status.emit("startup_ready")
             self.progress.emit(1.0)
+            self.status.emit("startup_ready")
             self.finished.emit()
             
         except Exception as e:

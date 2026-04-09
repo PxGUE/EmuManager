@@ -15,6 +15,11 @@ ApplicationWindow {
     
     flags: Qt.Window | Qt.FramelessWindowHint
     
+    // Forzamos padding cero para evitar huecos en los bordes
+    leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
+    
+    background: Rectangle { color: Theme.sidebarBackground } // Fondo base sólido para evitar fugas de color
+    
     Material.theme: Material.Dark
     Material.accent: Theme.accentColor
 
@@ -33,7 +38,7 @@ ApplicationWindow {
         RowLayout {
             anchors.fill: parent
             anchors.leftMargin: 20
-            anchors.rightMargin: 12
+            anchors.rightMargin: 0
             spacing: 15
             
             // Logo con resplandor suave
@@ -105,9 +110,44 @@ ApplicationWindow {
                 }
                 
                 WinButton { 
-                    icon: window.visibility === Window.Maximized ? "❐" : "⬜"
-                    pixelSize: 12
+                    id: maximizeBtn
+                    // Usamos un ítem vacío para el icono de texto y dibujamos uno personalizado arriba
+                    icon: ""
                     onClicked: window.visibility === Window.Maximized ? window.showNormal() : window.showMaximized() 
+                    
+                    // Icono de Maximizar/Restaurar (Outline Vector)
+                    Item {
+                        anchors.centerIn: parent
+                        width: 12; height: 12
+                        
+                        // Icono cuando NO está maximizado (Cuadrado simple)
+                        Rectangle {
+                            visible: window.visibility !== Window.Maximized
+                            anchors.fill: parent
+                            color: "transparent"
+                            border.color: maximizeBtn.hovered ? Theme.accentColor : Theme.textMain
+                            border.width: 1.2
+                            opacity: maximizeBtn.hovered ? 1.0 : 0.6
+                        }
+                        
+                        // Icono cuando SÍ está maximizado (Dos cuadrados)
+                        Item {
+                            visible: window.visibility === Window.Maximized
+                            anchors.fill: parent
+                            Rectangle {
+                                width: 9; height: 9; anchors.right: parent.right; anchors.top: parent.top
+                                color: "transparent"; border.width: 1.2
+                                border.color: maximizeBtn.hovered ? Theme.accentColor : Theme.textMain
+                                opacity: maximizeBtn.hovered ? 1.0 : 0.6
+                            }
+                            Rectangle {
+                                width: 9; height: 9; anchors.left: parent.left; anchors.bottom: parent.bottom
+                                color: Theme.sidebarBackground; border.width: 1.2 // Fondo sólido para tapar el de atrás
+                                border.color: maximizeBtn.hovered ? Theme.accentColor : Theme.textMain
+                                opacity: maximizeBtn.hovered ? 1.0 : 0.6
+                            }
+                        }
+                    }
                 }
 
                 WinButton { 
@@ -207,9 +247,9 @@ ApplicationWindow {
     RowLayout {
         id: mainLayout
         anchors.fill: parent; spacing: 0
-        opacity: isLoaded ? 1 : 0; scale: isLoaded ? 1.0 : 0.98
-        Behavior on opacity { NumberAnimation { duration: 800; easing.type: Easing.OutCubic } }
-        Behavior on scale { NumberAnimation { duration: 1000; easing.type: Easing.OutBack } }
+        opacity: splashScreen.isActuallyDone ? 1 : 0; scale: splashScreen.isActuallyDone ? 1.0 : 0.98
+        Behavior on opacity { NumberAnimation { duration: 1000; easing.type: Easing.OutCubic } }
+        Behavior on scale { NumberAnimation { duration: 1200; easing.type: Easing.OutBack } }
 
         layer.enabled: globalDetails.visible
         layer.effect: FastBlur { radius: 32 }
@@ -266,7 +306,7 @@ ApplicationWindow {
             Repeater {
                 model: navModel
                 delegate: Loader {
-                    anchors.fill: parent; asynchronous: true; active: true; source: model.file; visible: window.activeViewId === model.viewId
+                    anchors.fill: parent; asynchronous: false; active: true; source: model.file; visible: window.activeViewId === model.viewId
                     opacity: visible ? 1 : 0; scale: visible ? 1 : 0.99
                     Behavior on opacity { NumberAnimation { duration: 250; easing.type: Easing.OutCubic } }
                     Behavior on scale { NumberAnimation { duration: 400; easing.type: Easing.OutCubic } }

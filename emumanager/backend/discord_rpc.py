@@ -71,8 +71,9 @@ class DiscordRPCManager:
             try:
                 self.rpc.clear()
                 EmuLog.info("Discord RPC: Estado limpiado.")
-            except Exception:
-                pass
+            except Exception as e:
+                EmuLog.debug(f"Discord RPC: Error al limpiar presencia (¿Discord cerrado?): {e}")
+                self._is_connected = False
 
     def disconnect(self):
         """Cierra la conexión con Discord de forma definitiva."""
@@ -81,7 +82,7 @@ class DiscordRPCManager:
             try:
                 self.rpc.close()
                 EmuLog.info("Discord RPC: Desconectado.")
-            except Exception:
-                pass
+            except Exception as e:
+                EmuLog.debug(f"Discord RPC: Error al desconectar: {e}")
         self._is_connected = False
         self.rpc = None

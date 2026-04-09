@@ -643,8 +643,9 @@ fn report_registration_progress(
     current_idx: usize,
     total: usize,
     game_name: &str,
+    last_update: &mut std::time::Instant,
 ) {
-    if current_idx % 5 == 0 || current_idx == total {
+    if last_update.elapsed().as_millis() > 100 || current_idx == total {
         let progress = 0.9 + ((current_idx as f64 / total as f64) * 0.1);
         Python::with_gil(|py| {
             if let Some(pc_cb) = pc {
@@ -655,6 +656,7 @@ fn report_registration_progress(
                 let _ = sc_cb.bind(py).call1((status,));
             }
         });
+        *last_update = std::time::Instant::now();
     }
 }
 
@@ -680,13 +682,14 @@ fn register_scanned_games(
         let mut new_games = 0;
         let mut current_idx = 0;
         let total_new = results.len();
+        let mut last_update = std::time::Instant::now();
 
         for game in results {
             current_idx += 1;
             if upsert_game_record(&tx, &game).unwrap_or(0) > 0 {
                 new_games += 1;
             }
-            report_registration_progress(&pc_final, &sc_final, current_idx, total_new, &game.display_name);
+            report_registration_progress(&pc_final, &sc_final, current_idx, total_new, &game.display_name, &mut last_update);
         }
 
         tx.commit().map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e.to_string()))?;
@@ -711,8 +714,17 @@ pub fn scan_directory_to_db(
 
     // Configurar pool de hilos de Rayon para no asfixiar el sistema
     let num_cpus = num_cpus::get();
-    let threads = (num_cpus - 2).max(1);
-    let _ = rayon::ThreadPoolBuilder::new().num_threads(threads).build_global();
+    let threads = if num_cpus > 4 { 
+        (num_cpus as f32 * 0.5).floor() as usize // Usa la mitad de los cores para no trabar el PC
+    } else { 
+        (num_cpus - 1).max(1) 
+    };
+
+    // Usamos un pool local para evitar fallos en compilaciones donde build_global ya ha sido inicializado y falla silenciosamente
+    let pool = rayon::ThreadPoolBuilder::new()
+        .num_threads(threads)
+        .build()
+        .unwrap_or_else(|_| rayon::ThreadPoolBuilder::new().build().unwrap());
 
     let existing_map = get_existing_games_map(&db_path);
     
@@ -745,8 +757,9 @@ pub fn scan_directory_to_db(
     let start_time = std::time::Instant::now();
 
     let results: Vec<ScannedGame> = py.allow_threads(move || {
-        files.into_par_iter()
-            .filter_map(|p| {
+        pool.install(|| {
+            files.into_par_iter()
+                .filter_map(|p| {
                 let path_str = p.to_string_lossy().to_string();
                 let meta = fs::metadata(&p).ok()?;
                 let size = meta.len();
@@ -781,6 +794,7 @@ pub fn scan_directory_to_db(
                 identify_game_file(&p)
             })
             .collect()
+        })
     });
 
     if results.is_empty() {

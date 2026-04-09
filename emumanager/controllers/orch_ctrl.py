@@ -55,8 +55,10 @@ class OrchestraController(QObject):
         local_path = base_path / emu_id / executable_name
         is_installed = local_path.exists()
         if not is_installed and mango and system_id:
-            try: is_installed = mango.check_system_installed(system_id)
-            except Exception: pass
+            try:
+                is_installed = mango.check_system_installed(system_id)
+            except Exception as e:
+                EmuLog.debug(f"Orchestra: Error al verificar instalación nativa para {system_id}: {e}")
         return is_installed, local_path
 
     @Slot(result='QVariantList')

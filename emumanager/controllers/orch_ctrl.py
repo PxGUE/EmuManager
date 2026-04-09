@@ -11,6 +11,9 @@ from controllers.workers import (
 )
 from backend.discord_rpc import DiscordRPCManager
 
+try: import mango_engine
+except ImportError: mango_engine = None
+
 class OrchestraController(QObject):
     """
     Controlador especializado en la instalación de emuladores, núcleos y lanzamiento de juegos.
@@ -70,8 +73,6 @@ class OrchestraController(QObject):
         os_name = py_platform.system().lower()
         base_path = Path(AppConfig.get_emulators_path() or ".")
         
-        try: import mango_engine
-        except ImportError: mango_engine = None
 
         updates_map = self.get_installed_tags()
 

@@ -232,7 +232,8 @@ class StartupWorker(QObject):
                 # Comprobar si Discord RPC está habilitado y conectar en background
                 if hasattr(self.ctrl.orch_ctrl, 'discord_rpc'):
                     self.ctrl.orch_ctrl.discord_rpc.connect()
-            except Exception: pass
+            except Exception as e:
+                EmuLog.debug(f"Startup: No se pudo iniciar Discord RPC durante el arranque: {e}")
             
             # Si el motor detectó cambios, podrías inyectar datos aquí
             if data:

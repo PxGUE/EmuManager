@@ -89,7 +89,8 @@ class OrchestraController(QObject):
             )
             
             emu_data = updates_map.get(emu_id, {})
-            has_update = is_installed and emu_data.get("remote_tag") and (emu_data["installed_tag"] != emu_data["remote_tag"])
+            # Forzamos boolean para evitar 'undefined' en QML
+            has_update = bool(is_installed and emu_data.get("remote_tag") and (emu_data.get("installed_tag") != emu_data.get("remote_tag")))
 
             emu["isInstalled"] = is_installed
             emu["hasUpdate"] = has_update

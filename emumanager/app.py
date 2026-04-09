@@ -12,7 +12,12 @@ if sys.platform == 'win32':
     import asyncio
     # Usamos SelectorEventLoop en Windows para evitar errores de tuberías cerradas al salir.
     # Es una solución estructural más limpia que parchear el destructor del transporte.
-    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+    # Nota: El sistema de políticas está deprecated desde Python 3.12, pero lo mantenemos
+    # silenciado para evitar ruidos en la consola hasta que migremos a un Runner.
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", DeprecationWarning)
+        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+    
     # Silenciamos warnings de recursos que ya no deberían ocurrir pero por higiene de consola:
     warnings.filterwarnings("ignore", category=ResourceWarning, message="unclosed transport")
 

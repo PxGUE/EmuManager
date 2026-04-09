@@ -25,6 +25,17 @@ Item {
     // Modelo de Repositorios (Emuladores)
     ListModel {
         id: emulatorsModel
+        // Forzamos la creación de roles críticos para evitar avisos de 'undefined'
+        Component.onCompleted: {
+            if (count === 0) {
+                append({
+                    "id": "", "name": "", "fullName": "", "description": "", 
+                    "icon": "", "accent": "", "downloadUrl": "", "executable": "", 
+                    "isInstalled": false, "hasUpdate": false, "progress": 0.0, "statusText": ""
+                })
+                clear()
+            }
+        }
     }
     
     // Estados Centralizados

@@ -2,7 +2,7 @@ try:
     import mango_engine
 except ImportError:
     mango_engine = None
-from typing import Callable, Optional
+from collections.abc import Callable
 from pathlib import Path
 from backend.database import DatabaseManager
 from core.config import AppConfig
@@ -20,7 +20,7 @@ class ScannerManager:
             "smd", "sms", "gg", "cdi", "gdi", "zip"
         ]
 
-    def scan_and_register(self, directory_path: str, progress_callback: Optional[Callable[[float], None]] = None, status_callback: Optional[Callable[[str], None]] = None, is_active_check: Optional[Callable[[], bool]] = None):
+    def scan_and_register(self, directory_path: str, progress_callback: Callable[[float], None] | None = None, status_callback: Callable[[str], None] | None = None, is_active_check: Callable[[], bool] | None = None):
         """
         [NATIVE ENGINE] Escanea y registra juegos directamente en la BD usando M.A.N.G.O (Rust).
         Esta solución es de alto rendimiento, libera el GIL y evita cualquier congelamiento.
@@ -50,7 +50,7 @@ class ScannerManager:
             EmuLog.error(f"Error fatal en Escaneo Nativo M.A.N.G.O: {e}")
             return 0
 
-    def scrape_missing_metadata(self, progress_callback: Optional[Callable[[float], None]] = None, status_callback: Optional[Callable[[str], None]] = None):
+    def scrape_missing_metadata(self, progress_callback: Callable[[float], None] | None = None, status_callback: Callable[[str], None] | None = None):
         """
         Busca metadatos y portadas (2D/3D) para las ROMs que aún no tengan.
         Usa el motor M.A.N.G.O para peticiones de ultra-baja latencia.

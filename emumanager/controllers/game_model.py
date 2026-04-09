@@ -1,9 +1,11 @@
+import os
 from PySide6.QtCore import QAbstractListModel, Qt, Slot, QModelIndex, Property, Signal
-from PySide6.QtQml import QmlElement
+from PySide6.QtQml import QmlElement  # noqa: F401
 from backend.database import DatabaseManager
 
 QML_IMPORT_NAME = "EmuManager.Models"
 QML_IMPORT_MAJOR_VERSION = 1
+
 
 @QmlElement
 class GameListModel(QAbstractListModel):
@@ -29,6 +31,10 @@ class GameListModel(QAbstractListModel):
         self._all_results = [] # Resultados brutos del motor
         self._show_favorites_only = False
 
+        # O(1) Lookup Maps
+        self._id_to_game = {}        # game_id -> game object reference
+        self._id_to_index_in_view = {} # game_id -> index in self._games
+
     countChanged = Signal()
 
     @Property(int, notify=countChanged)
@@ -48,7 +54,7 @@ class GameListModel(QAbstractListModel):
             self.endResetModel()
             self.countChanged.emit()
 
-    def roleNames(self):
+    def roleNames(self) -> dict[int, bytes]:
         return {
             self.FileHashRole: b"fileHash",
             self.FilePathRole: b"filePath",
@@ -65,10 +71,10 @@ class GameListModel(QAbstractListModel):
             self.IsFavoriteRole: b"isFavorite"
         }
 
-    def rowCount(self, parent=QModelIndex()):
+    def rowCount(self, parent: QModelIndex = QModelIndex()) -> int:
         return len(self._games)
 
-    def data(self, index, role=Qt.DisplayRole):
+    def data(self, index: QModelIndex, role: int = Qt.DisplayRole):
         if not index.isValid() or not (0 <= index.row() < len(self._games)):
             return None
         
@@ -83,7 +89,6 @@ class GameListModel(QAbstractListModel):
             if p:
                 # --- SISTEMA DE MINIATURAS NATIVAS M.A.N.G.O ---
                 # Si existe una versión 256w en .cache, la usamos para fluidez total
-                import os
                 thumb = p.replace("covers/2d", ".cache/thumbs/256w")
                 if os.path.exists(thumb):
                     return thumb.replace("\\", "/")
@@ -126,12 +131,17 @@ class GameListModel(QAbstractListModel):
         try:
             db_path = str(AppConfig.get_database_path())
             self._all_results = mango_engine.search_games(db_path, query, platform)
+
+            # Reconstruir mapa de ID a objeto para O(1) lookup
+            self._id_to_game = {int(g.get("id", -1)): g for g in self._all_results}
+
             self._apply_filter()
             EmuLog.info(f"M.A.N.G.O (Model): Búsqueda completada para '{query}' en '{platform}'. Resultados: {len(self._games)}")
         except Exception as e:
             EmuLog.error(f"Error fatal en búsqueda fuzzymatch: {e}")
             self._all_results = []
             self._games = []
+            self._id_to_game = {}
         self.endResetModel()
         self.countChanged.emit()
 
@@ -142,6 +152,9 @@ class GameListModel(QAbstractListModel):
         else:
             self._games = self._all_results
 
+        # Reconstruir mapa de ID a índice en la vista actual
+        self._id_to_index_in_view = {int(g.get("id", -1)): i for i, g in enumerate(self._games)}
+
     @Slot(int, bool)
     def set_favorite_locally(self, game_id, is_favorite):
         """Actualiza el estado de favorito solo en memoria para una respuesta instantánea."""
@@ -150,16 +163,12 @@ class GameListModel(QAbstractListModel):
             target_id = int(game_id)
             new_val = 1 if is_favorite else 0
 
-            # 1. Actualizar siempre el buffer maestro (_all_results)
-            target_game = None
-            for g in self._all_results:
-                if int(g.get("id", -1)) == target_id:
-                    g["is_favorite"] = new_val
-                    target_game = g
-                    break
-            
+            # 1. Actualizar siempre el buffer maestro (_all_results) usando el mapa O(1)
+            target_game = self._id_to_game.get(target_id)
             if not target_game:
                 return
+
+            target_game["is_favorite"] = new_val
 
             # 2. Si estamos filtrando favoritos, re-aplicamos y reseteamos el modelo
             if self._show_favorites_only:
@@ -169,11 +178,11 @@ class GameListModel(QAbstractListModel):
                 self.countChanged.emit()
                 return
 
-            # 3. Si no filtramos favoritos, buscamos en la vista actual (_games) para notificar
-            for i, game in enumerate(self._games):
-                if game is target_game:
-                    idx = self.index(i, 0)
-                    self.dataChanged.emit(idx, idx, [self.IsFavoriteRole])
-                    break
+            # 3. Si no filtramos favoritos, usamos el mapa de índices para notificar el cambio instantáneamente
+            idx_in_view = self._id_to_index_in_view.get(target_id)
+            if idx_in_view is not None:
+                idx = self.index(idx_in_view, 0)
+                self.dataChanged.emit(idx, idx, [self.IsFavoriteRole])
+
         except Exception as e:
             EmuLog.error(f"Error en set_favorite_locally: {e}")

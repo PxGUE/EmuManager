@@ -55,8 +55,10 @@ class OrchestraController(QObject):
         local_path = base_path / emu_id / executable_name
         is_installed = local_path.exists()
         if not is_installed and mango and system_id:
-            try: is_installed = mango.check_system_installed(system_id)
-            except Exception: pass
+            try:
+                is_installed = mango.check_system_installed(system_id)
+            except Exception as e:
+                EmuLog.debug(f"Orchestra: Error al verificar instalación nativa para {system_id}: {e}")
         return is_installed, local_path
 
     @Slot(result='QVariantList')
@@ -400,34 +402,45 @@ class OrchestraController(QObject):
 
     def save_installed_tag(self, emu_id, tag):
         """Registra una instalación exitosa en la DB."""
+        self.save_installed_tags_batch({emu_id: tag})
+
+    def save_installed_tags_batch(self, tag_map):
+        """Registra múltiples tags de instalación en una sola transacción."""
+        if not tag_map: return
         try:
             with self.db.get_connection() as conn:
-                conn.execute("""
+                data = [(emu_id, tag) for emu_id, tag in tag_map.items()]
+                conn.executemany("""
                     INSERT INTO emulator_status (emu_id, installed_tag, last_checked_at)
                     VALUES (?, ?, CURRENT_TIMESTAMP)
                     ON CONFLICT(emu_id) DO UPDATE SET
                         installed_tag = excluded.installed_tag,
                         last_checked_at = CURRENT_TIMESTAMP
-                """, (emu_id, tag))
+                """, data)
                 conn.commit()
         except Exception as e:
-            EmuLog.error(f"Error guardando tag de instalación: {e}")
+            EmuLog.error(f"Error guardando lote de tags de instalación: {e}")
 
     def save_remote_tag(self, emu_id, tag):
         """Registra que encontramos una versión nueva remotamente."""
+        self.save_remote_tags_batch({emu_id: tag})
+
+    def save_remote_tags_batch(self, tag_map):
+        """Registra múltiples tags remotos en una sola transacción."""
+        if not tag_map: return
         try:
             with self.db.get_connection() as conn:
-                conn.execute("""
+                data = [(emu_id, tag) for emu_id, tag in tag_map.items()]
+                conn.executemany("""
                     INSERT INTO emulator_status (emu_id, remote_tag, last_checked_at)
                     VALUES (?, ?, CURRENT_TIMESTAMP)
                     ON CONFLICT(emu_id) DO UPDATE SET
                         remote_tag = excluded.remote_tag,
                         last_checked_at = CURRENT_TIMESTAMP
-                """, (emu_id, tag))
+                """, data)
                 conn.commit()
         except Exception as e:
-            EmuLog.error(f"Error guardando tag remoto: {e}")
-
+            EmuLog.error(f"Error guardando lote de tags remotos: {e}")
 
     def shutdown(self):
         self.discord_rpc.disconnect()

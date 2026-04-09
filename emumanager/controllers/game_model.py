@@ -1,9 +1,11 @@
+import os
 from PySide6.QtCore import QAbstractListModel, Qt, Slot, QModelIndex, Property, Signal
-from PySide6.QtQml import QmlElement
+from PySide6.QtQml import QmlElement  # noqa: F401
 from backend.database import DatabaseManager
 
 QML_IMPORT_NAME = "EmuManager.Models"
 QML_IMPORT_MAJOR_VERSION = 1
+
 
 @QmlElement
 class GameListModel(QAbstractListModel):
@@ -48,7 +50,7 @@ class GameListModel(QAbstractListModel):
             self.endResetModel()
             self.countChanged.emit()
 
-    def roleNames(self):
+    def roleNames(self) -> dict[int, bytes]:
         return {
             self.FileHashRole: b"fileHash",
             self.FilePathRole: b"filePath",
@@ -65,10 +67,10 @@ class GameListModel(QAbstractListModel):
             self.IsFavoriteRole: b"isFavorite"
         }
 
-    def rowCount(self, parent=QModelIndex()):
+    def rowCount(self, parent: QModelIndex = QModelIndex()) -> int:
         return len(self._games)
 
-    def data(self, index, role=Qt.DisplayRole):
+    def data(self, index: QModelIndex, role: int = Qt.DisplayRole):
         if not index.isValid() or not (0 <= index.row() < len(self._games)):
             return None
         
@@ -83,7 +85,6 @@ class GameListModel(QAbstractListModel):
             if p:
                 # --- SISTEMA DE MINIATURAS NATIVAS M.A.N.G.O ---
                 # Si existe una versión 256w en .cache, la usamos para fluidez total
-                import os
                 thumb = p.replace("covers/2d", ".cache/thumbs/256w")
                 if os.path.exists(thumb):
                     return thumb.replace("\\", "/")

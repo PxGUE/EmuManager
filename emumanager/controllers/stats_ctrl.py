@@ -3,7 +3,7 @@ from core.config import AppConfig
 from core.logger import EmuLog
 import platform as py_platform
 import os
-import json
+
 
 class StatsController(QObject):
     """
@@ -26,37 +26,29 @@ class StatsController(QObject):
             if not stats: return {}
             
             # Mapear nombres directamente de SQL (Optimización Batch para evitar N+1)
-            with self.db.get_connection() as conn:
-                cursor = conn.cursor()
-                
-                # Recopilar todos los IDs necesarios
-                ids_to_fetch = set()
-                last_game = stats.get("last_game")
-                if last_game and last_game.get("id"):
-                    ids_to_fetch.add(last_game["id"])
+            # Recopilar todos los IDs necesarios
+            ids_to_fetch = set()
+            last_game = stats.get("last_game")
+            if last_game and last_game.get("id"):
+                ids_to_fetch.add(last_game["id"])
 
-                recent_games = stats.get("recent_games", [])
+            recent_games = stats.get("recent_games", [])
+            for g in recent_games:
+                if g.get("id"):
+                    ids_to_fetch.add(g["id"])
+
+            if ids_to_fetch:
+                # Consulta única para todos los títulos vía DatabaseManager
+                name_map = self.db.get_game_titles_map(list(ids_to_fetch))
+
+                # Asignar títulos de vuelta al objeto stats
+                if last_game and last_game.get("id") in name_map:
+                    last_game["title"] = name_map[last_game["id"]]
+
                 for g in recent_games:
-                    if g.get("id"):
-                        ids_to_fetch.add(g["id"])
-
-                if ids_to_fetch:
-                    # Consulta única para todos los títulos (vía JSON para evitar SQLi)
-                    json_ids = json.dumps(list(ids_to_fetch))
-                    cursor.execute(
-                        "SELECT id, display_name FROM games WHERE id IN (SELECT value FROM json_each(?))",
-                        (json_ids,)
-                    )
-                    name_map = {row[0]: row[1] for row in cursor.fetchall() if row[1]}
-
-                    # Asignar títulos de vuelta al objeto stats
-                    if last_game and last_game.get("id") in name_map:
-                        last_game["title"] = name_map[last_game["id"]]
-
-                    for g in recent_games:
-                        gid = g.get("id")
-                        if gid in name_map:
-                            g["title"] = name_map[gid]
+                    gid = g.get("id")
+                    if gid in name_map:
+                        g["title"] = name_map[gid]
             
             EmuLog.debug(f"M.A.N.G.O (Stats): Dashboard recuperado. Total juegos: {stats.get('total_games', 0)}")
             return stats

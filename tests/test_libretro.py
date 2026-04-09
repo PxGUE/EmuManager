@@ -1,6 +1,6 @@
 import sys
 import os
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 from pathlib import Path
 
 # Mock psutil, PySide6, and pypresence before they are imported
@@ -41,73 +41,77 @@ def test_get_core_for_platform_empty_string(libretro_manager):
     # Tests empty string input
     assert libretro_manager.get_core_for_platform("") is None
 
-def test_uninstall_core_success_linux(libretro_manager, monkeypatch):
-    monkeypatch.setattr("platform.system", lambda: "Linux")
+def test_download_core_mango_missing(libretro_manager):
+    # Tests download_core returns None if mango_engine is missing
+    with patch("emumanager.backend.libretro.mango_engine", None):
+        assert libretro_manager.download_core("snes9x") is None
 
-    # We need to test on a known platform, e.g., snes
-    core_name = "snes9x"
-    platform_id = "snes"
+def test_download_core_success_clean_id(libretro_manager, tmp_path):
+    # Tests successful core download with a clean ID
+    mock_mango = MagicMock()
+    mock_mango.download_core.return_value = "snes9x_libretro.so"
 
-    # Create the dummy directory and file
-    core_dir = libretro_manager.cores_path / platform_id
-    core_dir.mkdir(parents=True, exist_ok=True)
-    target_file = core_dir / f"{core_name}.so"
-    target_file.touch()
+    with patch("emumanager.backend.libretro.mango_engine", mock_mango), \
+         patch("emumanager.backend.libretro.EmuLog") as mock_log:
 
-    assert target_file.exists()
+        result = libretro_manager.download_core("snes9x")
 
-    result = libretro_manager.uninstall_core(core_name)
+        assert result == "snes9x_libretro.so"
+        # Verify directory creation: cores/snes
+        expected_dir = tmp_path / "cores" / "snes"
+        assert expected_dir.is_dir()
 
-    assert result is True
-    assert not target_file.exists()
+        # Verify mango_engine call
+        mock_mango.download_core.assert_called_once_with(
+            "snes9x", str(expected_dir), None, None
+        )
 
-def test_uninstall_core_success_windows(libretro_manager, monkeypatch):
-    monkeypatch.setattr("platform.system", lambda: "Windows")
+        # Verify logging
+        mock_log.info.assert_any_call(f"M.A.N.G.O: Instalando core snes9x en {expected_dir}")
 
-    core_name = "snes9x"
-    platform_id = "snes"
+def test_download_core_success_suffixed_id(libretro_manager, tmp_path):
+    # Tests successful core download with a suffixed ID (_libretro)
+    mock_mango = MagicMock()
+    mock_mango.download_core.return_value = "mgba_libretro.so"
 
-    # Create the dummy directory and file
-    core_dir = libretro_manager.cores_path / platform_id
-    core_dir.mkdir(parents=True, exist_ok=True)
-    target_file = core_dir / f"{core_name}.dll"
-    target_file.touch()
+    with patch("emumanager.backend.libretro.mango_engine", mock_mango), \
+         patch("emumanager.backend.libretro.EmuLog") as mock_log:
 
-    assert target_file.exists()
+        result = libretro_manager.download_core("mgba_libretro")
 
-    result = libretro_manager.uninstall_core(core_name)
+        assert result == "mgba_libretro.so"
+        # Verify directory creation: cores/gba
+        expected_dir = tmp_path / "cores" / "gba"
+        assert expected_dir.is_dir()
 
-    assert result is True
-    assert not target_file.exists()
+        # Verify mango_engine call
+        mock_mango.download_core.assert_called_once_with(
+            "mgba_libretro", str(expected_dir), None, None
+        )
 
-def test_uninstall_core_not_found(libretro_manager, monkeypatch):
-    monkeypatch.setattr("platform.system", lambda: "Linux")
+def test_download_core_with_callbacks(libretro_manager, tmp_path):
+    # Tests that callbacks are correctly passed to mango_engine
+    mock_mango = MagicMock()
+    prog_cb = MagicMock()
+    stat_cb = MagicMock()
 
-    core_name = "snes9x"
-    # Do not create the file
+    with patch("emumanager.backend.libretro.mango_engine", mock_mango):
+        libretro_manager.download_core("snes9x", progress_callback=prog_cb, status_callback=stat_cb)
 
-    result = libretro_manager.uninstall_core(core_name)
+        expected_dir = tmp_path / "cores" / "snes"
+        mock_mango.download_core.assert_called_once_with(
+            "snes9x", str(expected_dir), prog_cb, stat_cb
+        )
 
-    assert result is False
+def test_download_core_exception(libretro_manager, tmp_path):
+    # Tests that exceptions in mango_engine are caught and return None
+    mock_mango = MagicMock()
+    mock_mango.download_core.side_effect = Exception("Download failed")
 
-def test_uninstall_core_exception(libretro_manager, monkeypatch):
-    monkeypatch.setattr("platform.system", lambda: "Linux")
+    with patch("emumanager.backend.libretro.mango_engine", mock_mango), \
+         patch("emumanager.backend.libretro.EmuLog") as mock_log:
 
-    core_name = "snes9x"
-    platform_id = "snes"
+        result = libretro_manager.download_core("snes9x")
 
-    core_dir = libretro_manager.cores_path / platform_id
-    core_dir.mkdir(parents=True, exist_ok=True)
-    target_file = core_dir / f"{core_name}.so"
-    target_file.touch()
-
-    # Mock unlink to raise an exception
-    def mock_unlink(*args, **kwargs):
-        raise PermissionError("Access denied")
-
-    monkeypatch.setattr(Path, "unlink", mock_unlink)
-
-    result = libretro_manager.uninstall_core(core_name)
-
-    assert result is False
-    assert target_file.exists()  # File should still exist because unlink failed
+        assert result is None
+        mock_log.error.assert_any_call("Error downloading core snes9x: Download failed")

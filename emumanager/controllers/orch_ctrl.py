@@ -57,7 +57,7 @@ class OrchestraController(QObject):
         """Verifica localmente y a través de M.A.N.G.O (Rust) si un motor está instalado."""
         local_path = base_path / emu_id / executable_name
         is_installed = local_path.exists()
-        if not is_installed and mango and system_id:
+        if not is_installed and mango and system_id and hasattr(mango, "check_system_installed"):
             try:
                 is_installed = mango.check_system_installed(system_id)
             except Exception as e:
@@ -72,32 +72,54 @@ class OrchestraController(QObject):
             
         os_name = py_platform.system().lower()
         base_path = Path(AppConfig.get_emulators_path() or ".")
-        
-
         updates_map = self.get_installed_tags()
 
+        # Preparar datos para el chequeo en lote de Rust si está disponible
+        batch_targets = []
         for emu in emulators:
             emu_id = emu.get("id", "")
             orchestra = emu.get("orchestration", {})
-            
-            # Resoluciones
             os_orchestra = orchestra.get(os_name, {})
             system_id = os_orchestra.get("id", "")
+
+            # Resoluciones básicas para el objeto final
             emu["systemId"] = system_id
             emu["downloadUrl"] = orchestra.get("portable", {}).get(os_name, "")
             emu["executable"] = emu.get("executable", {}).get(os_name, "")
             
-            is_installed, local_path = self._check_system_installed(
-                emu_id, emu["executable"], system_id, base_path, mango_engine
-            )
+            local_path = base_path / emu_id / emu["executable"]
+            batch_targets.append((emu_id, system_id, str(local_path)))
+
+        # Ejecutar chequeo de estado (Batch en Rust vs Individual en Python)
+        status_results = {}
+        if mango_engine and hasattr(mango_engine, "check_emulators_status"):
+            try:
+                results = mango_engine.check_emulators_status(batch_targets)
+                status_results = {r["id"]: r for r in results}
+            except Exception as e:
+                EmuLog.debug(f"Orchestra: Error en check_emulators_status batch: {e}")
+
+        for emu in emulators:
+            emu_id = emu.get("id", "")
             
+            # Recuperar resultado del lote o fallback individual
+            if emu_id in status_results:
+                is_installed = status_results[emu_id]["is_installed"]
+                local_path_str = status_results[emu_id]["local_path"]
+            else:
+                # Fallback por si Rust falla o no está disponible
+                is_installed, local_path = self._check_system_installed(
+                    emu_id, emu["executable"], emu["systemId"], base_path, mango_engine
+                )
+                local_path_str = str(local_path) if is_installed else ""
+
             emu_data = updates_map.get(emu_id, {})
             # Forzamos boolean para evitar 'undefined' en QML
             has_update = bool(is_installed and emu_data.get("remote_tag") and (emu_data.get("installed_tag") != emu_data.get("remote_tag")))
 
             emu["isInstalled"] = is_installed
             emu["hasUpdate"] = has_update
-            emu["localPath"] = str(local_path) if is_installed else ""
+            emu["localPath"] = local_path_str
             emu["progress"] = 0.0
             
             # Asignación de textos automáticos

@@ -110,16 +110,22 @@ class LibretroManager:
             else:
                 core_ext = ".so"
 
-            # Optimización: Pre-escanear cores instalados para evitar I/O en el bucle
+            # Optimización: Pre-escanear cores instalados usando os.scandir para máximo rendimiento
+            import os
             installed_set = set()
-            if self.cores_path.is_dir():
-                for p_dir in self.cores_path.iterdir():
-                    if p_dir.is_dir():
-                        p_name = p_dir.name.lower()
-                        for f in p_dir.iterdir():
-                            if f.is_file():
-                                # Guardamos en minúsculas para búsqueda case-insensitive
-                                installed_set.add(f"{p_name}/{f.name.lower()}")
+            cores_path_str = str(self.cores_path)
+
+            if os.path.isdir(cores_path_str):
+                valid_exts = (".dll", ".so", ".dylib")
+                with os.scandir(cores_path_str) as it1:
+                    for entry1 in it1:
+                        if entry1.is_dir():
+                            p_name = entry1.name.lower()
+                            with os.scandir(entry1.path) as it2:
+                                for entry2 in it2:
+                                    if entry2.is_file() and entry2.name.lower().endswith(valid_exts):
+                                        # Guardamos en minúsculas para búsqueda case-insensitive
+                                        installed_set.add(f"{p_name}/{entry2.name.lower()}")
 
             unique_results = []
             seen_ids = set()

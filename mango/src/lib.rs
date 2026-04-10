@@ -200,6 +200,29 @@ fn precharge_ecosystem(
 }
 
 #[pyfunction]
+fn check_system_installed(system_id: String) -> bool {
+    emulation::orchestrator::is_system_package_installed(&system_id)
+}
+
+#[pyfunction]
+fn check_emulators_status(py: Python<'_>, targets: Vec<(String, String, String)>) -> PyResult<Py<PyList>> {
+    let results = py.allow_threads(move || {
+        emulation::orchestrator::check_emulators_status_batch(targets)
+    });
+
+    let list = PyList::empty(py);
+    for r in results {
+        let dict = PyDict::new(py);
+        let _ = dict.set_item("id", r.id);
+        let _ = dict.set_item("is_installed", r.is_installed);
+        let _ = dict.set_item("source", r.source);
+        let _ = dict.set_item("local_path", r.local_path);
+        let _ = list.append(dict);
+    }
+    Ok(list.into())
+}
+
+#[pyfunction]
 fn check_all_updates(py: Python<'_>, targets: HashMap<String, String>) -> PyResult<Py<PyList>> {
     let results = py.allow_threads(move || {
         RUNTIME.block_on(sync::updates::check_parallel_updates(targets))
@@ -234,5 +257,7 @@ fn mango_engine(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(launch_game, m)?)?;
     m.add_function(wrap_pyfunction!(check_all_updates, m)?)?;
     m.add_function(wrap_pyfunction!(precharge_ecosystem, m)?)?;
+    m.add_function(wrap_pyfunction!(check_system_installed, m)?)?;
+    m.add_function(wrap_pyfunction!(check_emulators_status, m)?)?;
     Ok(())
 }

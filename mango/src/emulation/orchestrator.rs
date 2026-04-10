@@ -88,6 +88,42 @@ pub fn find_system_executable(name: &str) -> Option<String> {
     None
 }
 
+/// Estructura para reportar el estado de un emulador en batch
+pub struct EmulatorStatus {
+    pub id: String,
+    pub is_installed: bool,
+    pub source: String,
+    pub local_path: String,
+}
+
+/// Verifica el estado de múltiples emuladores en una sola pasada.
+pub fn check_emulators_status_batch(
+    targets: Vec<(String, String, String)> // (id, system_id, local_path)
+) -> Vec<EmulatorStatus> {
+    targets.into_iter().map(|(id, system_id, local_path_str)| {
+        let local_path = std::path::Path::new(&local_path_str);
+        let mut is_installed = local_path.exists();
+        let mut source = if is_installed { "local".to_string() } else { "none".to_string() };
+        let mut final_local_path = if is_installed { local_path_str.clone() } else { "".to_string() };
+
+        if !is_installed && !system_id.is_empty() {
+            if is_system_package_installed(&system_id) {
+                is_installed = true;
+                source = "system".to_string();
+                // En el caso de sistema, el path local es el ID del paquete o el binario en el PATH
+                final_local_path = system_id;
+            }
+        }
+
+        EmulatorStatus {
+            id,
+            is_installed,
+            source,
+            local_path: final_local_path,
+        }
+    }).collect()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

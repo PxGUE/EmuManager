@@ -7,6 +7,7 @@ import subprocess
 import platform as py_platform
 from core.config import AppConfig
 from core.logger import EmuLog
+from core.security import PathSecurity
 from controllers.workers import (
     EmulatorInstallWorker, CoreDownloadWorker, LaunchWorker,
     EmulatorUninstallWorker, EmulatorInstallConfig
@@ -149,7 +150,11 @@ class OrchestraController(QObject):
                     system_id = emu.get("systemId", "")
                     break
 
-        dest_dir = Path(AppConfig.get_emulators_path()) / emu_id
+        dest_dir = PathSecurity.safe_join(Path(AppConfig.get_emulators_path()), emu_id)
+        if not dest_dir:
+            EmuLog.error(f"⚠️ Security Alert: Intento de instalación en ruta no autorizada para ID: {emu_id}")
+            return False
+
         if emu_id == "retroarch":
             dest_dir.mkdir(parents=True, exist_ok=True)
             (dest_dir / "cores").mkdir(parents=True, exist_ok=True)
@@ -331,8 +336,8 @@ class OrchestraController(QObject):
         exe_name = executables.get(emu_id)
         if not exe_name: return None
         
-        emu_dir = Path(AppConfig.get_emulators_path()) / emu_id
-        if not emu_dir.exists(): return None
+        emu_dir = PathSecurity.safe_join(Path(AppConfig.get_emulators_path()), emu_id)
+        if not emu_dir or not emu_dir.exists(): return None
         
         # Búsqueda recursiva para localizar el binario (intenta primero en la raíz)
         if (emu_dir / exe_name).exists():
@@ -345,7 +350,11 @@ class OrchestraController(QObject):
         if self._emu_thread and self._emu_thread.isRunning():
             return False
 
-        dest_dir = Path(AppConfig.get_emulators_path()) / emu_id
+        dest_dir = PathSecurity.safe_join(Path(AppConfig.get_emulators_path()), emu_id)
+        if not dest_dir:
+            EmuLog.error(f"⚠️ Security Alert: Intento de desinstalación no autorizado bloqueado para el ID: {emu_id}")
+            return False
+
         if not dest_dir.exists(): return False
 
         # Emitir estado para que la UI sepa que estamos ocupados
@@ -378,17 +387,9 @@ class OrchestraController(QObject):
         
         try:
             base_emus_path = Path(AppConfig.get_emulators_path()).resolve()
-            # Sanitizar emu_id para evitar saltos (..) o rutas absolutas maliciosas
-            target_path = (base_emus_path / emu_id.lstrip('/')).resolve()
+            target_path = PathSecurity.safe_join(base_emus_path, emu_id)
             
-            # Verificación de seguridad: El path debe estar dentro del directorio de emuladores
-            try:
-                target_path.relative_to(base_emus_path)
-            except ValueError:
-                EmuLog.error(f"⚠️ Intento de acceso no autorizado bloqueado: {emu_id}")
-                target_path = base_emus_path
-                
-            if not target_path.exists():
+            if not target_path or not target_path.exists():
                 target_path = base_emus_path
 
             EmuLog.debug(f"Abriendo carpeta: {target_path}")

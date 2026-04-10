@@ -8,6 +8,7 @@ except ImportError:
     mango_engine = None
 
 from core.logger import EmuLog
+from core.security import PathSecurity
 
 # Base de datos de mapeo: Plataforma -> Lista de cores (id_interno, nombre_amigable)
 CORE_DATABASE = {

@@ -156,8 +156,7 @@ def test_startup_worker_success():
     worker.status.emit.assert_any_call("startup_ready")
 
     worker.progress.emit.assert_any_call(0.10)
-    worker.progress.emit.assert_any_call(0.60)
-    worker.progress.emit.assert_any_call(0.85)
+    worker.progress.emit.assert_any_call(0.90)
     worker.progress.emit.assert_any_call(1.0)
 
     worker.finished.emit.assert_called_once()

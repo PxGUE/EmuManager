@@ -54,10 +54,10 @@ CORE_DATABASE = {
 def _build_core_platform_map() -> dict[str, str]:
     """Crea un mapeo inverso core_id -> plataforma optimizado."""
     mapping = {}
-    for platform, cores in CORE_DATABASE.items():
+    for plat_name, cores in CORE_DATABASE.items():
         for core_id, _ in cores:
             if core_id not in mapping:
-                mapping[core_id] = platform
+                mapping[core_id] = plat_name
     return mapping
 
 _CORE_PLATFORM_MAP = _build_core_platform_map()
@@ -85,7 +85,7 @@ class LibretroManager:
 
     def get_core_for_platform(self, platform: str) -> str | None:
         """Obtiene el ID del core sugerido para una plataforma."""
-        cores = CORE_DATABASE.get(platform.lower(), [])
+        cores = CORE_DATABASE.get(plat_name.lower(), [])
         return cores[0][0] if cores else None
 
     def fetch_filtered_cores(self, active_platforms: list[str]) -> list[dict[str, str]]:
@@ -130,8 +130,8 @@ class LibretroManager:
             seen_ids = set()
             
             # Buscamos en nuestra base de datos para las plataformas activas
-            for platform in active_platforms:
-                platform_lower = platform.lower()
+            for plat_name in active_platforms:
+                platform_lower = plat_name.lower()
                 suggestions = CORE_DATABASE.get(platform_lower, [])
 
                 for core_id, display_name in suggestions:
@@ -151,7 +151,7 @@ class LibretroManager:
                         unique_results.append({
                             "id": search_id,
                             "name": display_name,
-                            "platform": platform,
+                            "platform": plat_name,
                             "isInstalled": is_installed
                         })
                     

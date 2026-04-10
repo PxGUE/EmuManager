@@ -209,39 +209,53 @@ class StartupWorker(QObject):
     @Slot()
     def run(self):
         try:
-            # 1. Activación de Motores & Logs (10%)
+            from core.config import AppConfig
+            import time
+
+            # 1. Validación de Estructura y Configuración (5%)
+            self.status.emit("initializing")
+            time.sleep(0.3) # Sutil pausa para legibilidad visual
+            self.progress.emit(0.05)
+            
+            # 2. Activación de Motores & Logs (15%)
             self.status.emit("startup_native")
             self.ctrl.proactive_background_load()
-            self.progress.emit(0.10)
+            self.progress.emit(0.15)
             
-            # --- PROTOCOLO DE PRECARGA NATIVO: M.A.N.G.O (60%) ---
-            # Aquí es donde Rust toma el control y hace la carga pesada en hilos paralelos.
+            # 3. Verificación de Integridad de Datos (30%)
             self.status.emit("startup_db")
-            
-            # Llamada unificada: DB Stats + Asset Warmup + Emu Cache
+            db_path = AppConfig.get_database_path()
+            if not db_path.exists():
+                EmuLog.warning("Base de datos no encontrada. M.A.N.G.O creará un nuevo ecosistema.")
+            self.progress.emit(0.30)
+
+            # --- PROTOCOLO DE PRECARGA NATIVO: M.A.N.G.O (65%) ---
+            # Sincronización Real de Sistemas y Estadísticas
+            self.status.emit("startup_db_sync")
             data = self.ctrl.precharge_ecosystem()
+            self.progress.emit(0.65)
             
-            # --- MEJORA ARQUITECTÓNICA: Pre-calentamiento de Caché de Interfaz ---
+            # 4. Optimización de Caché de Medios (80%)
+            self.status.emit("startup_assets")
             # Forzamos que el controlador genere el sumario de consolas AHORA.
             # Esto evita que la UI se bloquee o se vea vacía al entrar.
             self.ctrl.stats_ctrl.get_consoles_summary(False) 
+            self.progress.emit(0.80)
             
             # Notificamos a la biblioteca que los datos están listos en memoria
-            # SINCRO-READY: Forzamos aviso pero SIN limpiar la caché que acabamos de generar (Optimización Total)
             self.ctrl.libraryChangedRequested.emit(True, False) 
             
-            self.progress.emit(0.90)
-            
-            # 3. Servicios y Conectividad (90%)
+            # 5. Servicios y Conectividad (95%)
             self.status.emit("startup_services")
             try:
-                if hasattr(self.ctrl.orch_ctrl, 'discord_rpc'):
-                    self.ctrl.orch_ctrl.discord_rpc.connect()
+                if AppConfig.get_discord_rpc_enabled():
+                    if hasattr(self.ctrl.orch_ctrl, 'discord_rpc'):
+                        self.ctrl.orch_ctrl.discord_rpc.connect()
             except Exception as e:
                 EmuLog.debug(f"Startup: No se pudo iniciar Discord RPC: {e}")
             
             self.progress.emit(1.0)
-            self.status.emit("startup_ready")
+            # Carga finalizada
             self.finished.emit()
             
         except Exception as e:

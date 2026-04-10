@@ -29,20 +29,29 @@ def setup_logger(name: str):
     console_handler.setLevel(logging.INFO)
     logger.addHandler(console_handler)
     
-    # 2. Handler Profesional con ROTACIÓN (DEBUG) - 5MB x 3 archivos
+    # 2. Handler Profesional con ROTACIÓN (Configurable)
+    # Ubicación: data/logs/emumanager.log
     log_file = AppConfig.get_app_data_dir() / "logs" / "emumanager.log"
-    
-    # Asegurar que la carpeta de logs existe antes de abrir el archivo
     log_file.parent.mkdir(parents=True, exist_ok=True)
+
+    # Nivel según entorno
+    file_level = logging.DEBUG if AppConfig.IS_DEV_MODE else logging.INFO
+
+    # Si ya existe un log de una sesión previa, lo rotamos manualmente para empezar frescos
+    should_roll = log_file.exists() and log_file.stat().st_size > 0
 
     file_handler = RotatingFileHandler(
         log_file, 
-        maxBytes=5*1024*1024, # 5MB
-        backupCount=3, 
+        maxBytes=2*1024*1024, # 2MB (por si acaso una sesión es muy larga)
+        backupCount=2,        # 2 respaldos + 1 actual = 3 sesiones totales
         encoding='utf-8'
     )
+    
+    if should_roll:
+        file_handler.doRollover()
+
     file_handler.setFormatter(LOG_FORMAT)
-    file_handler.setLevel(logging.DEBUG)
+    file_handler.setLevel(file_level)
     logger.addHandler(file_handler)
     
     return logger

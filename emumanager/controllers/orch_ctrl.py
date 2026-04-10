@@ -2,6 +2,8 @@ from PySide6.QtCore import QObject, Signal, Slot, QThread
 from pathlib import Path
 import json
 import os
+import sqlite3
+import subprocess
 import platform as py_platform
 from core.config import AppConfig
 from core.logger import EmuLog
@@ -49,7 +51,7 @@ class OrchestraController(QObject):
         try:
             with open(repo_path, 'r', encoding='utf-8') as f:
                 return json.load(f).get("emulators", [])
-        except Exception as e:
+        except (json.JSONDecodeError, OSError) as e:
             EmuLog.error(f"Error cargando repositories.json: {e}")
             return []
 
@@ -60,7 +62,7 @@ class OrchestraController(QObject):
         if not is_installed and mango and system_id:
             try:
                 is_installed = mango.check_system_installed(system_id)
-            except Exception as e:
+            except RuntimeError as e:
                 EmuLog.debug(f"Orchestra: Error al verificar instalación nativa para {system_id}: {e}")
         return is_installed, local_path
 
@@ -224,7 +226,7 @@ class OrchestraController(QObject):
                     self.launch_game(row["id"])
                 else:
                     EmuLog.warning("No hay juegos en la biblioteca para lanzar de forma aleatoria.")
-        except Exception as e:
+        except sqlite3.Error as e:
             EmuLog.error(f"Error al lanzar juego aleatorio: {e}")
 
     @Slot(int)
@@ -268,7 +270,7 @@ class OrchestraController(QObject):
             worker.finished.connect(cleanup_launch)
             thread.started.connect(worker.run)
             thread.start()
-        except Exception as e:
+        except (sqlite3.Error, OSError, RuntimeError) as e:
             EmuLog.error(f"Fallo al lanzar el juego {game_id}: {e}")
 
     def _resolve_runner(self, platform_id):
@@ -310,12 +312,10 @@ class OrchestraController(QObject):
         emu_dir = Path(AppConfig.get_emulators_path()) / emu_id
         if not emu_dir.exists(): return None
         
-        # Búsqueda recursiva suave
-        if (emu_dir / exe_name).exists(): return emu_dir / exe_name
-        for sub in emu_dir.iterdir():
-            if sub.is_dir() and (sub / exe_name).exists():
-                return sub / exe_name
-        return None
+        # Búsqueda recursiva para localizar el binario (intenta primero en la raíz)
+        if (emu_dir / exe_name).exists():
+            return emu_dir / exe_name
+        return next(emu_dir.rglob(exe_name), None)
 
     @Slot(str, result=bool)
     def uninstall_emulator(self, emu_id):
@@ -352,7 +352,7 @@ class OrchestraController(QObject):
     @Slot(str)
     def open_emulator_folder(self, emu_id):
         """Abre la carpeta del emulador en el explorador del sistema de forma segura."""
-        import sys, subprocess
+        import sys
         
         try:
             base_emus_path = Path(AppConfig.get_emulators_path()).resolve()
@@ -374,7 +374,7 @@ class OrchestraController(QObject):
                 subprocess.run(["xdg-open", str(target_path)], check=False)
             elif sys.platform == "win32":
                 os.startfile(str(target_path))
-        except Exception as e:
+        except (subprocess.SubprocessError, OSError) as e:
             EmuLog.error(f"No se pudo abrir la carpeta: {e}")
 
     def _update_play_stats(self, game_id, duration):
@@ -397,7 +397,7 @@ class OrchestraController(QObject):
             with self.db.get_connection() as conn:
                 rows = conn.execute("SELECT emu_id, installed_tag, remote_tag FROM emulator_status").fetchall()
                 return {row["emu_id"]: dict(row) for row in rows}
-        except Exception as e:
+        except sqlite3.Error as e:
             EmuLog.error(f"Error consultando historial de versiones: {e}")
             return {}
 
@@ -419,7 +419,7 @@ class OrchestraController(QObject):
                         last_checked_at = CURRENT_TIMESTAMP
                 """, data)
                 conn.commit()
-        except Exception as e:
+        except sqlite3.Error as e:
             EmuLog.error(f"Error guardando lote de tags de instalación: {e}")
 
     def save_remote_tag(self, emu_id, tag):
@@ -440,7 +440,7 @@ class OrchestraController(QObject):
                         last_checked_at = CURRENT_TIMESTAMP
                 """, data)
                 conn.commit()
-        except Exception as e:
+        except sqlite3.Error as e:
             EmuLog.error(f"Error guardando lote de tags remotos: {e}")
 
     def shutdown(self):

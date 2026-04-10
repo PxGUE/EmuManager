@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 from typing import List, Optional
 
@@ -172,7 +173,13 @@ class LibretroManager:
         try:
             # Determinar subcarpeta basada en la plataforma
             platform = self._get_platform_for_core(core_name)
-            target_dir = self.cores_path / platform
+            target_dir = (self.cores_path / platform).resolve()
+
+            # Verificación de seguridad: asegurar que el directorio está dentro de cores_path
+            if not target_dir.is_relative_to(self.cores_path.resolve()):
+                EmuLog.error(f"⚠️ Intento de descarga en ruta no autorizada: {core_name}")
+                return None
+
             target_dir.mkdir(parents=True, exist_ok=True)
             
             EmuLog.info(f"M.A.N.G.O: Instalando core {core_name} en {target_dir}")
@@ -185,12 +192,18 @@ class LibretroManager:
         """Elimina el archivo del core del disco."""
         try:
             import platform as py_platform
+
             is_win = py_platform.system() == "Windows"
             core_ext = ".dll" if is_win else ".so"
             
             platform_id = self._get_platform_for_core(core_name)
-            target_file = self.cores_path / platform_id / f"{core_name}{core_ext}"
+            target_file = (self.cores_path / platform_id / f"{core_name}{core_ext}").resolve()
             
+            # Verificación de seguridad: asegurar que el archivo está dentro de cores_path
+            if not target_file.is_relative_to(self.cores_path.resolve()):
+                EmuLog.error(f"⚠️ Intento de eliminación fuera de rango bloqueado: {core_name}")
+                return False
+
             if target_file.exists():
                 target_file.unlink()
                 EmuLog.info(f"Core eliminado del disco: {target_file.name}")

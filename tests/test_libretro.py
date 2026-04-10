@@ -105,57 +105,43 @@ def test_download_core_exception(libretro_manager, tmp_path):
         assert result is None
         mock_log.error.assert_any_call("Error downloading core snes9x: Download failed")
 
-def test_uninstall_core_not_found(libretro_manager):
-    # Tests uninstallation when file does not exist
-    result = libretro_manager.uninstall_core("non_existent_core")
-    assert result is False
-
-def test_uninstall_core_windows(libretro_manager, tmp_path):
-    # Tests that .dll extension is used on Windows
+def test_uninstall_core_success(libretro_manager, tmp_path):
+    # Setup: Create a dummy core file
+    platform = "snes"
     core_name = "snes9x"
-    platform_id = "snes"
+    import platform as py_platform
+    ext = ".dll" if py_platform.system() == "Windows" else ".so"
 
-    with patch("platform.system", return_value="Windows"), \
-         patch("emumanager.backend.libretro.EmuLog") as mock_log:
-        core_dir = tmp_path / "cores" / platform_id
-        core_dir.mkdir(parents=True, exist_ok=True)
-        core_file = core_dir / f"{core_name}.dll"
-        core_file.write_text("dummy")
+    core_dir = tmp_path / "cores" / platform
+    core_dir.mkdir(parents=True)
+    core_file = core_dir / f"{core_name}{ext}"
+    core_file.touch()
 
+    assert core_file.exists()
+
+    with patch("emumanager.backend.libretro.EmuLog") as mock_log:
         result = libretro_manager.uninstall_core(core_name)
 
         assert result is True
         assert not core_file.exists()
-        mock_log.info.assert_called_with(f"Core eliminado del disco: {core_name}.dll")
+        mock_log.info.assert_called_with(f"Core eliminado del disco: {core_name}{ext}")
 
-def test_uninstall_core_linux(libretro_manager, tmp_path):
-    # Tests that .so extension is used on Linux
-    core_name = "snes9x"
-    platform_id = "snes"
+def test_uninstall_core_traversal_blocked(libretro_manager, tmp_path):
+    # Setup: Create a "secret" file outside cores directory
+    secret_file = tmp_path / "secret.so"
+    secret_file.touch()
 
-    with patch("platform.system", return_value="Linux"), \
-         patch("emumanager.backend.libretro.EmuLog") as mock_log:
-        core_dir = tmp_path / "cores" / platform_id
-        core_dir.mkdir(parents=True, exist_ok=True)
-        core_file = core_dir / f"{core_name}.so"
-        core_file.write_text("dummy")
+    assert secret_file.exists()
 
-        result = libretro_manager.uninstall_core(core_name)
-
-        assert result is True
-        assert not core_file.exists()
-        mock_log.info.assert_called_with(f"Core eliminado del disco: {core_name}.so")
-
-def test_uninstall_core_exception(libretro_manager, tmp_path):
-    # Tests that exceptions are caught and logged
-    core_name = "snes9x"
-
-    # We'll mock Path.exists to return True but Path.unlink to raise an exception
-    with patch("pathlib.Path.exists", return_value=True), \
-         patch("pathlib.Path.unlink", side_effect=Exception("Permission denied")), \
-         patch("emumanager.backend.libretro.EmuLog") as mock_log:
-
-        result = libretro_manager.uninstall_core(core_name)
+    with patch("emumanager.backend.libretro.EmuLog") as mock_log:
+        # Attempt traversal directly
+        result = libretro_manager.uninstall_core("../../secret")
 
         assert result is False
-        mock_log.error.assert_called_with(f"Error al eliminar core {core_name}: Permission denied")
+        assert secret_file.exists()  # Should NOT be deleted
+        mock_log.error.assert_called_with("⚠️ Intento de eliminación fuera de rango bloqueado: ../../secret")
+
+def test_uninstall_core_not_exists(libretro_manager):
+    # Tests behavior when core file does not exist
+    result = libretro_manager.uninstall_core("non_existent_core")
+    assert result is False

@@ -73,7 +73,7 @@ def setup_qt_mocks():
     sys.modules['PySide6.QtQuick'] = mock_qt.QtQuick
 
     # Other common dependencies
-    for mod in ['psutil', 'pypresence', 'mango_engine']:
+    for mod in ['psutil', 'pypresence', 'mango_engine', 'keyring']:
         if mod not in sys.modules or isinstance(sys.modules[mod], mock.MagicMock):
             sys.modules[mod] = mock.MagicMock(name=mod)
 
@@ -103,7 +103,7 @@ def test_data_dir():
 def reset_environment(test_data_dir):
     """Reset environment and global mocks between tests."""
     # Reset all known global mocks safely
-    for mod in ['psutil', 'pypresence', 'mango_engine']:
+    for mod in ['psutil', 'pypresence', 'mango_engine', 'keyring']:
         if mod in sys.modules:
             m = sys.modules[mod]
             if hasattr(m, 'reset_mock'):

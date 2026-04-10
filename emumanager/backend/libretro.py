@@ -7,6 +7,7 @@ except ImportError:
     mango_engine = None
 
 from core.logger import EmuLog
+from core.security import PathSecurity
 
 # Base de datos de mapeo: Plataforma -> Lista de cores (id_interno, nombre_amigable)
 CORE_DATABASE = {
@@ -172,7 +173,12 @@ class LibretroManager:
         try:
             # Determinar subcarpeta basada en la plataforma
             platform = self._get_platform_for_core(core_name)
-            target_dir = self.cores_path / platform
+            target_dir = PathSecurity.safe_join(self.cores_path, platform)
+
+            if not target_dir:
+                EmuLog.error(f"⚠️ Security Alert: Intento de descarga de core en ruta no autorizada: {platform}")
+                return None
+
             target_dir.mkdir(parents=True, exist_ok=True)
             
             EmuLog.info(f"M.A.N.G.O: Instalando core {core_name} en {target_dir}")
@@ -189,8 +195,12 @@ class LibretroManager:
             core_ext = ".dll" if is_win else ".so"
             
             platform_id = self._get_platform_for_core(core_name)
-            target_file = self.cores_path / platform_id / f"{core_name}{core_ext}"
+            target_file = PathSecurity.safe_join(self.cores_path, platform_id, f"{core_name}{core_ext}")
             
+            if not target_file:
+                EmuLog.error(f"⚠️ Security Alert: Intento de desinstalación de core no autorizado: {core_name} en plataforma {platform_id}")
+                return False
+
             if target_file.exists():
                 target_file.unlink()
                 EmuLog.info(f"Core eliminado del disco: {target_file.name}")

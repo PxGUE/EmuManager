@@ -1,7 +1,6 @@
 import os
 import platform
 from pathlib import Path
-from typing import List, Optional
 
 try:
     import mango_engine
@@ -76,7 +75,7 @@ class LibretroManager:
         path.mkdir(parents=True, exist_ok=True)
         return path
 
-    def list_installed_cores(self) -> List[str]:
+    def list_installed_cores(self) -> list[str]:
         """Devuelve una lista de los cores .dll/.so instalados (recursivo)."""
         if not self.cores_path.exists():
             return []
@@ -84,12 +83,12 @@ class LibretroManager:
         ext = ".dll" if platform.system() == "Windows" else ".so"
         return [f.stem for f in self.cores_path.rglob(f"*_libretro{ext}")]
 
-    def get_core_for_platform(self, plat_name: str) -> Optional[str]:
+    def get_core_for_platform(self, platform: str) -> str | None:
         """Obtiene el ID del core sugerido para una plataforma."""
         cores = CORE_DATABASE.get(plat_name.lower(), [])
         return cores[0][0] if cores else None
 
-    def fetch_filtered_cores(self, active_platforms: List[str]) -> List[dict[str, str]]:
+    def fetch_filtered_cores(self, active_platforms: list[str]) -> list[dict[str, str]]:
         """
         Obtiene la lista de cores disponibles, pero los filtra para mostrar solo los
         que corresponden a consolas que el usuario tiene juegos (active_platforms).
@@ -167,7 +166,7 @@ class LibretroManager:
         clean_id = core_id.replace("_libretro", "")
         return _CORE_PLATFORM_MAP.get(clean_id, "unknown")
 
-    def download_core(self, core_name: str, progress_callback=None, status_callback=None) -> Optional[str]:
+    def download_core(self, core_name: str, progress_callback=None, status_callback=None) -> str | None:
         """
         Descarga e instala un core usando M.A.N.G.O (Motor Nativo). 
         Ahora lo organiza en subcarpetas por consola.
@@ -177,12 +176,11 @@ class LibretroManager:
             
         try:
             # Determinar subcarpeta basada en la plataforma
-            plat_id = self._get_platform_for_core(core_name)
-            target_dir = (self.cores_path / plat_id).resolve()
+            platform_id = self._get_platform_for_core(core_name)
+            target_dir = PathSecurity.safe_join(self.cores_path, platform_id)
 
             # Verificación de seguridad: asegurar que el directorio está dentro de cores_path
-            if not target_dir.is_relative_to(self.cores_path.resolve()):
-                EmuLog.error(f"⚠️ Intento de descarga en ruta no autorizada: {core_name}")
+            if not target_dir:
                 return None
 
             target_dir.mkdir(parents=True, exist_ok=True)
@@ -199,12 +197,11 @@ class LibretroManager:
             is_win = platform.system() == "Windows"
             core_ext = ".dll" if is_win else ".so"
             
-            plat_id = self._get_platform_for_core(core_name)
-            target_file = (self.cores_path / plat_id / f"{core_name}{core_ext}").resolve()
+            platform_id = self._get_platform_for_core(core_name)
+            target_file = PathSecurity.safe_join(self.cores_path, platform_id, f"{core_name}{core_ext}")
             
             # Verificación de seguridad: asegurar que el archivo está dentro de cores_path
-            if not target_file.is_relative_to(self.cores_path.resolve()):
-                EmuLog.error(f"⚠️ Intento de eliminación fuera de rango bloqueado: {core_name}")
+            if not target_file:
                 return False
 
             if target_file.exists():

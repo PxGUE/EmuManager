@@ -1,4 +1,5 @@
 import os
+import platform
 from pathlib import Path
 from typing import List, Optional
 
@@ -54,10 +55,10 @@ CORE_DATABASE = {
 def _build_core_platform_map() -> dict[str, str]:
     """Crea un mapeo inverso core_id -> plataforma optimizado."""
     mapping = {}
-    for platform, cores in CORE_DATABASE.items():
+    for plat_name, cores in CORE_DATABASE.items():
         for core_id, _ in cores:
             if core_id not in mapping:
-                mapping[core_id] = platform
+                mapping[core_id] = plat_name
     return mapping
 
 _CORE_PLATFORM_MAP = _build_core_platform_map()
@@ -80,13 +81,12 @@ class LibretroManager:
         if not self.cores_path.exists():
             return []
         
-        import platform
         ext = ".dll" if platform.system() == "Windows" else ".so"
         return [f.stem for f in self.cores_path.rglob(f"*_libretro{ext}")]
 
-    def get_core_for_platform(self, platform: str) -> Optional[str]:
+    def get_core_for_platform(self, plat_name: str) -> Optional[str]:
         """Obtiene el ID del core sugerido para una plataforma."""
-        cores = CORE_DATABASE.get(platform.lower(), [])
+        cores = CORE_DATABASE.get(plat_name.lower(), [])
         return cores[0][0] if cores else None
 
     def fetch_filtered_cores(self, active_platforms: List[str]) -> List[dict[str, str]]:
@@ -103,8 +103,7 @@ class LibretroManager:
             available_set = set(available_raw)
             
             # Determinar extensión local
-            import platform as py_platform
-            system = py_platform.system()
+            system = platform.system()
             if system == "Windows":
                 core_ext = ".dll"
             elif system == "Darwin":
@@ -113,7 +112,6 @@ class LibretroManager:
                 core_ext = ".so"
 
             # Optimización: Pre-escanear cores instalados usando os.scandir para máximo rendimiento
-            import os
             installed_set = set()
             cores_path_str = str(self.cores_path)
 
@@ -133,8 +131,8 @@ class LibretroManager:
             seen_ids = set()
             
             # Buscamos en nuestra base de datos para las plataformas activas
-            for platform in active_platforms:
-                platform_lower = platform.lower()
+            for plat_name in active_platforms:
+                platform_lower = plat_name.lower()
                 suggestions = CORE_DATABASE.get(platform_lower, [])
 
                 for core_id, display_name in suggestions:
@@ -154,7 +152,7 @@ class LibretroManager:
                         unique_results.append({
                             "id": search_id,
                             "name": display_name,
-                            "platform": platform,
+                            "platform": plat_name,
                             "isInstalled": is_installed
                         })
                     
@@ -179,8 +177,8 @@ class LibretroManager:
             
         try:
             # Determinar subcarpeta basada en la plataforma
-            platform = self._get_platform_for_core(core_name)
-            target_dir = (self.cores_path / platform).resolve()
+            plat_id = self._get_platform_for_core(core_name)
+            target_dir = (self.cores_path / plat_id).resolve()
 
             # Verificación de seguridad: asegurar que el directorio está dentro de cores_path
             if not target_dir.is_relative_to(self.cores_path.resolve()):
@@ -198,13 +196,11 @@ class LibretroManager:
     def uninstall_core(self, core_name: str) -> bool:
         """Elimina el archivo del core del disco."""
         try:
-            import platform as py_platform
-
-            is_win = py_platform.system() == "Windows"
+            is_win = platform.system() == "Windows"
             core_ext = ".dll" if is_win else ".so"
             
-            platform_id = self._get_platform_for_core(core_name)
-            target_file = (self.cores_path / platform_id / f"{core_name}{core_ext}").resolve()
+            plat_id = self._get_platform_for_core(core_name)
+            target_file = (self.cores_path / plat_id / f"{core_name}{core_ext}").resolve()
             
             # Verificación de seguridad: asegurar que el archivo está dentro de cores_path
             if not target_file.is_relative_to(self.cores_path.resolve()):

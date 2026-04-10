@@ -127,7 +127,14 @@ class LibraryController(QObject):
 
     @Slot(int, bool)
     def toggle_favorite(self, game_id, is_favorite):
-        self.db.update_game_favorite(game_id, is_favorite)
+        """
+        Marca/desmarca un juego como favorito.
+        """
+        try:
+            self.db.update_game_favorite(game_id, is_favorite)
+            EmuLog.info(f"Estado de favorito actualizado para {game_id}: {is_favorite}")
+        except Exception as e:
+            EmuLog.error(f"Error al actualizar favorito: {e}", exc_info=True)
         # self.gamesUpdated.emit() -> Removido para evitar recarga total de la UI. 
         # El modelo se actualiza vía favoriteToggled en MainController.
 

@@ -149,14 +149,21 @@ def test_startup_worker_success():
     mock_ctrl.proactive_background_load.assert_called_once()
     mock_ctrl.precharge_ecosystem.assert_called_once()
 
-    # Check signals
+    # Check signals (Full lifecycle)
+    worker.status.emit.assert_any_call("initializing")
     worker.status.emit.assert_any_call("startup_native")
     worker.status.emit.assert_any_call("startup_db")
+    worker.status.emit.assert_any_call("startup_db_sync")
+    worker.status.emit.assert_any_call("startup_assets")
     worker.status.emit.assert_any_call("startup_services")
     worker.status.emit.assert_any_call("startup_ready")
 
-    worker.progress.emit.assert_any_call(0.10)
-    worker.progress.emit.assert_any_call(0.90)
+    # Check progress milestones
+    worker.progress.emit.assert_any_call(0.05)
+    worker.progress.emit.assert_any_call(0.15)
+    worker.progress.emit.assert_any_call(0.30)
+    worker.progress.emit.assert_any_call(0.65)
+    worker.progress.emit.assert_any_call(0.80)
     worker.progress.emit.assert_any_call(1.0)
 
     worker.finished.emit.assert_called_once()

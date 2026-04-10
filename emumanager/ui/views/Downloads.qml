@@ -224,7 +224,7 @@ Item {
                         }
 
                         Text { 
-                            text: isScraping ? (scrapeLog || I18n.t.initializing) : (scrapeVal >= 1.0 ? I18n.t.scrape_finished : I18n.t.scrape_friendly)
+                            text: isScraping ? (scrapeLog || I18n.t.initializing) : (scrapeVal >= 1.0 ? I18n.t.scrape_finished : I18n.t.scrape_idle)
                             color: isScraping ? Theme.statusWarning : Theme.textMuted
                             font.pixelSize: Theme.fontSmall; font.bold: isScraping; elide: Text.ElideRight; Layout.fillWidth: true 
                         }

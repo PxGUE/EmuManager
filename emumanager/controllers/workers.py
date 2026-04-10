@@ -254,6 +254,7 @@ class StartupWorker(QObject):
             except Exception as e:
                 EmuLog.debug(f"Startup: No se pudo iniciar Discord RPC: {e}")
             
+            self.status.emit("startup_ready")
             self.progress.emit(1.0)
             # Carga finalizada
             self.finished.emit()

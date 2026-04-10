@@ -5,8 +5,8 @@ from typing import Optional
 
 class AppConfig:
     APP_NAME = "EmuManager"
-    APP_VERSION = "0.3.5 - alpha"
-    MANGO_VERSION = "0.2.1 - alpha"
+    APP_VERSION = "0.5.0 - alpha"
+    MANGO_VERSION = "0.3.0 - alpha"
     IS_DEV_MODE = True # Desarrollo activo: Bypass de comprobaciones reales
     _config_cache: Optional[dict] = None
     _app_root: Optional[Path] = None

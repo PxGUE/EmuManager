@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Controls.Material
+import Qt5Compat.GraphicalEffects
 import EmuManager.Models 1.0
 import EmuManager.Controllers 1.0
 import "../components"
@@ -17,29 +18,83 @@ Item {
     property bool showGames: false
     property string activePlatform: "all"
     property color activeAccentColor: Theme.accentColor
+    property string backgroundCover: ""
     onActiveAccentColorChanged: if (showGames) window.globalAccentColor = activeAccentColor
     onShowGamesChanged: if (!showGames) window.globalAccentColor = Theme.accentColor
 
-    // --- FONDO DINÁMICO (Optimizado para Rendimiento) ---
+    // --- CINEMATIC PORTAL BACKGROUND ---
     Rectangle {
         anchors.fill: parent
         color: Theme.viewBackground
         z: -1
 
+        // 1. Cover Art Layer (Ultra-difusa, ambiental)
+        Image {
+            id: bgCoverImage
+            anchors.fill: parent
+            source: libraryRoot.backgroundCover ? "file:///" + libraryRoot.backgroundCover : ""
+            fillMode: Image.PreserveAspectCrop
+            asynchronous: true
+            opacity: (status === Image.Ready && libraryRoot.backgroundCover !== "") ? 0.18 : 0
+            visible: libraryRoot.backgroundCover !== ""
+
+            layer.enabled: visible && opacity > 0
+            layer.effect: FastBlur { radius: 64 }
+
+            Behavior on opacity { NumberAnimation { duration: 1200; easing.type: Easing.InOutQuad } }
+        }
+
+        // 2. Accent Atmosphere (Gradiente lateral — nebula del accent color)
         Rectangle {
             anchors.fill: parent
-            opacity: libraryRoot.showGames ? 0.2 : 0.5
+            opacity: libraryRoot.showGames ? 0.12 : 0.25
             visible: consoleModel.count > 0
-            
+            gradient: Gradient {
+                orientation: Gradient.Horizontal
+                GradientStop { position: 0.0; color: Qt.rgba(libraryRoot.activeAccentColor.r, libraryRoot.activeAccentColor.g, libraryRoot.activeAccentColor.b, 0.35) }
+                GradientStop { position: 0.55; color: Theme.transparent }
+            }
+            Behavior on opacity { NumberAnimation { duration: 600 } }
+        }
+
+        // 3. Accent Bottom Glow (Nebula inferior)
+        Rectangle {
+            anchors.fill: parent
+            opacity: libraryRoot.showGames ? 0.08 : 0.15
+            visible: consoleModel.count > 0
             gradient: Gradient {
                 GradientStop { position: 0.0; color: Theme.transparent }
-                GradientStop { 
-                    id: dynamicGradientStop
-                    position: 1.0; 
-                    color: Qt.rgba(libraryRoot.activeAccentColor.r, libraryRoot.activeAccentColor.g, libraryRoot.activeAccentColor.b, 0.2)
-                }
+                GradientStop { position: 0.7; color: Theme.transparent }
+                GradientStop { position: 1.0; color: Qt.rgba(libraryRoot.activeAccentColor.r, libraryRoot.activeAccentColor.g, libraryRoot.activeAccentColor.b, 0.4) }
             }
-            Behavior on opacity { NumberAnimation { duration: 500 } }
+            Behavior on opacity { NumberAnimation { duration: 600 } }
+        }
+
+        // 4. Vignette (Top + Bottom fade to base) — cinematic framing
+        Rectangle {
+            anchors.fill: parent
+            gradient: Gradient {
+                GradientStop { position: 0.0; color: Qt.rgba(Theme.viewBackground.r, Theme.viewBackground.g, Theme.viewBackground.b, 0.8) }
+                GradientStop { position: 0.2; color: Theme.transparent }
+                GradientStop { position: 0.8; color: Theme.transparent }
+                GradientStop { position: 1.0; color: Qt.rgba(Theme.viewBackground.r, Theme.viewBackground.g, Theme.viewBackground.b, 0.9) }
+            }
+        }
+
+        // 5. Horizon Line (Accent energy line en la base)
+        Rectangle {
+            anchors.bottom: parent.bottom
+            width: parent.width; height: 2
+            gradient: Gradient {
+                orientation: Gradient.Horizontal
+                GradientStop { position: 0.0; color: Theme.transparent }
+                GradientStop { position: 0.3; color: Qt.rgba(libraryRoot.activeAccentColor.r, libraryRoot.activeAccentColor.g, libraryRoot.activeAccentColor.b, 0.5) }
+                GradientStop { position: 0.5; color: libraryRoot.activeAccentColor }
+                GradientStop { position: 0.7; color: Qt.rgba(libraryRoot.activeAccentColor.r, libraryRoot.activeAccentColor.g, libraryRoot.activeAccentColor.b, 0.5) }
+                GradientStop { position: 1.0; color: Theme.transparent }
+            }
+            opacity: libraryRoot.showGames ? 0.3 : 0.6
+            Behavior on opacity { NumberAnimation { duration: 400 } }
         }
     }
 
@@ -73,6 +128,10 @@ Item {
             consoleCarousel.currentIndex = newIndex
             var item = consoleModel.get(newIndex)
             activeAccentColor = Theme.resolveColor(item.accentColor, item.platform)
+            // Cinematic Portal: carátula de fondo al refrescar
+            if (mainController) {
+                backgroundCover = mainController.get_random_cover_for_platform(item.platform)
+            }
         }
     }
 
@@ -113,6 +172,11 @@ Item {
                 var item = consoleModel.get(currentIndex);
                 // El color siempre se actualiza con el carrusel
                 libraryRoot.activeAccentColor = Theme.resolveColor(item.accentColor, item.platform)
+                
+                // Cinematic Portal: actualizar fondo con carátula aleatoria
+                if (mainController) {
+                    libraryRoot.backgroundCover = mainController.get_random_cover_for_platform(item.platform)
+                }
                 
                 if (libraryRoot.showGames) {
                     // Solo actualizamos plataforma y filtros si ya entramos

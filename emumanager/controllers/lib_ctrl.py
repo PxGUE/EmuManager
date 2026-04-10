@@ -172,6 +172,26 @@ class LibraryController(QObject):
             self._scrape_worker.stop()
         self.scrapeStatusChanged.emit("status_finishing_bg")
 
+    def get_random_cover(self, platform):
+        """Retorna la ruta de una carátula 2D aleatoria para una plataforma."""
+        import random
+        try:
+            with self.db.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT m.cover_2d_path FROM games g
+                    JOIN game_metadata m ON g.id = m.game_id
+                    WHERE g.platform = ? AND m.cover_2d_path IS NOT NULL AND m.cover_2d_path != ''
+                """, (platform.lower(),))
+                rows = cursor.fetchall()
+                if rows:
+                    chosen = random.choice(rows)
+                    return (chosen[0] or "").replace("\\", "/")
+        except Exception as e:
+            from core.logger import EmuLog
+            EmuLog.error(f"Error obteniendo carátula aleatoria: {e}")
+        return ""
+
     def notify_library_changed(self):
         self.gamesUpdated.emit()
         self.gamesCountChanged.emit()

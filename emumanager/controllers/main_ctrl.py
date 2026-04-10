@@ -313,6 +313,11 @@ class MainController(QObject):
     @Slot()
     def launch_random_game(self): self.orch_ctrl.launch_random_game()
     
+    @Slot(str, result=str)
+    def get_random_cover_for_platform(self, platform):
+        """Devuelve la ruta de una carátula aleatoria de la plataforma dada."""
+        return self.lib_ctrl.get_random_cover(platform)
+    
     @Slot(str, str)
     def _on_emu_install_success(self, emu_id, path):
         """Notifica éxito de orquestación."""

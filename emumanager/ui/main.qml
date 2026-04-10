@@ -23,85 +23,95 @@ ApplicationWindow {
     Material.theme: Material.Dark
     Material.accent: Theme.accentColor
 
-    // --- CUSTOM TITLE BAR (PREMIUM ELEGANCE) ---
+    // --- CUSTOM TITLE BAR (PREMIUM ARCHITECTURE) ---
     header: Rectangle {
         id: titleBar
         height: 40
         color: Theme.sidebarBackground
         z: 9999
-        
-        // Window Dragging
-        DragHandler {
-            onActiveChanged: if (active) window.startSystemMove()
-        }
-        
+
         RowLayout {
             anchors.fill: parent
-            anchors.leftMargin: 20
-            anchors.rightMargin: 0
-            spacing: 15
-            
-            // Logo con resplandor suave
-            Item {
-                Layout.preferredWidth: 22; Layout.preferredHeight: 22
-                Image {
-                    id: logoImg
-                    source: "assets/logo.svg"
-                    anchors.fill: parent
-                    fillMode: Image.PreserveAspectFit
-                    smooth: true
-                    opacity: 0.9
-                }
-                // Sutil resplandor ambiental
-                Rectangle {
-                    anchors.centerIn: parent; width: 15; height: 15
-                    radius: 7.5; color: Theme.accentColor; z: -1; opacity: 0.15
-                    layer.enabled: true
-                    layer.effect: FastBlur { radius: 8 }
-                }
-            }
-            
-            Text {
-                text: window.title.toUpperCase()
-                color: Theme.textMain
-                font.pixelSize: 10
-                font.letterSpacing: 3
-                font.bold: true
-                opacity: 0.7
-                Layout.fillWidth: true
-            }
-            
-            // Minimalist Window Controls
-            Row {
-                spacing: 2
-                Layout.alignment: Qt.AlignVCenter
+            spacing: 0
+
+            // 1. ÁREA DE IZQUIERDA (Logo + Título)
+            RowLayout {
+                Layout.fillHeight: true
+                Layout.leftMargin: 20
+                spacing: 15
                 
-                // Helper para botones elegantes
+                Item {
+                    Layout.preferredWidth: 22; Layout.preferredHeight: 22
+                    Image {
+                        source: "assets/logo.svg"
+                        anchors.fill: parent
+                        fillMode: Image.PreserveAspectFit
+                        smooth: true; opacity: 0.9
+                    }
+                    Rectangle {
+                        anchors.centerIn: parent; width: 14; height: 14
+                        radius: 7; color: Theme.accentColor; z: -1; opacity: 0.15
+                        layer.enabled: true
+                        layer.effect: FastBlur { radius: 8 }
+                    }
+                }
+                
+                Text {
+                    text: window.title.toUpperCase()
+                    color: Theme.textMain
+                    font.pixelSize: 10; font.letterSpacing: 3; font.bold: true
+                    opacity: 0.6
+                }
+            }
+
+            // 2. ÁREA DE ARRASTRE (Flexible Space)
+            Item {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                
+                DragHandler {
+                    id: titleDragHandler
+                    onActiveChanged: if (active) window.startSystemMove()
+                }
+                
+                // Área interactiva expandida para el arrastre
+                TapHandler {
+                    acceptedButtons: Qt.LeftButton
+                    onDoubleTapped: window.visibility === Window.Maximized ? window.showNormal() : window.showMaximized()
+                }
+            }
+
+            // 3. CONTROLES DE VENTANA (Edge-to-Edge)
+            Row {
+                id: windowControls
+                Layout.fillHeight: true
+                spacing: 0
+                
                 component WinButton : Rectangle {
                     id: btnRoot
                     property string icon: ""
                     property color hoverColor: Theme.accentColor
-                    property color hoverBg: "#1affffff" // Fondo sutil por defecto
-                    property alias pixelSize: iconTxt.font.pixelSize
+                    property color hoverBg: "#1affffff"
+                    property int pixelSize: 16
+                    property bool isQuit: false
                     signal clicked()
                     
-                    width: 40; height: 32; radius: 6
-                    color: hoverHandler.hovered ? btnRoot.hoverBg : "transparent"
-                    Behavior on color { ColorAnimation { duration: 200; easing.type: Easing.OutCubic } }
+                    width: 46; height: 40 // Medida estándar balanceada
+                    color: hoverHandler.hovered ? (isQuit ? Theme.statusDanger : btnRoot.hoverBg) : "transparent"
                     
                     Text {
-                        id: iconTxt
                         anchors.centerIn: parent
                         text: btnRoot.icon
-                        color: hoverHandler.hovered ? (btnRoot.hoverBg === Theme.statusDanger ? "#ffffff" : btnRoot.hoverColor) : Theme.textMain
+                        color: hoverHandler.hovered ? (isQuit ? "#ffffff" : btnRoot.hoverColor) : Theme.textMain
+                        font.pixelSize: btnRoot.pixelSize
                         opacity: hoverHandler.hovered ? 1.0 : 0.6
-                        font.pixelSize: 16
-                        Behavior on color { ColorAnimation { duration: 200 } }
-                        Behavior on opacity { NumberAnimation { duration: 200 } }
+                        Behavior on color { ColorAnimation { duration: 150 } }
                     }
                     
                     HoverHandler { id: hoverHandler }
                     TapHandler { onTapped: btnRoot.clicked() }
+                    
+                    Behavior on color { ColorAnimation { duration: 200 } }
                 }
 
                 WinButton { 
@@ -111,63 +121,44 @@ ApplicationWindow {
                 
                 WinButton { 
                     id: maximizeBtn
-                    // Usamos un ítem vacío para el icono de texto y dibujamos uno personalizado arriba
-                    icon: ""
                     onClicked: window.visibility === Window.Maximized ? window.showNormal() : window.showMaximized() 
                     
-                    // Icono de Maximizar/Restaurar (Outline Vector)
                     Item {
-                        anchors.centerIn: parent
-                        width: 12; height: 12
-                        
-                        // Icono cuando NO está maximizado (Cuadrado simple)
+                        anchors.centerIn: parent; width: 10; height: 10
                         Rectangle {
                             visible: window.visibility !== Window.Maximized
-                            anchors.fill: parent
-                            color: "transparent"
+                            anchors.fill: parent; color: "transparent"; border.width: 1.2
                             border.color: maximizeBtn.hovered ? Theme.accentColor : Theme.textMain
-                            border.width: 1.2
                             opacity: maximizeBtn.hovered ? 1.0 : 0.6
                         }
-                        
-                        // Icono cuando SÍ está maximizado (Dos cuadrados)
                         Item {
                             visible: window.visibility === Window.Maximized
                             anchors.fill: parent
                             Rectangle {
-                                width: 9; height: 9; anchors.right: parent.right; anchors.top: parent.top
+                                width: 8; height: 8; anchors.right: parent.right; anchors.top: parent.top
                                 color: "transparent"; border.width: 1.2
                                 border.color: maximizeBtn.hovered ? Theme.accentColor : Theme.textMain
-                                opacity: maximizeBtn.hovered ? 1.0 : 0.6
                             }
                             Rectangle {
-                                width: 9; height: 9; anchors.left: parent.left; anchors.bottom: parent.bottom
-                                color: Theme.sidebarBackground; border.width: 1.2 // Fondo sólido para tapar el de atrás
+                                width: 8; height: 8; anchors.left: parent.left; anchors.bottom: parent.bottom
+                                color: Theme.sidebarBackground; border.width: 1.2 
                                 border.color: maximizeBtn.hovered ? Theme.accentColor : Theme.textMain
-                                opacity: maximizeBtn.hovered ? 1.0 : 0.6
                             }
                         }
                     }
                 }
 
                 WinButton { 
-                    icon: "✕"; pixelSize: 14
-                    hoverBg: Theme.statusDanger // Fondo rojo vivo al cerrar
+                    icon: "✕"; pixelSize: 14; isQuit: true
                     onClicked: window.close() 
                 }
             }
         }
         
-        // Línea divisoria elegante (Glass line)
+        // Línea divisoria elegante
         Rectangle {
             anchors.bottom: parent.bottom; width: parent.width; height: 1
-            gradient: Gradient {
-                orientation: Gradient.Horizontal
-                GradientStop { position: 0.0; color: "transparent" }
-                GradientStop { position: 0.5; color: Theme.divider }
-                GradientStop { position: 1.0; color: "transparent" }
-            }
-            opacity: 0.3
+            color: Theme.divider; opacity: 0.1
         }
     }
 

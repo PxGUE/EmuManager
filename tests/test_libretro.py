@@ -133,13 +133,17 @@ def test_uninstall_core_traversal_blocked(libretro_manager, tmp_path):
 
     assert secret_file.exists()
 
-    with patch("emumanager.backend.libretro.EmuLog") as mock_log:
+    with patch("emumanager.core.logger.EmuLog.error") as mock_log_error:
         # Attempt traversal directly
         result = libretro_manager.uninstall_core("../../secret")
 
         assert result is False
         assert secret_file.exists()  # Should NOT be deleted
-        mock_log.error.assert_called_with("⚠️ Intento de eliminación fuera de rango bloqueado: ../../secret")
+
+        # Verify that PathSecurity logged the security alert
+        mock_log_error.assert_called()
+        args, _ = mock_log_error.call_args
+        assert "⚠️ Security Alert" in args[0]
 
 def test_uninstall_core_not_exists(libretro_manager):
     # Tests behavior when core file does not exist

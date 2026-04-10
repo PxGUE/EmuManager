@@ -310,12 +310,10 @@ class OrchestraController(QObject):
         emu_dir = Path(AppConfig.get_emulators_path()) / emu_id
         if not emu_dir.exists(): return None
         
-        # Búsqueda recursiva suave
-        if (emu_dir / exe_name).exists(): return emu_dir / exe_name
-        for sub in emu_dir.iterdir():
-            if sub.is_dir() and (sub / exe_name).exists():
-                return sub / exe_name
-        return None
+        # Búsqueda recursiva para localizar el binario (intenta primero en la raíz)
+        if (emu_dir / exe_name).exists():
+            return emu_dir / exe_name
+        return next(emu_dir.rglob(exe_name), None)
 
     @Slot(str, result=bool)
     def uninstall_emulator(self, emu_id):

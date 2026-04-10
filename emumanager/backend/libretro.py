@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 from typing import List, Optional
 
@@ -7,6 +8,7 @@ except ImportError:
     mango_engine = None
 
 from core.logger import EmuLog
+from core.security import PathSecurity
 
 # Base de datos de mapeo: Plataforma -> Lista de cores (id_interno, nombre_amigable)
 CORE_DATABASE = {
@@ -110,16 +112,22 @@ class LibretroManager:
             else:
                 core_ext = ".so"
 
-            # Optimización: Pre-escanear cores instalados para evitar I/O en el bucle
+            # Optimización: Pre-escanear cores instalados usando os.scandir para máximo rendimiento
+            import os
             installed_set = set()
-            if self.cores_path.is_dir():
-                for p_dir in self.cores_path.iterdir():
-                    if p_dir.is_dir():
-                        p_name = p_dir.name.lower()
-                        for f in p_dir.iterdir():
-                            if f.is_file():
-                                # Guardamos en minúsculas para búsqueda case-insensitive
-                                installed_set.add(f"{p_name}/{f.name.lower()}")
+            cores_path_str = str(self.cores_path)
+
+            if os.path.isdir(cores_path_str):
+                valid_exts = (".dll", ".so", ".dylib")
+                with os.scandir(cores_path_str) as it1:
+                    for entry1 in it1:
+                        if entry1.is_dir():
+                            p_name = entry1.name.lower()
+                            with os.scandir(entry1.path) as it2:
+                                for entry2 in it2:
+                                    if entry2.is_file() and entry2.name.lower().endswith(valid_exts):
+                                        # Guardamos en minúsculas para búsqueda case-insensitive
+                                        installed_set.add(f"{p_name}/{entry2.name.lower()}")
 
             unique_results = []
             seen_ids = set()
@@ -172,7 +180,13 @@ class LibretroManager:
         try:
             # Determinar subcarpeta basada en la plataforma
             platform = self._get_platform_for_core(core_name)
-            target_dir = self.cores_path / platform
+            target_dir = (self.cores_path / platform).resolve()
+
+            # Verificación de seguridad: asegurar que el directorio está dentro de cores_path
+            if not target_dir.is_relative_to(self.cores_path.resolve()):
+                EmuLog.error(f"⚠️ Intento de descarga en ruta no autorizada: {core_name}")
+                return None
+
             target_dir.mkdir(parents=True, exist_ok=True)
             
             EmuLog.info(f"M.A.N.G.O: Instalando core {core_name} en {target_dir}")
@@ -185,12 +199,18 @@ class LibretroManager:
         """Elimina el archivo del core del disco."""
         try:
             import platform as py_platform
+
             is_win = py_platform.system() == "Windows"
             core_ext = ".dll" if is_win else ".so"
             
             platform_id = self._get_platform_for_core(core_name)
-            target_file = self.cores_path / platform_id / f"{core_name}{core_ext}"
+            target_file = (self.cores_path / platform_id / f"{core_name}{core_ext}").resolve()
             
+            # Verificación de seguridad: asegurar que el archivo está dentro de cores_path
+            if not target_file.is_relative_to(self.cores_path.resolve()):
+                EmuLog.error(f"⚠️ Intento de eliminación fuera de rango bloqueado: {core_name}")
+                return False
+
             if target_file.exists():
                 target_file.unlink()
                 EmuLog.info(f"Core eliminado del disco: {target_file.name}")

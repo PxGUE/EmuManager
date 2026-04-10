@@ -42,7 +42,6 @@ fi
 echo "📁 Structuring AppDir..."
 mkdir -p build/AppDir/usr/bin
 mkdir -p build/AppDir/usr/lib
-mkdir -p build/AppDir/usr/mango
 
 # Copy Nuitka distribution files to the AppDir
 DIST_DIR="build/app.dist"
@@ -58,9 +57,10 @@ fi
 cp -a "$DIST_DIR"/* build/AppDir/usr/bin/
 
 # 5. FIX PATHS FOR ASSETS (Aligning with app.py logic)
-# EmuManager expects mango/bin relative to root_dir (usr/)
+# EmuManager expects mango/ relative to the executable (usr/bin/)
 echo "⚙️  Bundling M.A.N.G.O engine..."
-cp -a mango/bin build/AppDir/usr/mango/
+mkdir -p build/AppDir/usr/bin/mango
+cp -a mango/bin/linux/* build/AppDir/usr/bin/mango/
 
 # 6. CREATE DESKTOP METADATA
 cat > build/AppDir/emumanager.desktop <<EOF

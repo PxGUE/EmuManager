@@ -104,3 +104,44 @@ def test_download_core_exception(libretro_manager, tmp_path):
 
         assert result is None
         mock_log.error.assert_any_call("Error downloading core snes9x: Download failed")
+
+def test_uninstall_core_success(libretro_manager, tmp_path):
+    # Setup: Create a dummy core file
+    platform = "snes"
+    core_name = "snes9x"
+    import platform as py_platform
+    ext = ".dll" if py_platform.system() == "Windows" else ".so"
+
+    core_dir = tmp_path / "cores" / platform
+    core_dir.mkdir(parents=True)
+    core_file = core_dir / f"{core_name}{ext}"
+    core_file.touch()
+
+    assert core_file.exists()
+
+    with patch("emumanager.backend.libretro.EmuLog") as mock_log:
+        result = libretro_manager.uninstall_core(core_name)
+
+        assert result is True
+        assert not core_file.exists()
+        mock_log.info.assert_called_with(f"Core eliminado del disco: {core_name}{ext}")
+
+def test_uninstall_core_traversal_blocked(libretro_manager, tmp_path):
+    # Setup: Create a "secret" file outside cores directory
+    secret_file = tmp_path / "secret.so"
+    secret_file.touch()
+
+    assert secret_file.exists()
+
+    with patch("emumanager.backend.libretro.EmuLog") as mock_log:
+        # Attempt traversal directly
+        result = libretro_manager.uninstall_core("../../secret")
+
+        assert result is False
+        assert secret_file.exists()  # Should NOT be deleted
+        mock_log.error.assert_called_with("⚠️ Intento de eliminación fuera de rango bloqueado: ../../secret")
+
+def test_uninstall_core_not_exists(libretro_manager):
+    # Tests behavior when core file does not exist
+    result = libretro_manager.uninstall_core("non_existent_core")
+    assert result is False

@@ -85,7 +85,7 @@ class LibretroManager:
 
     def get_core_for_platform(self, platform: str) -> str | None:
         """Obtiene el ID del core sugerido para una plataforma."""
-        cores = CORE_DATABASE.get(plat_name.lower(), [])
+        cores = CORE_DATABASE.get(platform.lower(), [])
         return cores[0][0] if cores else None
 
     def fetch_filtered_cores(self, active_platforms: list[str]) -> list[dict[str, str]]:

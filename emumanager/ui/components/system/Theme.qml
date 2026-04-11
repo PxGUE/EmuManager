@@ -184,6 +184,8 @@ QtObject {
         if (p.includes("snes")) return theme.platSnes;
         if (p.includes("nes")) return theme.platNes;
         if (p.includes("gba") || p.includes("advance")) return theme.platGba;
+        if (p.includes("gbc")) return theme.platGbc;
+        if (p.includes("gb")) return theme.platGb;
         if (p.includes("n64")) return theme.platN64;
         if (p.includes("ps1") || p.includes("playstation")) return theme.platPs1;
         if (p.includes("ps2")) return theme.platPs2;
@@ -191,7 +193,9 @@ QtObject {
         if (p.includes("ds")) return theme.platDs;
         if (p.includes("gc") || p.includes("cube")) return theme.platGc;
         if (p.includes("wii")) return theme.platWii;
+        if (p.includes("mega") || p.includes("genesis")) return theme.platMegaDrive;
+        if (p.includes("dreamcast")) return theme.platDreamcast;
         
-        return theme.accentColor;
+        return theme.platUnknown;
     }
 }

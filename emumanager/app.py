@@ -99,12 +99,9 @@ from controllers.game_model import GameListModel  # noqa: F401 (Necesario para q
 # --- INICIALIZACIÓN DE ECOSISTEMA DE DATOS ---
 def init_storage():
     """Asegura que la estructura de carpetas local exista para EmuManager."""
-    data_dir = root_dir / "data"
+    data_dir = AppConfig.get_app_data_dir()
     subdirs = ["db", "media", "logs", "temp"]
     
-    if not data_dir.exists():
-        data_dir.mkdir(parents=True, exist_ok=True)
-        
     for sub in subdirs:
         (data_dir / sub).mkdir(parents=True, exist_ok=True)
 

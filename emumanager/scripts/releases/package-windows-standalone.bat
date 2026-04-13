@@ -8,24 +8,28 @@ REM Limpiar versiones anteriores
 if exist release\Windows\Standalone rmdir /s /q release\Windows\Standalone
 mkdir release\Windows\Standalone
 
+REM Asegurar que el motor nativo sea visible para Nuitka durante la compilación
+set "PYTHONPATH=%CD%\mango\bin\windows;%PYTHONPATH%"
+
 REM Ejecutar empaquetado con Nuitka --standalone (Normal)
 python -m nuitka --standalone ^
     --output-dir=release/Windows/Standalone ^
     --show-progress ^
     --enable-plugin=pyside6 ^
     --include-qt-plugins=qml,iconengines,imageformats ^
-    --windows-console-mode=force ^
+    --windows-console-mode=disable ^
+    --windows-uac-level=asInvoker ^
     --windows-icon-from-ico=emumanager/ui/assets/logo.ico ^
     --company-name="PxGUE" ^
     --product-name="EmuManager" ^
-    --file-version=0.3.5 ^
-    --product-version=0.3.5 ^
+    --file-version=0.5.0 ^
+    --product-version=0.5.0 ^
     --file-description="Modern Retro Game Emulator Manager" ^
     --copyright="Copyright 2026 PxGUE" ^
     --output-filename=EmuManager ^
     --include-data-dir=./emumanager/ui=ui ^
     --include-data-dir=./emumanager/resources=resources ^
-    --include-data-dir=./mango/bin/windows=mango ^
+    --include-module=mango_engine ^
     ./emumanager/app.py
 
 

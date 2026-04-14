@@ -8,6 +8,7 @@ import EmuManager.Controllers 1.0
 import "../components"
 import "../components/cards"
 import "../components/system"
+import "../components/effects"
 
 Item {
     id: dashboardRoot
@@ -37,21 +38,9 @@ Item {
 
     Component.onCompleted: refreshAll()
 
-    // --- PREMIUM OBSIDIAN BACKGROUND ---
-    Rectangle {
-        anchors.fill: parent; color: Theme.viewBackground
-        
-        // Deep Ambient Glow
-        Rectangle {
-            id: pulseOne
-            width: parent.width * 1.8; height: parent.width * 1.8; radius: width/2
-            anchors.centerIn: parent; opacity: Theme.glowOpacity
-            gradient: Gradient {
-                GradientStop { position: 0.0; color: Theme.cardGlow }
-                GradientStop { position: 1.0; color: Theme.transparent }
-            }
-            NumberAnimation on rotation { from: 0; to: 360; duration: 120000; loops: Animation.Infinite }
-        }
+    // --- PREMIUM NEBULA KINETIC BACKGROUND ---
+    NebulaBackground {
+        accentColor: Theme.accentElectric
     }
 
     StackLayout {
@@ -140,7 +129,10 @@ Item {
                         
                         // Collection Pod
                         Rectangle {
-                            width: 130; height: 50; radius: 14; color: Theme.backgroundPod; border.color: Qt.alpha(Theme.accentElectric, 0.15); border.width: 1
+                            id: collPod
+                            Layout.preferredWidth: 130; Layout.preferredHeight: 50; radius: 14; color: Theme.backgroundPod; border.color: Qt.alpha(Theme.accentElectric, 0.15); border.width: 1
+                            
+                            
                             ColumnLayout {
                                 anchors.centerIn: parent; spacing: -2
                                 Text { text: I18n.t.stats_total_games; color: Theme.textMuted; font.pixelSize: 8; font.bold: true; font.letterSpacing: 1; Layout.alignment: Qt.AlignCenter }
@@ -150,7 +142,10 @@ Item {
                         
                         // Time Pod
                         Rectangle {
-                            width: 130; height: 50; radius: 14; color: Theme.backgroundPod; border.color: Qt.alpha(Theme.accentElectric, 0.15); border.width: 1
+                            id: timePod
+                            Layout.preferredWidth: 130; Layout.preferredHeight: 50; radius: 14; color: Theme.backgroundPod; border.color: Qt.alpha(Theme.accentElectric, 0.15); border.width: 1
+                            
+
                             ColumnLayout {
                                 anchors.centerIn: parent; spacing: -2
                                 Text { text: I18n.t.stats_play_time; color: Theme.textMuted; font.pixelSize: 8; font.bold: true; font.letterSpacing: 1; Layout.alignment: Qt.AlignCenter }
@@ -161,10 +156,11 @@ Item {
                         // --- SUBTLE STATUS HUD ---
                         Rectangle {
                             id: statusSubtle
-                            width: 180; height: 50; radius: 14; 
+                            Layout.preferredWidth: 180; Layout.preferredHeight: 50; radius: 14; 
                             color: Theme.backgroundPod
                             border.color: isEngineBusy ? Qt.alpha(Theme.accentElectric, 0.4) : Qt.alpha(Theme.accentElectric, 0.15)
                             border.width: 1
+                            
                             
                             RowLayout {
                                 anchors.fill: parent; anchors.leftMargin: 15; anchors.rightMargin: 15; spacing: 12
@@ -385,7 +381,7 @@ Item {
                             { icon: "🎲", label: "DESCUBRIMIENTO", desc: "Lanzar título aleatorio", value: "", action: function(){ mainController.launch_random_game() } }
                         ]
                         delegate: GlassPanel {
-                            Layout.fillWidth: true; Layout.fillHeight: true; radius: Theme.radiusLarge; glassOpacity: 0.45; borderColor: Theme.cardBorder
+                            Layout.fillWidth: true; Layout.fillHeight: true; radius: Theme.radiusLarge; glassOpacity: Theme.glassOpacityMedium; borderColor: Theme.cardBorder
                             content: Item {
                                 anchors.fill: parent
                                 RowLayout {

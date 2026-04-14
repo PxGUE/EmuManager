@@ -8,78 +8,97 @@ pub fn extract_serial(path: &str, platform: &str) -> Option<String> {
     let path_obj = Path::new(path);
     if !path_obj.exists() { return None; }
 
+    // 0. Soporte para ZIP: Si es un archivo comprimido, asomarnos al primer archivo para leer su cabecera
+    if path.to_lowercase().ends_with(".zip") {
+        if let Ok(file_zip) = File::open(path_obj) {
+            if let Ok(mut archive) = zip::ZipArchive::new(file_zip) {
+                if archive.len() > 0 {
+                    if let Ok(mut first_file) = archive.by_index(0) {
+                        // Creamos un buffer temporal con los primeros 1MB (suficiente para cualquier cabecera)
+                        let mut head_buf = vec![0u8; 128 * 1024]; // 128KB es más que suficiente
+                        let n = match first_file.read(&mut head_buf) {
+                            Ok(bytes) => bytes,
+                            Err(_) => 0
+                        };
+                        if n > 0 {
+                            return extract_serial_from_buffer(&head_buf[..n], platform);
+                        }
+                    }
+                }
+            }
+        }
+        return None;
+    }
+
     let mut file = match File::open(path_obj) {
         Ok(f) => f,
         Err(_) => return None,
     };
     
+    // Leemos los primeros 256KB para tener un buffer de cabecera completo
+    let mut buffer = vec![0u8; 256 * 1024];
+    let n = match file.read(&mut buffer) {
+        Ok(bytes) => bytes,
+        Err(_) => return None
+    };
+
+    extract_serial_from_buffer(&buffer[..n], platform)
+}
+
+/// Lógica interna para extraer el Serial desde un buffer de memoria de la cabecera.
+fn extract_serial_from_buffer(buffer: &[u8], platform: &str) -> Option<String> {
+    if buffer.is_empty() { return None; }
+    let len = buffer.len();
+
     match platform.to_lowercase().as_str() {
         "wii" | "gc" | "gamecube" => {
-            // Wii/GC: Los primeros 6 bytes son el GameID (ej: RSPE01)
-            let mut buffer = [0u8; 6];
-            if file.read_exact(&mut buffer).is_ok() {
-                let id = String::from_utf8_lossy(&buffer).to_string();
+            if len >= 6 {
+                let id = String::from_utf8_lossy(&buffer[0..6]).to_string();
                 if id.chars().all(|c| c.is_alphanumeric()) { return Some(id); }
             }
         },
         "nds" | "ds" => {
-            // NDS: Offset 0x0C, longitud 4 caracteres (ej: NTRJ)
-            let mut buffer = [0u8; 4];
-            if file.seek(SeekFrom::Start(0x0C)).is_ok() {
-                if file.read_exact(&mut buffer).is_ok() {
-                    let id = String::from_utf8_lossy(&buffer).to_string();
-                    if id.chars().all(|c| c.is_alphanumeric()) { return Some(id); }
-                }
+            if len >= 0x10 {
+                let id = String::from_utf8_lossy(&buffer[0x0C..0x10]).to_string();
+                if id.chars().all(|c| c.is_alphanumeric()) { return Some(id); }
             }
         },
         "3ds" => {
-            // 3DS: Product Code en offset 0x118 (10 bytes, ej: CTR-P-AMQE)
-            let mut buffer = [0u8; 10];
-            if file.seek(SeekFrom::Start(0x118)).is_ok() {
-                if file.read_exact(&mut buffer).is_ok() {
-                    let code = String::from_utf8_lossy(&buffer).to_string();
-                    if code.starts_with("CTR") || code.starts_with("KTR") { return Some(code); }
-                }
+            if len >= 0x118 + 10 {
+                let code = String::from_utf8_lossy(&buffer[0x118..0x118+10]).to_string();
+                if code.starts_with("CTR") || code.starts_with("KTR") { return Some(code); }
             }
         },
         "gba" => {
-            // GBA: Offset 0xAC (Game Code, 4b) + 0xB2 (Maker Code, 2b)
-            let mut gc = [0u8; 4];
-            let mut mc = [0u8; 2];
-            if file.seek(SeekFrom::Start(0xAC)).is_ok() && file.read_exact(&mut gc).is_ok() {
-                if file.seek(SeekFrom::Start(0xB2)).is_ok() && file.read_exact(&mut mc).is_ok() {
-                    let id = format!("{}{}", String::from_utf8_lossy(&gc), String::from_utf8_lossy(&mc));
-                    if id.chars().all(|c| c.is_alphanumeric()) { return Some(id); }
-                }
+            // GBA: Offset 0xAC (Game Code, 4b) + 0xB0 (Maker Code, 2b) -> FIX: Era 0xB2
+            if len >= 0xB2 {
+                let gc = &buffer[0xAC..0xB0];
+                let mc = &buffer[0xB0..0xB2];
+                let id = format!("{}{}", String::from_utf8_lossy(gc), String::from_utf8_lossy(mc));
+                if id.chars().all(|c| c.is_alphanumeric()) { return Some(id); }
             }
         },
         "n64" => {
-            // N64: Offset 0x3B (Serial, 4 bytes)
-            let mut buffer = [0u8; 4];
-            if file.seek(SeekFrom::Start(0x3B)).is_ok() && file.read_exact(&mut buffer).is_ok() {
-                let id = String::from_utf8_lossy(&buffer).to_string();
+            if len >= 0x3F {
+                let id = String::from_utf8_lossy(&buffer[0x3B..0x3F]).to_string();
                 if id.chars().all(|c| c.is_alphanumeric()) { return Some(id); }
             }
         },
         "megadrive" | "genesis" => {
-            // Mega Drive: Offset 0x180 (Serial, 14 bytes)
-            let mut buffer = [0u8; 14];
-            if file.seek(SeekFrom::Start(0x180)).is_ok() && file.read_exact(&mut buffer).is_ok() {
-                let id = String::from_utf8_lossy(&buffer).trim().replace("-", "");
+            if len >= 0x180 + 14 {
+                let id = String::from_utf8_lossy(&buffer[0x180..0x180+14]).trim().replace("-", "");
                 if !id.is_empty() { return Some(id); }
             }
         },
         "snes" => {
-            // SNES: GameID oficial en 0x7FB2 (LoROM) o 0xFFB2 (HiROM)
-            // Consideramos también el offset de 512B si es .smc
-            let is_smc = path.to_lowercase().ends_with(".smc");
-            let base_offset: u64 = if is_smc { 512 } else { 0 };
-            
-            let mut buffer = [0u8; 4];
-            let targets = [0x7FB2u64, 0xFFB2u64];
+            // SNES: LoROM (0x7FB2) o HiROM (0xFFB2)
+            // No consideramos offset SMC aquí porque el ZIP peeking ya nos da el stream limpio 
+            // pero el buffer file-based podría tenerlo.
+            // Para simplicidad, probamos con y sin offset de 512.
+            let targets = [0x7FB2usize, 0xFFB2usize, 0x7FB2 + 512, 0xFFB2 + 512];
             for t in targets {
-                if file.seek(SeekFrom::Start(base_offset + t)).is_ok() && file.read_exact(&mut buffer).is_ok() {
-                    let id = String::from_utf8_lossy(&buffer).to_string();
+                if len >= t + 4 {
+                    let id = String::from_utf8_lossy(&buffer[t..t+4]).to_string();
                     if id.chars().all(|c| c.is_alphanumeric() || c == '-') && !id.trim().is_empty() {
                         return Some(id);
                     }
@@ -87,33 +106,26 @@ pub fn extract_serial(path: &str, platform: &str) -> Option<String> {
             }
         },
         "ps1" | "ps2" | "playstation" | "playstation2" => {
-            // Sniffer de PlayStation: Buscamos el descriptor "SYSTEM.CNF" en los primeros sectores
-            // Escaneamos los primeros 128KB para cubrir variaciones de sector (2048 vs 2352 bytes)
-            let mut buffer = vec![0u8; 131072]; 
-            if file.read_exact(&mut buffer).is_ok() {
-                let content = String::from_utf8_lossy(&buffer).to_uppercase();
-                // Patrón BOOT de Sony: "BOOT = CDROM:\\SLUS_XXX.XX;1" o similar
-                if let Some(pos) = content.find("BOOT = CDROM:\\") {
-                    let start = pos + 14;
-                    // Buscamos el final de la cadena de serial (punto y coma o espacio)
-                    if let Some(end) = content[start..].find(';') {
-                        let raw_serial = &content[start..start+end];
-                        let clean = raw_serial.trim().replace("_", "-").replace(".", "").replace("\\", "");
-                        if clean.len() >= 4 { return Some(clean); }
-                    }
+            let content = String::from_utf8_lossy(buffer).to_uppercase();
+            if let Some(pos) = content.find("BOOT = CDROM:\\") {
+                let start = pos + 14;
+                if let Some(end) = content[start..].find(';') {
+                    let raw_serial = &content[start..start+end];
+                    let clean = raw_serial.trim().replace("_", "-").replace(".", "").replace("\\", "");
+                    if clean.len() >= 4 { return Some(clean); }
                 }
-                // Fallback: búsqueda por patrón directo SLUS/SLES/SCES/SCUS
-                let prefixes = ["SLUS-", "SLES-", "SCES-", "SCUS-", "SLPS-", "SLPM-"];
-                for p in prefixes {
-                    if let Some(pos) = content.find(p) {
+            }
+            let prefixes = ["SLUS-", "SLES-", "SCES-", "SCUS-", "SLPS-", "SLPM-"];
+            for p in prefixes {
+                if let Some(pos) = content.find(p) {
+                    if content.len() >= pos + 10 {
                         let serial = &content[pos..pos+10].replace("_", "-").replace(".", "");
                         return Some(serial.to_string());
                     }
                 }
             }
         },
-        _ => return None
+        _ => {}
     }
-
     None
 }

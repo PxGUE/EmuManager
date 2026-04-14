@@ -84,7 +84,7 @@ class GameListModel(QAbstractListModel):
         
         if role == self.FileHashRole: return game["file_hash"]
         if role == self.FilePathRole: return game["file_path"]
-        if role == self.TitleRole: return game.get("display_name") or game.get("title") or ""
+        if role == self.TitleRole: return game.get("title") or game.get("display_name") or ""
         if role == self.PlatformRole: return game["platform"]
         if role == self.Cover2dRole: 
             p = game.get("cover_2d_path", "") or ""

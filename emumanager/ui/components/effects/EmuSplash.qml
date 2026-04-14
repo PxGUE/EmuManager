@@ -130,7 +130,7 @@ Rectangle {
 
             // High-Tech Loading Bar
             Rectangle {
-                width: parent.width; height: 4; radius: 2; color: Qt.rgba(1,1,1,0.1)
+                width: parent.width; height: 4; radius: 2; color: Theme.glassTrack
                 clip: true
                 
                 // Final gradient line

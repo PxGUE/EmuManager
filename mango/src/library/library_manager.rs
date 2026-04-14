@@ -7,7 +7,7 @@ use std::fs::{self, File};
 use walkdir::WalkDir;
 use rayon::prelude::*;
 use md5;
-use std::sync::Arc;
+use std::sync::{Arc, atomic::{Ordering, AtomicUsize, AtomicU64}};
 use crate::tools::header_reader;
 use chrono;
 
@@ -535,11 +535,13 @@ fn collect_files_to_scan(
     let mut count = 0;
     let mut last_update = std::time::Instant::now();
     
+    println!("M.A.N.G.O (Debug): Recolectando en {}, extensiones: {:?}", root.display(), extensions);
     for entry in WalkDir::new(root).into_iter().filter_map(|e| e.ok()) {
         if entry.file_type().is_file() {
             let path = entry.path();
             if let Some(ext) = path.extension().and_then(|e| e.to_str()) {
-                if extensions.contains(&ext.to_lowercase()) {
+                let ext_low = ext.to_lowercase();
+                if extensions.iter().any(|e| e.to_lowercase() == ext_low) {
                     files.push(path.to_path_buf());
                     count += 1;
                     
@@ -560,7 +562,6 @@ fn collect_files_to_scan(
 }
 
 /// Identifica un archivo de juego, extrayendo metadatos y calculando su hash.
-/// Identifica un archivo de juego, extrayendo metadatos y calculando su hash.
 fn identify_game_file(p: &Path) -> Option<ScannedGame> {
     let path_str = p.to_string_lossy().to_string();
     let meta = fs::metadata(p).ok()?;
@@ -575,8 +576,6 @@ fn identify_game_file(p: &Path) -> Option<ScannedGame> {
         if peek != "unknown" { platform = Some(peek); }
     }
     let final_platform = platform.unwrap_or_else(|| get_platform_from_ext(&ext));
-    
-    // EXTRAER SERIAL
     let serial = header_reader::extract_serial(&path_str, &final_platform);
 
     let mut file = File::open(p).ok()?;
@@ -667,9 +666,11 @@ fn register_scanned_games(
     results: Vec<ScannedGame>,
     progress_callback: Option<Py<PyAny>>,
     status_callback: Option<Py<PyAny>>,
+    cancel_cb: Option<Py<PyAny>>,
 ) -> PyResult<usize> {
     let pc_final = progress_callback.as_ref().map(|cb| cb.clone_ref(py));
     let sc_final = status_callback.as_ref().map(|cb| cb.clone_ref(py));
+    let cc_final = cancel_cb.as_ref().map(|cb| cb.clone_ref(py));
     
     let db_path_owned = db_path.to_string();
     py.allow_threads(move || {
@@ -685,6 +686,16 @@ fn register_scanned_games(
         let mut last_update = std::time::Instant::now();
 
         for game in results {
+            // Check for Hard-Stop or Manual Cancel (Zero-GIL preferred)
+            if crate::ABORT_ALL.load(Ordering::SeqCst) { break; }
+
+            if let Some(ref cc) = cc_final {
+                let is_active = Python::with_gil(|py| {
+                    cc.bind(py).call0().map(|r| r.extract::<bool>().unwrap_or(true)).unwrap_or(true)
+                });
+                if !is_active { break; }
+            }
+
             current_idx += 1;
             if upsert_game_record(&tx, &game).unwrap_or(0) > 0 {
                 new_games += 1;
@@ -706,31 +717,27 @@ pub fn scan_directory_to_db(
     extensions: Vec<String>,
     progress_callback: Option<Py<PyAny>>,
     status_callback: Option<Py<PyAny>>,
+    cancel_cb: Option<Py<PyAny>>,
 ) -> PyResult<usize> {
     let root = Path::new(&root_path);
     if !root.exists() {
         return Ok(0);
     }
+    
+    // Resetear señal de aborto al iniciar escaneo
+    crate::reset_abort_signal();
+    println!("M.A.N.G.O: Señal de aborto reseteada. Iniciando escaneo nativo...");
 
     // Configurar pool de hilos de Rayon para no asfixiar el sistema
     let num_cpus = num_cpus::get();
-    let threads = if num_cpus > 4 { 
-        (num_cpus as f32 * 0.5).floor() as usize // Usa la mitad de los cores para no trabar el PC
-    } else { 
-        (num_cpus - 1).max(1) 
-    };
+    let workers = (num_cpus as f32 * 0.75).ceil() as usize; // Usar el 75% de los cores
+    let pool = rayon::ThreadPoolBuilder::new().num_threads(workers).build().unwrap();
 
-    // Usamos un pool local para evitar fallos en compilaciones donde build_global ya ha sido inicializado y falla silenciosamente
-    let pool = rayon::ThreadPoolBuilder::new()
-        .num_threads(threads)
-        .build()
-        .unwrap_or_else(|_| rayon::ThreadPoolBuilder::new().build().unwrap());
-
+    let sc_arc_thread: Option<Py<PyAny>> = status_callback.as_ref().map(|cb| cb.clone_ref(py));
     let existing_map = get_existing_games_map(&db_path);
-    
-    let sc_cloned = status_callback.as_ref().map(|cb| Python::with_gil(|py| cb.clone_ref(py)));
-    let files = collect_files_to_scan(root, &extensions, &sc_cloned);
+    let files = collect_files_to_scan(root, &extensions, &sc_arc_thread);
     let total_files = files.len();
+    println!("M.A.N.G.O: Archivos recolectados para procesar: {}", total_files);
     
     if total_files == 0 { 
         if let Some(sc) = &status_callback {
@@ -747,12 +754,16 @@ pub fn scan_directory_to_db(
         let _ = sc.bind(py).call1((format!("scan_collecting|{}", total_files),));
     }
 
-    let pc_arc_thread = progress_callback.as_ref().map(|cb| cb.clone_ref(py));
-    let sc_arc_thread = status_callback.as_ref().map(|cb| cb.clone_ref(py));
+    let pc_arc_thread: Option<Py<PyAny>> = progress_callback.as_ref().map(|cb| cb.clone_ref(py));
+    let sc_arc_thread: Option<Py<PyAny>> = status_callback.as_ref().map(|cb| cb.clone_ref(py));
+    let sc_for_cleanup = sc_arc_thread.as_ref().map(|cb| cb.clone_ref(py));
 
-    use std::sync::atomic::{AtomicUsize, AtomicU64, Ordering};
     let results_count = Arc::new(AtomicUsize::new(0));
     let last_update_ms = Arc::new(AtomicU64::new(0));
+    let cancelled = Arc::new(std::sync::atomic::AtomicBool::new(false));
+    let cancelled_inner = cancelled.clone();
+    
+    let cc_arc = Arc::new(cancel_cb.as_ref().map(|cb| cb.clone_ref(py)));
 
     let start_time = std::time::Instant::now();
 
@@ -760,13 +771,15 @@ pub fn scan_directory_to_db(
         pool.install(|| {
             files.into_par_iter()
                 .filter_map(|p| {
+                if cancelled_inner.load(Ordering::SeqCst) || crate::ABORT_ALL.load(Ordering::SeqCst) { return None; }
+
                 let path_str = p.to_string_lossy().to_string();
                 let meta = fs::metadata(&p).ok()?;
                 let size = meta.len();
 
-                let processed = results_count.fetch_add(1, Ordering::SeqCst) + 1;
+                if crate::ABORT_ALL.load(Ordering::SeqCst) { return None; }
                 
-                // Throttle: Cada 250ms para total fluidez
+                let processed = results_count.fetch_add(1, Ordering::SeqCst) + 1;
                 let now_ms = start_time.elapsed().as_millis() as u64;
                 let last = last_update_ms.load(Ordering::Relaxed);
                 
@@ -775,15 +788,18 @@ pub fn scan_directory_to_db(
                         let progress = (processed as f64 / total_files as f64) * 0.9;
                         let game_name = p.file_stem().and_then(|s| s.to_str()).unwrap_or("...").to_string();
 
-                        Python::with_gil(|py| {
-                            if let Some(pc) = &pc_arc_thread {
-                                let _ = pc.bind(py).call1((progress,));
-                            }
-                            if let Some(sc) = &sc_arc_thread {
-                                let status = format!("scan_identifying|{} ({}/{})", game_name, processed, total_files);
-                                let _ = sc.bind(py).call1((status,));
-                            }
-                        });
+                        // Actualización de UI protegida (Solo si no estamos abortando)
+                        if !crate::ABORT_ALL.load(Ordering::Relaxed) {
+                            Python::with_gil(|py| {
+                                if let Some(pc) = &pc_arc_thread {
+                                    let _ = pc.bind(py).call1((progress,));
+                                }
+                                if let Some(sc) = &sc_arc_thread {
+                                    let status = format!("scan_identifying|{} ({}/{})", game_name, processed, total_files);
+                                    let _ = sc.bind(py).call1((status,));
+                                }
+                            });
+                        }
                     }
                 }
 
@@ -805,7 +821,18 @@ pub fn scan_directory_to_db(
         return Ok(0);
     }
 
-    register_scanned_games(py, &db_path, results, progress_callback, status_callback)
+    let final_res = register_scanned_games(py, &db_path, results, progress_callback, status_callback, cancel_cb);
+    
+    // Si cancelamos, aseguramos que la UI no se quede colgada
+    if cancelled.load(Ordering::SeqCst) {
+        if let Some(sc) = &sc_for_cleanup {
+            Python::with_gil(|py| {
+                let _ = sc.bind(py).call1(("status_cancelled",));
+            });
+        }
+    }
+    
+    final_res
 }
 
 /// Escanea un directorio buscando juegos y calcula sus hashes en paralelo.

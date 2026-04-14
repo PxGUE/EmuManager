@@ -6,6 +6,9 @@ import Qt5Compat.GraphicalEffects
 import EmuManager.Models 1.0
 import EmuManager.Controllers 1.0
 import "../components"
+import "../components/cards"
+import "../components/effects"
+import "../components/system"
 
 Item {
     id: libraryRoot
@@ -18,36 +21,25 @@ Item {
     property bool showGames: false
     property string activePlatform: "all"
     property color activeAccentColor: Theme.accentColor
-    property string backgroundCover: ""
     onActiveAccentColorChanged: if (showGames) window.globalAccentColor = activeAccentColor
     onShowGamesChanged: if (!showGames) window.globalAccentColor = Theme.accentColor
 
-    // --- CINEMATIC PORTAL BACKGROUND ---
+    // --- ADAPTIVE NEBULA BACKGROUND ---
+    NebulaBackground {
+        id: adaptiveNebula
+        accentColor: libraryRoot.activeAccentColor
+        interactiveForce: 0.05
+    }
+
     Rectangle {
         anchors.fill: parent
-        color: Theme.viewBackground
+        color: Theme.transparent
         z: -1
 
-        // 1. Cover Art Layer (Ultra-difusa, ambiental)
-        Image {
-            id: bgCoverImage
-            anchors.fill: parent
-            source: libraryRoot.backgroundCover ? "file:///" + libraryRoot.backgroundCover : ""
-            fillMode: Image.PreserveAspectCrop
-            asynchronous: true
-            opacity: (status === Image.Ready && libraryRoot.backgroundCover !== "") ? 0.18 : 0
-            visible: libraryRoot.backgroundCover !== ""
-
-            layer.enabled: visible && opacity > 0
-            layer.effect: FastBlur { radius: 64 }
-
-            Behavior on opacity { NumberAnimation { duration: 1200; easing.type: Easing.InOutQuad } }
-        }
-
-        // 2. Accent Atmosphere (Gradiente lateral — nebula del accent color)
+        // 1. Accent Atmosphere (Gradiente lateral — nebula del accent color)
         Rectangle {
             anchors.fill: parent
-            opacity: libraryRoot.showGames ? 0.12 : 0.25
+            opacity: libraryRoot.showGames ? 0.08 : 0.15
             visible: consoleModel.count > 0
             gradient: Gradient {
                 orientation: Gradient.Horizontal
@@ -57,7 +49,7 @@ Item {
             Behavior on opacity { NumberAnimation { duration: 600 } }
         }
 
-        // 3. Accent Bottom Glow (Nebula inferior)
+        // 2. Accent Bottom Glow (Nebula inferior)
         Rectangle {
             anchors.fill: parent
             opacity: libraryRoot.showGames ? 0.08 : 0.15
@@ -70,7 +62,7 @@ Item {
             Behavior on opacity { NumberAnimation { duration: 600 } }
         }
 
-        // 4. Vignette (Top + Bottom fade to base) — cinematic framing
+        // 3. Vignette (Top + Bottom fade to base) — cinematic framing
         Rectangle {
             anchors.fill: parent
             gradient: Gradient {
@@ -81,7 +73,7 @@ Item {
             }
         }
 
-        // 5. Horizon Line (Accent energy line en la base)
+        // 4. Horizon Line (Accent energy line en la base)
         Rectangle {
             anchors.bottom: parent.bottom
             width: parent.width; height: 2
@@ -128,16 +120,14 @@ Item {
             consoleCarousel.currentIndex = newIndex
             var item = consoleModel.get(newIndex)
             activeAccentColor = Theme.resolveColor(item.accentColor, item.platform)
-            // Cinematic Portal: carátula de fondo al refrescar
-            if (mainController) {
-                backgroundCover = mainController.get_random_cover_for_platform(item.platform)
-            }
         }
     }
 
     // La carga se gestiona exclusivamente por señales (onGamesUpdated) 
     // garantizando un flujo de datos reactivo y limpio.
-    Component.onCompleted: { }
+    Component.onCompleted: {
+        refreshConsoles()
+    }
 
     Connections {
         target: mainController
@@ -172,11 +162,6 @@ Item {
                 var item = consoleModel.get(currentIndex);
                 // El color siempre se actualiza con el carrusel
                 libraryRoot.activeAccentColor = Theme.resolveColor(item.accentColor, item.platform)
-                
-                // Cinematic Portal: actualizar fondo con carátula aleatoria
-                if (mainController) {
-                    libraryRoot.backgroundCover = mainController.get_random_cover_for_platform(item.platform)
-                }
                 
                 if (libraryRoot.showGames) {
                     // Solo actualizamos plataforma y filtros si ya entramos

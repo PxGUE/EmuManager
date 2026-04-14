@@ -9,6 +9,7 @@ pub mod screenscraper;
 pub mod libretro;
 pub mod local_nfo;
 pub mod gametdb;
+pub mod wikipedia;
 
 use async_trait::async_trait;
 

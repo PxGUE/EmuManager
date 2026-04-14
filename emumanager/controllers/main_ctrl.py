@@ -1,4 +1,6 @@
 from pathlib import Path
+import os
+import datetime
 from PySide6.QtCore import QObject, Slot, Signal, QThread
 from PySide6.QtQml import QmlElement
 
@@ -53,6 +55,17 @@ class MainController(QObject):
     
     @Property(str, constant=True)
     def mangoVersion(self): return self.MANGO_VERSION
+
+    @Property(QObject, constant=True)
+    def statsController(self): return self.stats_ctrl
+
+    @Property(int, notify=gamesCountChanged)
+    def libraryCount(self):
+        """Retorna el conteo total de juegos de forma reactiva."""
+        return self.stats_ctrl.get_games_count()
+
+    @Property(QObject, constant=True)
+    def libraryController(self): return self.lib_ctrl
 
     # --- ATRIBUTOS DE ESTADO ---
     _scan_progress = 0.0
@@ -116,6 +129,7 @@ class MainController(QObject):
         self._startup_thread = None
         self._startup_worker = None
         self._is_precharged = False
+        self._start_time = datetime.datetime.now()
 
     def _connect_signals(self):
         """Conecta las señales de los sub-controladores a las señales de MainController."""
@@ -139,6 +153,14 @@ class MainController(QObject):
         self.orch_ctrl.coreDownloadFinished.connect(self._on_emu_install_success)
         self.orch_ctrl.coreDownloadFinished.connect(self.notify_library_changed)
         self.orch_ctrl.notify_library_changed.connect(self.notify_library_changed)
+
+    @Slot(result=str)
+    def get_session_time(self):
+        """Retorna el tiempo transcurrido desde que se abrió la aplicación."""
+        delta = datetime.datetime.now() - self._start_time
+        hours, remainder = divmod(int(delta.total_seconds()), 3600)
+        minutes, seconds = divmod(remainder, 60)
+        return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
 
     @Slot()
     def proactive_background_load(self):
@@ -225,6 +247,9 @@ class MainController(QObject):
     
     @Slot()
     def stop_scraping(self): self.lib_ctrl.stop_scraping()
+
+    @Slot()
+    def stop_scanning(self): self.lib_ctrl.stop_scanning()
 
     @Slot(float)
     def _on_scan_progress(self, p):
@@ -491,11 +516,20 @@ class MainController(QObject):
             self.stats_ctrl.clear_cache()
         self.gamesUpdated.emit()
         self.gamesCountChanged.emit()
+        self.engineActivityChanged.emit()
 
     @Slot()
     def shutdown(self):
         """Apagado de seguridad de todos los motores."""
         EmuLog.info("M.A.N.G.O: Protocolo de apagado modular iniciado...")
+        
+        # 1. Señal de Hard-Stop Nativa (Zero-GIL)
+        try:
+            import mango_engine
+            mango_engine.stop_all_tasks()
+        except: pass
+
+        # 2. Detener controladores de forma lógica
         self.lib_ctrl.shutdown()
         self.orch_ctrl.shutdown()
         EmuLog.info("M.A.N.G.O (Modular): Motores detenidos con éxito.")

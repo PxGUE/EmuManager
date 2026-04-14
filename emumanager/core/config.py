@@ -19,36 +19,41 @@ class AppConfig:
     @classmethod
     def initialize(cls):
         """
-        Bootstrap simple y directo: Data junto al EXE o en Roaming si no hay permisos.
+        Orquestador de Rutas: Resuelve el dilema Local-First vs AppData.
         """
-        # 0. Asset Root (Siempre relativo al código)
+        # 0. Raíz del Paquete (Donde vive el código / assets)
         cls._package_root = Path(__file__).resolve().parent.parent
 
-        # 1. Determinar dónde está el ejecutable (Real)
+        # 1. PRIORIDAD: MODO DESARROLLO
+        # Si estamos programando, usamos la carpeta 'data' del repositorio local.
+        if cls.IS_DEV_MODE:
+            cls._storage_root = cls._package_root.parent
+            cls._is_frozen = False
+            return
+
+        # 2. SEGUNDA OPCIÓN: MODO PORTABLE (Producción)
+        # Intentamos usar la carpeta del ejecutable si tenemos permisos.
         exe_path = Path(sys.argv[0]).resolve()
         if exe_path.suffix.lower() != ".exe":
             exe_path = Path(sys.executable).resolve()
-            
-        exe_dir = exe_path.parent
-        local_data = exe_dir / "data"
         
-        # 2. ¿Podemos usar la carpeta del EXE? (Preferencia Portable, evitamos Temp)
-        is_python = exe_path.name.lower().startswith("python")
-        if "temp" not in str(exe_dir).lower() and not is_python:
+        exe_dir = exe_path.parent
+        # Evitar carpetas temporales de Nuitka/PyInstaller
+        if "temp" not in str(exe_dir).lower():
             try:
-                local_data.mkdir(parents=True, exist_ok=True)
-                # Test de escritura
-                t = local_data / ".w"
-                t.touch(); t.unlink()
+                test_dir = exe_dir / "data"
+                test_dir.mkdir(parents=True, exist_ok=True)
+                (test_dir / ".w").touch()
+                (test_dir / ".w").unlink()
                 cls._storage_root = exe_dir
                 cls._is_frozen = True
                 return
             except:
-                pass # Fallback si no hay permisos
+                pass # No hay permisos de escritura, ir a AppData
 
-        # 3. Fallback: AppData Standard (Modo Instalado)
-        cls._is_frozen = not is_python
+        # 3. TERCERA OPCIÓN: APPDATA (Instalado)
         cls._storage_root = cls._get_standard_appdata()
+        cls._is_frozen = True
 
     @classmethod
     def _get_standard_appdata(cls) -> Path:

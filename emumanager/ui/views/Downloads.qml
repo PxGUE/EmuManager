@@ -102,10 +102,12 @@ Item {
                 Behavior on scale { NumberAnimation { duration: 100 } }
 
                 MouseArea { 
-                    id: scanMA; anchors.fill: parent; hoverEnabled: !isAnyOperationRunning; cursorShape: isAnyOperationRunning ? Qt.ArrowCursor : Qt.PointingHandCursor 
-                    enabled: !isAnyOperationRunning
+                    id: scanMA; anchors.fill: parent; hoverEnabled: !isAnyOperationRunning || isScanning
+                    cursorShape: (isAnyOperationRunning && !isScanning) ? Qt.ArrowCursor : Qt.PointingHandCursor 
+                    enabled: !isAnyOperationRunning || isScanning
                     onClicked: {
-                        mainController.start_full_scan()
+                        if (isScanning) mainController.stop_scanning()
+                        else mainController.start_full_scan()
                     }
                 }
 
@@ -132,8 +134,8 @@ Item {
 
                     ColumnLayout {
                         Layout.fillWidth: true; spacing: 4
-                        Text { text: I18n.t.library; color: Theme.statusSuccess; font.pixelSize: Theme.fontSmall; font.bold: true; font.letterSpacing: 1.5 }
-                        Text { text: I18n.t.sync_roms; color: Theme.textMain; font.pixelSize: Theme.fontBody; font.bold: true }
+                        Text { text: isScanning ? I18n.t.cancel_caps : I18n.t.library; color: Theme.statusSuccess; font.pixelSize: Theme.fontSmall; font.bold: true; font.letterSpacing: 1.5 }
+                        Text { text: isScanning ? I18n.t.status_processing : I18n.t.sync_roms; color: Theme.textMain; font.pixelSize: Theme.fontBody; font.bold: true }
                         
                         // Barra de Progreso Maestra (LEAN PORSCHE STYLE)
                         Rectangle {
@@ -168,16 +170,22 @@ Item {
                 
                 scale: mangoMA.pressed ? 0.98 : 1.0
                 y: (mangoMA.containsMouse && mangoMA.enabled) ? -3 : 0
+                opacity: (mainController.libraryCount > 0 || isScraping) ? 1.0 : 0.4
+                
                 Behavior on color { ColorAnimation { duration: 200 } }
                 Behavior on border.color { ColorAnimation { duration: 200 } }
                 Behavior on y { NumberAnimation { duration: 200; easing.type: Easing.OutCubic } }
                 Behavior on scale { NumberAnimation { duration: 100 } }
+                Behavior on opacity { NumberAnimation { duration: 300 } }
 
                 MouseArea { 
-                    id: mangoMA; anchors.fill: parent; hoverEnabled: !isAnyOperationRunning; cursorShape: isAnyOperationRunning ? Qt.ArrowCursor : Qt.PointingHandCursor 
-                    enabled: !isAnyOperationRunning
+                    id: mangoMA; anchors.fill: parent; 
+                    hoverEnabled: (!isAnyOperationRunning || isScraping) && (mainController.libraryCount > 0)
+                    cursorShape: ((isAnyOperationRunning && !isScraping) || (mainController.libraryCount === 0 && !isScraping)) ? Qt.ArrowCursor : Qt.PointingHandCursor 
+                    enabled: (!isAnyOperationRunning || isScraping) && (mainController.libraryCount > 0)
                     onClicked: {
-                        mainController.start_scraping()
+                        if (isScraping) mainController.stop_scraping()
+                        else mainController.start_scraping()
                     }
                 }
 
@@ -204,8 +212,8 @@ Item {
 
                     ColumnLayout {
                         Layout.fillWidth: true; spacing: 4
-                        Text { text: I18n.t.mango_monitor; color: Theme.statusWarning; font.pixelSize: Theme.fontSmall; font.bold: true; font.letterSpacing: 1.5 }
-                        Text { text: I18n.t.sync_media; color: Theme.textMain; font.pixelSize: Theme.fontBody; font.bold: true }
+                        Text { text: isScraping ? I18n.t.cancel_caps : I18n.t.mango_monitor; color: Theme.statusWarning; font.pixelSize: Theme.fontSmall; font.bold: true; font.letterSpacing: 1.5 }
+                        Text { text: isScraping ? I18n.t.status_processing : I18n.t.sync_media; color: Theme.textMain; font.pixelSize: Theme.fontBody; font.bold: true }
 
                         // Barra de Progreso Maestra para Scraping (LEAN PORSCHE STYLE)
                         Rectangle {

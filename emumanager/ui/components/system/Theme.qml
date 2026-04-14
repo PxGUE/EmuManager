@@ -77,6 +77,9 @@ QtObject {
     readonly property color glassPlain: _n6           // Negro puro para modales.
     readonly property color glassLight: _n7           // Blanco ultra-sutil (Overlays).
     readonly property color glassStrong: _n8          // Blanco sutil (Bordes Glass).
+    readonly property color glassHover: "#1affffff"   // Blanco sutil para hovers.
+    readonly property color glassTrack: "#1affffff"   // Blanco sutil para fondos de barras de progreso.
+    readonly property real glassOpacityMedium: 0.45   // Opacidad media para paneles glass.
     
     readonly property color controlBackground: "#16161c" // Fondo de botones y campos de entrada.
     readonly property color controlBorder: "#33ffffff"   // Borde de controles desactivados.

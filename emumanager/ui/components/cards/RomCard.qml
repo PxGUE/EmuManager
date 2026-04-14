@@ -135,6 +135,7 @@ Item {
     MouseArea {
         id: mouseArea; anchors.fill: parent; hoverEnabled: true
         cursorShape: Qt.PointingHandCursor; onClicked: romCardRoot.clicked()
+        onEntered: { if (typeof window !== "undefined") window.prepareGameDetails(romCardRoot.gameId); }
     }
 
     // --- BOTÓN DE INFORMACIÓN (ⓘ) ---

@@ -109,7 +109,8 @@ class ScrapeWorker(QObject):
 
             count = self.scanner.scrape_missing_metadata(
                 progress_callback=_handle_progress,
-                status_callback=self.status.emit
+                status_callback=self.status.emit,
+                is_active_check=lambda: self._is_active
             )
             self.finished.emit(count)
         except Exception as e:

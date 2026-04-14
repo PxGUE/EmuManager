@@ -4,7 +4,8 @@ import QtQuick.Layouts
 import QtQuick.Controls.Material
 import Qt5Compat.GraphicalEffects
 import EmuManager.Controllers 1.0
-import "components"
+import "./components/system"
+import "./components/effects"
 import "views"
 
 ApplicationWindow {
@@ -91,7 +92,7 @@ ApplicationWindow {
                     id: btnRoot
                     property string icon: ""
                     property color hoverColor: Theme.accentColor
-                    property color hoverBg: "#1affffff"
+                    property color hoverBg: Theme.glassHover
                     property int pixelSize: 16
                     property bool isQuit: false
                     signal clicked()
@@ -226,6 +227,7 @@ ApplicationWindow {
     ListModel {
         id: navModel
         ListElement { key: "dashboard"; icon: "🏠"; file: "views/Dashboard.qml"; viewId: "dashboardView" }
+        ListElement { key: "discovery"; icon: "🎲"; file: "views/DiscoveryHub.qml"; viewId: "discoveryView" }
         ListElement { key: "library"; icon: "📚"; file: "views/Library.qml"; viewId: "libraryView" }
         ListElement { key: "downloads"; icon: "📥"; file: "views/Downloads.qml"; viewId: "downloadsView" }
         ListElement { key: "settings"; icon: "⚙️"; file: "views/Settings.qml"; viewId: "settingsView" }
@@ -297,7 +299,7 @@ ApplicationWindow {
             Repeater {
                 model: navModel
                 delegate: Loader {
-                    anchors.fill: parent; asynchronous: false; active: true; source: model.file; visible: window.activeViewId === model.viewId
+                    anchors.fill: parent; asynchronous: true; active: true; source: model.file; visible: window.activeViewId === model.viewId
                     opacity: visible ? 1 : 0; scale: visible ? 1 : 0.99
                     Behavior on opacity { NumberAnimation { duration: 250; easing.type: Easing.OutCubic } }
                     Behavior on scale { NumberAnimation { duration: 400; easing.type: Easing.OutCubic } }
@@ -307,7 +309,9 @@ ApplicationWindow {
     }
 
     // --- 3. MOTOR DE DETALLES GLOBAL (Unificado) ---
-    function openGameDetails(gameId) {
+    function prepareGameDetails(gameId) {
+        if (!gameId || (globalDetails.gameId === gameId && globalDetails.loaded)) return;
+        
         var data = mainController.get_game_details(gameId)
         if (data.id) {
             globalDetails.gameId = data.id
@@ -322,14 +326,14 @@ ApplicationWindow {
             
             // Identidad visual dinámica heredada de Theme.qml
             var plat = data.platform.toLowerCase()
-            if (plat.includes("gba")) globalDetails.accentColor = Theme.platGba
-            else if (plat.includes("snes") || plat.includes("super nintendo")) globalDetails.accentColor = Theme.platSnes
-            else if (plat.includes("n64")) globalDetails.accentColor = Theme.platN64
-            else if (plat.includes("ps1")) globalDetails.accentColor = Theme.platPs1
-            else if (plat.includes("psp")) globalDetails.accentColor = Theme.platPsp
-            else if (plat.includes("ds")) globalDetails.accentColor = Theme.platDs
-            else globalDetails.accentColor = Theme.accentColor
-            
+            globalDetails.accentColor = Theme.colorForPlatform(plat)
+            globalDetails.loaded = true
+        }
+    }
+
+    function openGameDetails(gameId) {
+        prepareGameDetails(gameId)
+        if (globalDetails.gameId === gameId) {
             globalDetails.visible = true
         }
     }
@@ -338,6 +342,11 @@ ApplicationWindow {
         id: globalDetails
         visible: false
         onClosed: visible = false
+    }
+
+    OverlayHUD {
+        id: globalHUD
+        active: false
     }
 
     // --- 4. SISTEMA DE NOTIFICACIONES GLOBAL (Toast Manager) ---

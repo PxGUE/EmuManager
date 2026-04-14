@@ -40,7 +40,8 @@ class ScannerManager:
                 directory_path,
                 extensions,
                 progress_callback,
-                status_callback
+                status_callback,
+                is_active_check
             )
             
             EmuLog.info(f"Escaneo Nativo Finalizado. {new_games_count} juegos nuevos registrados.")
@@ -50,7 +51,7 @@ class ScannerManager:
             EmuLog.error(f"Error fatal en Escaneo Nativo M.A.N.G.O: {e}")
             return 0
 
-    def scrape_missing_metadata(self, progress_callback: Callable[[float], None] | None = None, status_callback: Callable[[str], None] | None = None):
+    def scrape_missing_metadata(self, progress_callback: Callable[[float], None] | None = None, status_callback: Callable[[str], None] | None = None, is_active_check: Callable[[], bool] | None = None):
         """
         Busca metadatos y portadas (2D/3D) para las ROMs que aún no tengan.
         Usa el motor M.A.N.G.O para peticiones de ultra-baja latencia.
@@ -67,8 +68,7 @@ class ScannerManager:
         if not roms_path:
             return 0
             
-        project_root = Path(__file__).parent.parent.parent
-        media_base = str(project_root / "data" / "media")
+        media_base = str(AppConfig.get_app_data_dir() / "media")
         
         if status_callback: status_callback("scrape_starting")
         
@@ -89,7 +89,8 @@ class ScannerManager:
                 media_base,
                 progress_callback,
                 status_callback,
-                gametdb_mode
+                gametdb_mode,
+                is_active_check
             )
             
             if status_callback:

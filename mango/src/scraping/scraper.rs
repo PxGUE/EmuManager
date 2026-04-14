@@ -36,7 +36,10 @@ pub async fn scrape_game(
     // Prioridad 1: Local (Sostenibilidad Local-First)
     sources.push(Box::new(scrapers::local_nfo::LocalNfoSource));
 
-    // Prioridad 1.5: GameTDB (Especialista Nintendo/Sony + Serial)
+    // Prioridad 1.5: Wikipedia (Keyless universal metadata)
+    sources.push(Box::new(scrapers::wikipedia::WikipediaSource));
+
+    // Prioridad 1.7: GameTDB (Especialista Nintendo/Sony + Serial)
     let plat_low = query.platform.to_lowercase();
     if plat_low == "wii" || plat_low == "gc" || plat_low == "gamecube" || plat_low == "nds" || plat_low == "ds" || plat_low == "3ds" ||
        plat_low == "snes" || plat_low == "nes" || plat_low == "gba" || plat_low == "gb" || plat_low == "gbc" || plat_low == "n64" ||
@@ -56,6 +59,11 @@ pub async fn scrape_game(
     let mut metadata_found = false;
 
     for source in sources {
+        // Abortar si hay señal global de Hard-Stop
+        if crate::ABORT_ALL.load(std::sync::atomic::Ordering::SeqCst) {
+            return None;
+        }
+
         if let Some(meta) = source.scrape(&query).await {
             // Mezcla inteligente de metadatos (llenar huecos)
             if final_meta.title.is_none() { final_meta.title = meta.title; }

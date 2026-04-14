@@ -1,6 +1,6 @@
 use crate::scraping::scraper::scrape_game;
 use rusqlite::{params, Connection};
-// use std::sync::atomic::{AtomicBool, Ordering}; (Removed unused)
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use pyo3::prelude::*;
 use std::path::Path;
@@ -55,7 +55,10 @@ pub fn run_batch_scrape(
     progress_callback: Option<PyObject>,
     status_callback: Option<PyObject>,
     gametdb_mode: String,
+    cancel_check: Option<Py<PyAny>>,
 ) -> PyResult<usize> {
+    // Resetear señal de aborto global al iniciar
+    crate::reset_abort_signal();
     
     let conn = Connection::open(&db_path)
         .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("DB Open error: {}", e)))?;
@@ -66,7 +69,8 @@ pub fn run_batch_scrape(
             "SELECT g.id, g.file_hash, g.file_path, g.platform, g.serial 
              FROM games g 
              LEFT JOIN game_metadata m ON g.id = m.game_id
-             WHERE m.cover_2d_path IS NULL OR m.cover_2d_path = ''"
+             WHERE m.cover_2d_path IS NULL OR m.cover_2d_path = '' 
+                OR m.description IS NULL OR m.description = ''"
         ).map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(format!("SQL error: {}", e)))?;
         
         let game_iter = stmt.query_map([], |row| {
@@ -144,6 +148,8 @@ pub fn run_batch_scrape(
     let media_dir_arc = Arc::new(media_dir_base);
     let progress_arc = Arc::new(progress_callback);
     let status_arc = Arc::new(status_callback);
+    let cancelled = Arc::new(AtomicBool::new(false));
+    let cancel_check_arc = Arc::new(cancel_check);
 
     // --- M.A.N.G.O NITRO + STABLE PARALLEL MODE ---
     let results = py.allow_threads(|| {
@@ -163,8 +169,25 @@ pub fn run_batch_scrape(
                     let s_pass = ss_pass_arc.clone();
                     let d_id = dev_id_arc.clone();
                     let d_pass = dev_pass_arc.clone();
+                    let is_cancelled = cancelled.clone();
+                    let cc_check = cancel_check_arc.clone();
                     
                     async move {
+                        if is_cancelled.load(Ordering::SeqCst) || crate::ABORT_ALL.load(Ordering::SeqCst) {
+                            return (index, game.id, None);
+                        }
+
+                        // Check actual cancel from Python (is_active_check)
+                        if let Some(ref cc) = *cc_check {
+                            let is_active = Python::with_gil(|py| {
+                                cc.bind(py).call0().map(|r| r.extract::<bool>().unwrap_or(true)).unwrap_or(true)
+                            });
+                            if !is_active {
+                                is_cancelled.store(true, Ordering::SeqCst);
+                                return (index, game.id, None);
+                            }
+                        }
+
                         // 1. GESTIÓN ON-DEMAND DE GAMETDB LOCAL
                         if *gtdb_mode_flag == "local" {
                             if platform == "wii" || platform == "gc" || platform == "gamecube" || platform == "ds" || platform == "nds" || platform == "3ds" {
@@ -177,8 +200,9 @@ pub fn run_batch_scrape(
                             }
                         }
 
+                        // 2. DELAY ESTRATÉGICO (Solo si usamos ScreenScraper para evitar 429)
                         if index > 0 && !skip_ss {
-                            tokio::time::sleep(tokio::time::Duration::from_millis(200)).await;
+                            tokio::time::sleep(tokio::time::Duration::from_millis(150)).await;
                         }
                         
                         let meta = scrape_game(
@@ -223,17 +247,10 @@ pub fn run_batch_scrape(
                             });
                         }
                         
-                        if let Some(ref cb) = *stat_cb {
-                            Python::with_gil(|py| {
-                                let msg = format!("Scraping {}...", game_name);
-                                let _ = cb.bind(py).call1((msg,));
-                            });
-                        }
-                        
                         (index, game.id, meta)
                     }
                 })
-                .buffer_unordered(2) // Paralelismo seguro y estable
+                .buffer_unordered(6) // Nitro boost: Paralelismo aumentado para mayor eficiencia
                 .collect::<Vec<_>>()
                 .await
         })
@@ -243,16 +260,30 @@ pub fn run_batch_scrape(
     for (_index, game_id, metadata_opt) in results {
         if let Some(meta) = metadata_opt {
             let _ = conn.execute(
-                "UPDATE game_metadata SET 
-                    title = COALESCE(?, title), developer = COALESCE(?, developer), publisher = COALESCE(?, publisher), 
-                    release_date = COALESCE(?, release_date), genre = COALESCE(?, genre), description = COALESCE(?, description), 
-                    cover_2d_path = COALESCE(?, cover_2d_path), cover_3d_path = COALESCE(?, cover_3d_path)
-                 WHERE game_id = ?",
+                "INSERT OR REPLACE INTO game_metadata (
+                    game_id, title, developer, publisher, release_date, genre, description, 
+                    cover_2d_path, cover_3d_path
+                ) VALUES (
+                    ?,
+                    COALESCE(?, (SELECT title FROM game_metadata WHERE game_id = ?)),
+                    COALESCE(?, (SELECT developer FROM game_metadata WHERE game_id = ?)),
+                    COALESCE(?, (SELECT publisher FROM game_metadata WHERE game_id = ?)),
+                    COALESCE(?, (SELECT release_date FROM game_metadata WHERE game_id = ?)),
+                    COALESCE(?, (SELECT genre FROM game_metadata WHERE game_id = ?)),
+                    COALESCE(?, (SELECT description FROM game_metadata WHERE game_id = ?)),
+                    COALESCE(?, (SELECT cover_2d_path FROM game_metadata WHERE game_id = ?)),
+                    COALESCE(?, (SELECT cover_3d_path FROM game_metadata WHERE game_id = ?))
+                )",
                 params![
-                    meta.title, meta.developer, meta.publisher,
-                    meta.release_date, meta.genre, meta.description,
-                    meta.cover_2d_path, meta.cover_3d_path,
-                    game_id
+                    game_id,
+                    meta.title, game_id,
+                    meta.developer, game_id,
+                    meta.publisher, game_id,
+                    meta.release_date, game_id,
+                    meta.genre, game_id,
+                    meta.description, game_id,
+                    meta.cover_2d_path, game_id,
+                    meta.cover_3d_path, game_id
                 ]
             );
             

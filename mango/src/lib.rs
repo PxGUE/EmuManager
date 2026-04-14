@@ -3,7 +3,7 @@ use pyo3::types::{PyDict, PyList};
 use tokio::runtime::Runtime;
 use once_cell::sync::Lazy;
 use std::collections::HashMap;
-
+use std::sync::atomic::{AtomicBool, Ordering};
 pub mod emulation;
 pub mod scraping;
 pub mod library;
@@ -13,6 +13,18 @@ pub mod tools;
 static RUNTIME: Lazy<Runtime> = Lazy::new(|| {
     Runtime::new().expect("M.A.N.G.O (Fatal): Error al inicializar el Tokio Runtime.")
 });
+
+pub static ABORT_ALL: AtomicBool = AtomicBool::new(false);
+
+#[pyfunction]
+pub fn stop_all_tasks() {
+    ABORT_ALL.store(true, Ordering::SeqCst);
+}
+
+#[pyfunction]
+pub fn reset_abort_signal() {
+    ABORT_ALL.store(false, Ordering::SeqCst);
+}
 
 fn to_py_err(err: anyhow::Error) -> PyErr {
     pyo3::exceptions::PyRuntimeError::new_err(err.to_string())
@@ -134,7 +146,7 @@ fn scan_directory(
 }
 
 #[pyfunction]
-#[pyo3(signature = (db_path, ss_id, ss_pass, dev_id, dev_pass, media_dir, progress_cb=None, status_cb=None, gametdb_mode="web".to_string()))]
+#[pyo3(signature = (db_path, ss_id, ss_pass, dev_id, dev_pass, media_dir, progress_cb=None, status_cb=None, gametdb_mode="web".to_string(), cancel_cb=None))]
 fn start_batch_scrape(
     py: Python<'_>,
     db_path: String,
@@ -146,12 +158,13 @@ fn start_batch_scrape(
     progress_cb: Option<Py<PyAny>>,
     status_cb: Option<Py<PyAny>>,
     gametdb_mode: String,
+    cancel_cb: Option<Py<PyAny>>,
 ) -> PyResult<usize> {
-    scraping::batch_scraper::run_batch_scrape(py, db_path, ss_id, ss_pass, dev_id, dev_pass, media_dir, progress_cb, status_cb, gametdb_mode)
+    scraping::batch_scraper::run_batch_scrape(py, db_path, ss_id, ss_pass, dev_id, dev_pass, media_dir, progress_cb, status_cb, gametdb_mode, cancel_cb)
 }
 
 #[pyfunction]
-#[pyo3(signature = (db_path, path, extensions, progress_callback=None, status_callback=None))]
+#[pyo3(signature = (db_path, path, extensions, progress_callback=None, status_callback=None, cancel_cb=None))]
 fn scan_directory_to_db(
     py: Python<'_>,
     db_path: String,
@@ -159,8 +172,9 @@ fn scan_directory_to_db(
     extensions: Vec<String>,
     progress_callback: Option<Py<PyAny>>,
     status_callback: Option<Py<PyAny>>,
+    cancel_cb: Option<Py<PyAny>>,
 ) -> PyResult<usize> {
-    library::library_manager::scan_directory_to_db(py, db_path, path, extensions, progress_callback, status_callback)
+    library::library_manager::scan_directory_to_db(py, db_path, path, extensions, progress_callback, status_callback, cancel_cb)
 }
 
 #[pyfunction]
@@ -259,5 +273,7 @@ fn mango_engine(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(precharge_ecosystem, m)?)?;
     m.add_function(wrap_pyfunction!(check_system_installed, m)?)?;
     m.add_function(wrap_pyfunction!(check_emulators_status, m)?)?;
+    m.add_function(wrap_pyfunction!(stop_all_tasks, m)?)?;
+    m.add_function(wrap_pyfunction!(reset_abort_signal, m)?)?;
     Ok(())
 }

@@ -43,6 +43,7 @@ Item {
         "es": {
             // Main Navigation
             "dashboard": "DASHBOARD",
+            "discovery": "DESCUBRIMIENTO",
             "library": "BIBLIOTECA",
             "downloads": "DESCARGAS",
             "settings": "CONFIGURACIÓN",
@@ -198,6 +199,13 @@ Item {
             // Dashboard Extras
             "command_center": "CENTRO DE COMANDO",
             "operational": "OPERATIVO",
+
+            // Discovery Hub (The Vault)
+            "vault_title": "THE VAULT",
+            "vault_today": "UN DÍA COMO HOY",
+            "vault_gems": "GEMAS OCULTAS",
+            "vault_wall": "MURO CINEMÁTICO",
+            "vault_description": "DESCUBRIMIENTO",
             "welcome_back": "BIENVENIDO DE VUELTA",
             "ready_to_play": "¿Qué vamos a jugar hoy?",
             "top_platforms": "TUS PLATAFORMAS",
@@ -214,6 +222,8 @@ Item {
             "status_prefix": "ESTADO: ",
             "ready_caps": "LISTO",
             "waiting_caps": "ESPERANDO",
+            "cancel_caps": "CANCELAR",
+            "stop_caps": "DETENER",
 
             // Global/Technical
             "app_name": "EmuManager",
@@ -455,6 +465,8 @@ Item {
             "status_prefix": "STATUS: ",
             "ready_caps": "READY",
             "waiting_caps": "WAITING",
+            "cancel_caps": "CANCEL",
+            "stop_caps": "STOP",
 
             // Global/Technical
             "app_name": "EmuManager",

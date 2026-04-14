@@ -153,8 +153,8 @@ class LibraryController(QObject):
                 """, (game_id,))
                 row = cursor.fetchone()
                 if row:
-                    # Priorizar display_name si existe
-                    display_title = row[2] or row[3]
+                    # Priorizar título scrapeado (m.title) si existe sobre el nombre del archivo
+                    display_title = row[3] or row[2]
                     return {
                         "id": row[0],
                         "platform": row[1],
@@ -177,7 +177,26 @@ class LibraryController(QObject):
         """Detiene el scraping de forma segura."""
         if self._scrape_worker:
             self._scrape_worker.stop()
+        
+        try:
+            import mango_engine
+            mango_engine.stop_all_tasks()
+        except: pass
+        
         self.scrapeStatusChanged.emit("status_finishing_bg")
+
+    @Slot()
+    def stop_scanning(self):
+        """Detiene el escaneo de forma segura."""
+        if self._scan_worker:
+            self._scan_worker.stop()
+
+        try:
+            import mango_engine
+            mango_engine.stop_all_tasks()
+        except: pass
+            
+        self.scanStatusChanged.emit("status_finishing_bg")
 
     def get_random_cover(self, platform):
         """Retorna la ruta de una carátula 2D aleatoria para una plataforma."""
@@ -206,6 +225,7 @@ class LibraryController(QObject):
     def shutdown(self):
         """Cierre seguro de hilos."""
         if self._scan_thread and self._scan_thread.isRunning():
+            if self._scan_worker: self._scan_worker.stop()
             self._scan_thread.quit()
             self._scan_thread.wait()
         if self._scrape_thread and self._scrape_thread.isRunning():

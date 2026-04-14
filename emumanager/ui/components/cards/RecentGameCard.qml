@@ -33,7 +33,7 @@ GlassPanel {
     content: MouseArea {
         anchors.fill: parent
         hoverEnabled: true
-        onEntered: root.hovered = true
+        onEntered: { root.hovered = true; if (typeof window !== "undefined") window.prepareGameDetails(root.gameId); }
         onExited: root.hovered = false
         onClicked: root.detailsRequested(root.gameId)
         cursorShape: Qt.PointingHandCursor

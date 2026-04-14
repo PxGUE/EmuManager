@@ -18,7 +18,6 @@ python -m nuitka --onefile ^
     --enable-plugin=pyside6 ^
     --include-qt-plugins=qml,iconengines,imageformats ^
     --windows-console-mode=disable ^
-    --windows-uac-level=asInvoker ^
     --windows-icon-from-ico=emumanager/ui/assets/logo.ico ^
     --company-name="PxGUE" ^
     --product-name="EmuManager" ^
@@ -32,6 +31,11 @@ python -m nuitka --onefile ^
     --include-module=mango_engine ^
     ./emumanager/app.py
 
+
+REM Limpiar basura de compilación
+if exist release\Windows\Portable\app.build rmdir /s /q release\Windows\Portable\app.build
+if exist release\Windows\Portable\app.dist rmdir /s /q release\Windows\Portable\app.dist
+if exist release\Windows\Portable\app.onefile-build rmdir /s /q release\Windows\Portable\app.onefile-build
 
 popd
 echo ✅ Portable package complete. Check the 'release' directory.

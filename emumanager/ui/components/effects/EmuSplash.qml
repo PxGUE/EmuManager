@@ -59,32 +59,7 @@ Rectangle {
         }
     }
 
-    // --- 2. FLOATING PARTICLES (Depth Layer) ---
-    Repeater {
-        model: 15
-        delegate: Rectangle {
-            id: particle
-            property real startX: Math.random() * splashRoot.width
-            property int duration: 15000 + Math.random() * 20000
-            
-            x: startX; y: splashRoot.height + 10
-            width: 1.5; height: 1.5; radius: 0.75
-            color: Theme.white; opacity: 0.2
-            
-            SequentialAnimation on y {
-                loops: Animation.Infinite
-                running: true
-                NumberAnimation { from: splashRoot.height + 10; to: -20; duration: particle.duration; easing.type: Easing.Linear }
-                PauseAnimation { duration: Math.random() * 5000 }
-            }
-            
-            NumberAnimation on x {
-                loops: Animation.Infinite
-                from: particle.startX; to: particle.startX + (Math.random() > 0.5 ? 50 : -50)
-                duration: particle.duration; easing.type: Easing.InOutSine
-            }
-        }
-    }
+
 
     // --- 3. MAIN CONTENT ---
     ColumnLayout {

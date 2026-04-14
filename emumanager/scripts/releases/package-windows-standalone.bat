@@ -18,7 +18,6 @@ python -m nuitka --standalone ^
     --enable-plugin=pyside6 ^
     --include-qt-plugins=qml,iconengines,imageformats ^
     --windows-console-mode=disable ^
-    --windows-uac-level=asInvoker ^
     --windows-icon-from-ico=emumanager/ui/assets/logo.ico ^
     --company-name="PxGUE" ^
     --product-name="EmuManager" ^
@@ -38,6 +37,9 @@ if exist release\Windows\Standalone\app.dist (
     xcopy /E /I /Y release\Windows\Standalone\app.dist\* release\Windows\Standalone\
     rmdir /S /Q release\Windows\Standalone\app.dist
 )
+
+REM Limpiar basura de compilación
+if exist release\Windows\Standalone\app.build rmdir /s /q release\Windows\Standalone\app.build
 
 popd
 echo ✅ Standalone package complete. Check 'release/Windows/Standalone'.

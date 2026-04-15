@@ -4,6 +4,7 @@ import QtQuick.Layouts
 import QtQuick.Controls.Material
 import EmuManager.Controllers 1.0
 import "../components"
+import "../components/cards"
 
 Item {
     id: settingsRoot
@@ -87,6 +88,7 @@ Item {
         ListElement { key: "tab_general"; iconEmoji: "⚙️" }
         ListElement { key: "tab_library"; iconEmoji: "📚" }
         ListElement { key: "tab_services"; iconEmoji: "🌐" }
+        ListElement { key: "tab_extensions"; iconEmoji: "🔌" }
         ListElement { key: "tab_about"; iconEmoji: "ℹ️" }
     }
 
@@ -259,6 +261,44 @@ Item {
                     color: Theme.textMuted; opacity: 0.5; font.pixelSize: Theme.fontSmall; font.italic: true; width: parent.width; wrapMode: Text.WordWrap
                 }
                 Item { Layout.preferredHeight: 50; width: 1 } // Bottom padding
+            }
+        }
+
+        // --- PANEL 3: EXTENSIONS HUB ---
+        ScrollView {
+            id: extensionsScroll
+            Layout.fillWidth: true; Layout.fillHeight: true; clip: true
+            ScrollBar.vertical.policy: ScrollBar.AsNeeded
+            
+            Column {
+                width: extensionsScroll.availableWidth
+                spacing: Theme.spaceExtraLarge
+                leftPadding: 40; rightPadding: 40; topPadding: 40; bottomPadding: 60
+
+                Column {
+                    width: parent.width - 80
+                    spacing: 5
+                    Text { text: I18n.t.extensions_title; color: Theme.accentColor; font.pixelSize: Theme.fontSmall; font.bold: true; font.letterSpacing: 2 }
+                    Text { text: I18n.t.extensions_desc; color: Theme.textMuted; font.pixelSize: Theme.fontSmall; opacity: 0.6 }
+                }
+
+                Flow {
+                    width: parent.width - 80
+                    spacing: 20
+                    
+                    ExtensionCard {
+                        title: I18n.t.mai_title
+                        description: I18n.t.mai_desc
+                        icon: "✨"
+                        isReady: mainController.maiController.isReady
+                        isDownloading: mainController.maiController.isDownloading
+                        downloadProgress: mainController.maiController.downloadProgress
+                        onInstallClicked: mainController.maiController.start_download()
+                        onUninstallClicked: mainController.maiController.uninstall_model()
+                    }
+                }
+                
+                Item { Layout.fillHeight: true }
             }
         }
 

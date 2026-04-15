@@ -204,6 +204,35 @@ fn search_games(
 }
 
 #[pyfunction]
+fn scrape_wikipedia_text(py: Python<'_>, title: String) -> PyResult<Option<String>> {
+    use crate::scraping::scraper::scrapers::{wikipedia::WikipediaSource, ScrapeQuery, MetadataSource};
+    
+    let query = ScrapeQuery {
+        md5: "".to_string(),
+        crc: "".to_string(),
+        filename: title,
+        platform: "".to_string(),
+        system_id: "".to_string(),
+        media_dir: "".to_string(),
+        ss_user: "".to_string(),
+        ss_pass: "".to_string(),
+        dev_id: "".to_string(),
+        dev_pass: "".to_string(),
+        serial: "".to_string(),
+        gametdb_mode: "web".to_string(),
+    };
+    
+    let res = py.allow_threads(move || {
+        RUNTIME.block_on(async {
+            let source = WikipediaSource;
+            source.scrape(&query).await
+        })
+    });
+    
+    Ok(res.and_then(|m| m.description))
+}
+
+#[pyfunction]
 fn precharge_ecosystem(
     py: Python<'_>,
     db_path: String,
@@ -275,5 +304,6 @@ fn mango_engine(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(check_emulators_status, m)?)?;
     m.add_function(wrap_pyfunction!(stop_all_tasks, m)?)?;
     m.add_function(wrap_pyfunction!(reset_abort_signal, m)?)?;
+    m.add_function(wrap_pyfunction!(scrape_wikipedia_text, m)?)?;
     Ok(())
 }

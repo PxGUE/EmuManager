@@ -21,3 +21,6 @@ app.dist/
 *.build/
 *.dist/
 *.exe
+
+# Mango AI (MAI) Ecosystem
+/mai/

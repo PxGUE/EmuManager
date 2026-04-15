@@ -46,8 +46,10 @@ Item {
 
         ColumnLayout {
             id: vaultContent
-            width: discoveryRoot.width - 90
-            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.leftMargin: 45
+            anchors.rightMargin: 45
             spacing: 50
             
             Item { Layout.preferredHeight: 60 } // Top Padding
@@ -77,149 +79,133 @@ Item {
                 }
             }
 
-            // --- B. HERO SECTION: ON THIS DAY (THE SPOTLIGHT) ---
+            // --- B. HERO SECTION (DYNAMIC SPOTLIGHT) ---
             Item {
+                id: heroSection
                 Layout.fillWidth: true; Layout.preferredHeight: 320
-                visible: true
                 
-                property bool hasData: discoveryData.on_this_day && discoveryData.on_this_day.length > 0
-                property var heroGame: hasData ? discoveryData.on_this_day[0] : null
+                property bool isAnniversary: discoveryData.on_this_day && discoveryData.on_this_day.length > 0
+                property bool isGem: !isAnniversary && discoveryData.hidden_gems && discoveryData.hidden_gems.length > 0
+                
+                property var heroGame: {
+                    if (isAnniversary) return discoveryData.on_this_day[0];
+                    if (isGem) return discoveryData.hidden_gems[0];
+                    if (discoveryData.random_batch && discoveryData.random_batch.length > 0) return discoveryData.random_batch[0];
+                    return null;
+                }
+                
+                property string heroCategory: isAnniversary ? "EFEMÉRIDES" : (isGem ? "JOYA OCULTA" : "DESCUBRIMIENTO")
+                property color categoryColor: isAnniversary ? Theme.accentElectric : (isGem ? Theme.statusInfo : Theme.accentColor)
 
                 GlassPanel {
                     anchors.fill: parent; radius: 24; glassOpacity: 0.3
-                    borderColor: Theme.accentElectric; borderWidth: 2
+                    borderColor: heroSection.categoryColor; borderWidth: 2
                     
                     RowLayout {
                         anchors.fill: parent; anchors.margins: 30; spacing: 40
                         
-                        // Game Cover with Reflection
                         Item {
-                            Layout.preferredWidth: 180; Layout.fillHeight: true
+                            Layout.preferredWidth: heroSection.heroGame ? 180 : 120; Layout.fillHeight: true
+                            Layout.alignment: Qt.AlignVCenter
+                            
                             Rectangle {
-                                anchors.fill: parent; radius: 15; color: Theme.backgroundVoid; clip: true
+                                anchors.fill: parent; radius: 15; color: Theme.backgroundVoid; clip: true; 
+                                visible: heroSection.heroGame !== null
                                 Image {
-                                    anchors.fill: parent; fillMode: Image.PreserveAspectCrop
-                                    source: parent.parent.parent.parent.heroGame ? "file:///" + parent.parent.parent.parent.heroGame.cover_2d_path : ""
-                                    asynchronous: true; opacity: status === Image.Ready ? 1.0 : 0.2
+                                    anchors.fill: parent; 
+                                    source: heroSection.heroGame ? "file:///" + (heroSection.heroGame.cover_2d_path || heroSection.heroGame.cover) : ""; 
+                                    fillMode: Image.PreserveAspectCrop; asynchronous: true; opacity: status === Image.Ready ? 1.0 : 0.2
                                 }
-                                visible: parent.parent.parent.parent.hasData
                             }
-                            // Placeholder
-                            Text { 
-                                anchors.centerIn: parent; text: "📅"; font.pixelSize: 64; opacity: 0.2
-                                visible: !parent.parent.parent.parent.hasData
-                            }
+                            Text { anchors.centerIn: parent; text: "🎲"; font.pixelSize: 80; opacity: 0.15; visible: !heroSection.heroGame }
                         }
 
                         ColumnLayout {
-                            Layout.fillWidth: true; spacing: 15
+                            Layout.fillWidth: true; spacing: 15; Layout.alignment: Qt.AlignVCenter
+                            
                             Rectangle {
-                                width: 120; height: 24; radius:12; color: Theme.accentElectric
-                                Text { anchors.centerIn: parent; text: "EFEMÉRIDES"; color: Theme.white; font.pixelSize: 10; font.bold: true; font.letterSpacing: 2 }
+                                width: 140; height: 26; radius: 13; color: heroSection.categoryColor
+                                Text { anchors.centerIn: parent; text: heroSection.heroCategory; color: Theme.white; font.pixelSize: 10; font.bold: true; font.letterSpacing: 2 }
                             }
                             
                             Text { 
-                                text: parent.parent.parent.hasData ? parent.parent.parent.heroGame.title : "NADA QUE REPORTAR HOY"
+                                text: heroSection.heroGame ? heroSection.heroGame.title : "PREPARANDO MISIÓN..."
                                 color: Theme.textMain; font.pixelSize: 32; font.bold: true; elide: Text.ElideRight; Layout.fillWidth: true 
                             }
                             
                             Text { 
-                                text: parent.parent.parent.hasData ? 
-                                    "Un día como hoy en " + parent.parent.parent.heroGame.release_date.split("-")[0] + ", este clásico llegaba a las tiendas. ¿Listo para revivir la historia?" :
-                                    "No hay registros históricos en tu colección para la fecha de hoy. ¡Escanea más juegos para completar el calendario!"
-                                color: Theme.textMuted; font.pixelSize: 16; wrapMode: Text.WordWrap; Layout.fillWidth: true; opacity: 0.8
+                                id: descText
+                                text: {
+                                    if (!heroSection.heroGame) return "";
+                                    if (heroSection.isAnniversary) 
+                                        return "Un día como hoy en " + heroSection.heroGame.release_date.split("-")[0] + ", este clásico llegaba a las tiendas. ¿Listo para revivir la historia?";
+                                    
+                                    let d = heroSection.heroGame.description || "";
+                                    return d !== "" ? d : "Explora los rincones más profundos de tu biblioteca. Hoy te recomendamos redescubrir este título.";
+                                }
+                                color: Theme.textMuted
+                                font.pixelSize: 15
+                                wrapMode: Text.WordWrap
+                                Layout.fillWidth: true
+                                opacity: 0.8
+                                visible: heroSection.heroGame !== null
+                                maximumLineCount: 5
+                                elide: Text.ElideRight
+                                lineHeight: 1.2
+                            }
+
+                            Text {
+                                text: "No hemos encontrado nada especial hoy. Sigue escaneando y jugando para que M.A.N.G.O pueda darte mejores recomendaciones."; 
+                                color: Theme.textMuted; font.pixelSize: 14; Layout.fillWidth: true; visible: heroSection.heroGame === null
                             }
                             
-                            Item { Layout.fillHeight: true }
+                            Item { Layout.preferredHeight: 10 }
                             
-                            Button {
-                                text: parent.parent.parent.hasData ? "REVIVIR HISTORIA" : "IR A LA BIBLIOTECA"
-                                Layout.preferredWidth: 200; Layout.preferredHeight: 44
-                                Material.background: parent.parent.parent.hasData ? Theme.accentElectric : Theme.controlBackground
-                                onClicked: parent.parent.parent.hasData ? mainController.launch_game_by_id(parent.parent.parent.heroGame.id) : activeViewId = "libraryView"
+                            Button { 
+                                text: heroSection.heroGame ? (heroSection.isAnniversary ? "REVIVIR HISTORIA" : "JUGAR") : "IR A LA BIBLIOTECA"; 
+                                Layout.preferredWidth: 220; Layout.preferredHeight: 48; 
+                                Material.background: heroSection.categoryColor
+                                onClicked: heroSection.heroGame ? mainController.launch_game_by_id(heroSection.heroGame.id) : activeViewId = "libraryView" 
                             }
                         }
                     }
                 }
             }
 
-            // --- C. HORIZONTAL STRIP: HIDDEN GEMS ---
-            ColumnLayout {
-                Layout.fillWidth: true; spacing: 20
-                RowLayout {
-                    Layout.fillWidth: true
-                    Text { text: "RELIQUIAS OLVIDADAS"; color: Theme.textMain; font.pixelSize: 18; font.bold: true; font.letterSpacing: 2 }
-                    Rectangle { Layout.fillWidth: true; height: 1; color: Theme.cardBorder; opacity: 0.1; Layout.leftMargin: 20 }
-                }
-
-                Text {
-                    visible: !(discoveryData.hidden_gems && discoveryData.hidden_gems.length > 0)
-                    text: "M.A.N.G.O no ha encontrado joyas ocultas. Scrapea tu colección para analizar juegos nunca antes jugados."; 
-                    color: Theme.textDim; font.pixelSize: 14; opacity: 0.6
-                }
-
-                RowLayout {
-                    Layout.fillWidth: true; spacing: 20
-                    visible: discoveryData.hidden_gems && discoveryData.hidden_gems.length > 0
-                    Repeater {
-                        model: discoveryData.hidden_gems
-                        delegate: GlassPanel {
-                            width: 320; height: 120; radius: 20; glassOpacity: 0.4
-                            content: RowLayout {
-                                anchors.fill: parent; anchors.margins: 15; spacing: 15
-                                Rectangle {
-                                    width: 70; height: 90; radius: 8; color: Theme.backgroundVoid; clip: true
-                                    Image { anchors.fill: parent; source: modelData.cover_2d_path ? "file:///" + modelData.cover_2d_path : ""; fillMode: Image.PreserveAspectCrop }
-                                }
-                                ColumnLayout {
-                                    Layout.fillWidth: true; spacing: 2
-                                    Text { text: modelData.title; color: Theme.textMain; font.pixelSize: 14; font.bold: true; elide: Text.ElideRight; Layout.fillWidth: true }
-                                    Text { text: modelData.platform.toUpperCase(); color: Theme.colorForPlatform(modelData.platform); font.pixelSize: 9; font.bold: true }
-                                    Item { Layout.fillHeight: true }
-                                    Text { text: "0 HORAS JUGADAS"; color: Theme.accentElectric; font.pixelSize: 9; font.bold: true; opacity: 0.8 }
-                                }
-                            }
-                            MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: window.openGameDetails(modelData.id) }
-                        }
-                    }
-                }
-            }
-
-            // --- D. THE INFINITE VAULT WALL ---
+            // --- C. GAME MIX (STRICT GRID) ---
             ColumnLayout {
                 Layout.fillWidth: true; spacing: 20; Layout.bottomMargin: 100
-                RowLayout {
-                    Layout.fillWidth: true
-                    Text { text: "MOSAICO INFINITO"; color: Theme.textMain; font.pixelSize: 18; font.bold: true; font.letterSpacing: 2 }
-                    Rectangle { Layout.fillWidth: true; height: 1; color: Theme.cardBorder; opacity: 0.1; Layout.leftMargin: 20 }
+                
+                ColumnLayout {
+                    spacing: 4; Layout.fillWidth: true
+                    RowLayout {
+                        Layout.fillWidth: true
+                        Text { text: "GAME MIX"; color: Theme.textMain; font.pixelSize: 22; font.weight: Font.Black; font.letterSpacing: 2 }
+                        Rectangle { Layout.fillWidth: true; height: 1; color: Theme.accentElectric; opacity: 0.3; Layout.leftMargin: 20 }
+                    }
+                    Text { 
+                        text: "LISTA ALEATORIA DE 20 JUEGOS DE TODAS LAS CONSOLAS. CADA DÍA SE GENERARÁ UNA SELECCIÓN NUEVA."; 
+                        color: Theme.accentElectric; font.pixelSize: 10; font.bold: true; font.letterSpacing: 2; opacity: 0.7
+                    }
                 }
 
-                Flow {
-                    Layout.fillWidth: true; spacing: 12
+                GridLayout {
+                    id: mosaicGrid; Layout.fillWidth: true; 
+                    columns: Math.max(1, Math.floor(width / 122)); columnSpacing: 12; rowSpacing: 12
+                    
                     Repeater {
-                        model: discoveryData.random_batch
+                        model: discoveryData.random_batch ? discoveryData.random_batch.slice(0, 20) : []
                         delegate: Rectangle {
-                            id: wallItem
-                            width: 110; height: 160; radius: 10; color: Theme.backgroundVoid
+                            id: wallItem; Layout.fillWidth: true; Layout.preferredHeight: width * 1.45; radius: 10; color: Theme.backgroundVoid
                             border.color: wallMA.containsMouse ? Theme.accentElectric : Theme.transparent; border.width: 2
-                            clip: true
-                            scale: wallMA.containsMouse ? 1.05 : 1.0
-                            z: wallMA.containsMouse ? 10 : 1
-                            
-                            Behavior on scale { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
-                            Behavior on border.color { ColorAnimation { duration: 150 } }
+                            clip: true; scale: wallMA.containsMouse ? 1.05 : 1.0; z: wallMA.containsMouse ? 10 : 1
+                            Behavior on scale { NumberAnimation { duration: 150 } }
                             
                             Image { 
-                                anchors.fill: parent; source: modelData.cover ? "file:///" + modelData.cover : ""; 
-                                fillMode: Image.PreserveAspectCrop; asynchronous: true; 
-                                opacity: wallMA.containsMouse ? 1.0 : 0.5 
-                                Behavior on opacity { NumberAnimation { duration: 250 } }
+                                anchors.fill: parent; source: modelData.cover ? "file:///" + modelData.cover : ""; fillMode: Image.PreserveAspectCrop; asynchronous: true
+                                opacity: wallMA.containsMouse ? 1.0 : 0.6; Behavior on opacity { NumberAnimation { duration: 250 } }
                             }
-
-                            MouseArea { 
-                                id: wallMA; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor 
-                                onClicked: window.openGameDetails(modelData.id)
-                            }
+                            MouseArea { id: wallMA; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: window.openGameDetails(modelData.id) }
                         }
                     }
                 }

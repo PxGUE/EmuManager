@@ -68,7 +68,7 @@ Item {
         Image {
             id: frontCover
             anchors.fill: parent
-            source: sourceImage ? "file:///" + sourceImage : ""
+            source: sourceImage ? (sourceImage.indexOf(":") !== -1 && !sourceImage.startsWith("file://") ? "file:///" + sourceImage : sourceImage) : ""
             fillMode: Image.PreserveAspectFit
             asynchronous: true
             z: 2

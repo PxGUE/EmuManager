@@ -1,4 +1,5 @@
 from PySide6.QtCore import QObject, Signal, Slot, QThread
+import json
 from pathlib import Path
 from core.config import AppConfig
 from core.logger import EmuLog
@@ -87,7 +88,9 @@ class LibraryController(QObject):
         self.scrapeProgressChanged.emit(0.0)
 
         self._scrape_thread = QThread()
-        self._scrape_worker = ScrapeWorker(self.scanner)
+        # Pasamos el controlador de M.A.I para la fase de refinamiento automática
+        mai_ctrl = self.parent().mai_ctrl if self.parent() else None
+        self._scrape_worker = ScrapeWorker(self.scanner, mai_ctrl)
         self._scrape_worker.moveToThread(self._scrape_thread)
 
         self._scrape_thread.started.connect(self._scrape_worker.run)

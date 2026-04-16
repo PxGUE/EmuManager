@@ -6,33 +6,28 @@
 
   [![Status](https://img.shields.io/badge/Status-Ecosystem_v0.5.0-00f2ff?style=for-the-badge)](https://github.com/PxGUE/EmuManager)
   [![Engine](https://img.shields.io/badge/Engine-M.A.N.G.O-orange?style=for-the-badge)](https://github.com/PxGUE/EmuManager/tree/main/mango)
-  [![AI](https://img.shields.io/badge/AI-M.A.I_Active-blueviolet?style=for-the-badge)](https://github.com/PxGUE/EmuManager)
+  [![Local](https://img.shields.io/badge/Local--First-Guaranteed-green?style=for-the-badge)](https://github.com/PxGUE/EmuManager)
 </div>
 
 ---
 
 ## 🚀 Bienvenido a la Nueva Era de la Emulación
-**EmuManager** no es un gestor de ROMs convencional. Es un ecosistema completo diseñado para ser **espectacular al usar y sencillo de configurar**. Olvida las hojas de cálculo aburridas y los menús arcaicos. Entra en una experiencia cinematográfica impulsada por procesamiento nativo e inteligencia artificial.
+**EmuManager** no es un gestor de ROMs convencional. Es un ecosistema completo diseñado para ser **espectacular al usar y sencillo de configurar**. Olvida las hojas de cálculo aburridas y los menús arcaicos. Entra en una experiencia cinematográfica impulsada por procesamiento nativo de alto rendimiento.
 
 ### 🥭 M.A.N.G.O Engine (Core Nativo)
 El **Multithreaded Asynchronous Native Game Orchestrator** es el músculo de la aplicación. Escrito en **Rust**, garantiza un rendimiento inigualable:
-- **Lightning Scan**: Escaneo de miles de archivos en segundos.
-- **Native Scraping**: Ahora con búsqueda integrada en Wikipedia directamente en binario para una velocidad de red superior.
-- **Non-Blocking**: Arquitectura asíncrona total; tu interfaz nunca se congelará, sin importar el trabajo que haya de fondo.
-
-### 🧠 M.A.I (Mango Artificial Intelligence)
-Tu asistente personal de metadatos. Basado en modelos de lenguaje ligeros (SmolLM2-135M), M.A.I vive en tu PC y se encarga del trabajo sucio:
-- **Refinamiento Semántico**: Lee información técnica y la transforma en descripciones bellas y coherentes.
-- **Identificación de Joyas**: Encuentra datos sobre desarrolladores, géneros y fechas omitidas por los scrapers tradicionales.
-- **100% Local**: Tu privacidad es absoluta. M.A.I no envía ni un solo bit de información a la nube.
+- **Lightning Scan**: Escaneo de miles de archivos en segundos mediante procesamiento paralelo.
+- **Deep Scraping**: Sistema de obtención de metadatos multicanal (Wikipedia, ScreenScraper, GameTDB) integrado directamente en binario.
+- **Non-Blocking Architecture**: Arquitectura asíncrona total; tu interfaz nunca se detiene, sin importar la carga de trabajo de fondo.
+- **Privacy First**: Sin telemetría, sin cuentas obligatorias, sin rastreo. Tus datos son tuyos.
 
 ---
 
 ## 🎨 Filosofía "Nebula Kinetic"
-Cada píxel cuenta. EmuManager sigue una línea estética estricta:
+Cada píxel cuenta. EmuManager sigue una línea estética estricta y premium:
 - **Visual Excellence**: Efectos de **Glassmorphism**, desenfoques dinámicos (Acrylic) y paletas de colores armónicas.
-- **Zero-Hex Policy**: Todos los colores nacen de un sistema centralizado en el tema, permitiendo cambios de atmósfera globales instantáneos.
-- **Micro-interacciones**: Animaciones fluidas en cada botón, card y transición para que la app se sienta viva.
+- **Zero-Hex Policy**: Todos los colores nacen de un sistema centralizado de temas, permitiendo una coherencia visual absoluta.
+- **Micro-interacciones**: Animaciones fluidas en cada botón, card y transición para una experiencia táctil y profesional.
 
 ---
 
@@ -40,11 +35,10 @@ Cada píxel cuenta. EmuManager sigue una línea estética estricta:
 
 | Capa | Tecnología | Rol |
 | :--- | :--- | :--- |
-| **Frontend** | `QML` / `Qt Quick` | Interfaz de alta fidelidad, animaciones y fluidez. |
-| **Orquestador** | `Python 3.11` | Lógica de negocio, gestión de señales y bridge de IA. |
-| **Motor** | `Rust` / `PyO3` | Hashing, escaneo masivo, scraping nativo y multi-threading. |
-| **Inteligencia** | `Llama-cpp` | Procesamiento de lenguaje natural local (M.A.I). |
-| **Persistencia** | `SQLite3` | Base de datos robusta, escalable y totalmente local. |
+| **Frontend** | `QML` / `Qt Quick` | Interfaz de alta fidelidad, animaciones y fluidez premium. |
+| **Orquestador** | `Python 3.11` | Lógica de negocio, gestión de señales y flujo de trabajo. |
+| **Motor** | `Rust` / `PyO3` | Hashing, escaneo paralelo, scraping nativo y orquestación base. |
+| **Persistencia** | `SQLite3` | Base de datos robusta, escalable y 100% local. |
 
 ---
 

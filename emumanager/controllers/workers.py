@@ -90,10 +90,9 @@ class ScrapeWorker(QObject):
     progress = Signal(float)
     status = Signal(str)
 
-    def __init__(self, scanner_manager, mai_controller=None):
+    def __init__(self, scanner_manager):
         super().__init__()
         self.scanner = scanner_manager
-        self.mai = mai_controller
         self._is_active = True
 
     @Slot()
@@ -114,91 +113,10 @@ class ScrapeWorker(QObject):
                 is_active_check=lambda: self._is_active
             )
             
-            # --- FASE 2: REFINAMIENTO M.A.I (SÓLO SI ESTÁ INSTALADA) ---
-            if self._is_active and self.mai and self.mai.isReady and count > 0:
-                self.status.emit("mai_refining_phase")
-                EmuLog.info(f"M.A.I: Iniciando Fase de Refinamiento Inteligente para {count} juegos...")
-                
-                # Obtenemos los juegos que no tienen descripción (asumimos que son los recién scrapeados)
-                # Esta lógica se puede mejorar después para ser más precisa
-                try:
-                    from backend.database import DatabaseManager
-                    db = DatabaseManager() # Usamos una conexión fresca
-                    cursor = db.get_connection().cursor()
-                    cursor.execute("""
-                        SELECT g.id, g.display_name 
-                        FROM games g
-                        LEFT JOIN game_metadata m ON g.id = m.game_id
-                        WHERE m.description IS NULL OR m.description = ''
-                        LIMIT ?
-                    """, (count,))
-                    games_to_refine = cursor.fetchall()
-                    
-                    for i, (game_id, name) in enumerate(games_to_refine):
-                        if not self._is_active: break
-                        
-                        # Actualizamos progreso de fase 2
-                        current_p = 0.9 + (0.1 * (i / len(games_to_refine)))
-                        self.progress.emit(current_p)
-                        self.status.emit(f"mai_processing|{name}")
-                        
-                        # Llamamos a la lógica de refinamiento (que ya definimos en LibraryController)
-                        # Nota: Aquí podríamos refactorizar la lógica de refinamiento a una utilidad común
-                        # Por ahora, simulamos el flujo de extracción
-                        self._perform_mai_refinement(game_id, name)
-                        
-                except Exception as e:
-                    EmuLog.error(f"Fallo en fase de refinamiento M.A.I: {e}")
-
             self.finished.emit(count)
         except Exception as e:
             EmuLog.error(f"Error fatal en hilo de scraping: {e}")
             self.finished.emit(0)
-
-    def _perform_mai_refinement(self, game_id, title):
-        """Versión simplificada de la lógica de refinamiento para el worker usando el motor nativo."""
-        try:
-            import json
-            import mango_engine
-            
-            EmuLog.info(f"M.A.I (Brain): Analizando semánticamente '{title}'...")
-            
-            # Wikipedia Search (NATIVO - RUST)
-            EmuLog.info(f"M.A.I (Brain): Buscando contexto en Wikipedia para '{title}'...")
-            raw_text = mango_engine.scrape_wikipedia_text(title)
-            
-            if not raw_text:
-                EmuLog.debug(f"M.A.I: No se encontró contexto para '{title}', saltando.")
-                return
-            
-            EmuLog.info(f"M.A.I (Brain): Contexto obtenido. Extrayendo metadatos con IA...")
-            # IA Extraction
-            json_str = self.mai.extract_metadata(raw_text)
-            if not json_str:
-                EmuLog.warning(f"M.A.I: La IA no pudo interpretar el texto para '{title}'.")
-                return
-            
-            json_str = json_str.replace("```json", "").replace("```", "").strip()
-            data = json.loads(json_str)
-            
-            # DB Update
-            EmuLog.info(f"M.A.I (Brain): Guardando metadatos refinados para '{title}'...")
-            from backend.database import DatabaseManager
-            db = DatabaseManager()
-            with db.get_connection() as conn:
-                cursor = conn.cursor()
-                cursor.execute("""
-                    UPDATE game_metadata SET
-                        developer = ?, publisher = ?, release_date = ?, 
-                        genre = ?, description = ?
-                    WHERE game_id = ?
-                """, (
-                    data.get("developer"), data.get("publisher"), str(data.get("year")),
-                    data.get("genre"), data.get("description"), game_id
-                ))
-            EmuLog.info(f"M.A.I (Brain): ✓ Metadatos de '{title}' refinados con éxito.")
-        except Exception as e:
-            EmuLog.error(f"M.A.I (Error): Fallo al procesar '{title}': {e}")
 
 class CoreDownloadWorker(QObject):
     finished = Signal(str, str)

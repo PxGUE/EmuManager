@@ -170,7 +170,7 @@ Item {
                 
                 scale: mangoMA.pressed ? 0.98 : 1.0
                 y: (mangoMA.containsMouse && mangoMA.enabled) ? -3 : 0
-                opacity: (mainController.libraryCount > 0 || isScraping) ? 1.0 : 0.4
+                opacity: (mainController && mainController.libraryCount > 0 || isScraping) ? 1.0 : 0.4
                 
                 Behavior on color { ColorAnimation { duration: 200 } }
                 Behavior on border.color { ColorAnimation { duration: 200 } }
@@ -180,9 +180,9 @@ Item {
 
                 MouseArea { 
                     id: mangoMA; anchors.fill: parent; 
-                    hoverEnabled: (!isAnyOperationRunning || isScraping) && (mainController.libraryCount > 0)
-                    cursorShape: ((isAnyOperationRunning && !isScraping) || (mainController.libraryCount === 0 && !isScraping)) ? Qt.ArrowCursor : Qt.PointingHandCursor 
-                    enabled: (!isAnyOperationRunning || isScraping) && (mainController.libraryCount > 0)
+                    hoverEnabled: (!isAnyOperationRunning || isScraping) && (mainController && mainController.libraryCount > 0)
+                    cursorShape: ((isAnyOperationRunning && !isScraping) || (mainController && mainController.libraryCount === 0 && !isScraping)) ? Qt.ArrowCursor : Qt.PointingHandCursor 
+                    enabled: (!isAnyOperationRunning || isScraping) && (mainController && mainController.libraryCount > 0)
                     onClicked: {
                         if (isScraping) mainController.stop_scraping()
                         else mainController.start_scraping()

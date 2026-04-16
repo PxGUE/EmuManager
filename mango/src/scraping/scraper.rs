@@ -36,9 +36,6 @@ pub async fn scrape_game(
     // Prioridad 1: Local (Sostenibilidad Local-First)
     sources.push(Box::new(scrapers::local_nfo::LocalNfoSource));
 
-    // Prioridad 1.5: Wikipedia (Keyless universal metadata)
-    sources.push(Box::new(scrapers::wikipedia::WikipediaSource));
-
     // Prioridad 1.7: GameTDB (Especialista Nintendo/Sony + Serial)
     let plat_low = query.platform.to_lowercase();
     if plat_low == "wii" || plat_low == "gc" || plat_low == "gamecube" || plat_low == "nds" || plat_low == "ds" || plat_low == "3ds" ||
@@ -52,6 +49,9 @@ pub async fn scrape_game(
         sources.push(Box::new(scrapers::screenscraper::ScreenScraperSource));
     }
     
+    // Prioridad 2.5: Wikipedia (Keyless universal metadata - Fallback de texto)
+    sources.push(Box::new(scrapers::wikipedia::WikipediaSource));
+
     // Prioridad 3: Libretro (Rescate ante fallos)
     sources.push(Box::new(scrapers::libretro::LibretroSource));
 
@@ -77,11 +77,9 @@ pub async fn scrape_game(
             
             metadata_found = true;
             
-            // Si ya tenemos lo crítico (Título + Portada 2D), podemos considerar éxito
-            // No obstante, seguimos iterando si faltan datos como la descripción
-            if final_meta.cover_2d_path.is_some() && final_meta.description.is_some() {
-                break;
-            }
+            // Eliminamos el 'break' temprano para permitir que múltiples fuentes
+            // llenen todos los campos posibles (ej: GameTDB para título/fecha, 
+            // Wikipedia para descripción, ScreenScraper para portadas).
         }
     }
 

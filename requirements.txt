@@ -7,9 +7,7 @@ pypresence>=4.3.0
 # M.A.N.G.O (Rust Engine Bridge)
 maturin>=1.0.0
 
-# M.A.I (Artificial Intelligence)
-llama-cpp-python>=0.2.55
-huggingface-hub>=0.20.0
+
 
 # Utilities & Security
 keyring>=24.0.0

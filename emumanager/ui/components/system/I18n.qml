@@ -90,18 +90,7 @@ Item {
             "extracting_gametdb_db": "Extrayendo base de datos...",
             "gametdb_db_success": "Base de datos de GameTDB actualizada correctamente.",
 
-            // M.A.I & Extensiones
-            "extensions_title": "CENTRO DE EXTENSIONES",
-            "extensions_desc": "Potencia EmuManager con módulos adicionales de inteligencia artificial y utilidades avanzadas.",
-            "mai_title": "Mango AI (M.A.I)",
-            "mai_desc": "Experto en extracción de metadatos. Lee texto de cualquier fuente web y lo convierte en fichas técnicas perfectas.",
-            "mai_not_installed": "Motor no instalado",
-            "mai_ready": "Motor listo y en línea",
-            "mai_downloading": "Descargando motor inteligente...",
-            "mai_install_btn": "INSTALAR M.A.I",
-            "mai_uninstall_btn": "DESINSTALAR",
-            "mai_installed_success": "M.A.I ha sido instalado correctamente.",
-            "mai_installed_error": "Error al instalar M.A.I: %1",
+            "api_screenscraper": "API de ScreenScraper",
 
 
             "about_desc": "EmuManager es software <b>Libre y Gratuito</b>, impulsado por el motor nativo <b>M.A.N.G.O</b>. Diseñado con un enfoque <b>Local-First</b>, garantizamos que tu privacidad es absoluta: tus datos y biblioteca permanecen exclusivamente en tu equipo, sin telemetría ni dependencias de la nube.",
@@ -354,18 +343,7 @@ Item {
             "extracting_gametdb_db": "Extracting database...",
             "gametdb_db_success": "GameTDB database updated successfully.",
 
-            // M.A.I & Extensions
-            "extensions_title": "EXTENSIONS HUB",
-            "extensions_desc": "Enhance EmuManager with additional AI modules and advanced utilities.",
-            "mai_title": "Mango AI (M.A.I)",
-            "mai_desc": "Expert in metadata extraction. Reads text from any web source and converts it into perfect technical files.",
-            "mai_not_installed": "Engine not installed",
-            "mai_ready": "Engine ready and online",
-            "mai_downloading": "Downloading intelligent engine...",
-            "mai_install_btn": "INSTALL M.A.I",
-            "mai_uninstall_btn": "UNINSTALL",
-            "mai_installed_success": "M.A.I has been installed correctly.",
-            "mai_installed_error": "Error installing M.A.I: %1",
+            "api_screenscraper": "ScreenScraper API",
 
 
             "about_desc": "EmuManager is <b>Free and Open Source</b> software, powered by the <b>M.A.N.G.O</b> native engine. Built with a <b>Local-First</b> approach, we guarantee absolute privacy: your data and library stay exclusively on your device, with no telemetry or cloud dependencies.",

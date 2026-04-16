@@ -16,7 +16,7 @@ from controllers.lib_ctrl import LibraryController
 from controllers.orch_ctrl import OrchestraController
 from controllers.stats_ctrl import StatsController
 from controllers.config_ctrl import AppConfigController
-from controllers.mai_ctrl import MAIController
+# from controllers.mai_ctrl import MAIController (REMOVED)
 
 QML_IMPORT_NAME = "EmuManager.Controllers"
 QML_IMPORT_MAJOR_VERSION = 1
@@ -68,8 +68,8 @@ class MainController(QObject):
     @Property(QObject, constant=True)
     def libraryController(self): return self.lib_ctrl
 
-    @Property(QObject, constant=True)
-    def maiController(self): return self.mai_ctrl
+    # @Property(QObject, constant=True)
+    # def maiController(self): return self.mai_ctrl
 
     # --- ATRIBUTOS DE ESTADO ---
     _scan_progress = 0.0
@@ -117,7 +117,7 @@ class MainController(QObject):
         self.orch_ctrl = OrchestraController(self.db, self.libretro, self)
         self.stats_ctrl = StatsController(self.db, self)
         self.config_ctrl = AppConfigController(self)
-        self.mai_ctrl = MAIController(self)
+        # self.mai_ctrl = MAIController(self) (REMOVED)
         
         # 3. Temporizador de "Debounce" para señales de biblioteca
         from PySide6.QtCore import QTimer

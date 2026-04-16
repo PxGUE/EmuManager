@@ -46,7 +46,6 @@ impl MetadataSource for WikipediaSource {
             .query(&[
                 ("action", "query"),
                 ("prop", "extracts"),
-                ("exintro", "1"),
                 ("explaintext", "1"), // Muy importante: texto plano sin HTML
                 ("titles", page_title),
                 ("format", "json"),

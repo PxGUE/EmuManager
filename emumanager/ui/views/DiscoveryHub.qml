@@ -137,8 +137,11 @@ Item {
                                 id: descText
                                 text: {
                                     if (!heroSection.heroGame) return "";
-                                    if (heroSection.isAnniversary) 
-                                        return "Un día como hoy en " + heroSection.heroGame.release_date.split("-")[0] + ", este clásico llegaba a las tiendas. ¿Listo para revivir la historia?";
+                                    if (heroSection.isAnniversary) {
+                                        let date = heroSection.heroGame.release_date || "";
+                                        let year = date.includes("-") ? date.split("-")[0] : date;
+                                        return year !== "" ? "Un día como hoy en " + year + ", este clásico llegaba a las tiendas. ¿Listo para revivir la historia?" : "Un día como hoy celebrábamos el lanzamiento de este clásico.";
+                                    }
                                     
                                     let d = heroSection.heroGame.description || "";
                                     return d !== "" ? d : "Explora los rincones más profundos de tu biblioteca. Hoy te recomendamos redescubrir este título.";

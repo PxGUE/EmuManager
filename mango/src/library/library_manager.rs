@@ -786,7 +786,7 @@ pub fn scan_directory_to_db(
                 if (now_ms - last > 250) || processed == total_files {
                     if last_update_ms.compare_exchange(last, now_ms, Ordering::SeqCst, Ordering::Relaxed).is_ok() {
                         let progress = (processed as f64 / total_files as f64) * 0.9;
-                        let game_name = p.file_stem().and_then(|s| s.to_str()).unwrap_or("...").to_string();
+                        let game_name = p.file_stem().and_then(|s| s.to_str()).unwrap_or("Unknown").to_string();
 
                         // Actualización de UI protegida (Solo si no estamos abortando)
                         if !crate::ABORT_ALL.load(Ordering::Relaxed) {

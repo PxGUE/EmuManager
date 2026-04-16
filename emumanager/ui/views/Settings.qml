@@ -208,9 +208,29 @@ Item {
                             onEditingFinished: if(controller) controller.set_api_credential("screenscraper_user", text) 
                         }
                         TextField { 
-                            id: passField; placeholderText: I18n.t.password_placeholder; echoMode: TextInput.Password; width: parent.width; 
+                            id: passField; placeholderText: I18n.t.password_placeholder; 
+                            echoMode: showPassword ? TextInput.Normal : TextInput.Password; 
+                            width: parent.width; 
+                            rightPadding: 40
                             text: controller ? controller.get_api_credential("screenscraper_pass") : ""
                             onEditingFinished: if(controller) controller.set_api_credential("screenscraper_pass", text) 
+                            
+                            property bool showPassword: false
+
+                            Text {
+                                text: parent.showPassword ? "👁️" : "🤫"
+                                anchors.right: parent.right
+                                anchors.rightMargin: 12
+                                anchors.verticalCenter: parent.verticalCenter
+                                opacity: parent.activeFocus ? 0.9 : 0.4
+                                font.pixelSize: 14
+                                MouseArea {
+                                    anchors.fill: parent
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: parent.parent.showPassword = !parent.parent.showPassword
+                                }
+                                Behavior on opacity { NumberAnimation { duration: 200 } }
+                            }
                         }
                     }
                 }

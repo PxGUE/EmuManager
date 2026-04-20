@@ -9,7 +9,7 @@ class AppConfig:
     APP_NAME = "EmuManager"
     APP_VERSION = "0.5.0 - alpha"
     MANGO_VERSION = "0.3.0 - alpha"
-    IS_DEV_MODE = False 
+    IS_DEV_MODE = True 
     
     _is_frozen: bool = False
     _package_root: Path = None  

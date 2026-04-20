@@ -1,5 +1,5 @@
 use std::fs::File;
-use std::io::{Read, Seek, SeekFrom};
+use std::io::Read;
 use std::path::Path;
 
 /// Extrae el Serial/GameID de la cabecera de la ROM según la plataforma.

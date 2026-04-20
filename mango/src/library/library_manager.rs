@@ -763,7 +763,7 @@ pub fn scan_directory_to_db(
     let cancelled = Arc::new(std::sync::atomic::AtomicBool::new(false));
     let cancelled_inner = cancelled.clone();
     
-    let cc_arc = Arc::new(cancel_cb.as_ref().map(|cb| cb.clone_ref(py)));
+
 
     let start_time = std::time::Instant::now();
 

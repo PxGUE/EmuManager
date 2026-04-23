@@ -151,6 +151,13 @@ class AppConfig:
         config = cls._load_config(); config["discord_rpc_enabled"] = bool(enabled); cls._save_config()
 
     @classmethod
+    def get_deadzone(cls) -> float: return float(cls._load_config().get("deadzone", 0.5))
+
+    @classmethod
+    def set_deadzone(cls, val: float):
+        config = cls._load_config(); config["deadzone"] = float(val); cls._save_config()
+
+    @classmethod
     def get_discord_client_id(cls) -> str: return os.getenv("DISCORD_CLIENT_ID", "1225883652615147540")
 
     @classmethod

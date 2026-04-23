@@ -378,7 +378,7 @@ Item {
                     Layout.fillWidth: true; spacing: Theme.spaceLarge; Layout.preferredHeight: 110
                     Repeater {
                         model: [
-                            { icon: "🎲", label: "DESCUBRIMIENTO", desc: "Lanzar título aleatorio", value: "", action: function(){ mainController.launch_random_game() } }
+                            { icon: "🎲", label: I18n.t.discovery.toUpperCase(), desc: I18n.t.launch_random, value: "", action: function(){ mainController.launch_random_game() } }
                         ]
                         delegate: GlassPanel {
                             Layout.fillWidth: true; Layout.fillHeight: true; radius: Theme.radiusLarge; glassOpacity: Theme.glassOpacityMedium; borderColor: Theme.cardBorder

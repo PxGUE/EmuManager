@@ -310,6 +310,10 @@ class MainController(QObject):
     @Slot(int, result="QVariantMap")
     def get_game_details(self, i): return self.lib_ctrl.get_game_details(i)
 
+    @Slot(int, "QVariantMap", result=bool)
+    def update_game_metadata(self, i, d): return self.lib_ctrl.update_metadata(i, d)
+
+
     # Orquesta
     @Slot(str, str, str, result=bool)
     def install_emulator(self, e, u="", ex=""): return self.orch_ctrl.install_emulator(e, u, ex)

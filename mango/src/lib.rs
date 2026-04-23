@@ -9,6 +9,8 @@ pub mod scraping;
 pub mod library;
 pub mod sync;
 pub mod tools;
+pub mod chameleon;
+pub mod input;
 
 static RUNTIME: Lazy<Runtime> = Lazy::new(|| {
     Runtime::new().expect("M.A.N.G.O (Fatal): Error al inicializar el Tokio Runtime.")
@@ -243,6 +245,24 @@ fn precharge_ecosystem(
 }
 
 #[pyfunction]
+fn extract_accent_color(py: Python<'_>, image_path: String) -> PyResult<(u8, u8, u8)> {
+    py.allow_threads(move || {
+        chameleon::color_extractor::extract_vibrant_color(&image_path)
+            .map_err(|e| pyo3::exceptions::PyRuntimeError::new_err(e.to_string()))
+    })
+}
+
+#[pyfunction]
+fn start_gamepad_monitor(py: Python<'_>, callback: PyObject) {
+    input::gamepad::start_gamepad_monitor(callback, py);
+}
+
+#[pyfunction]
+fn stop_gamepad_monitor() {
+    input::gamepad::stop_gamepad_monitor();
+}
+
+#[pyfunction]
 fn check_system_installed(system_id: String) -> bool {
     emulation::orchestrator::is_system_package_installed(&system_id)
 }
@@ -305,5 +325,8 @@ fn mango_engine(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(stop_all_tasks, m)?)?;
     m.add_function(wrap_pyfunction!(reset_abort_signal, m)?)?;
     m.add_function(wrap_pyfunction!(scrape_wikipedia_text, m)?)?;
+    m.add_function(wrap_pyfunction!(extract_accent_color, m)?)?;
+    m.add_function(wrap_pyfunction!(start_gamepad_monitor, m)?)?;
+    m.add_function(wrap_pyfunction!(stop_gamepad_monitor, m)?)?;
     Ok(())
 }

@@ -218,7 +218,7 @@ Item {
                         spacing: 8; Layout.fillWidth: true; Layout.topMargin: 5
                         
                         Text {
-                            Layout.fillWidth: true; text: fullName.toUpperCase(); color: Theme.textMain
+                            Layout.fillWidth: true; text: (I18n.t[fullName] || fullName).toUpperCase(); color: Theme.textMain
                             font.pixelSize: 17; font.bold: true; horizontalAlignment: Text.AlignHCenter
                             font.letterSpacing: 3; wrapMode: Text.WordWrap; maximumLineCount: 2
                         }

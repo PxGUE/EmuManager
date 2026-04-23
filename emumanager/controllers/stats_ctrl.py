@@ -64,23 +64,23 @@ class StatsController(QObject):
             return self._cached_summary
 
         base_platforms = {
-            "snes": {"title": "SNES", "fullName": "Super Nintendo", "icon": "🕹️", "color": "platSnes"},
-            "nes": {"title": "NES", "fullName": "Nintendo Entertainment System", "icon": "📺", "color": "platNes"},
-            "gb": {"title": "GB", "fullName": "Game Boy", "icon": "📟", "color": "platGb"},
-            "gbc": {"title": "GBC", "fullName": "Game Boy Color", "icon": "🌈", "color": "platGbc"},
-            "gba": {"title": "GBA", "fullName": "Game Boy Advance", "icon": "📱", "color": "platGba"},
-            "n64": {"title": "N64", "fullName": "Nintendo 64", "icon": "🏰", "color": "platN64"},
-            "ps1": {"title": "PS1", "fullName": "PlayStation 1", "icon": "💿", "color": "platPs1"},
-            "ps2": {"title": "PS2", "fullName": "PlayStation 2", "icon": "🚀", "color": "platPs2"},
-            "psp": {"title": "PSP", "fullName": "PlayStation Portable", "icon": "🔋", "color": "platPsp"},
-            "ds": {"title": "DS", "fullName": "Nintendo DS", "icon": "📖", "color": "platDs"},
-            "gc": {"title": "GAMECUBE", "fullName": "Nintendo GameCube", "icon": "🧊", "color": "platGc"},
-            "wii": {"title": "WII", "fullName": "Nintendo Wii", "icon": "🎾", "color": "platWii"},
-            "megadrive": {"title": "MEGADRIVE", "fullName": "Sega Mega Drive", "icon": "🌀", "color": "platMegaDrive"},
-            "mastersystem": {"title": "MASTER SYSTEM", "fullName": "Sega Master System", "icon": "🕹️", "color": "platMegaDrive"},
-            "gamegear": {"title": "GAME GEAR", "fullName": "Sega Game Gear", "icon": "📺", "color": "platMegaDrive"},
-            "dreamcast": {"title": "DREAMCAST", "fullName": "Sega Dreamcast", "icon": "🍥", "color": "platDreamcast"},
-            "unknown": {"title": "OTROS", "fullName": "Misceláneo", "icon": "❓", "color": "platUnknown"}
+            "snes": {"title": "SNES", "fullName": "plat_snes_full", "icon": "🕹️", "color": "platSnes"},
+            "nes": {"title": "NES", "fullName": "plat_nes_full", "icon": "📺", "color": "platNes"},
+            "gb": {"title": "GB", "fullName": "plat_gb_full", "icon": "📟", "color": "platGb"},
+            "gbc": {"title": "GBC", "fullName": "plat_gbc_full", "icon": "🌈", "color": "platGbc"},
+            "gba": {"title": "GBA", "fullName": "plat_gba_full", "icon": "📱", "color": "platGba"},
+            "n64": {"title": "N64", "fullName": "plat_n64_full", "icon": "🏰", "color": "platN64"},
+            "ps1": {"title": "PS1", "fullName": "plat_ps1_full", "icon": "💿", "color": "platPs1"},
+            "ps2": {"title": "PS2", "fullName": "plat_ps2_full", "icon": "🚀", "color": "platPs2"},
+            "psp": {"title": "PSP", "fullName": "plat_psp_full", "icon": "🔋", "color": "platPsp"},
+            "ds": {"title": "DS", "fullName": "plat_ds_full", "icon": "📖", "color": "platDs"},
+            "gc": {"title": "GAMECUBE", "fullName": "plat_gc_full", "icon": "🧊", "color": "platGc"},
+            "wii": {"title": "WII", "fullName": "plat_wii_full", "icon": "🎾", "color": "platWii"},
+            "megadrive": {"title": "MEGADRIVE", "fullName": "plat_megadrive_full", "icon": "🌀", "color": "platMegaDrive"},
+            "mastersystem": {"title": "MASTER SYSTEM", "fullName": "plat_mastersystem_full", "icon": "🕹️", "color": "platMegaDrive"},
+            "gamegear": {"title": "GAME GEAR", "fullName": "plat_gamegear_full", "icon": "📺", "color": "platMegaDrive"},
+            "dreamcast": {"title": "DREAMCAST", "fullName": "plat_dreamcast_full", "icon": "🍥", "color": "platDreamcast"},
+            "unknown": {"title": "others", "fullName": "plat_miscellaneous_full", "icon": "❓", "color": "platUnknown"}
         }
         
         summary = []

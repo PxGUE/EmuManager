@@ -6,6 +6,7 @@ import "../components"
 import "../components/cards"
 import "../components/system"
 import "../components/effects"
+import "../components/items"
 
 Item {
     id: discoveryRoot
@@ -112,8 +113,8 @@ Item {
                                         Layout.preferredWidth: 180; Layout.fillHeight: true
                                         Rectangle {
                                             anchors.fill: parent; radius: 15; color: Theme.backgroundVoid; clip: true; 
-                                            Image {
-                                                anchors.fill: parent; source: heroSection.heroGame ? "file:///" + (heroSection.heroGame.cover_2d_path || heroSection.heroGame.cover) : ""; 
+                                            SmartImage {
+                                                anchors.fill: parent; source: heroSection.heroGame ? (heroSection.heroGame.cover_2d_path || heroSection.heroGame.cover || "") : ""; 
                                                 fillMode: Image.PreserveAspectCrop; asynchronous: true
                                             }
                                         }

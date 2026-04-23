@@ -142,6 +142,32 @@ Item {
         }
     }
 
+    // --- GAMEPAD INTEGRATION ---
+    Connections {
+        target: (activeViewId === "libraryView") ? gamepadController : null
+        function onButtonPressed(key) {
+            if (!libraryRoot.showGames) {
+                // Navegación en el carrusel de consolas
+                if (key === "LEFT") consoleCarousel.decrementCurrentIndex();
+                if (key === "RIGHT") consoleCarousel.incrementCurrentIndex();
+                if (key === "A") libraryRoot.selectConsole(consoleCarousel.model.get(consoleCarousel.currentIndex).platform, consoleCarousel.currentIndex, consoleCarousel.model.get(consoleCarousel.currentIndex).accentColor);
+            } else {
+                // Navegación en la galería de ROMs
+                if (key === "B") libraryRoot.showGames = false;
+                if (key === "A") {
+                    if (romGallery.currentIndex !== -1) {
+                        var game = romGallery.model.get(romGallery.currentIndex);
+                        if (game) mainController.launch_game_by_id(game.id || game.gameId);
+                    }
+                }
+                if (key === "UP") romGallery.moveCurrentIndexUp();
+                if (key === "DOWN") romGallery.moveCurrentIndexDown();
+                if (key === "LEFT") romGallery.moveCurrentIndexLeft();
+                if (key === "RIGHT") romGallery.moveCurrentIndexRight();
+            }
+        }
+    }
+
     ListModel { id: consoleModel }
 
     // --- CAROUSEL 3D ---
@@ -338,6 +364,13 @@ Item {
         clip: true; visible: showGames; opacity: showGames ? 1 : 0
         model: gamesModel
         cacheBuffer: 1000 
+        focus: true
+        highlightFollowsCurrentItem: true
+        highlight: Rectangle {
+            color: Qt.alpha(libraryRoot.activeAccentColor, 0.15)
+            radius: 12; border.color: libraryRoot.activeAccentColor; border.width: 2
+            z: 10
+        }
         
         delegate: Item {
             width: romGallery.cellWidth; height: romGallery.cellHeight

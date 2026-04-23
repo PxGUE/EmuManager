@@ -4,6 +4,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Controls.Material
 import Qt5Compat.GraphicalEffects
+import "../items"
 
 Item {
     id: romCardRoot
@@ -68,9 +69,9 @@ Item {
         height: 220; anchors.margins: Theme.spaceMedium
         
         // 1. CARÁTULA 3D REAL (Si existe)
-        Image {
+        SmartImage {
             anchors.centerIn: parent; width: 150; height: 200
-            source: has3d ? "file:///" + cover3d : ""
+            source: has3d ? cover3d : ""
             fillMode: Image.PreserveAspectFit
             visible: has3d
             asynchronous: true

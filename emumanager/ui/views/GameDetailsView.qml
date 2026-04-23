@@ -3,6 +3,8 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import Qt5Compat.GraphicalEffects
 import "../components"
+import "../components/dialogs"
+import "../components/items"
 
 Item {
     id: detailsRoot
@@ -14,13 +16,33 @@ Item {
     property string title: I18n.t.loading
     property string platform: ""
     property string developer: ""
+    property string publisher: ""
     property string genre: ""
     property string releaseDate: ""
     property string description: ""
     property string cover2d: ""
     property string cover3d: ""
     property bool loaded: false
-    property color accentColor: Theme.colorForPlatform(platform)
+    
+    // Identidad visual: Color de plataforma (fallback) + Color adaptativo (Chameleon)
+    property color platformColor: Theme.accentColor
+    property color accentColor: !chameleon.isDefault ? chameleon.adaptiveColor : platformColor
+    
+    onVisibleChanged: {
+        if (visible) {
+            if (cover2d !== "") {
+                chameleon.adaptTo(cover2d)
+            }
+        } else {
+            chameleon.reset()
+        }
+    }
+
+    onCover2dChanged: {
+        if (visible && cover2d !== "") {
+            chameleon.adaptTo(cover2d)
+        }
+    }
     
     property bool has3d: cover3d !== ""
     property bool has2d: cover2d !== ""
@@ -65,14 +87,14 @@ Item {
                 radius: 20
                 color: closeXBtn.hovered ? Theme.accentElectric : Theme.glassStrong
                 opacity: closeXBtn.hovered ? 1.0 : 0.7
-                border.color: closeXBtn.hovered ? "white" : Theme.glassStrong
+                border.color: closeXBtn.hovered ? Theme.white : Theme.glassStrong
                 border.width: 1
                 layer.enabled: true
-                layer.effect: DropShadow { radius: 8; color: "black"; opacity: 0.5 }
+                layer.effect: DropShadow { radius: 8; color: Theme.black; opacity: 0.5 }
             }
 
             contentItem: Text { 
-                text: "✕"; color: "white"; font.pixelSize: 16; font.weight: Font.Bold
+                text: "✕"; color: Theme.white; font.pixelSize: 16; font.weight: Font.Bold
                 horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
             }
         }
@@ -83,17 +105,16 @@ Item {
             // CABECERA: SHOWCASE 3D (Estilo Atmosférico Nebula)
             Rectangle {
                 Layout.fillWidth: true; Layout.preferredHeight: parent.height * 0.45
-                color: "#111"
+                color: Theme.backgroundVoid
                 clip: true
 
                 // 1. Fondo de Arte desenfocado (Atmósfera)
-                Image {
+                SmartImage {
                     id: bgArt
                     anchors.fill: parent
-                    source: detailsRoot.cover2d ? (detailsRoot.cover2d.indexOf(":") !== -1 && !detailsRoot.cover2d.startsWith("file://") ? "file:///" + detailsRoot.cover2d : detailsRoot.cover2d) : ""
+                    source: detailsRoot.cover2d
                     fillMode: Image.PreserveAspectCrop
                     opacity: 0.3
-                    sourceSize: Qt.size(400, 400) // Para optimizar
                     asynchronous: true
                 }
 
@@ -110,8 +131,8 @@ Item {
                     start: Qt.point(0, 0)
                     end: Qt.point(0, height)
                     gradient: Gradient {
-                        GradientStop { position: 0.0; color: "transparent" }
-                        GradientStop { position: 0.7; color: "transparent" }
+                        GradientStop { position: 0.0; color: Theme.transparent }
+                        GradientStop { position: 0.7; color: Theme.transparent }
                         GradientStop { position: 1.0; color: Theme.cardBackground }
                     }
                 }
@@ -165,6 +186,17 @@ Item {
                             lineHeight: 0.95
                             Behavior on font.pixelSize { NumberAnimation { duration: 200 } }
                         }
+                    }
+
+                    // BOTÓN EDITAR (Sutil)
+                    Button {
+                        id: editBtn
+                        Layout.preferredHeight: 30; Layout.preferredWidth: 100
+                        text: "✏️ " + I18n.t.edit_metadata
+                        flat: true; opacity: editBtn.hovered ? 1.0 : 0.6
+                        font.pixelSize: 10; font.bold: true
+                        Material.accent: accentColor
+                        onClicked: manualEditor.open()
                     }
 
                     // Metadata Row
@@ -251,5 +283,19 @@ Item {
                 }
             }
         }
+    }
+
+    ManualEditor {
+        id: manualEditor
+        gameId: detailsRoot.gameId
+        title: detailsRoot.title
+        platform: detailsRoot.platform
+        developer: detailsRoot.developer
+        publisher: detailsRoot.publisher
+        releaseDate: detailsRoot.releaseDate
+        genre: detailsRoot.genre
+        description: detailsRoot.description
+        cover2d: detailsRoot.cover2d
+        cover3d: detailsRoot.cover3d
     }
 }

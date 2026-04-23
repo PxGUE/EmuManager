@@ -88,6 +88,7 @@ Item {
         ListElement { key: "tab_general"; iconEmoji: "⚙️" }
         ListElement { key: "tab_library"; iconEmoji: "📚" }
         ListElement { key: "tab_services"; iconEmoji: "🌐" }
+        ListElement { key: "tab_input"; iconEmoji: "🎮" }
         ListElement { key: "tab_about"; iconEmoji: "ℹ️" }
     }
 
@@ -281,6 +282,101 @@ Item {
                 }
                 Item { Layout.preferredHeight: 50; width: 1 } // Bottom padding
             }
+        }
+
+        // --- PANEL 3: MANDO E INPUT ---
+        Column {
+            Layout.fillWidth: true; Layout.fillHeight: true; spacing: Theme.spaceLarge
+            Text { text: I18n.t.tab_input_settings.toUpperCase(); color: Theme.accentColor; font.pixelSize: Theme.fontSmall; font.bold: true; font.letterSpacing: 2 }
+            
+            // 1. LISTA DE DISPOSITIVOS
+            Rectangle {
+                width: parent.width; height: 120; radius: Theme.radiusMedium
+                color: Theme.cardBackground; border.color: Theme.cardBorder; border.width: Theme.borderThin
+                
+                ColumnLayout {
+                    anchors.fill: parent; anchors.margins: 20; spacing: 10
+                    Text { text: I18n.t.detected_devices; color: Theme.textMuted; font.pixelSize: 9; font.bold: true; font.letterSpacing: 1 }
+                    
+                    RowLayout {
+                        Layout.fillWidth: true; spacing: 15
+                        Rectangle {
+                            width: 48; height: 48; radius: 12; color: Theme.controlBackground
+                            Text { text: "🎮"; anchors.centerIn: parent; font.pixelSize: 24; opacity: gamepadController.get_devices().length > 0 ? 1.0 : 0.2 }
+                        }
+                        
+                        ColumnLayout {
+                            spacing: 2
+                            Text { 
+                                text: gamepadController.get_devices().length > 0 ? gamepadController.get_devices()[0] : I18n.t.no_devices_detected
+                                color: Theme.textMain; font.pixelSize: 16; font.bold: true 
+                            }
+                            Text { 
+                                text: gamepadController.get_devices().length > 0 ? "ESTADO: ACTIVO" : "ESTADO: ESPERANDO HARDWARE"
+                                color: gamepadController.get_devices().length > 0 ? Theme.statusSuccess : Theme.textMuted
+                                font.pixelSize: 10; font.bold: true; font.letterSpacing: 1
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 2. CONFIGURACIÓN TÉCNICA
+            SettingsItem {
+                width: parent.width
+                title: I18n.t.deadzone_label
+                description: "Ajusta el área muerta de los sticks analógicos para corregir el drift."
+                controlArea: RowLayout {
+                    spacing: 15
+                    Slider {
+                        id: deadzoneSlider
+                        from: 0.1; to: 0.9; value: gamepadController.get_deadzone()
+                        Layout.preferredWidth: 200
+                        onMoved: {
+                            gamepadController.set_deadzone(value)
+                        }
+                    }
+                    Text { text: Math.round(deadzoneSlider.value * 100) + "%"; color: Theme.accentColor; font.bold: true; font.pixelSize: 14 }
+                }
+            }
+
+            // 3. MONITOR DE INPUTS (PREMIUM UI)
+            Text { text: I18n.t.input_monitoring; color: Theme.accentColor; font.pixelSize: Theme.fontSmall; font.bold: true; font.letterSpacing: 2; topPadding: 15 }
+            
+            Rectangle {
+                width: parent.width; height: 100; radius: Theme.radiusMedium
+                color: Theme.panelBackground; opacity: 0.5; border.color: Theme.cardBorder; border.width: 1
+                
+                RowLayout {
+                    anchors.centerIn: parent; spacing: 20
+                    property string lastKey: ""
+                    
+                    Connections {
+                        target: gamepadController
+                        function onButtonPressed(key) {
+                            parent.lastKey = key
+                            keyAnim.restart()
+                        }
+                    }
+
+                    Rectangle {
+                        width: 60; height: 60; radius: 30; color: Theme.accentColor; opacity: 0.1
+                        Text { 
+                            id: keyDisplay; anchors.centerIn: parent; text: parent.parent.lastKey || "--"
+                            color: Theme.accentColor; font.pixelSize: 24; font.bold: true 
+                        }
+                        
+                        NumberAnimation { id: keyAnim; target: keyDisplay; property: "scale"; from: 1.5; to: 1.0; duration: 200; easing.type: Easing.OutBack }
+                    }
+                    
+                    Text { 
+                        text: I18n.t.gamepad_test_hint; 
+                        color: Theme.textMuted; font.pixelSize: 12; font.italic: true 
+                    }
+                }
+            }
+
+            Item { Layout.fillHeight: true }
         }
 
 

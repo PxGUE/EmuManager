@@ -172,6 +172,42 @@ class LibraryController(QObject):
             EmuLog.error(f"Error cargando detalle del juego {game_id}: {e}")
         return {}
 
+    @Slot(int, "QVariantMap")
+    def update_metadata(self, game_id, data):
+        """Actualiza manualmente los metadatos de un juego."""
+        try:
+            with self.db.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    UPDATE game_metadata SET
+                        title = ?,
+                        developer = ?,
+                        publisher = ?,
+                        release_date = ?,
+                        genre = ?,
+                        description = ?,
+                        cover_2d_path = ?,
+                        cover_3d_path = ?
+                    WHERE game_id = ?
+                """, (
+                    data.get("title"),
+                    data.get("developer"),
+                    data.get("publisher"),
+                    data.get("releaseDate"),
+                    data.get("genre"),
+                    data.get("description"),
+                    data.get("cover2d"),
+                    data.get("cover3d"),
+                    game_id
+                ))
+                conn.commit()
+            EmuLog.info(f"Metadatos actualizados manualmente para el juego {game_id}")
+            self.notify_library_changed()
+            return True
+        except Exception as e:
+            EmuLog.error(f"Error actualizando metadatos manuales para {game_id}: {e}")
+            return False
+
     @Slot()
     def stop_scraping(self):
         """Detiene el scraping de forma segura."""

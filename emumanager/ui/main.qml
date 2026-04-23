@@ -6,15 +6,24 @@ import Qt5Compat.GraphicalEffects
 import EmuManager.Controllers 1.0
 import "./components/system"
 import "./components/effects"
+import "./components/chameleon"
 import "views"
 
 ApplicationWindow {
     id: window
     visible: true
     width: 1280; height: 800
-    title: "EmuManager"
+    title: I18n.t.app_name
     
     flags: Qt.Window | Qt.FramelessWindowHint
+
+    // DEBUG CHAMELEON
+    Rectangle {
+        id: chameleonDebug
+        width: 10; height: 10; radius: 5
+        color: window.globalAccentColor
+        anchors.top: parent.top; anchors.right: parent.right; anchors.margins: 5; z: 9999
+    }
     
     // Forzamos padding cero para evitar huecos en los bordes
     leftPadding: 0; rightPadding: 0; topPadding: 0; bottomPadding: 0
@@ -98,12 +107,12 @@ ApplicationWindow {
                     signal clicked()
                     
                     width: 46; height: 40 // Medida estándar balanceada
-                    color: hoverHandler.hovered ? (isQuit ? Theme.statusDanger : btnRoot.hoverBg) : "transparent"
+                    color: hoverHandler.hovered ? (isQuit ? Theme.statusDanger : btnRoot.hoverBg) : Theme.transparent
                     
                     Text {
                         anchors.centerIn: parent
                         text: btnRoot.icon
-                        color: hoverHandler.hovered ? (isQuit ? "#ffffff" : btnRoot.hoverColor) : Theme.textMain
+                        color: hoverHandler.hovered ? (isQuit ? Theme.white : btnRoot.hoverColor) : Theme.textMain
                         font.pixelSize: btnRoot.pixelSize
                         opacity: hoverHandler.hovered ? 1.0 : 0.6
                         Behavior on color { ColorAnimation { duration: 150 } }
@@ -128,7 +137,7 @@ ApplicationWindow {
                         anchors.centerIn: parent; width: 10; height: 10
                         Rectangle {
                             visible: window.visibility !== Window.Maximized
-                            anchors.fill: parent; color: "transparent"; border.width: 1.2
+                            anchors.fill: parent; color: Theme.transparent; border.width: 1.2
                             border.color: maximizeBtn.hovered ? Theme.accentColor : Theme.textMain
                             opacity: maximizeBtn.hovered ? 1.0 : 0.6
                         }
@@ -137,7 +146,7 @@ ApplicationWindow {
                             anchors.fill: parent
                             Rectangle {
                                 width: 8; height: 8; anchors.right: parent.right; anchors.top: parent.top
-                                color: "transparent"; border.width: 1.2
+                                color: Theme.transparent; border.width: 1.2
                                 border.color: maximizeBtn.hovered ? Theme.accentColor : Theme.textMain
                             }
                             Rectangle {
@@ -195,7 +204,11 @@ ApplicationWindow {
     property string activeViewId: "dashboardView"
     property real startupProgress: 0.0
     property string startupStatus: I18n.t.initializing
-    property color globalAccentColor: Theme.accentColor
+    property color globalAccentColor: chameleon.adaptiveColor
+    
+    ChameleonEffect {
+        id: chameleon
+    }
 
     Connections {
         target: controller
@@ -213,6 +226,61 @@ ApplicationWindow {
             let tMessage = I18n.tp(message)
             window.pushNotification(tTitle, "M.A.N.G.O Sync", tMessage, color)
         }
+    }
+
+    // --- MOTOR DE NAVEGACIÓN POR MANDO (Gamepad) ---
+    Connections {
+        target: gamepadController
+        
+        function onConnected(name) {
+            window.pushNotification(I18n.t.gamepad_connected, "M.A.N.G.O Input", I18n.t.gamepad_connected_desc.arg(name), Theme.statusSuccess)
+        }
+
+        function onDisconnected() {
+            window.pushNotification(I18n.t.gamepad_disconnected, "M.A.N.G.O Input", "", Theme.statusDanger)
+        }
+
+        function onButtonPressed(key) {
+            if (!window.isLoaded) return;
+            
+            // 1. Navegación en Detalle de Juego (Modal)
+            if (globalDetails.visible) {
+                if (key === "B") globalDetails.closed();
+                if (key === "A") mainController.launch_game_by_id(globalDetails.gameId);
+                return;
+            }
+
+            // 2. Navegación General
+            switch(key) {
+                case "UP": 
+                    // Mover el foco o navegar hacia arriba
+                    break;
+                case "DOWN":
+                    // Mover el foco o navegar hacia abajo
+                    break;
+                case "LEFT":
+                    // Cambiar de vista en la sidebar si no estamos en una lista
+                    navigateSidebar(-1);
+                    break;
+                case "RIGHT":
+                    navigateSidebar(1);
+                    break;
+                case "START":
+                    activeViewId = "settingsView";
+                    break;
+                case "SELECT":
+                    activeViewId = "dashboardView";
+                    break;
+            }
+        }
+    }
+
+    function navigateSidebar(direction) {
+        var keys = ["dashboard", "discovery", "library", "downloads", "settings"];
+        var views = ["dashboardView", "discoveryView", "libraryView", "downloadsView", "settingsView"];
+        var currentIndex = views.indexOf(activeViewId);
+        var nextIndex = (currentIndex + direction + views.length) % views.length;
+        activeViewId = views[nextIndex];
     }
 
     Component.onCompleted: {
@@ -318,6 +386,7 @@ ApplicationWindow {
             globalDetails.title = data.title
             globalDetails.platform = data.platform
             globalDetails.developer = data.developer
+            globalDetails.publisher = data.publisher
             globalDetails.genre = data.genre
             globalDetails.releaseDate = data.release_date
             globalDetails.description = data.description
@@ -326,7 +395,7 @@ ApplicationWindow {
             
             // Identidad visual dinámica heredada de Theme.qml
             var plat = data.platform.toLowerCase()
-            globalDetails.accentColor = Theme.colorForPlatform(plat)
+            globalDetails.platformColor = Theme.colorForPlatform(plat)
             globalDetails.loaded = true
         }
     }
@@ -356,8 +425,8 @@ ApplicationWindow {
         function createToast() {
             if (component.status === Component.Ready) {
                 var props = {
-                    "title": title || "Notificación",
-                    "sender": sender || "Sistema",
+                    "title": title || I18n.t.notification_default,
+                    "sender": sender || I18n.t.system_sender,
                     "message": message || "",
                     "accentColor": color || Theme.accentColor,
                     "z": 1000

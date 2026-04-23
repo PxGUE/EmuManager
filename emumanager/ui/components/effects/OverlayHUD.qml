@@ -60,7 +60,7 @@ Item {
             // Sección: Tiempo Local
             ColumnLayout {
                 spacing: -2; Layout.preferredWidth: 120
-                Text { text: "LOCAL TIME"; color: Theme.textMuted; font.pixelSize: 8; font.bold: true; font.letterSpacing: 1 }
+                Text { text: I18n.t.local_time; color: Theme.textMuted; font.pixelSize: 8; font.bold: true; font.letterSpacing: 1 }
                 Text { text: hudRoot.localTime; color: Theme.textMain; font.pixelSize: 18; font.bold: true; font.family: "Monospace" }
             }
 
@@ -69,7 +69,7 @@ Item {
             // Sección: Sesión
             ColumnLayout {
                 spacing: -2; Layout.fillWidth: true; Layout.leftMargin: 20
-                Text { text: "SESSION DURATION"; color: Theme.textMuted; font.pixelSize: 8; font.bold: true; font.letterSpacing: 1; Layout.alignment: Qt.AlignCenter }
+                Text { text: I18n.t.session_duration; color: Theme.textMuted; font.pixelSize: 8; font.bold: true; font.letterSpacing: 1; Layout.alignment: Qt.AlignCenter }
                 Text { text: hudRoot.sessionTime; color: Theme.accentElectric; font.pixelSize: 22; font.bold: true; Layout.alignment: Qt.AlignCenter; font.family: "Monospace" }
             }
 
@@ -80,8 +80,8 @@ Item {
                 Layout.preferredWidth: 140; Layout.leftMargin: 20; spacing: 12
                 ColumnLayout {
                     spacing: -2
-                    Text { text: "M.A.N.G.O"; color: Theme.textMuted; font.pixelSize: 8; font.bold: true; font.letterSpacing: 1 }
-                    Text { text: "SHIELD ACTIVE"; color: Theme.statusSuccess; font.pixelSize: 10; font.bold: true }
+                    Text { text: I18n.t.engine_name; color: Theme.textMuted; font.pixelSize: 8; font.bold: true; font.letterSpacing: 1 }
+                    Text { text: I18n.t.shield_active; color: Theme.statusSuccess; font.pixelSize: 10; font.bold: true }
                 }
                 
                 // Icono de Escudo con pulso

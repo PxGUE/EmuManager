@@ -69,6 +69,8 @@ if not mango_found:
 # --- IMPORTACIONES DEL SISTEMA ---
 from controllers.main_ctrl import MainController
 from controllers.game_model import GameListModel # noqa: F401
+from controllers.chameleon_ctrl import ChameleonController # noqa: F401
+from controllers.gamepad_ctrl import GamepadController # noqa: F401
 
 def init_storage():
     """Asegura la estructura esencial de carpetas local."""
@@ -96,7 +98,15 @@ def main():
     
     # Registrar Controlador Global
     main_controller = MainController()
+    chameleon_controller = ChameleonController()
+    gamepad_controller = GamepadController()
+    
     engine.rootContext().setContextProperty("mainController", main_controller)
+    engine.rootContext().setContextProperty("chameleonController", chameleon_controller)
+    engine.rootContext().setContextProperty("gamepadController", gamepad_controller)
+    
+    # Iniciar monitoreo de mando
+    gamepad_controller.start_monitoring()
     
     qml_file = AppConfig.get_asset_path("ui", "main.qml")
     engine.load(str(qml_file))

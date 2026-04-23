@@ -183,7 +183,7 @@ Rectangle {
             Text {
                 id: welcomeTxt
                 anchors.centerIn: parent
-                text: "SYSTEM READY"
+                text: I18n.t.system_ready
                 color: Theme.textMain
                 font.pixelSize: 20; font.bold: true; font.letterSpacing: 18
                 opacity: introPhase ? 1 : 0

@@ -246,25 +246,22 @@ class OrchestraController(QObject):
     def launch_random_game(self):
         """Busca un juego aleatorio en la DB y lo lanza."""
         try:
-            with self.db.get_connection() as conn:
-                row = conn.execute("SELECT id FROM games ORDER BY RANDOM() LIMIT 1").fetchone()
-                if row:
-                    EmuLog.info(f"M.A.N.G.O: Lanzando selección aleatoria {row['id']}...")
-                    self.launch_game(row["id"])
-                else:
-                    EmuLog.warning("No hay juegos en la biblioteca para lanzar de forma aleatoria.")
-        except sqlite3.Error as e:
+            game_id = self.db.get_random_game()
+            if game_id:
+                EmuLog.info(f"M.A.N.G.O: Lanzando selección aleatoria {game_id}...")
+                self.launch_game(game_id)
+            else:
+                EmuLog.warning("No hay juegos en la biblioteca para lanzar de forma aleatoria.")
+        except Exception as e:
             EmuLog.error(f"Error al lanzar juego aleatorio: {e}")
 
     @Slot(int)
     def launch_game(self, game_id):
         """Lanza un juego de forma asíncrona."""
         try:
-            with self.db.get_connection() as conn:
-                row = conn.execute("SELECT file_path, platform FROM games WHERE id = ?", (game_id,)).fetchone()
-                if not row: return
-                game_path = row["file_path"]
-                platform_id = row["platform"].lower()
+            data = self.db.get_game_path_and_platform(game_id)
+            if not data: return
+            game_path, platform_id = data[0], data[1].lower()
             
             # Decidir Lanzador
             runner, core_path = self._resolve_runner(platform_id)
@@ -281,9 +278,7 @@ class OrchestraController(QObject):
             self._active_launches[game_id] = (thread, worker) # Persistencia para evitar GC
             
             # Actualizar Discord RPC
-            with self.db.get_connection() as conn:
-                game_data = conn.execute("SELECT display_name FROM games WHERE id = ?", (game_id,)).fetchone()
-                game_title = game_data["display_name"] if game_data else Path(game_path).stem
+            game_title = self.db.get_game_name(game_id) or Path(game_path).stem
             
             self.discord_rpc.set_enabled(AppConfig.get_discord_rpc_enabled())
             self.discord_rpc.update_presence(game_title, platform_id)
@@ -401,26 +396,18 @@ class OrchestraController(QObject):
             EmuLog.error(f"No se pudo abrir la carpeta: {e}")
 
     def _update_play_stats(self, game_id, duration):
-        if duration < 1: return
-        with self.db.get_connection() as conn:
-            conn.execute("""
-                INSERT INTO play_stats (game_id, play_time_seconds, last_played_at, play_count)
-                VALUES (?, ?, CURRENT_TIMESTAMP, 1)
-                ON CONFLICT(game_id) DO UPDATE SET
-                    play_time_seconds = play_time_seconds + excluded.play_time_seconds,
-                    last_played_at = CURRENT_TIMESTAMP,
-                    play_count = play_count + 1
-            """, (game_id, duration))
-            conn.commit()
-        self.notify_library_changed.emit()
+        try:
+            self.db.update_play_stats(game_id, duration)
+            self.notify_library_changed.emit()
+        except Exception as e:
+            EmuLog.error(f"Error actualizando stats de juego: {e}")
 
     def get_installed_tags(self):
         """Consulta la base de datos para obtener el historial de versiones."""
         try:
-            with self.db.get_connection() as conn:
-                rows = conn.execute("SELECT emu_id, installed_tag, remote_tag FROM emulator_status").fetchall()
-                return {row["emu_id"]: dict(row) for row in rows}
-        except sqlite3.Error as e:
+            status_list = self.db.get_emulator_status()
+            return {item["emu_id"]: item for item in status_list}
+        except Exception as e:
             EmuLog.error(f"Error consultando historial de versiones: {e}")
             return {}
 
@@ -430,19 +417,9 @@ class OrchestraController(QObject):
 
     def save_installed_tags_batch(self, tag_map):
         """Registra múltiples tags de instalación en una sola transacción."""
-        if not tag_map: return
         try:
-            with self.db.get_connection() as conn:
-                data = [(emu_id, tag) for emu_id, tag in tag_map.items()]
-                conn.executemany("""
-                    INSERT INTO emulator_status (emu_id, installed_tag, last_checked_at)
-                    VALUES (?, ?, CURRENT_TIMESTAMP)
-                    ON CONFLICT(emu_id) DO UPDATE SET
-                        installed_tag = excluded.installed_tag,
-                        last_checked_at = CURRENT_TIMESTAMP
-                """, data)
-                conn.commit()
-        except sqlite3.Error as e:
+            self.db.save_installed_tags_batch(tag_map)
+        except Exception as e:
             EmuLog.error(f"Error guardando lote de tags de instalación: {e}")
 
     def save_remote_tag(self, emu_id, tag):
@@ -451,19 +428,9 @@ class OrchestraController(QObject):
 
     def save_remote_tags_batch(self, tag_map):
         """Registra múltiples tags remotos en una sola transacción."""
-        if not tag_map: return
         try:
-            with self.db.get_connection() as conn:
-                data = [(emu_id, tag) for emu_id, tag in tag_map.items()]
-                conn.executemany("""
-                    INSERT INTO emulator_status (emu_id, remote_tag, last_checked_at)
-                    VALUES (?, ?, CURRENT_TIMESTAMP)
-                    ON CONFLICT(emu_id) DO UPDATE SET
-                        remote_tag = excluded.remote_tag,
-                        last_checked_at = CURRENT_TIMESTAMP
-                """, data)
-                conn.commit()
-        except sqlite3.Error as e:
+            self.db.save_remote_tags_batch(tag_map)
+        except Exception as e:
             EmuLog.error(f"Error guardando lote de tags remotos: {e}")
 
     def shutdown(self):

@@ -141,33 +141,7 @@ class LibraryController(QObject):
     @Slot(int, result="QVariantMap")
     def get_game_details(self, game_id):
         try:
-            with self.db.get_connection() as conn:
-                cursor = conn.cursor()
-                cursor.execute("""
-                    SELECT g.id, g.platform, g.display_name, m.title, m.developer, m.publisher, 
-                           m.release_date, m.genre, m.description, 
-                           m.cover_2d_path, m.cover_3d_path, m.is_favorite
-                    FROM games g
-                    LEFT JOIN game_metadata m ON g.id = m.game_id
-                    WHERE g.id = ?
-                """, (game_id,))
-                row = cursor.fetchone()
-                if row:
-                    # Priorizar título scrapeado (m.title) si existe sobre el nombre del archivo
-                    display_title = row[3] or row[2]
-                    return {
-                        "id": row[0],
-                        "platform": row[1],
-                        "title": display_title,
-                        "developer": row[4] or "Desconocido",
-                        "publisher": row[5] or "N/A",
-                        "release_date": row[6] or "----",
-                        "genre": row[7] or "Varios",
-                        "description": row[8] or "",
-                        "cover2d": (row[9] or "").replace("\\", "/"),
-                        "cover3d": (row[10] or "").replace("\\", "/"),
-                        "isFavorite": bool(row[11])
-                    }
+            return self.db.get_game_details(game_id)
         except Exception as e:
             EmuLog.error(f"Error cargando detalle del juego {game_id}: {e}")
         return {}
@@ -175,37 +149,14 @@ class LibraryController(QObject):
     @Slot(int, "QVariantMap")
     def update_metadata(self, game_id, data):
         """Actualiza manualmente los metadatos de un juego."""
+        EmuLog.info(f"M.A.N.G.O (Lib): Solicitada actualización manual para ID {game_id} con datos: {data}")
         try:
-            with self.db.get_connection() as conn:
-                cursor = conn.cursor()
-                cursor.execute("""
-                    UPDATE game_metadata SET
-                        title = ?,
-                        developer = ?,
-                        publisher = ?,
-                        release_date = ?,
-                        genre = ?,
-                        description = ?,
-                        cover_2d_path = ?,
-                        cover_3d_path = ?
-                    WHERE game_id = ?
-                """, (
-                    data.get("title"),
-                    data.get("developer"),
-                    data.get("publisher"),
-                    data.get("releaseDate"),
-                    data.get("genre"),
-                    data.get("description"),
-                    data.get("cover2d"),
-                    data.get("cover3d"),
-                    game_id
-                ))
-                conn.commit()
-            EmuLog.info(f"Metadatos actualizados manualmente para el juego {game_id}")
+            self.db.update_metadata(game_id, data)
+            EmuLog.info(f"Metadatos actualizados con éxito para el juego {game_id}")
             self.notify_library_changed()
             return True
         except Exception as e:
-            EmuLog.error(f"Error actualizando metadatos manuales para {game_id}: {e}")
+            EmuLog.error(f"Error actualizando metadatos para {game_id}: {e}")
             return False
 
     @Slot()

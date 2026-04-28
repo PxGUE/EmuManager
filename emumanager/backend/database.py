@@ -42,14 +42,6 @@ class DatabaseManager:
 
     def _create_tables(self, cursor: sqlite3.Cursor):
         """Crea las tablas básicas de la base de datos."""
-        # Tabla: scan_paths
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS scan_paths (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                path TEXT UNIQUE NOT NULL,
-                added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        ''')
 
         # Tabla: games (Identidad inmutable basada en hash del archivo)
         cursor.execute('''
@@ -183,13 +175,11 @@ class DatabaseManager:
             if not row:
                 return # El juego no existe en la base de datos
 
-            fallback_title = row["display_name"] or Path(row["file_path"]).stem
-            
             conn.execute('''
                 INSERT INTO game_metadata (game_id, is_favorite, title)
                 VALUES (?, ?, ?)
                 ON CONFLICT(game_id) DO UPDATE SET is_favorite = excluded.is_favorite
-            ''', (game_id, val, fallback_title))
+            ''', (game_id, val, ""))
             conn.commit()
 
     def get_game_titles_map(self, game_ids: list) -> dict:
@@ -204,3 +194,241 @@ class DatabaseManager:
             cursor = conn.cursor()
             cursor.execute(query, (json_ids,))
             return {row[0]: row[1] for row in cursor.fetchall() if row[1]}
+
+    # --- Métodos de Metadata y Detalles ---
+    def get_game_details(self, game_id: int) -> dict:
+        """Obtiene todos los detalles y metadatos de un juego específico."""
+        query = '''
+            SELECT g.id, g.platform, g.display_name, m.title, m.developer, m.publisher, 
+                   m.release_date, m.genre, m.description, 
+                   m.cover_2d_path, m.cover_3d_path, m.is_favorite
+            FROM games g
+            LEFT JOIN game_metadata m ON g.id = m.game_id
+            WHERE g.id = ?
+        '''
+        with self.get_connection() as conn:
+            row = conn.execute(query, (game_id,)).fetchone()
+            if not row:
+                return {}
+            
+            display_title = row[3] or row[2]
+            return {
+                "id": row[0],
+                "platform": row[1],
+                "title": display_title,
+                "developer": row[4] or "",
+                "publisher": row[5] or "",
+                "release_date": row[6] or "",
+                "genre": row[7] or "",
+                "description": row[8] or "",
+                "cover2d": (row[9] or "").replace("\\", "/"),
+                "cover3d": (row[10] or "").replace("\\", "/"),
+                "isFavorite": bool(row[11])
+            }
+
+    def update_metadata(self, game_id: int, data: dict):
+        """Actualiza manualmente los metadatos de un juego."""
+        query = """
+            INSERT INTO game_metadata (
+                game_id, title, developer, publisher, release_date, 
+                genre, description, cover_2d_path, cover_3d_path
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(game_id) DO UPDATE SET
+                title = excluded.title,
+                developer = excluded.developer,
+                publisher = excluded.publisher,
+                release_date = excluded.release_date,
+                genre = excluded.genre,
+                description = excluded.description,
+                cover_2d_path = excluded.cover_2d_path,
+                cover_3d_path = excluded.cover_3d_path
+        """
+        with self.get_connection() as conn:
+            conn.execute(query, (
+                game_id,
+                data.get("title", ""),
+                data.get("developer", ""),
+                data.get("publisher", ""),
+                data.get("releaseDate", ""),
+                data.get("genre", ""),
+                data.get("description", ""),
+                data.get("cover2d", ""),
+                data.get("cover3d", "")
+            ))
+            conn.commit()
+
+    # --- Métodos de Orchestrator (Lanzamiento y Random) ---
+    def get_random_game(self) -> Optional[int]:
+        """Obtiene un game_id aleatorio de toda la biblioteca."""
+        with self.get_connection() as conn:
+            row = conn.execute("SELECT id FROM games ORDER BY RANDOM() LIMIT 1").fetchone()
+            return row["id"] if row else None
+
+    def get_random_game_by_platform(self, platform: str) -> Optional[int]:
+        """Obtiene un game_id aleatorio de una plataforma específica."""
+        with self.get_connection() as conn:
+            row = conn.execute("SELECT id FROM games WHERE platform = ? ORDER BY RANDOM() LIMIT 1", (platform.lower(),)).fetchone()
+            return row["id"] if row else None
+
+    def get_game_path_and_platform(self, game_id: int) -> Optional[tuple]:
+        """Devuelve (file_path, platform) para un juego."""
+        with self.get_connection() as conn:
+            row = conn.execute("SELECT file_path, platform FROM games WHERE id = ?", (game_id,)).fetchone()
+            return (row["file_path"], row["platform"]) if row else None
+
+    def get_game_name(self, game_id: int) -> Optional[str]:
+        """Devuelve el nombre para mostrar de un juego."""
+        with self.get_connection() as conn:
+            row = conn.execute("SELECT display_name FROM games WHERE id = ?", (game_id,)).fetchone()
+            return row["display_name"] if row else None
+
+    # --- Métodos de Estadísticas (Play Stats) ---
+    def get_play_stats(self, query_type: str, limit: int = 6) -> list:
+        """Consultas genéricas de telemetría y datos recientes."""
+        if query_type == "recent":
+            query = """
+                SELECT g.id, g.platform, m.title, m.release_date, m.cover_2d_path
+                FROM play_stats ps
+                JOIN games g ON ps.game_id = g.id
+                LEFT JOIN game_metadata m ON g.id = m.game_id
+                ORDER BY ps.last_played_at DESC
+                LIMIT ?
+            """
+        elif query_type == "most_played":
+            query = """
+                SELECT g.id, g.platform, m.title, m.cover_2d_path
+                FROM play_stats ps
+                JOIN games g ON ps.game_id = g.id
+                LEFT JOIN game_metadata m ON g.id = m.game_id
+                ORDER BY ps.play_time_seconds DESC
+                LIMIT ?
+            """
+        elif query_type == "random_covers":
+            query = """
+                SELECT g.id, m.cover_2d_path as cover
+                FROM games g
+                JOIN game_metadata m ON g.id = m.game_id
+                WHERE m.cover_2d_path IS NOT NULL AND m.cover_2d_path != ''
+                ORDER BY RANDOM()
+                LIMIT ?
+            """
+        else:
+            return []
+
+        with self.get_connection() as conn:
+            return [dict(row) for row in conn.execute(query, (limit,)).fetchall()]
+
+    # --- Métodos de Sync / Emuladores ---
+    def get_emulator_status(self) -> list:
+        with self.get_connection() as conn:
+            return [dict(r) for r in conn.execute("SELECT emu_id, installed_tag, remote_tag FROM emulator_status").fetchall()]
+
+    def update_emulator_local_tag(self, emu_id: str, tag: str):
+        with self.get_connection() as conn:
+            conn.execute("""
+                INSERT INTO emulator_status (emu_id, installed_tag, last_checked_at)
+                VALUES (?, ?, CURRENT_TIMESTAMP)
+                ON CONFLICT(emu_id) DO UPDATE SET 
+                    installed_tag=excluded.installed_tag, 
+                    last_checked_at=CURRENT_TIMESTAMP
+            """, (emu_id, tag))
+            conn.commit()
+
+    def update_emulator_remote_tag(self, emu_id: str, tag: str):
+        with self.get_connection() as conn:
+            conn.execute("""
+                INSERT INTO emulator_status (emu_id, remote_tag, last_checked_at)
+                VALUES (?, ?, CURRENT_TIMESTAMP)
+                ON CONFLICT(emu_id) DO UPDATE SET 
+                    remote_tag=excluded.remote_tag, 
+                    last_checked_at=CURRENT_TIMESTAMP
+            """, (emu_id, tag))
+            conn.commit()
+
+    def get_discovery_data(self, today_md: str) -> dict:
+        """Genera el contenido para el 'Discovery Hub'."""
+        discovery = {
+            "on_this_day": [],
+            "hidden_gems": [],
+            "random_batch": []
+        }
+        
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            
+            # 1. On This Day (Mismo mes y día)
+            cursor.execute("""
+                SELECT g.id, g.platform, m.title, m.release_date, m.cover_2d_path
+                FROM games g
+                JOIN game_metadata m ON g.id = m.game_id
+                WHERE m.release_date LIKE ?
+                LIMIT 10
+            """, (f"%{today_md}",))
+            discovery["on_this_day"] = [dict(row) for row in cursor.fetchall()]
+            
+            # 2. Hidden Gems (0 Playtime, pero tienen metadata y buena descripción)
+            cursor.execute("""
+                SELECT g.id, g.platform, m.title, m.cover_2d_path
+                FROM games g
+                JOIN game_metadata m ON g.id = m.game_id
+                LEFT JOIN play_stats s ON g.id = s.game_id
+                WHERE (s.play_time_seconds IS NULL OR s.play_time_seconds = 0)
+                  AND m.description IS NOT NULL AND length(m.description) > 100
+                ORDER BY RANDOM()
+                LIMIT 10
+            """)
+            discovery["hidden_gems"] = [dict(row) for row in cursor.fetchall()]
+            
+            # 3. Random Visual Batch (Para el muro 3D)
+            cursor.execute("""
+                SELECT g.id, m.cover_2d_path as cover
+                FROM games g
+                JOIN game_metadata m ON g.id = m.game_id
+                WHERE m.cover_2d_path IS NOT NULL AND m.cover_2d_path != ''
+                ORDER BY RANDOM()
+                LIMIT 40
+            """)
+            discovery["random_batch"] = [dict(row) for row in cursor.fetchall()]
+            
+        return discovery
+
+    def update_play_stats(self, game_id: int, duration: int):
+        if duration < 1: return
+        with self.get_connection() as conn:
+            conn.execute("""
+                INSERT INTO play_stats (game_id, play_time_seconds, last_played_at, play_count)
+                VALUES (?, ?, CURRENT_TIMESTAMP, 1)
+                ON CONFLICT(game_id) DO UPDATE SET
+                    play_time_seconds = play_time_seconds + excluded.play_time_seconds,
+                    last_played_at = CURRENT_TIMESTAMP,
+                    play_count = play_count + 1
+            """, (game_id, duration))
+            conn.commit()
+
+    def save_installed_tags_batch(self, tag_map: dict):
+        if not tag_map: return
+        with self.get_connection() as conn:
+            data = [(emu_id, tag) for emu_id, tag in tag_map.items()]
+            conn.executemany("""
+                INSERT INTO emulator_status (emu_id, installed_tag, last_checked_at)
+                VALUES (?, ?, CURRENT_TIMESTAMP)
+                ON CONFLICT(emu_id) DO UPDATE SET
+                    installed_tag = excluded.installed_tag,
+                    last_checked_at = CURRENT_TIMESTAMP
+            """, data)
+            conn.commit()
+
+    def save_remote_tags_batch(self, tag_map: dict):
+        if not tag_map: return
+        with self.get_connection() as conn:
+            data = [(emu_id, tag) for emu_id, tag in tag_map.items()]
+            conn.executemany("""
+                INSERT INTO emulator_status (emu_id, remote_tag, last_checked_at)
+                VALUES (?, ?, CURRENT_TIMESTAMP)
+                ON CONFLICT(emu_id) DO UPDATE SET
+                    remote_tag = excluded.remote_tag,
+                    last_checked_at = CURRENT_TIMESTAMP
+            """, data)
+            conn.commit()
+
+

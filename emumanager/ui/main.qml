@@ -377,8 +377,9 @@ ApplicationWindow {
     }
 
     // --- 3. MOTOR DE DETALLES GLOBAL (Unificado) ---
-    function prepareGameDetails(gameId) {
-        if (!gameId || (globalDetails.gameId === gameId && globalDetails.loaded)) return;
+    function prepareGameDetails(gameId, force) {
+        if (!gameId) return;
+        if (!force && globalDetails.gameId === gameId && globalDetails.loaded) return;
         
         var data = mainController.get_game_details(gameId)
         if (data.id) {
@@ -401,7 +402,7 @@ ApplicationWindow {
     }
 
     function openGameDetails(gameId) {
-        prepareGameDetails(gameId)
+        prepareGameDetails(gameId, false)
         if (globalDetails.gameId === gameId) {
             globalDetails.visible = true
         }
@@ -411,6 +412,7 @@ ApplicationWindow {
         id: globalDetails
         visible: false
         onClosed: visible = false
+        onRefreshRequested: window.prepareGameDetails(globalDetails.gameId, true)
     }
 
     OverlayHUD {

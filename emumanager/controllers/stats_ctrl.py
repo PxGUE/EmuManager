@@ -147,51 +147,7 @@ class StatsController(QObject):
             import datetime
             now = datetime.datetime.now()
             today_md = now.strftime("-%m-%d") # Buscamos coincidencia de mes-día
-            
-            discovery = {
-                "on_this_day": [],
-                "hidden_gems": [],
-                "random_batch": []
-            }
-            
-            with self.db.get_connection() as conn:
-                cursor = conn.cursor()
-                
-                # 1. On This Day (Mismo mes y día)
-                cursor.execute("""
-                    SELECT g.id, g.platform, m.title, m.release_date, m.cover_2d_path
-                    FROM games g
-                    JOIN game_metadata m ON g.id = m.game_id
-                    WHERE m.release_date LIKE ?
-                    LIMIT 10
-                """, (f"%{today_md}",))
-                discovery["on_this_day"] = [dict(row) for row in cursor.fetchall()]
-                
-                # 2. Hidden Gems (0 Playtime, pero tienen metadata y buena descripción)
-                cursor.execute("""
-                    SELECT g.id, g.platform, m.title, m.cover_2d_path
-                    FROM games g
-                    JOIN game_metadata m ON g.id = m.game_id
-                    LEFT JOIN play_stats s ON g.id = s.game_id
-                    WHERE (s.play_time_seconds IS NULL OR s.play_time_seconds = 0)
-                      AND m.description IS NOT NULL AND length(m.description) > 100
-                    ORDER BY RANDOM()
-                    LIMIT 10
-                """)
-                discovery["hidden_gems"] = [dict(row) for row in cursor.fetchall()]
-                
-                # 3. Random Visual Batch (Para el muro 3D)
-                cursor.execute("""
-                    SELECT g.id, m.cover_2d_path as cover
-                    FROM games g
-                    JOIN game_metadata m ON g.id = m.game_id
-                    WHERE m.cover_2d_path IS NOT NULL AND m.cover_2d_path != ''
-                    ORDER BY RANDOM()
-                    LIMIT 40
-                """)
-                discovery["random_batch"] = [dict(row) for row in cursor.fetchall()]
-                
-            return discovery
+            return self.db.get_discovery_data(today_md)
         except Exception as e:
             EmuLog.error(f"Error generando datos de descubrimiento: {e}")
             return {"on_this_day": [], "hidden_gems": [], "random_batch": []}

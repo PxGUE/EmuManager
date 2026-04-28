@@ -196,7 +196,21 @@ Item {
                         flat: true; opacity: editBtn.hovered ? 1.0 : 0.6
                         font.pixelSize: 10; font.bold: true
                         Material.accent: accentColor
-                        onClicked: manualEditor.open()
+                        onClicked: {
+                            manualEditor.syncData({
+                                "gameId": detailsRoot.gameId,
+                                "title": detailsRoot.title,
+                                "platform": detailsRoot.platform,
+                                "developer": detailsRoot.developer,
+                                "publisher": detailsRoot.publisher,
+                                "releaseDate": detailsRoot.releaseDate,
+                                "genre": detailsRoot.genre,
+                                "description": detailsRoot.description,
+                                "cover2d": detailsRoot.cover2d,
+                                "cover3d": detailsRoot.cover3d
+                            })
+                            manualEditor.open()
+                        }
                     }
 
                     // Metadata Row
@@ -285,17 +299,10 @@ Item {
         }
     }
 
+    signal refreshRequested()
+
     ManualEditor {
         id: manualEditor
-        gameId: detailsRoot.gameId
-        title: detailsRoot.title
-        platform: detailsRoot.platform
-        developer: detailsRoot.developer
-        publisher: detailsRoot.publisher
-        releaseDate: detailsRoot.releaseDate
-        genre: detailsRoot.genre
-        description: detailsRoot.description
-        cover2d: detailsRoot.cover2d
-        cover3d: detailsRoot.cover3d
+        onMetadataUpdated: detailsRoot.refreshRequested()
     }
 }

@@ -628,8 +628,8 @@ fn upsert_game_record(tx: &rusqlite::Transaction<'_>, game: &ScannedGame) -> Res
 
     let _ = tx.execute(
         "INSERT OR IGNORE INTO game_metadata (game_id, title)
-         SELECT id, ? FROM games WHERE file_hash = ?",
-        [game.display_name.clone(), game.hash.clone()],
+         SELECT id, '' FROM games WHERE file_hash = ?",
+        [&game.hash],
     );
 
     Ok(changed)
